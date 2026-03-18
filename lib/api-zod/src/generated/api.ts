@@ -1210,7 +1210,7 @@ export const GetAdminBookingResponse = zod
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
-          paidAt: zod.string().nullish(),
+          paidAt: zod.date().nullish(),
         }),
       ),
     }),

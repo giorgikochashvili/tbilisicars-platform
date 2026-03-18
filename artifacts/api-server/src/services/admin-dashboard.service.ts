@@ -13,6 +13,7 @@ import {
   count,
   eq,
   gte,
+  inArray,
   isNull,
   lt,
   sum,
@@ -210,6 +211,7 @@ export async function getTodayActivity() {
           notDeleted,
           gte(bookingTable.pickupDatetime, todayStart),
           lt(bookingTable.pickupDatetime, todayEnd),
+          inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED"]),
         ),
       )
       .orderBy(asc(bookingTable.pickupDatetime)),

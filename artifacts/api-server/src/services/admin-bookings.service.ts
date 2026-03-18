@@ -287,10 +287,7 @@ export async function getAdminBooking(id: number) {
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt?.toISOString() ?? null,
     extras,
-    payments: payments.map((p) => ({
-      ...p,
-      paidAt: p.paidAt?.toISOString() ?? null,
-    })),
+    payments,
   };
 }
 

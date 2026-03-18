@@ -17,5 +17,5 @@ export interface AdminBookingPayment {
   /** @nullable */
   transactionId?: string | null;
   /** @nullable */
-  paidAt?: string | null;
+  paidAt?: Date | null;
 }
