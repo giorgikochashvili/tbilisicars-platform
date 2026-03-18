@@ -4,6 +4,7 @@ import {
   userTable,
   vehicleTable,
   vehicleModelTable,
+  brandTable,
   locationTable,
   partnerTable,
 } from "@workspace/db";
@@ -27,7 +28,7 @@ import { alias } from "drizzle-orm/pg-core";
 const pickupLoc = alias(locationTable, "pickup_loc");
 const dropoffLoc = alias(locationTable, "dropoff_loc");
 
-// ─── Shared select for booking row shape (used in today activity) ─────────────
+// ─── Shared select for booking row shape ─────────────────────────────────────
 
 const bookingRowSelect = {
   id: bookingTable.id,
@@ -51,13 +52,13 @@ const bookingRowSelect = {
   vehicleModelName: vehicleModelTable.name,
   pickupLocationId: pickupLoc.id,
   pickupLocationName: pickupLoc.name,
+  pickupLocationCity: pickupLoc.city,
   dropoffLocationId: dropoffLoc.id,
   dropoffLocationName: dropoffLoc.name,
+  dropoffLocationCity: dropoffLoc.city,
   partnerId: partnerTable.id,
   partnerName: partnerTable.name,
 } as const;
-
-// ─── Map flat join result to nested shape ─────────────────────────────────────
 
 type BookingRowFlat = {
   id: number;
@@ -81,8 +82,10 @@ type BookingRowFlat = {
   vehicleModelName: string | null;
   pickupLocationId: number;
   pickupLocationName: string;
+  pickupLocationCity: string | null;
   dropoffLocationId: number;
   dropoffLocationName: string;
+  dropoffLocationCity: string | null;
   partnerId: number | null;
   partnerName: string | null;
 };
@@ -120,10 +123,51 @@ function mapToBookingRow(row: BookingRowFlat) {
   };
 }
 
-// ─── Service: dashboard summary ────────────────────────────────────────────────
+// ─── Helper: resolve location IDs for a city ──────────────────────────────────
+//
+// Returns all location IDs where location.city = city (case-insensitive match).
+// Returns null if no city filter should be applied.
 
-export async function getDashboardSummary() {
+async function getCityLocationIds(city: string): Promise<number[]> {
+  const rows = await db
+    .select({ id: locationTable.id })
+    .from(locationTable)
+    .where(eq(locationTable.city, city));
+  return rows.map((r) => r.id);
+}
+
+// ─── Service: dashboard summary ────────────────────────────────────────────────
+//
+// When city is provided, only bookings where pickup OR dropoff location is
+// in that city are counted.
+
+export async function getDashboardSummary(city?: string) {
   const notDeleted = isNull(bookingTable.deletedAt);
+
+  let cityCondition: ReturnType<typeof or> | undefined;
+  if (city) {
+    const locIds = await getCityLocationIds(city);
+    if (locIds.length > 0) {
+      cityCondition = or(
+        inArray(bookingTable.pickupLocationId, locIds),
+        inArray(bookingTable.dropoffLocationId, locIds),
+      );
+    } else {
+      // No locations for this city — return all zeros
+      return {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        delivered: 0,
+        returned: 0,
+        canceled: 0,
+        noShow: 0,
+        totalRevenue: "0",
+      };
+    }
+  }
+
+  const baseWhere = cityCondition ? and(notDeleted, cityCondition) : notDeleted;
 
   const [
     totalRes,
@@ -135,35 +179,17 @@ export async function getDashboardSummary() {
     noShowRes,
     revenueRes,
   ] = await Promise.all([
-    db.select({ c: count() }).from(bookingTable).where(notDeleted),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "PENDING"))),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "CONFIRMED"))),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "DELIVERED"))),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "RETURNED"))),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "CANCELED"))),
-    db
-      .select({ c: count() })
-      .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "NO_SHOW"))),
+    db.select({ c: count() }).from(bookingTable).where(baseWhere),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "PENDING"))),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "CONFIRMED"))),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "DELIVERED"))),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "RETURNED"))),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "CANCELED"))),
+    db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "NO_SHOW"))),
     db
       .select({ revenue: sum(bookingTable.totalAmount) })
       .from(bookingTable)
-      .where(and(notDeleted, eq(bookingTable.status, "RETURNED"))),
+      .where(and(baseWhere, eq(bookingTable.status, "RETURNED"))),
   ]);
 
   return {
@@ -179,8 +205,12 @@ export async function getDashboardSummary() {
 }
 
 // ─── Service: today activity ───────────────────────────────────────────────────
+//
+// When city is provided:
+//   - pickups filtered to bookings where pickupLocation.city = city
+//   - dropoffs filtered to bookings where dropoffLocation.city = city
 
-export async function getTodayActivity() {
+export async function getTodayActivity(city?: string) {
   const now = new Date();
   const todayStart = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -191,16 +221,26 @@ export async function getTodayActivity() {
 
   const notDeleted = isNull(bookingTable.deletedAt);
 
+  let pickupCityCondition: ReturnType<typeof inArray> | undefined;
+  let dropoffCityCondition: ReturnType<typeof inArray> | undefined;
+
+  if (city) {
+    const locIds = await getCityLocationIds(city);
+    if (locIds.length > 0) {
+      pickupCityCondition = inArray(bookingTable.pickupLocationId, locIds);
+      dropoffCityCondition = inArray(bookingTable.dropoffLocationId, locIds);
+    } else {
+      return { pickups: [], dropoffs: [] };
+    }
+  }
+
   function joinedSelect() {
     return db
       .select(bookingRowSelect)
       .from(bookingTable)
       .innerJoin(userTable, eq(bookingTable.userId, userTable.id))
       .leftJoin(vehicleTable, eq(bookingTable.vehicleId, vehicleTable.id))
-      .leftJoin(
-        vehicleModelTable,
-        eq(vehicleTable.vehicleModelId, vehicleModelTable.id),
-      )
+      .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
       .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
       .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
       .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id));
@@ -214,6 +254,7 @@ export async function getTodayActivity() {
           gte(bookingTable.pickupDatetime, todayStart),
           lt(bookingTable.pickupDatetime, todayEnd),
           inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED"]),
+          ...(pickupCityCondition ? [pickupCityCondition] : []),
         ),
       )
       .orderBy(asc(bookingTable.pickupDatetime)),
@@ -224,6 +265,7 @@ export async function getTodayActivity() {
           gte(bookingTable.dropoffDatetime, todayStart),
           lt(bookingTable.dropoffDatetime, todayEnd),
           eq(bookingTable.status, "DELIVERED"),
+          ...(dropoffCityCondition ? [dropoffCityCondition] : []),
         ),
       )
       .orderBy(asc(bookingTable.dropoffDatetime)),
@@ -236,38 +278,46 @@ export async function getTodayActivity() {
 }
 
 // ─── Service: fleet snapshot ───────────────────────────────────────────────────
+//
+// When city is provided, only counts vehicles whose current locationId
+// belongs to a location in that city.
 
-export async function getFleetSnapshot() {
+export async function getFleetSnapshot(city?: string) {
+  let vehicleIds: number[] | undefined;
+
+  if (city) {
+    const locIds = await getCityLocationIds(city);
+    if (locIds.length > 0) {
+      const rows = await db
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(inArray(vehicleTable.locationId, locIds));
+      vehicleIds = rows.map((r) => r.id);
+      if (vehicleIds.length === 0) {
+        return { available: 0, rented: 0, maintenance: 0, reserved: 0, inactive: 0 };
+      }
+    } else {
+      return { available: 0, rented: 0, maintenance: 0, reserved: 0, inactive: 0 };
+    }
+  }
+
+  const where = vehicleIds ? inArray(vehicleTable.id, vehicleIds) : undefined;
+
   const rows = await db
     .select({ status: vehicleTable.status, c: count() })
     .from(vehicleTable)
+    .where(where)
     .groupBy(vehicleTable.status);
 
-  const snapshot = {
-    available: 0,
-    rented: 0,
-    maintenance: 0,
-    reserved: 0,
-    inactive: 0,
-  };
+  const snapshot = { available: 0, rented: 0, maintenance: 0, reserved: 0, inactive: 0 };
 
   for (const row of rows) {
     switch (row.status) {
-      case "AVAILABLE":
-        snapshot.available = row.c;
-        break;
-      case "RENTED":
-        snapshot.rented = row.c;
-        break;
-      case "MAINTENANCE":
-        snapshot.maintenance = row.c;
-        break;
-      case "RESERVED":
-        snapshot.reserved = row.c;
-        break;
-      case "INACTIVE":
-        snapshot.inactive = row.c;
-        break;
+      case "AVAILABLE":   snapshot.available = row.c;   break;
+      case "RENTED":      snapshot.rented = row.c;      break;
+      case "MAINTENANCE": snapshot.maintenance = row.c; break;
+      case "RESERVED":    snapshot.reserved = row.c;    break;
+      case "INACTIVE":    snapshot.inactive = row.c;    break;
     }
   }
 
@@ -275,8 +325,20 @@ export async function getFleetSnapshot() {
 }
 
 // ─── Service: fleet calendar ───────────────────────────────────────────────────
+//
+// Returns vehicles with their bookings for the given date range.
+// When city is provided, only vehicles whose current location is in that city.
 
-export async function getFleetCalendar(startDate: Date, endDate: Date) {
+export async function getFleetCalendar(startDate: Date, endDate: Date, city?: string) {
+  let locationFilter = undefined;
+
+  if (city) {
+    const locIds = await getCityLocationIds(city);
+    if (locIds.length > 0) {
+      locationFilter = inArray(vehicleTable.locationId, locIds);
+    }
+  }
+
   const vehicles = await db
     .select({
       id: vehicleTable.id,
@@ -284,10 +346,23 @@ export async function getFleetCalendar(startDate: Date, endDate: Date) {
       status: vehicleTable.status,
       locationId: vehicleTable.locationId,
       modelName: vehicleModelTable.name,
+      brandName: brandTable.name,
     })
     .from(vehicleTable)
     .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+    .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+    .where(locationFilter)
     .orderBy(asc(vehicleTable.id));
+
+  const vehicleIds = vehicles.map((v) => v.id);
+
+  if (vehicleIds.length === 0) {
+    return {
+      dateFrom: startDate.toISOString().split("T")[0],
+      dateTo: endDate.toISOString().split("T")[0],
+      vehicles: [],
+    };
+  }
 
   const bookings = await db
     .select({
@@ -297,26 +372,16 @@ export async function getFleetCalendar(startDate: Date, endDate: Date) {
       contactFullName: bookingTable.contactFullName,
       pickupDatetime: bookingTable.pickupDatetime,
       dropoffDatetime: bookingTable.dropoffDatetime,
-      totalAmount: bookingTable.totalAmount,
-      currency: bookingTable.currency,
     })
     .from(bookingTable)
     .where(
       and(
         isNull(bookingTable.deletedAt),
+        inArray(bookingTable.vehicleId, vehicleIds),
         or(
-          and(
-            gte(bookingTable.pickupDatetime, startDate),
-            lte(bookingTable.pickupDatetime, endDate),
-          ),
-          and(
-            gte(bookingTable.dropoffDatetime, startDate),
-            lte(bookingTable.dropoffDatetime, endDate),
-          ),
-          and(
-            lte(bookingTable.pickupDatetime, startDate),
-            gte(bookingTable.dropoffDatetime, endDate),
-          ),
+          and(gte(bookingTable.pickupDatetime, startDate), lte(bookingTable.pickupDatetime, endDate)),
+          and(gte(bookingTable.dropoffDatetime, startDate), lte(bookingTable.dropoffDatetime, endDate)),
+          and(lte(bookingTable.pickupDatetime, startDate), gte(bookingTable.dropoffDatetime, endDate)),
         ),
       ),
     );
@@ -330,8 +395,22 @@ export async function getFleetCalendar(startDate: Date, endDate: Date) {
     bookingsByVehicle.get(booking.vehicleId)!.push(booking);
   }
 
-  return vehicles.map((v) => ({
-    ...v,
-    bookings: bookingsByVehicle.get(v.id) ?? [],
-  }));
+  return {
+    dateFrom: startDate.toISOString().split("T")[0],
+    dateTo: endDate.toISOString().split("T")[0],
+    vehicles: vehicles.map((v) => ({
+      vehicleId: v.id,
+      licensePlate: v.licensePlate,
+      modelName: v.modelName,
+      brandName: v.brandName,
+      status: v.status,
+      bookings: (bookingsByVehicle.get(v.id) ?? []).map((b) => ({
+        id: b.id,
+        status: b.status,
+        customerName: b.contactFullName,
+        pickupDatetime: b.pickupDatetime,
+        dropoffDatetime: b.dropoffDatetime,
+      })),
+    })),
+  };
 }

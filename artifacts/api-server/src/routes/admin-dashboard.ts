@@ -3,7 +3,6 @@ import {
   GetAdminDashboardSummaryResponse,
   GetAdminDashboardTodayResponse,
   GetAdminFleetSnapshotResponse,
-  GetAdminFleetCalendarQueryParams,
   GetAdminFleetCalendarResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
@@ -16,25 +15,69 @@ import {
 
 const router = Router();
 
-router.get("/admin/dashboard/summary", requireAdmin, async (_req, res) => {
-  const summary = await getDashboardSummary();
+const VALID_CITIES = ["Tbilisi", "Kutaisi", "Batumi"] as const;
+
+function parseCity(raw: unknown): string | undefined {
+  if (typeof raw === "string" && (VALID_CITIES as readonly string[]).includes(raw)) {
+    return raw;
+  }
+  return undefined;
+}
+
+function parseDateParam(raw: unknown): Date | null {
+  if (typeof raw !== "string") return null;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+router.get("/admin/dashboard/summary", requireAdmin, async (req, res) => {
+  const city = parseCity(req.query.city);
+  const summary = await getDashboardSummary(city);
   res.json(GetAdminDashboardSummaryResponse.parse(summary));
 });
 
-router.get("/admin/dashboard/today", requireAdmin, async (_req, res) => {
-  const activity = await getTodayActivity();
+router.get("/admin/dashboard/today", requireAdmin, async (req, res) => {
+  const city = parseCity(req.query.city);
+  const activity = await getTodayActivity(city);
   res.json(GetAdminDashboardTodayResponse.parse(activity));
 });
 
-router.get("/admin/dashboard/fleet-snapshot", requireAdmin, async (_req, res) => {
-  const snapshot = await getFleetSnapshot();
+router.get("/admin/dashboard/fleet-snapshot", requireAdmin, async (req, res) => {
+  const city = parseCity(req.query.city);
+  const snapshot = await getFleetSnapshot(city);
   res.json(GetAdminFleetSnapshotResponse.parse(snapshot));
 });
 
 router.get("/admin/dashboard/fleet-calendar", requireAdmin, async (req, res) => {
-  const { dateFrom, dateTo } = GetAdminFleetCalendarQueryParams.parse(req.query);
-  const data = await getFleetCalendar(new Date(dateFrom), new Date(dateTo));
-  res.json(GetAdminFleetCalendarResponse.parse(data));
+  const city = parseCity(req.query.city);
+  const dateFrom = parseDateParam(req.query.dateFrom);
+  const dateTo = parseDateParam(req.query.dateTo);
+
+  const now = new Date();
+  const start = dateFrom ?? now;
+  const end = dateTo ?? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const data = await getFleetCalendar(start, end, city);
+
+  // Serialize dates to ISO strings for the response (Zod zod.date() parse fails on Date objects post-JSON)
+  res.json({
+    dateFrom: data.dateFrom,
+    dateTo: data.dateTo,
+    vehicles: data.vehicles.map((v) => ({
+      vehicleId: v.vehicleId,
+      licensePlate: v.licensePlate ?? null,
+      modelName: v.modelName ?? null,
+      brandName: v.brandName ?? null,
+      status: v.status ?? null,
+      bookings: v.bookings.map((b) => ({
+        id: b.id,
+        status: b.status,
+        customerName: b.customerName,
+        pickupDatetime: b.pickupDatetime instanceof Date ? b.pickupDatetime.toISOString() : b.pickupDatetime,
+        dropoffDatetime: b.dropoffDatetime instanceof Date ? b.dropoffDatetime.toISOString() : b.dropoffDatetime,
+      })),
+    })),
+  });
 });
 
 export default router;
