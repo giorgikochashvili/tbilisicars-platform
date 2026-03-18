@@ -49,16 +49,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                email:
-                  type: string
-                  format: email
-                password:
-                  type: string
-              required:
-                - email
-                - password
+              $ref: "#/components/schemas/AdminLoginBody"
       responses:
         "200":
           description: Login successful — returns admin profile
@@ -689,6 +680,18 @@ components:
         - updatedAt
 
     # ─── Auth ────────────────────────────────────────────────────────────────────
+
+    AdminLoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
 
     AdminProfile:
       type: object

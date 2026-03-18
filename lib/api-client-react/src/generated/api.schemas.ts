@@ -311,6 +311,11 @@ export interface Extra {
   updatedAt: string;
 }
 
+export interface AdminLoginBody {
+  email: string;
+  password: string;
+}
+
 export type AdminProfileAdminRole =
   (typeof AdminProfileAdminRole)[keyof typeof AdminProfileAdminRole];
 
@@ -341,11 +346,6 @@ export interface AdminProfile {
   canViewCalendar: boolean;
   canManageCases: boolean;
 }
-
-export type AdminLoginBody = {
-  email: string;
-  password: string;
-};
 
 export type AdminLogout200 = {
   message: string;

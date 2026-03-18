@@ -35,3 +35,14 @@ export async function getAdminById(id: number) {
   if (!admin) throw new NotFoundError(`Admin ${id} not found`);
   return admin;
 }
+
+export function logoutAdmin(
+  session: { destroy: (cb: (err?: unknown) => void) => void },
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    session.destroy((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}

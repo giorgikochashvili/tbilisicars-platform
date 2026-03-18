@@ -6,7 +6,11 @@ import {
   GetAdminMeResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
-import { loginAdmin, getAdminById } from "../services/admin-auth.service.js";
+import {
+  loginAdmin,
+  logoutAdmin,
+  getAdminById,
+} from "../services/admin-auth.service.js";
 
 const router: IRouter = Router();
 
@@ -18,12 +22,7 @@ router.post("/auth/admin/login", async (req, res) => {
 });
 
 router.post("/auth/admin/logout", async (req, res) => {
-  await new Promise<void>((resolve, reject) => {
-    req.session.destroy((err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
+  await logoutAdmin(req.session);
   res.json(AdminLogoutResponse.parse({ message: "Logged out" }));
 });
 
