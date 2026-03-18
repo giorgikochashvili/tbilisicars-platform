@@ -1727,8 +1727,8 @@ export const CreateAdminBookingBody = zod.object({
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number(),
   dropoffLocationId: zod.number(),
-  pickupDatetime: zod.date(),
-  dropoffDatetime: zod.date(),
+  pickupDatetime: zod.coerce.date(),
+  dropoffDatetime: zod.coerce.date(),
   status: zod
     .enum([
       "PENDING",
@@ -1751,6 +1751,13 @@ export const CreateAdminBookingBody = zod.object({
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
+  pickupType: zod.string().optional(),
+  pickupAddress: zod.string().optional(),
+  dropoffType: zod.string().optional(),
+  dropoffAddress: zod.string().optional(),
+  customerFullName: zod.string().optional(),
+  customerEmail: zod.string().optional(),
+  customerPhone: zod.string().optional(),
 });
 
 /**

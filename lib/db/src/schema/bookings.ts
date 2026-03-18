@@ -119,6 +119,11 @@ export const bookingTable = pgTable(
     documentNumber: varchar("document_number", { length: 100 }),
     // Booking origin (added migration 041): web / broker / admin
     source: varchar("source", { length: 20 }),
+    // Pickup/dropoff delivery type: airport | hotel | address | office
+    pickupType: varchar("pickup_type", { length: 20 }),
+    pickupAddress: varchar("pickup_address", { length: 500 }),
+    dropoffType: varchar("dropoff_type", { length: 20 }),
+    dropoffAddress: varchar("dropoff_address", { length: 500 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

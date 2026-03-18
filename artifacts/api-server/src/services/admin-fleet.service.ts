@@ -55,23 +55,33 @@ export async function deleteAdminBrand(id: number) {
 }
 
 export async function listAdminModels() {
-  return db
+  const rows = await db
     .select({
       id: vehicleModelTable.id,
       brandId: vehicleModelTable.brandId,
       name: vehicleModelTable.name,
+      category: vehicleModelTable.category,
       active: vehicleModelTable.active,
       seats: vehicleModelTable.seats,
       doors: vehicleModelTable.doors,
       transmission: vehicleModelTable.transmission,
       fuelType: vehicleModelTable.fuelType,
+      luggageCapacity: vehicleModelTable.luggageCapacity,
       imageUrl: vehicleModelTable.imageUrl,
       deposit: vehicleModelTable.deposit,
       createdAt: vehicleModelTable.createdAt,
       updatedAt: vehicleModelTable.updatedAt,
+      brandName: brandTable.name,
+      brandLogoUrl: brandTable.logoUrl,
     })
     .from(vehicleModelTable)
+    .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
     .orderBy(asc(vehicleModelTable.name));
+
+  return rows.map(({ brandName, brandLogoUrl, ...m }) => ({
+    ...m,
+    brand: m.brandId != null ? { id: m.brandId, name: brandName ?? null, logoUrl: brandLogoUrl ?? null } : null,
+  }));
 }
 
 export async function getAdminModel(id: number) {
@@ -215,8 +225,33 @@ export async function listAdminVehicles(
 
   const [rows, totalRows] = await Promise.all([
     db
-      .select()
+      .select({
+        id: vehicleTable.id,
+        vehicleModelId: vehicleTable.vehicleModelId,
+        vehicleGroupId: vehicleTable.vehicleGroupId,
+        licensePlate: vehicleTable.licensePlate,
+        vin: vehicleTable.vin,
+        year: vehicleTable.year,
+        color: vehicleTable.color,
+        vehicleClass: vehicleTable.vehicleClass,
+        fuelType: vehicleTable.fuelType,
+        transmission: vehicleTable.transmission,
+        status: vehicleTable.status,
+        mileage: vehicleTable.mileage,
+        locationId: vehicleTable.locationId,
+        startingPrice: vehicleTable.startingPrice,
+        createdAt: vehicleTable.createdAt,
+        updatedAt: vehicleTable.updatedAt,
+        modelName: vehicleModelTable.name,
+        modelTransmission: vehicleModelTable.transmission,
+        modelFuelType: vehicleModelTable.fuelType,
+        modelSeats: vehicleModelTable.seats,
+        brandId: brandTable.id,
+        brandName: brandTable.name,
+      })
       .from(vehicleTable)
+      .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+      .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
       .where(where)
       .orderBy(asc(vehicleTable.id))
       .limit(limit)
@@ -224,8 +259,20 @@ export async function listAdminVehicles(
     db.select({ total: count() }).from(vehicleTable).where(where),
   ]);
 
+  const data = rows.map(({ modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, ...v }) => ({
+    ...v,
+    vehicleModel: v.vehicleModelId != null ? {
+      id: v.vehicleModelId,
+      name: modelName ?? null,
+      transmission: modelTransmission ?? null,
+      fuelType: modelFuelType ?? null,
+      seats: modelSeats ?? null,
+      brand: brandId != null ? { id: brandId, name: brandName ?? null } : null,
+    } : null,
+  }));
+
   return {
-    data: rows,
+    data,
     meta: {
       page,
       limit,
