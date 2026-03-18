@@ -1,0 +1,95 @@
+Treat all uploaded ZIP files as legacy reference material only, not as a final architecture that must be preserved.
+
+Critical context:
+These files represent an old website + old CRM/system built previously, but they are not considered correct or final.
+The main goal is to build a fully working, clean, scalable, and properly connected new system based on the business logic and requirements that will be provided step by step.
+So in this phase, the uploaded code must be used only for analysis, reference, reuse assessment, and extraction of useful logic or assets where appropriate.
+
+Important rules:
+- Do NOT assume the uploaded codebase should be preserved as-is.
+- Do NOT assume that fixing old code is the best path.
+- Do NOT start rebuilding immediately.
+- Do NOT redesign blindly.
+- Do NOT make large code changes in this step.
+- Do NOT commit to old architecture if it is weak.
+- First, analyze the uploaded files as a legacy project and determine what is worth keeping, what is risky, and what should likely be rebuilt.
+
+Your task in this first phase is only a structured legacy audit and rebuild strategy.
+
+Please inspect all uploaded files and provide a highly structured report with these sections:
+
+1. Legacy project overview
+- What appears to be included in the uploaded files
+- Which parts look like website, CRM/admin, backend, database, assets, configs, integrations, or experiments
+- Which parts seem connected and which seem fragmented
+
+2. Technology and architecture detection
+- Detect frameworks, libraries, languages, package managers, build tools, database tools, ORM, auth patterns, API structure, storage handling, file upload handling, and environment dependencies
+- Identify entry points, run/build files, and likely deployment expectations
+
+3. Functional module detection
+Based only on the codebase, identify whether there are traces of these modules and how mature they seem:
+- website/public frontend
+- CRM/admin
+- dashboard
+- bookings/reservations
+- vehicles/fleet
+- locations
+- customers
+- services/maintenance
+- rates/pricing
+- promotions
+- accounting/payments
+- team/users
+- permissions
+- uploads/documents/images
+- notifications/emails
+- reporting/analytics
+
+For each module, classify it as one of:
+- likely usable
+- partially usable
+- unclear/incomplete
+- likely better to rebuild
+
+4. Structural and technical risks
+- List architectural weaknesses
+- List likely future problems if we try to heavily patch the old code
+- Detect duplicated logic, dead code, broken file organization, weak separation of concerns, inconsistent naming, hardcoded business logic, missing schemas, fragile dependencies, or anything that suggests rebuild is safer than patching
+
+5. Salvageable parts
+Create 3 groups:
+A) Reusable parts worth keeping
+B) Parts useful only as reference/examples
+C) Parts that should probably not be relied on in the new system
+
+6. Rebuild recommendation
+Based on the codebase, explain which path is safer:
+- careful partial reuse
+- hybrid rebuild using only selected old parts
+- mostly fresh rebuild with minimal reuse
+
+Then explain why.
+
+7. Safe system foundation proposal
+Without implementing it yet, propose the safest high-level foundation for the new project:
+- how the new system should be separated structurally
+- what should be treated as frontend, CRM, backend, database, shared logic, assets
+- what should be migrated later from legacy files only if useful
+
+8. Phase-by-phase execution plan
+Provide the safest order for moving forward from here.
+The order should prioritize low risk, structural clarity, and future scalability.
+
+Output rules:
+- Be highly structured and concrete
+- Base the analysis only on the uploaded files
+- If something is uncertain, explicitly say “unclear from uploaded legacy code”
+- Do not implement changes in this step
+- Do not generate code in this step
+- Do not rewrite files in this step
+
+Final instruction:
+End the report with:
+1. “Recommended Strategy Verdict” — one clear conclusion about whether this should be patched, partially reused, or mostly rebuilt fresh
+2. “Step 2 Prompt” — a prompt for the next phase, but do not execute it

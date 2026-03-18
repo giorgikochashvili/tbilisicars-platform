@@ -1,0 +1,122 @@
+Proceed with Step 2B: implement the new Drizzle ORM schema files based on the completed schema archaeology report.
+
+Critical context:
+- This is a fresh rebuild using legacy schema as reference only.
+- Do NOT patch or reuse the old Python/Next.js files directly.
+- Only work inside the new TypeScript database layer.
+- Do NOT implement API routes, frontend pages, auth, storage, or email in this step.
+- Do NOT touch web/, crm/, or api-server/ in this step.
+- Only implement schema files under lib/db/src/schema/ and update the schema index exports if needed.
+
+Goal:
+Translate the documented legacy schema into clean Drizzle ORM definitions for the new system.
+
+Implementation rules:
+- Use the schema archaeology report as the source of truth.
+- Respect the final effective schema, not intermediate migration states.
+- Do NOT include fields that the archaeology report says were removed in final schema.
+- If a field/table is marked unclear or low-confidence, keep it conservative and add a clear TODO comment rather than inventing risky structure.
+- Keep names consistent with the final domain model where possible.
+- Preserve important foreign keys and relations.
+- Prefer clean PostgreSQL-oriented Drizzle definitions.
+- Add timestamps consistently where the archaeology report supports them.
+- Add enums where clearly supported by the report.
+- Keep legacy/deprecated pieces only if they still exist in the final effective schema.
+
+Create or update schema files in:
+- lib/db/src/schema/fleet.ts
+- lib/db/src/schema/bookings.ts
+- lib/db/src/schema/users.ts
+- lib/db/src/schema/rates.ts
+- lib/db/src/schema/locations.ts
+- lib/db/src/schema/maintenance.ts
+- lib/db/src/schema/damages.ts
+- lib/db/src/schema/promotions.ts
+- lib/db/src/schema/accounting.ts
+- lib/db/src/schema/partners.ts
+- lib/db/src/schema/cases.ts
+- lib/db/src/schema/settings.ts
+
+Expected coverage:
+Fleet:
+- brand
+- vehicle_model
+- vehicle_model_photo
+- vehiclegroup
+- vehicle
+- vehiclephoto / vehicle_photo
+- document
+- vehicle_history
+- vehicleprice (if still present in final schema)
+
+Bookings:
+- booking
+- booking_history
+- booking_vehicle_assignments
+- bookingphoto
+- bookingextra / booking_extras
+- extra
+
+Users:
+- user
+- admins
+- tasks
+- task_assignees
+
+Rates:
+- rate
+- ratetier
+- ratedayrange
+- ratehourrange
+- ratekmrange
+
+Locations:
+- location
+- one_way_fees
+
+Maintenance:
+- maintenance_service_types
+- maintenance_services
+
+Damages:
+- damagereport / damage table as documented
+
+Promotions:
+- promo
+
+Accounting:
+- payment
+
+Partners:
+- partner
+- partner_document
+- partner_vehicle
+
+Cases:
+- cases
+- case_comments
+- case_attachments
+- case_assignments
+- review
+
+Settings:
+- company_settings
+
+Also do the following:
+1. Export all tables from lib/db/src/schema/index.ts
+2. Add drizzle-zod insert schemas for each table where that matches current project conventions
+3. Add inferred TypeScript types where project conventions support them
+4. Keep the code organized and readable
+
+Very important constraints:
+- Do NOT run drizzle-kit push yet
+- Do NOT run any destructive migration
+- Do NOT modify unrelated files
+- Do NOT create API handlers
+- Do NOT create frontend components
+
+Output requirements:
+- Show exactly which schema files were created or updated
+- Summarize any ambiguous tables/fields that were implemented conservatively
+- End with a section called: “Ready for Step 2C”
+- In that section, provide a short plan for validation/review before database push, but do not execute database push yet

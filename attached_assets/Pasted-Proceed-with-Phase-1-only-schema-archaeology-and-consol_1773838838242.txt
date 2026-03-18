@@ -1,0 +1,120 @@
+Proceed with Phase 1 only: schema archaeology and consolidated data-model extraction from the uploaded legacy backend.
+
+Critical context:
+- The uploaded ZIP files are legacy reference material only.
+- Do NOT patch the old system.
+- Do NOT implement frontend, backend routes, auth, storage, or UI in this step.
+- Do NOT write Drizzle schema yet.
+- Do NOT run database push yet.
+- This step is discovery and documentation only.
+
+Your task:
+Inspect all legacy SQL migration files in backend/migrations/*.sql and extract the full consolidated database model represented across the migration history.
+
+Important working rules:
+- Read across all migration files, not just one or two.
+- Resolve the final effective schema as best as possible from the migrations.
+- If a table/column is created, altered, renamed, dropped, or replaced across migrations, reflect the most likely final effective state.
+- If something is ambiguous because of incomplete or conflicting migrations, explicitly mark it as:
+  "unclear from legacy migrations"
+- Do not invent fields that are not supported by the migration history.
+- Use the SQL migrations as the primary source of truth.
+- You may use SQLAlchemy models only as a secondary cross-check when needed, but the migration history remains primary.
+
+Produce a highly structured report with these sections:
+
+1. Consolidated entity inventory
+List every detected table in the final effective schema.
+
+2. Domain-grouped entity map
+Organize all entities into domain groups, at minimum:
+- Fleet (brands, models, groups, vehicles, photos, documents if present)
+- Bookings (bookings, extras, booking_extras, booking_photos, booking_history, assignments, statuses)
+- Customers and Users
+- Admins / Team / Permissions / Roles
+- Rates and Pricing
+- Promotions and Discounts
+- Locations and One-Way Fees
+- Maintenance and Service
+- Damages and Inspections
+- Payments / Accounting / Financial records
+- Partners / Brokers / Suppliers
+- Cases / Tasks / Reviews / Reports
+- Settings / Company / System config
+If another domain group is clearly present, include it.
+
+3. Table-by-table schema definition
+For each table, provide:
+- table name
+- purpose
+- columns
+- data type
+- nullable or not
+- default value if any
+- primary key
+- foreign keys
+- unique constraints
+- indexes if clearly detectable
+- enums/check constraints if clearly detectable
+- status of confidence:
+  - high confidence
+  - medium confidence
+  - low confidence
+
+4. Relationship map
+Explain all important relationships, including one-to-many, many-to-one, and join tables.
+Examples:
+- brand -> model
+- model/group -> vehicle
+- booking -> customer
+- booking -> vehicle
+- booking -> extras
+- booking -> photos
+- booking -> history
+- booking -> payments
+- vehicle -> maintenance
+- vehicle -> damages
+- location -> one_way_fee
+Only include relationships supported by migrations or clearly corroborated by models.
+
+5. Migration history notes
+Summarize important schema evolution patterns:
+- tables added later
+- renamed concepts
+- duplicated patterns
+- permissions introduced later
+- reporting/accounting complexity
+- anything that suggests the domain evolved significantly
+
+6. Risk and ambiguity log
+List every ambiguity, conflict, weak spot, rollback artifact, or migration inconsistency that could affect the new schema translation.
+
+7. Final output for next implementation step
+At the end, provide:
+A) a clean “Final Consolidated Table List”
+B) a clean “Recommended Drizzle File Split” for lib/db/src/schema/, for example:
+- fleet.ts
+- bookings.ts
+- users.ts
+- rates.ts
+- locations.ts
+- maintenance.ts
+- damages.ts
+- promotions.ts
+- accounting.ts
+- partners.ts
+- cases.ts
+- settings.ts
+
+Output rules:
+- Be extremely structured and exhaustive
+- No code generation in this step
+- No file edits in this step
+- No implementation in this step
+- No schema writing in this step
+- No database push in this step
+
+Final instruction:
+End with a section called:
+“Ready for Step 2B”
+In that section, provide a short implementation prompt that will translate this documented schema into Drizzle ORM files, but do not execute it.
