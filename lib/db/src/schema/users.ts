@@ -4,6 +4,7 @@ import {
   varchar,
   timestamp,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -25,7 +26,7 @@ export const userTable = pgTable(
   },
   (t) => [
     // Partial unique index — only enforce uniqueness when email is present
-    index("uq_user_email_not_null")
+    uniqueIndex("uq_user_email_not_null")
       .on(t.email)
       .where(sql`${t.email} IS NOT NULL`),
     index("idx_user_phone").on(t.phone),
