@@ -1,0 +1,301 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+
+Do NOT redesign working modules.
+Do NOT touch unrelated modules.
+Do NOT change existing booking logic.
+Do NOT add speculative features.
+Do NOT implement permissions in this block.
+
+Your task now is to implement ONLY the Fleet Calendar / Timeline module for Tbilisicars CRM operations.
+
+==================================================
+BLOCK 10 GOAL
+==================================================
+
+Create a real operational Fleet Calendar / Timeline board that visually shows vehicles and their bookings across dates.
+
+This board must act as a real fleet planning tool for operations staff.
+
+It must use the already working:
+- fleet data
+- booking data
+- location/region data
+- booking statuses
+- vehicle statuses if already safely available
+
+Do not create fake/demo timeline data.
+Do not duplicate booking structures.
+Do not replace working dashboard logic.
+This is a dedicated operational timeline view.
+
+==================================================
+A. MODULE PURPOSE
+==================================================
+
+The Fleet Calendar / Timeline module is used to visually monitor:
+
+- which vehicles are assigned
+- which vehicles are free
+- which bookings occupy which dates
+- where vehicles belong by region
+- whether there are visible booking overlaps/conflicts
+
+This must be a practical operations board, not a generic calendar widget.
+
+==================================================
+B. TIMELINE STRUCTURE
+==================================================
+
+The board must display:
+
+Vertical axis:
+- one row per vehicle
+
+Vehicle row label must show:
+- brand
+- model
+- plate number
+
+Example:
+- Toyota Prius — ABC-123
+
+Horizontal axis:
+- dates across a selected visible range
+
+Bookings must appear as horizontal bars spanning pickup date through dropoff date.
+
+Do not use placeholder rows.
+Use real fleet vehicles from the system.
+
+==================================================
+C. REQUIRED DATA SOURCE
+==================================================
+
+Use only existing real data already present in the CRM:
+
+From fleet:
+- vehicle id
+- vehicle brand
+- vehicle model
+- plate number
+- current location/region if already supported
+- vehicle status if already supported
+
+From bookings:
+- booking id
+- assigned vehicle
+- pickup date
+- dropoff date
+- booking status
+
+Do not build a second booking system for this page.
+
+==================================================
+D. BOOKING VISUALIZATION
+==================================================
+
+Each booking must appear as a colored bar on the correct vehicle row and across the correct dates.
+
+Use existing booking statuses and assign simple visual colors:
+
+- Pending → Yellow
+- Confirmed → Green
+- Delivered → Blue
+- Returned → Gray
+- Cancelled / Canceled → Red
+
+If one or more statuses differ slightly in the current system, adapt to the real status values already used in the CRM.
+Do not invent new statuses.
+
+Each booking bar should visually indicate at minimum:
+- booking reference/id if simple
+or
+- customer name if already safely available
+or
+- a short booking label
+
+Keep the bar compact and readable.
+
+==================================================
+E. REGION FILTERING
+==================================================
+
+The timeline must support region/location filtering using the existing business regions:
+
+- Tbilisi
+- Kutaisi
+- Batumi
+
+Behavior:
+- when a region is selected, only vehicles belonging to that region should be shown
+- bookings shown must correspond to those visible vehicles
+
+Do not redesign location logic.
+Reuse the already working region/location foundation.
+
+==================================================
+F. DATE RANGE / NAVIGATION
+==================================================
+
+The timeline must support a practical visible date range.
+
+Minimum requirement:
+- show a horizontal date range
+- allow moving to previous/next range
+or
+- allow switching the visible period cleanly
+
+Keep it simple and operational.
+
+Recommended safe approach:
+- fixed rolling range such as 7 / 14 / 30 days
+or
+- previous / next navigation buttons
+
+Do not build a complex drag calendar engine.
+
+==================================================
+G. TODAY HIGHLIGHT
+==================================================
+
+The current day column must be clearly highlighted in the timeline.
+
+This is required so operators can instantly identify today's operational context.
+
+Do not overdesign this.
+A clear background highlight is enough.
+
+==================================================
+H. CONFLICT VISUAL WARNING
+==================================================
+
+If the same vehicle has overlapping bookings within the visible date range, the timeline must show a visual warning.
+
+Minimum requirement:
+- overlapping booking bars are visibly marked
+or
+- conflicting row/cell area is highlighted
+
+Do not auto-resolve conflicts.
+Do not change booking logic.
+Only detect and visually expose the overlap.
+
+==================================================
+I. VEHICLE STATUS INDICATORS
+==================================================
+
+If it is simple and safe using already working fleet status logic, show vehicle status indicators in the vehicle row.
+
+Possible statuses already used elsewhere may include:
+- Available
+- Reserved
+- Rented
+- Maintenance
+- Inactive
+
+Only use real existing statuses from the current CRM.
+
+If status badges are easy to add cleanly, include them.
+If not safe, skip and report clearly.
+
+==================================================
+J. INTERACTION
+==================================================
+
+Minimum useful interaction:
+- timeline page loads
+- rows render
+- booking bars render
+
+If simple and safe:
+- clicking a booking bar opens that booking detail page
+or
+- navigates to existing booking page/detail modal
+
+Do not add drag-and-drop.
+Do not add resize interactions.
+Do not add editing from the timeline in this block.
+
+==================================================
+K. UI / PAGE INTEGRATION
+==================================================
+
+Requirements:
+- add Fleet Calendar / Timeline as a dedicated accessible CRM page
+or place it safely in the most suitable existing operational navigation position
+- routing must work
+- page must not be a placeholder
+- no dead buttons
+
+Do not redesign the whole sidebar/dashboard.
+Add only what is necessary for this module.
+
+==================================================
+L. PERFORMANCE REQUIREMENT
+==================================================
+
+This board must remain operationally usable.
+
+Requirements:
+- fetch only the needed bookings/date range
+- avoid extremely heavy rendering
+- keep scrolling and switching practical
+
+Do not overengineer virtualized calendar infrastructure unless necessary.
+Keep it simple and stable.
+
+==================================================
+M. REQUIRED VERIFICATION
+==================================================
+
+You must actually verify in the running UI:
+
+1. Timeline page loads
+2. Vehicles appear as rows
+3. Real bookings appear as horizontal bars
+4. Date range navigation works
+5. Region filter works
+6. Today highlight works
+7. Conflict visualization works if overlapping data exists or is created safely for QA
+8. Booking click interaction works if implemented
+
+Use realistic QA data only if needed.
+
+==================================================
+N. FINAL REPORT FORMAT
+==================================================
+
+At the end, report only in this structure:
+
+1. Timeline board result
+2. Vehicle row rendering result
+3. Booking visualization result
+4. Region filtering result
+5. Date navigation result
+6. Today highlight result
+7. Conflict detection result
+8. Verified UI flows
+   - Timeline page load: works / not
+   - Vehicle rows: works / not
+   - Booking bars: works / not
+   - Region filter: works / not
+   - Date navigation: works / not
+   - Today highlight: works / not
+   - Booking click: works / not / not implemented
+9. Remaining gaps, if any
+
+Do not claim completion unless the board is visually working in the running UI.

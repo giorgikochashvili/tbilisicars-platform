@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,6 +23,7 @@ const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Bookings", url: "/bookings", icon: CalendarDays },
   { title: "Fleet", url: "/fleet", icon: Car },
+  { title: "Fleet Calendar", url: "/fleet-calendar", icon: GanttChart },
   { title: "Service", url: "/service", icon: Wrench },
   { title: "Accounting", url: "/accounting", icon: BookOpenText },
   { title: "Customers", url: "/customers", icon: Users },
