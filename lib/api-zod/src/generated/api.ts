@@ -621,8 +621,10 @@ export const ListAdminModelsResponseItem = zod.object({
   brandId: zod.number(),
   name: zod.string(),
   active: zod.boolean(),
+  category: zod.string().nullish(),
   seats: zod.number().nullish(),
   doors: zod.number().nullish(),
+  luggageCapacity: zod.number().nullish(),
   transmission: zod
     .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
     .nullish(),
@@ -639,6 +641,11 @@ export const ListAdminModelsResponseItem = zod.object({
   deposit: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+  brand: zod.object({
+    id: zod.number(),
+    name: zod.string().nullish(),
+    logoUrl: zod.string().nullish(),
+  }).nullish(),
 });
 export const ListAdminModelsResponse = zod.array(ListAdminModelsResponseItem);
 
@@ -930,6 +937,17 @@ export const ListAdminVehiclesResponse = zod.object({
       startingPrice: zod.string(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
+      vehicleModel: zod.object({
+        id: zod.number(),
+        name: zod.string().nullish(),
+        transmission: zod.string().nullish(),
+        fuelType: zod.string().nullish(),
+        seats: zod.number().nullish(),
+        brand: zod.object({
+          id: zod.number(),
+          name: zod.string().nullish(),
+        }).nullish(),
+      }).nullish(),
     }),
   ),
   meta: zod.object({
