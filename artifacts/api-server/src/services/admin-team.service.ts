@@ -3,68 +3,46 @@ import { asc, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { NotFoundError } from "../lib/errors.js";
 
+const MEMBER_COLUMNS = {
+  id: adminsTable.id,
+  username: adminsTable.username,
+  email: adminsTable.email,
+  fullName: adminsTable.fullName,
+  phoneNumber: adminsTable.phoneNumber,
+  isActive: adminsTable.isActive,
+  adminRole: adminsTable.adminRole,
+  isSuperAdmin: adminsTable.isSuperAdmin,
+  lastLogin: adminsTable.lastLogin,
+  canManageVehicles: adminsTable.canManageVehicles,
+  canManageBookings: adminsTable.canManageBookings,
+  canManageUsers: adminsTable.canManageUsers,
+  canViewReports: adminsTable.canViewReports,
+  canManageSettings: adminsTable.canManageSettings,
+  canManageRates: adminsTable.canManageRates,
+  canManageExtras: adminsTable.canManageExtras,
+  canManagePromotions: adminsTable.canManagePromotions,
+  canManageLocations: adminsTable.canManageLocations,
+  canViewReviews: adminsTable.canViewReviews,
+  canManageDamages: adminsTable.canManageDamages,
+  canManageTasks: adminsTable.canManageTasks,
+  canViewCalendar: adminsTable.canViewCalendar,
+  canManageCases: adminsTable.canManageCases,
+  createdAt: adminsTable.createdAt,
+  updatedAt: adminsTable.updatedAt,
+} as const;
+
 export async function listAdminTeam() {
-  const rows = await db
-    .select({
-      id: adminsTable.id,
-      username: adminsTable.username,
-      email: adminsTable.email,
-      fullName: adminsTable.fullName,
-      isActive: adminsTable.isActive,
-      adminRole: adminsTable.adminRole,
-      lastLogin: adminsTable.lastLogin,
-      canManageVehicles: adminsTable.canManageVehicles,
-      canManageBookings: adminsTable.canManageBookings,
-      canManageUsers: adminsTable.canManageUsers,
-      canViewReports: adminsTable.canViewReports,
-      canManageSettings: adminsTable.canManageSettings,
-      canManageRates: adminsTable.canManageRates,
-      canManageExtras: adminsTable.canManageExtras,
-      canManagePromotions: adminsTable.canManagePromotions,
-      canManageLocations: adminsTable.canManageLocations,
-      canViewReviews: adminsTable.canViewReviews,
-      canManageDamages: adminsTable.canManageDamages,
-      canManageTasks: adminsTable.canManageTasks,
-      canViewCalendar: adminsTable.canViewCalendar,
-      canManageCases: adminsTable.canManageCases,
-      createdAt: adminsTable.createdAt,
-      updatedAt: adminsTable.updatedAt,
-    })
+  return db
+    .select(MEMBER_COLUMNS)
     .from(adminsTable)
     .orderBy(asc(adminsTable.fullName));
-  return rows;
 }
 
 export async function getAdminTeamMember(id: number) {
-  const rows = await db
-    .select({
-      id: adminsTable.id,
-      username: adminsTable.username,
-      email: adminsTable.email,
-      fullName: adminsTable.fullName,
-      isActive: adminsTable.isActive,
-      adminRole: adminsTable.adminRole,
-      lastLogin: adminsTable.lastLogin,
-      canManageVehicles: adminsTable.canManageVehicles,
-      canManageBookings: adminsTable.canManageBookings,
-      canManageUsers: adminsTable.canManageUsers,
-      canViewReports: adminsTable.canViewReports,
-      canManageSettings: adminsTable.canManageSettings,
-      canManageRates: adminsTable.canManageRates,
-      canManageExtras: adminsTable.canManageExtras,
-      canManagePromotions: adminsTable.canManagePromotions,
-      canManageLocations: adminsTable.canManageLocations,
-      canViewReviews: adminsTable.canViewReviews,
-      canManageDamages: adminsTable.canManageDamages,
-      canManageTasks: adminsTable.canManageTasks,
-      canViewCalendar: adminsTable.canViewCalendar,
-      canManageCases: adminsTable.canManageCases,
-      createdAt: adminsTable.createdAt,
-      updatedAt: adminsTable.updatedAt,
-    })
+  const [row] = await db
+    .select(MEMBER_COLUMNS)
     .from(adminsTable)
     .where(eq(adminsTable.id, id));
-  const row = rows[0];
   if (!row) throw new NotFoundError(`Team member ${id} not found`);
   return row;
 }
@@ -74,22 +52,9 @@ export async function createAdminTeamMember(data: {
   email: string;
   fullName: string;
   password: string;
+  phoneNumber?: string | null;
   isActive?: boolean;
   adminRole?: "admin" | "regional_manager" | "service_manager" | "rental_agent";
-  canManageVehicles?: boolean;
-  canManageBookings?: boolean;
-  canManageUsers?: boolean;
-  canViewReports?: boolean;
-  canManageSettings?: boolean;
-  canManageRates?: boolean;
-  canManageExtras?: boolean;
-  canManagePromotions?: boolean;
-  canManageLocations?: boolean;
-  canViewReviews?: boolean;
-  canManageDamages?: boolean;
-  canManageTasks?: boolean;
-  canViewCalendar?: boolean;
-  canManageCases?: boolean;
 }) {
   const { password, ...rest } = data;
   const hashedPassword = await bcrypt.hash(password, 12);
@@ -107,22 +72,9 @@ export async function updateAdminTeamMember(
     email: string;
     fullName: string;
     password: string;
+    phoneNumber: string | null;
     isActive: boolean;
     adminRole: "admin" | "regional_manager" | "service_manager" | "rental_agent";
-    canManageVehicles: boolean;
-    canManageBookings: boolean;
-    canManageUsers: boolean;
-    canViewReports: boolean;
-    canManageSettings: boolean;
-    canManageRates: boolean;
-    canManageExtras: boolean;
-    canManagePromotions: boolean;
-    canManageLocations: boolean;
-    canViewReviews: boolean;
-    canManageDamages: boolean;
-    canManageTasks: boolean;
-    canViewCalendar: boolean;
-    canManageCases: boolean;
   }>,
 ) {
   const { password, ...rest } = data;

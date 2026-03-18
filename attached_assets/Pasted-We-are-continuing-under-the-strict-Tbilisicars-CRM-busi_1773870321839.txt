@@ -1,0 +1,250 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+
+Do NOT redesign working modules.
+Do NOT touch unrelated modules.
+Do NOT add speculative features.
+Do NOT implement complex permissions yet.
+
+Your task now is to implement ONLY the Team module for Tbilisicars CRM operations.
+
+==================================================
+BLOCK 8 GOAL
+==================================================
+
+Create a practical Team module for internal CRM staff management.
+
+This module is for creating and managing CRM user accounts for team members.
+At this stage it must remain simple, operational, and safe.
+
+Do NOT build advanced HR software.
+Do NOT build complex permission systems yet.
+Do NOT overengineer.
+
+==================================================
+A. MODULE PURPOSE
+==================================================
+
+The Team module is used to manage internal staff accounts that can access the CRM.
+
+At this stage, the module must support:
+- creating team members
+- editing team members
+- listing team members
+- storing basic login/account data
+- enabling future role/permission expansion later
+
+This module is strictly internal.
+
+==================================================
+B. REQUIRED TEAM MEMBER FIELDS
+==================================================
+
+Each team member must support these fields:
+
+- first name
+- last name
+- phone number
+- login ID or email for CRM login
+- password
+- status (Active / Inactive) if simple
+- createdAt / updatedAt if already part of system conventions
+
+Do not add unnecessary personal fields yet.
+
+Do NOT add:
+- salary logic
+- schedule logic
+- attendance tracking
+- payroll
+- documents
+- deep HR features
+
+==================================================
+C. TEAM LIST PAGE
+==================================================
+
+Create a Team page accessible from the CRM sidebar.
+
+The Team page must show a practical list/table of team members.
+
+Minimum useful columns:
+- first name
+- last name
+- phone number
+- login ID or email
+- status
+- created date if already easy to show
+
+Actions:
+- Add Team Member
+- Edit Team Member
+
+Delete may be supported if already safe and simple.
+If not clean, use Inactive status instead.
+
+==================================================
+D. CREATE TEAM MEMBER FLOW
+==================================================
+
+Add Team Member must work through a real form.
+
+Required behavior:
+- form opens
+- validation works
+- user can save new team member
+- saved team member appears in table immediately
+
+Required fields in create form:
+- first name
+- last name
+- phone number
+- login ID or email
+- password
+- status if implemented
+
+Password handling must follow existing auth conventions cleanly.
+Do not store plain text if the project already supports hashed passwords.
+
+==================================================
+E. EDIT TEAM MEMBER FLOW
+==================================================
+
+Edit Team Member must work.
+
+User must be able to update:
+- first name
+- last name
+- phone number
+- login ID or email
+- password if supported safely
+- status
+
+Saved edits must appear in table correctly.
+
+==================================================
+F. AUTH / LOGIN INTEGRATION
+==================================================
+
+This is important.
+
+The Team module must fit the existing CRM authentication structure cleanly.
+
+Requirements:
+- newly created active team members should be valid CRM users if the auth system is already based on user records
+- if current auth implementation uses a users/admin table, extend that safely instead of creating a disconnected fake table
+- do not break the current admin login
+- do not redesign auth architecture
+
+Goal:
+The Team module must create/manage real CRM-access accounts, not just display-only staff rows.
+
+==================================================
+G. STATUS LOGIC
+==================================================
+
+If simple and safe, support:
+
+- Active
+- Inactive
+
+Inactive users should not be treated as active operational users.
+If login-blocking by inactive status is already easy and safe, implement it.
+If not safe in this block, at minimum preserve status in the module and report the limitation clearly.
+
+==================================================
+H. UI / SIDEBAR INTEGRATION
+==================================================
+
+Requirements:
+- add "Team" to sidebar
+- use a suitable icon
+- page routing must work
+- no dead navigation
+
+Do not redesign the sidebar.
+Only add the Team module cleanly.
+
+==================================================
+I. VALIDATION RULES
+==================================================
+
+Validation must be practical.
+
+At minimum:
+- required fields enforced
+- duplicate login ID or email should be prevented if auth requires uniqueness
+- phone field should not be empty
+- password should not be empty on create
+- edit flow should remain safe
+
+Do not overbuild validation UI.
+Keep it clean and operational.
+
+==================================================
+J. DATA / TABLE BEHAVIOR
+==================================================
+
+Team members saved in create/edit flows must persist correctly.
+
+The Team list must reflect:
+- newly added users
+- edited users
+- status changes
+
+Do not leave mock data or disconnected UI state.
+
+==================================================
+K. REQUIRED VERIFICATION
+==================================================
+
+You must actually verify in the running UI:
+
+1. Team page loads
+2. Add Team Member works
+3. Edit Team Member works
+4. New team member appears in the table
+5. Sidebar navigation works
+6. Validation works
+7. Auth linkage is real and not fake
+8. Existing admin login still works
+
+If safe and implemented:
+9. Inactive user behavior verified
+
+Use realistic QA data only if needed.
+
+==================================================
+L. FINAL REPORT FORMAT
+==================================================
+
+At the end, report only in this structure:
+
+1. Team module result
+2. Team list/result
+3. Create/edit result
+4. Auth integration result
+5. Status logic result
+6. Verified UI flows
+   - Team page load: works / not
+   - Add Team Member: works / not
+   - Edit Team Member: works / not
+   - Sidebar navigation: works / not
+   - Validation: works / not
+   - Existing admin login preserved: works / not
+   - New team member auth linkage: works / not
+7. Remaining gaps, if any
+
+Do not claim completion unless you actually tested the UI flows.

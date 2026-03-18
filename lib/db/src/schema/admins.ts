@@ -30,6 +30,7 @@ export const adminsTable = pgTable(
     adminRole: adminRoleEnum("admin_role").notNull().default("rental_agent"),
     // Deprecated field — superseded by admin_role (migration 004), retained for compat
     isSuperAdmin: boolean("is_super_admin").notNull().default(false),
+    phoneNumber: varchar("phone_number", { length: 30 }),
     lastLogin: timestamp("last_login"),
     // Granular permission flags added across migrations 004, 012, and post-022
     canManageVehicles: boolean("can_manage_vehicles").notNull().default(true),

@@ -1,14 +1,4 @@
 import { Router, type IRouter } from "express";
-import {
-  ListAdminTeamResponse,
-  GetAdminTeamMemberParams,
-  GetAdminTeamMemberResponse,
-  CreateAdminTeamMemberBody,
-  UpdateAdminTeamMemberParams,
-  UpdateAdminTeamMemberBody,
-  UpdateAdminTeamMemberResponse,
-  DeleteAdminTeamMemberParams,
-} from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
   listAdminTeam,
@@ -20,32 +10,67 @@ import {
 
 const router: IRouter = Router();
 
+const VALID_ROLES = ["admin", "regional_manager", "service_manager", "rental_agent"] as const;
+type AdminRole = (typeof VALID_ROLES)[number];
+
+function isValidRole(v: unknown): v is AdminRole {
+  return typeof v === "string" && (VALID_ROLES as readonly string[]).includes(v);
+}
+
 router.get("/admin/team", requireAdmin, async (_req, res) => {
   const data = await listAdminTeam();
-  res.json(ListAdminTeamResponse.parse(data));
+  res.json(data);
 });
 
 router.post("/admin/team", requireAdmin, async (req, res) => {
-  const body = CreateAdminTeamMemberBody.parse(req.body);
-  const member = await createAdminTeamMember(body as any);
+  const { username, email, fullName, password, phoneNumber, isActive, adminRole } = req.body ?? {};
+  if (
+    typeof username !== "string" || !username ||
+    typeof email !== "string" || !email ||
+    typeof fullName !== "string" || !fullName ||
+    typeof password !== "string" || !password
+  ) {
+    res.status(400).json({ error: "username, email, fullName and password are required" });
+    return;
+  }
+  const member = await createAdminTeamMember({
+    username,
+    email,
+    fullName,
+    password,
+    phoneNumber: typeof phoneNumber === "string" ? phoneNumber || null : null,
+    isActive: typeof isActive === "boolean" ? isActive : true,
+    adminRole: isValidRole(adminRole) ? adminRole : "rental_agent",
+  });
   res.status(201).json(member);
 });
 
 router.get("/admin/team/:id", requireAdmin, async (req, res) => {
-  const { id } = GetAdminTeamMemberParams.parse({ id: req.params.id });
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const member = await getAdminTeamMember(id);
-  res.json(GetAdminTeamMemberResponse.parse(member));
+  res.json(member);
 });
 
 router.patch("/admin/team/:id", requireAdmin, async (req, res) => {
-  const { id } = UpdateAdminTeamMemberParams.parse({ id: req.params.id });
-  const body = UpdateAdminTeamMemberBody.parse(req.body);
-  const member = await updateAdminTeamMember(id, body as any);
-  res.json(UpdateAdminTeamMemberResponse.parse(member));
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { username, email, fullName, password, phoneNumber, isActive, adminRole } = req.body ?? {};
+  const data: Parameters<typeof updateAdminTeamMember>[1] = {};
+  if (typeof username === "string" && username) data.username = username;
+  if (typeof email === "string" && email) data.email = email;
+  if (typeof fullName === "string" && fullName) data.fullName = fullName;
+  if (typeof password === "string" && password) data.password = password;
+  if (phoneNumber !== undefined) data.phoneNumber = typeof phoneNumber === "string" ? phoneNumber || null : null;
+  if (typeof isActive === "boolean") data.isActive = isActive;
+  if (isValidRole(adminRole)) data.adminRole = adminRole;
+  const member = await updateAdminTeamMember(id, data);
+  res.json(member);
 });
 
 router.delete("/admin/team/:id", requireAdmin, async (req, res) => {
-  const { id } = DeleteAdminTeamMemberParams.parse({ id: req.params.id });
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const result = await deleteAdminTeamMember(id);
   res.json(result);
 });
