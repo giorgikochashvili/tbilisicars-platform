@@ -67,8 +67,20 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
 
 - `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
+- `src/schema/index.ts` — barrel re-export of all models (40 tables, 15 enums, 40 insert schemas)
+- `src/schema/<domain>.ts` — domain-split table definitions with `drizzle-zod` insert schemas:
+  - `locations.ts` — location, one_way_fees
+  - `fleet.ts` — brand, vehicle_model, vehicle_model_photo, vehiclegroup, vehicle, vehiclephoto, document, vehicle_history, vehicleprice
+  - `rates.ts` — rate, ratetier, ratedayrange, ratehourrange, ratekmrange
+  - `users.ts` — user, admins, tasks, task_assignees
+  - `bookings.ts` — extra, booking, bookingextra, booking_history, booking_vehicle_assignments, bookingphoto
+  - `promotions.ts` — promo
+  - `partners.ts` — partner, partner_document, partner_vehicle
+  - `maintenance.ts` — maintenance_service_types, maintenance_services
+  - `damages.ts` — damagereport
+  - `accounting.ts` — payment
+  - `cases.ts` — cases, case_comments, case_attachments, case_assignments, review
+  - `settings.ts` — company_settings
 - `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 
