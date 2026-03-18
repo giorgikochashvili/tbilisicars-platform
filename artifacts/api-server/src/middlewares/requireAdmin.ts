@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { and, eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, adminsTable } from "@workspace/db";
 import { ForbiddenError, UnauthorizedError } from "../lib/errors.js";
 
@@ -8,7 +8,7 @@ export async function requireAdmin(
   _res: Response,
   next: NextFunction,
 ): Promise<void> {
-  if (!req.session.userId) {
+  if (!req.session.adminId) {
     throw new UnauthorizedError();
   }
 
@@ -17,7 +17,7 @@ export async function requireAdmin(
     .from(adminsTable)
     .where(
       and(
-        eq(adminsTable.email, req.session.userId),
+        eq(adminsTable.id, req.session.adminId),
         eq(adminsTable.isActive, true),
       ),
     )

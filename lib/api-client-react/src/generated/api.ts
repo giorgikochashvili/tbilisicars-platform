@@ -5,15 +5,21 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
 import type {
+  AdminLoginBody,
+  AdminLogout200,
+  AdminProfile,
   Brand,
   ErrorResponse,
   Extra,
@@ -27,7 +33,7 @@ import type {
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -103,6 +109,251 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Authenticates an admin with email and password. Sets a session cookie on success.
+ * @summary Admin login
+ */
+export const getAdminLoginUrl = () => {
+  return `/api/auth/admin/login`;
+};
+
+export const adminLogin = async (
+  adminLoginBody: AdminLoginBody,
+  options?: RequestInit,
+): Promise<AdminProfile> => {
+  return customFetch<AdminProfile>(getAdminLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminLoginBody),
+  });
+};
+
+export const getAdminLoginMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminLogin>>,
+    TError,
+    { data: BodyType<AdminLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminLogin>>,
+  TError,
+  { data: BodyType<AdminLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["adminLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminLogin>>,
+    { data: BodyType<AdminLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminLogin>>
+>;
+export type AdminLoginMutationBody = BodyType<AdminLoginBody>;
+export type AdminLoginMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Admin login
+ */
+export const useAdminLogin = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminLogin>>,
+    TError,
+    { data: BodyType<AdminLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminLogin>>,
+  TError,
+  { data: BodyType<AdminLoginBody> },
+  TContext
+> => {
+  return useMutation(getAdminLoginMutationOptions(options));
+};
+
+/**
+ * Destroys the current session.
+ * @summary Admin logout
+ */
+export const getAdminLogoutUrl = () => {
+  return `/api/auth/admin/logout`;
+};
+
+export const adminLogout = async (
+  options?: RequestInit,
+): Promise<AdminLogout200> => {
+  return customFetch<AdminLogout200>(getAdminLogoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAdminLogoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["adminLogout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminLogout>>,
+    void
+  > = () => {
+    return adminLogout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminLogout>>
+>;
+
+export type AdminLogoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Admin logout
+ */
+export const useAdminLogout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAdminLogoutMutationOptions(options));
+};
+
+/**
+ * Returns the profile of the currently authenticated admin.
+ * @summary Get current admin profile
+ */
+export const getGetAdminMeUrl = () => {
+  return `/api/auth/admin/me`;
+};
+
+export const getAdminMe = async (
+  options?: RequestInit,
+): Promise<AdminProfile> => {
+  return customFetch<AdminProfile>(getGetAdminMeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminMeQueryKey = () => {
+  return [`/api/auth/admin/me`] as const;
+};
+
+export const getGetAdminMeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminMe>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminMeQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMe>>> = ({
+    signal,
+  }) => getAdminMe({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminMeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminMe>>
+>;
+export type GetAdminMeQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get current admin profile
+ */
+
+export function useGetAdminMe<
+  TData = Awaited<ReturnType<typeof getAdminMe>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminMeQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

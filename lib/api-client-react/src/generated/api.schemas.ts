@@ -311,6 +311,46 @@ export interface Extra {
   updatedAt: string;
 }
 
+export type AdminProfileAdminRole =
+  (typeof AdminProfileAdminRole)[keyof typeof AdminProfileAdminRole];
+
+export const AdminProfileAdminRole = {
+  admin: "admin",
+  regional_manager: "regional_manager",
+  service_manager: "service_manager",
+  rental_agent: "rental_agent",
+} as const;
+
+export interface AdminProfile {
+  id: number;
+  email: string;
+  fullName: string;
+  adminRole: AdminProfileAdminRole;
+  canManageVehicles: boolean;
+  canManageBookings: boolean;
+  canManageUsers: boolean;
+  canViewReports: boolean;
+  canManageSettings: boolean;
+  canManageRates: boolean;
+  canManageExtras: boolean;
+  canManagePromotions: boolean;
+  canManageLocations: boolean;
+  canViewReviews: boolean;
+  canManageDamages: boolean;
+  canManageTasks: boolean;
+  canViewCalendar: boolean;
+  canManageCases: boolean;
+}
+
+export type AdminLoginBody = {
+  email: string;
+  password: string;
+};
+
+export type AdminLogout200 = {
+  message: string;
+};
+
 export type ListFleetVehiclesParams = {
   status?: ListFleetVehiclesStatus;
   locationId?: number;

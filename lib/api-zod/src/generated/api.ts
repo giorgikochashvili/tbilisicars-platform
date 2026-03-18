@@ -16,6 +16,79 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * Authenticates an admin with email and password. Sets a session cookie on success.
+ * @summary Admin login
+ */
+export const AdminLoginBody = zod.object({
+  email: zod.string().email(),
+  password: zod.string(),
+});
+
+export const AdminLoginResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  fullName: zod.string(),
+  adminRole: zod.enum([
+    "admin",
+    "regional_manager",
+    "service_manager",
+    "rental_agent",
+  ]),
+  canManageVehicles: zod.boolean(),
+  canManageBookings: zod.boolean(),
+  canManageUsers: zod.boolean(),
+  canViewReports: zod.boolean(),
+  canManageSettings: zod.boolean(),
+  canManageRates: zod.boolean(),
+  canManageExtras: zod.boolean(),
+  canManagePromotions: zod.boolean(),
+  canManageLocations: zod.boolean(),
+  canViewReviews: zod.boolean(),
+  canManageDamages: zod.boolean(),
+  canManageTasks: zod.boolean(),
+  canViewCalendar: zod.boolean(),
+  canManageCases: zod.boolean(),
+});
+
+/**
+ * Destroys the current session.
+ * @summary Admin logout
+ */
+export const AdminLogoutResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * Returns the profile of the currently authenticated admin.
+ * @summary Get current admin profile
+ */
+export const GetAdminMeResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  fullName: zod.string(),
+  adminRole: zod.enum([
+    "admin",
+    "regional_manager",
+    "service_manager",
+    "rental_agent",
+  ]),
+  canManageVehicles: zod.boolean(),
+  canManageBookings: zod.boolean(),
+  canManageUsers: zod.boolean(),
+  canViewReports: zod.boolean(),
+  canManageSettings: zod.boolean(),
+  canManageRates: zod.boolean(),
+  canManageExtras: zod.boolean(),
+  canManagePromotions: zod.boolean(),
+  canManageLocations: zod.boolean(),
+  canViewReviews: zod.boolean(),
+  canManageDamages: zod.boolean(),
+  canManageTasks: zod.boolean(),
+  canViewCalendar: zod.boolean(),
+  canManageCases: zod.boolean(),
+});
+
+/**
  * @summary List active locations
  */
 export const ListLocationsResponseItem = zod.object({

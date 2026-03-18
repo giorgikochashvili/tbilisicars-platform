@@ -3,8 +3,8 @@ import { UnauthorizedError } from "../lib/errors.js";
 
 declare module "express-session" {
   interface SessionData {
-    userId?: string;
-    isAdmin?: boolean;
+    userId?: number;
+    adminId?: number;
   }
 }
 

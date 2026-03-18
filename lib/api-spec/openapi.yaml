@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Admin authentication
   - name: locations
     description: Pickup and return locations
   - name: fleet
@@ -33,6 +35,88 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Admin Auth ───────────────────────────────────────────────────────────────
+
+  /auth/admin/login:
+    post:
+      operationId: adminLogin
+      tags: [auth]
+      summary: Admin login
+      description: Authenticates an admin with email and password. Sets a session cookie on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              required:
+                - email
+                - password
+      responses:
+        "200":
+          description: Login successful — returns admin profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProfile"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [auth]
+      summary: Admin logout
+      description: Destroys the current session.
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+
+  /auth/admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [auth]
+      summary: Get current admin profile
+      description: Returns the profile of the currently authenticated admin.
+      responses:
+        "200":
+          description: Current admin profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProfile"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Authenticated but not an active admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Locations ────────────────────────────────────────────────────────────────
 
@@ -603,3 +687,65 @@ components:
         - isActive
         - createdAt
         - updatedAt
+
+    # ─── Auth ────────────────────────────────────────────────────────────────────
+
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        fullName:
+          type: string
+        adminRole:
+          type: string
+          enum: [admin, regional_manager, service_manager, rental_agent]
+        canManageVehicles:
+          type: boolean
+        canManageBookings:
+          type: boolean
+        canManageUsers:
+          type: boolean
+        canViewReports:
+          type: boolean
+        canManageSettings:
+          type: boolean
+        canManageRates:
+          type: boolean
+        canManageExtras:
+          type: boolean
+        canManagePromotions:
+          type: boolean
+        canManageLocations:
+          type: boolean
+        canViewReviews:
+          type: boolean
+        canManageDamages:
+          type: boolean
+        canManageTasks:
+          type: boolean
+        canViewCalendar:
+          type: boolean
+        canManageCases:
+          type: boolean
+      required:
+        - id
+        - email
+        - fullName
+        - adminRole
+        - canManageVehicles
+        - canManageBookings
+        - canManageUsers
+        - canViewReports
+        - canManageSettings
+        - canManageRates
+        - canManageExtras
+        - canManagePromotions
+        - canManageLocations
+        - canViewReviews
+        - canManageDamages
+        - canManageTasks
+        - canViewCalendar
+        - canManageCases
