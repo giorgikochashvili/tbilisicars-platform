@@ -20,6 +20,12 @@ tags:
     description: Rental pricing rates and tiers
   - name: extras
     description: Add-on extras available at booking
+  - name: admin-locations
+    description: Admin — locations and one-way fees
+  - name: admin-fleet
+    description: Admin — brands, models, groups, and vehicles
+  - name: admin-extras
+    description: Admin — extras catalog management
 
 paths:
   /healthz:
@@ -318,6 +324,374 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Extra"
+
+  # ─── Admin Locations ──────────────────────────────────────────────────────────
+
+  /admin/locations:
+    get:
+      operationId: listAdminLocations
+      tags: [admin-locations]
+      summary: List all locations (admin)
+      description: Returns all locations including inactive ones.
+      responses:
+        "200":
+          description: Array of all locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminLocation"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/locations/{id}:
+    get:
+      operationId: getAdminLocation
+      tags: [admin-locations]
+      summary: Get single location (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Location record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLocation"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/one-way-fees:
+    get:
+      operationId: listAdminOneWayFees
+      tags: [admin-locations]
+      summary: List all one-way fees (admin)
+      responses:
+        "200":
+          description: Array of one-way fee rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminOneWayFeeItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Fleet ──────────────────────────────────────────────────────────────
+
+  /admin/fleet/brands:
+    get:
+      operationId: listAdminBrands
+      tags: [admin-fleet]
+      summary: List all brands (admin)
+      responses:
+        "200":
+          description: Array of all brands
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminBrand"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/brands/{id}:
+    get:
+      operationId: getAdminBrand
+      tags: [admin-fleet]
+      summary: Get single brand (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Brand record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBrand"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Brand not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/models:
+    get:
+      operationId: listAdminModels
+      tags: [admin-fleet]
+      summary: List all vehicle models (admin)
+      responses:
+        "200":
+          description: Array of all vehicle models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminVehicleModelItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/models/{id}:
+    get:
+      operationId: getAdminModel
+      tags: [admin-fleet]
+      summary: Get single vehicle model (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle model with nested brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleModelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle model not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/groups:
+    get:
+      operationId: listAdminGroups
+      tags: [admin-fleet]
+      summary: List all vehicle groups (admin)
+      description: Returns all vehicle groups including inactive ones.
+      responses:
+        "200":
+          description: Array of all vehicle groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminVehicleGroupItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/groups/{id}:
+    get:
+      operationId: getAdminGroup
+      tags: [admin-fleet]
+      summary: Get single vehicle group (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle group record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleGroupItem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle group not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/vehicles:
+    get:
+      operationId: listAdminVehicles
+      tags: [admin-fleet]
+      summary: Paginated vehicle list (admin)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
+        - name: locationId
+          in: query
+          schema:
+            type: integer
+        - name: modelId
+          in: query
+          schema:
+            type: integer
+        - name: groupId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated vehicle list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehiclePaginatedResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/fleet/vehicles/{id}:
+    get:
+      operationId: getAdminVehicle
+      tags: [admin-fleet]
+      summary: Get single vehicle (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle with nested model and group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Extras ─────────────────────────────────────────────────────────────
+
+  /admin/extras:
+    get:
+      operationId: listAdminExtras
+      tags: [admin-extras]
+      summary: List all extras (admin)
+      description: Returns all extras including inactive ones.
+      responses:
+        "200":
+          description: Array of all extras
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminExtra"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/extras/{id}:
+    get:
+      operationId: getAdminExtra
+      tags: [admin-extras]
+      summary: Get single extra (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Extra record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminExtra"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Extra not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -752,3 +1126,438 @@ components:
         - canManageTasks
         - canViewCalendar
         - canManageCases
+
+    # ─── Admin Locations ─────────────────────────────────────────────────────────
+
+    AdminLocation:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        latitude:
+          type: ["string", "null"]
+        longitude:
+          type: ["string", "null"]
+        locationType:
+          type: string
+          enum: [meet_and_greet, rental_office]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - locationType
+        - isActive
+        - createdAt
+        - updatedAt
+
+    AdminOneWayFeeItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        fromLocationId:
+          type: integer
+        toLocationId:
+          type: integer
+        fee:
+          type: string
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fromLocationId
+        - toLocationId
+        - fee
+        - currency
+        - createdAt
+        - updatedAt
+
+    # ─── Admin Fleet ─────────────────────────────────────────────────────────────
+
+    AdminBrand:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        countryOfOrigin:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    AdminVehicleModelItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        brandId:
+          type: integer
+        name:
+          type: string
+        active:
+          type: boolean
+        seats:
+          type: ["integer", "null"]
+        doors:
+          type: ["integer", "null"]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        imageUrl:
+          type: ["string", "null"]
+        deposit:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - brandId
+        - name
+        - active
+        - createdAt
+        - updatedAt
+
+    AdminVehicleModelDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        brandId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        availableForExternalSystems:
+          type: boolean
+        category:
+          type: ["string", "null"]
+        seats:
+          type: ["integer", "null"]
+        doors:
+          type: ["integer", "null"]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        luggageCapacity:
+          type: ["integer", "null"]
+        mileageLimitPerDay:
+          type: ["integer", "null"]
+        deposit:
+          type: ["string", "null"]
+        brand:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            logoUrl:
+              type: ["string", "null"]
+            countryOfOrigin:
+              type: ["string", "null"]
+          required:
+            - id
+            - name
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - brandId
+        - name
+        - active
+        - availableForExternalSystems
+        - createdAt
+        - updatedAt
+
+    AdminVehicleGroupItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        seats:
+          type: ["integer", "null"]
+        doors:
+          type: ["integer", "null"]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        basePricePerDay:
+          type: ["string", "null"]
+        basePricePerWeek:
+          type: ["string", "null"]
+        basePricePerMonth:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        displayOrder:
+          type: ["integer", "null"]
+        active:
+          type: ["boolean", "null"]
+        minRentalDays:
+          type: ["integer", "null"]
+        maxRentalDays:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    AdminVehicleItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleModelId:
+          type: ["integer", "null"]
+        vehicleGroupId:
+          type: ["integer", "null"]
+        make:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        year:
+          type: ["integer", "null"]
+        color:
+          type: ["string", "null"]
+        licensePlate:
+          type: ["string", "null"]
+        vin:
+          type: ["string", "null"]
+        vehicleClass:
+          type: ["string", "null"]
+          enum: [ECONOMY, COMPACT, MIDSIZE, STANDARD, FULLSIZE, PREMIUM, LUXURY, SUV, MINIVAN, VAN, TRUCK, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        status:
+          type: ["string", "null"]
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE, null]
+        mileage:
+          type: ["integer", "null"]
+        locationId:
+          type: ["integer", "null"]
+        startingPrice:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - startingPrice
+        - createdAt
+        - updatedAt
+
+    AdminVehicleDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleModelId:
+          type: ["integer", "null"]
+        vehicleGroupId:
+          type: ["integer", "null"]
+        make:
+          type: ["string", "null"]
+        model:
+          type: ["string", "null"]
+        year:
+          type: ["integer", "null"]
+        color:
+          type: ["string", "null"]
+        licensePlate:
+          type: ["string", "null"]
+        vin:
+          type: ["string", "null"]
+        vehicleClass:
+          type: ["string", "null"]
+          enum: [ECONOMY, COMPACT, MIDSIZE, STANDARD, FULLSIZE, PREMIUM, LUXURY, SUV, MINIVAN, VAN, TRUCK, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        status:
+          type: ["string", "null"]
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE, null]
+        mileage:
+          type: ["integer", "null"]
+        locationId:
+          type: ["integer", "null"]
+        startingPrice:
+          type: string
+        vehicleModel:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            brandId:
+              type: integer
+            brandName:
+              type: ["string", "null"]
+          required:
+            - id
+            - name
+            - brandId
+        vehicleGroup:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+          required:
+            - id
+            - name
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - startingPrice
+        - createdAt
+        - updatedAt
+
+    AdminPaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+      required:
+        - page
+        - limit
+        - total
+
+    AdminVehiclePaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminVehicleItem"
+        meta:
+          $ref: "#/components/schemas/AdminPaginationMeta"
+      required:
+        - data
+        - meta
+
+    # ─── Admin Extras ─────────────────────────────────────────────────────────────
+
+    AdminExtra:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: string
+        currency:
+          type: string
+        pricingType:
+          type: string
+          enum: [per_day, per_trip]
+        maxDays:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - price
+        - currency
+        - pricingType
+        - isActive
+        - createdAt
+        - updatedAt

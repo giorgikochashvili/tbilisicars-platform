@@ -17,13 +17,23 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminBrand,
+  AdminExtra,
+  AdminLocation,
   AdminLoginBody,
   AdminLogout200,
+  AdminOneWayFeeItem,
   AdminProfile,
+  AdminVehicleDetail,
+  AdminVehicleGroupItem,
+  AdminVehicleModelDetail,
+  AdminVehicleModelItem,
+  AdminVehiclePaginatedResponse,
   Brand,
   ErrorResponse,
   Extra,
   HealthStatus,
+  ListAdminVehiclesParams,
   ListFleetVehiclesParams,
   Location,
   RateWithTiers,
@@ -1142,6 +1152,1081 @@ export function useListExtras<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListExtrasQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns all locations including inactive ones.
+ * @summary List all locations (admin)
+ */
+export const getListAdminLocationsUrl = () => {
+  return `/api/admin/locations`;
+};
+
+export const listAdminLocations = async (
+  options?: RequestInit,
+): Promise<AdminLocation[]> => {
+  return customFetch<AdminLocation[]>(getListAdminLocationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminLocationsQueryKey = () => {
+  return [`/api/admin/locations`] as const;
+};
+
+export const getListAdminLocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminLocations>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminLocations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminLocationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminLocations>>
+  > = ({ signal }) => listAdminLocations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminLocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminLocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminLocations>>
+>;
+export type ListAdminLocationsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all locations (admin)
+ */
+
+export function useListAdminLocations<
+  TData = Awaited<ReturnType<typeof listAdminLocations>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminLocations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminLocationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single location (admin)
+ */
+export const getGetAdminLocationUrl = (id: number) => {
+  return `/api/admin/locations/${id}`;
+};
+
+export const getAdminLocation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminLocation> => {
+  return customFetch<AdminLocation>(getGetAdminLocationUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminLocationQueryKey = (id: number) => {
+  return [`/api/admin/locations/${id}`] as const;
+};
+
+export const getGetAdminLocationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminLocation>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminLocation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminLocationQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminLocation>>
+  > = ({ signal }) => getAdminLocation(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminLocation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminLocationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminLocation>>
+>;
+export type GetAdminLocationQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single location (admin)
+ */
+
+export function useGetAdminLocation<
+  TData = Awaited<ReturnType<typeof getAdminLocation>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminLocation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminLocationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all one-way fees (admin)
+ */
+export const getListAdminOneWayFeesUrl = () => {
+  return `/api/admin/one-way-fees`;
+};
+
+export const listAdminOneWayFees = async (
+  options?: RequestInit,
+): Promise<AdminOneWayFeeItem[]> => {
+  return customFetch<AdminOneWayFeeItem[]>(getListAdminOneWayFeesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminOneWayFeesQueryKey = () => {
+  return [`/api/admin/one-way-fees`] as const;
+};
+
+export const getListAdminOneWayFeesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminOneWayFees>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminOneWayFees>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminOneWayFeesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminOneWayFees>>
+  > = ({ signal }) => listAdminOneWayFees({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminOneWayFees>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminOneWayFeesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminOneWayFees>>
+>;
+export type ListAdminOneWayFeesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all one-way fees (admin)
+ */
+
+export function useListAdminOneWayFees<
+  TData = Awaited<ReturnType<typeof listAdminOneWayFees>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminOneWayFees>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminOneWayFeesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all brands (admin)
+ */
+export const getListAdminBrandsUrl = () => {
+  return `/api/admin/fleet/brands`;
+};
+
+export const listAdminBrands = async (
+  options?: RequestInit,
+): Promise<AdminBrand[]> => {
+  return customFetch<AdminBrand[]>(getListAdminBrandsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminBrandsQueryKey = () => {
+  return [`/api/admin/fleet/brands`] as const;
+};
+
+export const getListAdminBrandsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminBrands>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminBrands>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminBrandsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminBrands>>> = ({
+    signal,
+  }) => listAdminBrands({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminBrands>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminBrandsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminBrands>>
+>;
+export type ListAdminBrandsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all brands (admin)
+ */
+
+export function useListAdminBrands<
+  TData = Awaited<ReturnType<typeof listAdminBrands>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminBrands>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminBrandsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single brand (admin)
+ */
+export const getGetAdminBrandUrl = (id: number) => {
+  return `/api/admin/fleet/brands/${id}`;
+};
+
+export const getAdminBrand = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminBrand> => {
+  return customFetch<AdminBrand>(getGetAdminBrandUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminBrandQueryKey = (id: number) => {
+  return [`/api/admin/fleet/brands/${id}`] as const;
+};
+
+export const getGetAdminBrandQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminBrand>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminBrand>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminBrandQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminBrand>>> = ({
+    signal,
+  }) => getAdminBrand(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminBrand>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminBrandQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminBrand>>
+>;
+export type GetAdminBrandQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single brand (admin)
+ */
+
+export function useGetAdminBrand<
+  TData = Awaited<ReturnType<typeof getAdminBrand>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminBrand>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminBrandQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all vehicle models (admin)
+ */
+export const getListAdminModelsUrl = () => {
+  return `/api/admin/fleet/models`;
+};
+
+export const listAdminModels = async (
+  options?: RequestInit,
+): Promise<AdminVehicleModelItem[]> => {
+  return customFetch<AdminVehicleModelItem[]>(getListAdminModelsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminModelsQueryKey = () => {
+  return [`/api/admin/fleet/models`] as const;
+};
+
+export const getListAdminModelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminModels>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminModelsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminModels>>> = ({
+    signal,
+  }) => listAdminModels({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminModels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminModelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminModels>>
+>;
+export type ListAdminModelsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all vehicle models (admin)
+ */
+
+export function useListAdminModels<
+  TData = Awaited<ReturnType<typeof listAdminModels>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminModelsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single vehicle model (admin)
+ */
+export const getGetAdminModelUrl = (id: number) => {
+  return `/api/admin/fleet/models/${id}`;
+};
+
+export const getAdminModel = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminVehicleModelDetail> => {
+  return customFetch<AdminVehicleModelDetail>(getGetAdminModelUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminModelQueryKey = (id: number) => {
+  return [`/api/admin/fleet/models/${id}`] as const;
+};
+
+export const getGetAdminModelQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminModel>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminModel>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminModelQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminModel>>> = ({
+    signal,
+  }) => getAdminModel(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminModel>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminModelQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminModel>>
+>;
+export type GetAdminModelQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single vehicle model (admin)
+ */
+
+export function useGetAdminModel<
+  TData = Awaited<ReturnType<typeof getAdminModel>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminModel>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminModelQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns all vehicle groups including inactive ones.
+ * @summary List all vehicle groups (admin)
+ */
+export const getListAdminGroupsUrl = () => {
+  return `/api/admin/fleet/groups`;
+};
+
+export const listAdminGroups = async (
+  options?: RequestInit,
+): Promise<AdminVehicleGroupItem[]> => {
+  return customFetch<AdminVehicleGroupItem[]>(getListAdminGroupsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminGroupsQueryKey = () => {
+  return [`/api/admin/fleet/groups`] as const;
+};
+
+export const getListAdminGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminGroups>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminGroupsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminGroups>>> = ({
+    signal,
+  }) => listAdminGroups({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminGroups>>
+>;
+export type ListAdminGroupsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all vehicle groups (admin)
+ */
+
+export function useListAdminGroups<
+  TData = Awaited<ReturnType<typeof listAdminGroups>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminGroupsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single vehicle group (admin)
+ */
+export const getGetAdminGroupUrl = (id: number) => {
+  return `/api/admin/fleet/groups/${id}`;
+};
+
+export const getAdminGroup = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminVehicleGroupItem> => {
+  return customFetch<AdminVehicleGroupItem>(getGetAdminGroupUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminGroupQueryKey = (id: number) => {
+  return [`/api/admin/fleet/groups/${id}`] as const;
+};
+
+export const getGetAdminGroupQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminGroup>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminGroupQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminGroup>>> = ({
+    signal,
+  }) => getAdminGroup(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminGroup>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminGroupQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminGroup>>
+>;
+export type GetAdminGroupQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single vehicle group (admin)
+ */
+
+export function useGetAdminGroup<
+  TData = Awaited<ReturnType<typeof getAdminGroup>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminGroup>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminGroupQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Paginated vehicle list (admin)
+ */
+export const getListAdminVehiclesUrl = (params?: ListAdminVehiclesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/fleet/vehicles?${stringifiedParams}`
+    : `/api/admin/fleet/vehicles`;
+};
+
+export const listAdminVehicles = async (
+  params?: ListAdminVehiclesParams,
+  options?: RequestInit,
+): Promise<AdminVehiclePaginatedResponse> => {
+  return customFetch<AdminVehiclePaginatedResponse>(
+    getListAdminVehiclesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAdminVehiclesQueryKey = (
+  params?: ListAdminVehiclesParams,
+) => {
+  return [`/api/admin/fleet/vehicles`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAdminVehiclesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminVehicles>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListAdminVehiclesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminVehicles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAdminVehiclesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminVehicles>>
+  > = ({ signal }) => listAdminVehicles(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminVehicles>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminVehiclesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminVehicles>>
+>;
+export type ListAdminVehiclesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Paginated vehicle list (admin)
+ */
+
+export function useListAdminVehicles<
+  TData = Awaited<ReturnType<typeof listAdminVehicles>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: ListAdminVehiclesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAdminVehicles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminVehiclesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single vehicle (admin)
+ */
+export const getGetAdminVehicleUrl = (id: number) => {
+  return `/api/admin/fleet/vehicles/${id}`;
+};
+
+export const getAdminVehicle = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminVehicleDetail> => {
+  return customFetch<AdminVehicleDetail>(getGetAdminVehicleUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminVehicleQueryKey = (id: number) => {
+  return [`/api/admin/fleet/vehicles/${id}`] as const;
+};
+
+export const getGetAdminVehicleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminVehicleQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVehicle>>> = ({
+    signal,
+  }) => getAdminVehicle(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminVehicle>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminVehicleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminVehicle>>
+>;
+export type GetAdminVehicleQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single vehicle (admin)
+ */
+
+export function useGetAdminVehicle<
+  TData = Awaited<ReturnType<typeof getAdminVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminVehicleQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns all extras including inactive ones.
+ * @summary List all extras (admin)
+ */
+export const getListAdminExtrasUrl = () => {
+  return `/api/admin/extras`;
+};
+
+export const listAdminExtras = async (
+  options?: RequestInit,
+): Promise<AdminExtra[]> => {
+  return customFetch<AdminExtra[]>(getListAdminExtrasUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminExtrasQueryKey = () => {
+  return [`/api/admin/extras`] as const;
+};
+
+export const getListAdminExtrasQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminExtras>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminExtras>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminExtrasQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminExtras>>> = ({
+    signal,
+  }) => listAdminExtras({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminExtras>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminExtrasQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminExtras>>
+>;
+export type ListAdminExtrasQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all extras (admin)
+ */
+
+export function useListAdminExtras<
+  TData = Awaited<ReturnType<typeof listAdminExtras>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminExtras>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminExtrasQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get single extra (admin)
+ */
+export const getGetAdminExtraUrl = (id: number) => {
+  return `/api/admin/extras/${id}`;
+};
+
+export const getAdminExtra = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminExtra> => {
+  return customFetch<AdminExtra>(getGetAdminExtraUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminExtraQueryKey = (id: number) => {
+  return [`/api/admin/extras/${id}`] as const;
+};
+
+export const getGetAdminExtraQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminExtra>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminExtra>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminExtraQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminExtra>>> = ({
+    signal,
+  }) => getAdminExtra(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminExtra>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminExtraQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminExtra>>
+>;
+export type GetAdminExtraQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get single extra (admin)
+ */
+
+export function useGetAdminExtra<
+  TData = Awaited<ReturnType<typeof getAdminExtra>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminExtra>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminExtraQueryOptions(id, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

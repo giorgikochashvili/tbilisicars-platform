@@ -347,6 +347,483 @@ export interface AdminProfile {
   canManageCases: boolean;
 }
 
+export type AdminLocationLocationType =
+  (typeof AdminLocationLocationType)[keyof typeof AdminLocationLocationType];
+
+export const AdminLocationLocationType = {
+  meet_and_greet: "meet_and_greet",
+  rental_office: "rental_office",
+} as const;
+
+export interface AdminLocation {
+  id: number;
+  name: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  latitude?: string | null;
+  /** @nullable */
+  longitude?: string | null;
+  locationType: AdminLocationLocationType;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminOneWayFeeItem {
+  id: number;
+  fromLocationId: number;
+  toLocationId: number;
+  fee: string;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminBrand {
+  id: number;
+  name: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminVehicleModelItemTransmission =
+  | (typeof AdminVehicleModelItemTransmission)[keyof typeof AdminVehicleModelItemTransmission]
+  | null;
+
+export const AdminVehicleModelItemTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleModelItemFuelType =
+  | (typeof AdminVehicleModelItemFuelType)[keyof typeof AdminVehicleModelItemFuelType]
+  | null;
+
+export const AdminVehicleModelItemFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export interface AdminVehicleModelItem {
+  id: number;
+  brandId: number;
+  name: string;
+  active: boolean;
+  /** @nullable */
+  seats?: number | null;
+  /** @nullable */
+  doors?: number | null;
+  /** @nullable */
+  transmission?: AdminVehicleModelItemTransmission;
+  /** @nullable */
+  fuelType?: AdminVehicleModelItemFuelType;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  deposit?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminVehicleModelDetailTransmission =
+  | (typeof AdminVehicleModelDetailTransmission)[keyof typeof AdminVehicleModelDetailTransmission]
+  | null;
+
+export const AdminVehicleModelDetailTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleModelDetailFuelType =
+  | (typeof AdminVehicleModelDetailFuelType)[keyof typeof AdminVehicleModelDetailFuelType]
+  | null;
+
+export const AdminVehicleModelDetailFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleModelDetailBrand = {
+  id: number;
+  name: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+} | null;
+
+export interface AdminVehicleModelDetail {
+  id: number;
+  brandId: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  active: boolean;
+  availableForExternalSystems: boolean;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  seats?: number | null;
+  /** @nullable */
+  doors?: number | null;
+  /** @nullable */
+  transmission?: AdminVehicleModelDetailTransmission;
+  /** @nullable */
+  fuelType?: AdminVehicleModelDetailFuelType;
+  /** @nullable */
+  luggageCapacity?: number | null;
+  /** @nullable */
+  mileageLimitPerDay?: number | null;
+  /** @nullable */
+  deposit?: string | null;
+  /** @nullable */
+  brand?: AdminVehicleModelDetailBrand;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminVehicleGroupItemTransmission =
+  | (typeof AdminVehicleGroupItemTransmission)[keyof typeof AdminVehicleGroupItemTransmission]
+  | null;
+
+export const AdminVehicleGroupItemTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleGroupItemFuelType =
+  | (typeof AdminVehicleGroupItemFuelType)[keyof typeof AdminVehicleGroupItemFuelType]
+  | null;
+
+export const AdminVehicleGroupItemFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export interface AdminVehicleGroupItem {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  seats?: number | null;
+  /** @nullable */
+  doors?: number | null;
+  /** @nullable */
+  transmission?: AdminVehicleGroupItemTransmission;
+  /** @nullable */
+  fuelType?: AdminVehicleGroupItemFuelType;
+  /** @nullable */
+  basePricePerDay?: string | null;
+  /** @nullable */
+  basePricePerWeek?: string | null;
+  /** @nullable */
+  basePricePerMonth?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  displayOrder?: number | null;
+  /** @nullable */
+  active?: boolean | null;
+  /** @nullable */
+  minRentalDays?: number | null;
+  /** @nullable */
+  maxRentalDays?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminVehicleItemVehicleClass =
+  | (typeof AdminVehicleItemVehicleClass)[keyof typeof AdminVehicleItemVehicleClass]
+  | null;
+
+export const AdminVehicleItemVehicleClass = {
+  ECONOMY: "ECONOMY",
+  COMPACT: "COMPACT",
+  MIDSIZE: "MIDSIZE",
+  STANDARD: "STANDARD",
+  FULLSIZE: "FULLSIZE",
+  PREMIUM: "PREMIUM",
+  LUXURY: "LUXURY",
+  SUV: "SUV",
+  MINIVAN: "MINIVAN",
+  VAN: "VAN",
+  TRUCK: "TRUCK",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleItemFuelType =
+  | (typeof AdminVehicleItemFuelType)[keyof typeof AdminVehicleItemFuelType]
+  | null;
+
+export const AdminVehicleItemFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleItemTransmission =
+  | (typeof AdminVehicleItemTransmission)[keyof typeof AdminVehicleItemTransmission]
+  | null;
+
+export const AdminVehicleItemTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleItemStatus =
+  | (typeof AdminVehicleItemStatus)[keyof typeof AdminVehicleItemStatus]
+  | null;
+
+export const AdminVehicleItemStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface AdminVehicleItem {
+  id: number;
+  /** @nullable */
+  vehicleModelId?: number | null;
+  /** @nullable */
+  vehicleGroupId?: number | null;
+  /** @nullable */
+  make?: string | null;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  color?: string | null;
+  /** @nullable */
+  licensePlate?: string | null;
+  /** @nullable */
+  vin?: string | null;
+  /** @nullable */
+  vehicleClass?: AdminVehicleItemVehicleClass;
+  /** @nullable */
+  fuelType?: AdminVehicleItemFuelType;
+  /** @nullable */
+  transmission?: AdminVehicleItemTransmission;
+  /** @nullable */
+  status?: AdminVehicleItemStatus;
+  /** @nullable */
+  mileage?: number | null;
+  /** @nullable */
+  locationId?: number | null;
+  startingPrice: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailVehicleClass =
+  | (typeof AdminVehicleDetailVehicleClass)[keyof typeof AdminVehicleDetailVehicleClass]
+  | null;
+
+export const AdminVehicleDetailVehicleClass = {
+  ECONOMY: "ECONOMY",
+  COMPACT: "COMPACT",
+  MIDSIZE: "MIDSIZE",
+  STANDARD: "STANDARD",
+  FULLSIZE: "FULLSIZE",
+  PREMIUM: "PREMIUM",
+  LUXURY: "LUXURY",
+  SUV: "SUV",
+  MINIVAN: "MINIVAN",
+  VAN: "VAN",
+  TRUCK: "TRUCK",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailFuelType =
+  | (typeof AdminVehicleDetailFuelType)[keyof typeof AdminVehicleDetailFuelType]
+  | null;
+
+export const AdminVehicleDetailFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailTransmission =
+  | (typeof AdminVehicleDetailTransmission)[keyof typeof AdminVehicleDetailTransmission]
+  | null;
+
+export const AdminVehicleDetailTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailStatus =
+  | (typeof AdminVehicleDetailStatus)[keyof typeof AdminVehicleDetailStatus]
+  | null;
+
+export const AdminVehicleDetailStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailVehicleModel = {
+  id: number;
+  name: string;
+  brandId: number;
+  /** @nullable */
+  brandName?: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type AdminVehicleDetailVehicleGroup = {
+  id: number;
+  name: string;
+} | null;
+
+export interface AdminVehicleDetail {
+  id: number;
+  /** @nullable */
+  vehicleModelId?: number | null;
+  /** @nullable */
+  vehicleGroupId?: number | null;
+  /** @nullable */
+  make?: string | null;
+  /** @nullable */
+  model?: string | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  color?: string | null;
+  /** @nullable */
+  licensePlate?: string | null;
+  /** @nullable */
+  vin?: string | null;
+  /** @nullable */
+  vehicleClass?: AdminVehicleDetailVehicleClass;
+  /** @nullable */
+  fuelType?: AdminVehicleDetailFuelType;
+  /** @nullable */
+  transmission?: AdminVehicleDetailTransmission;
+  /** @nullable */
+  status?: AdminVehicleDetailStatus;
+  /** @nullable */
+  mileage?: number | null;
+  /** @nullable */
+  locationId?: number | null;
+  startingPrice: string;
+  /** @nullable */
+  vehicleModel?: AdminVehicleDetailVehicleModel;
+  /** @nullable */
+  vehicleGroup?: AdminVehicleDetailVehicleGroup;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface AdminVehiclePaginatedResponse {
+  data: AdminVehicleItem[];
+  meta: AdminPaginationMeta;
+}
+
+export type AdminExtraPricingType =
+  (typeof AdminExtraPricingType)[keyof typeof AdminExtraPricingType];
+
+export const AdminExtraPricingType = {
+  per_day: "per_day",
+  per_trip: "per_trip",
+} as const;
+
+export interface AdminExtra {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  price: string;
+  currency: string;
+  pricingType: AdminExtraPricingType;
+  /** @nullable */
+  maxDays?: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type AdminLogout200 = {
   message: string;
 };
@@ -362,6 +839,26 @@ export type ListFleetVehiclesStatus =
   (typeof ListFleetVehiclesStatus)[keyof typeof ListFleetVehiclesStatus];
 
 export const ListFleetVehiclesStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export type ListAdminVehiclesParams = {
+  page?: number;
+  limit?: number;
+  status?: ListAdminVehiclesStatus;
+  locationId?: number;
+  modelId?: number;
+  groupId?: number;
+};
+
+export type ListAdminVehiclesStatus =
+  (typeof ListAdminVehiclesStatus)[keyof typeof ListAdminVehiclesStatus];
+
+export const ListAdminVehiclesStatus = {
   AVAILABLE: "AVAILABLE",
   RENTED: "RENTED",
   MAINTENANCE: "MAINTENANCE",
