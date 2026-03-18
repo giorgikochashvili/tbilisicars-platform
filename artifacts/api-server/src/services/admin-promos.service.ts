@@ -1,9 +1,9 @@
 import { db, promoTable } from "@workspace/db";
-import { asc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 export async function listAllPromos() {
-  return db.select().from(promoTable).orderBy(asc(promoTable.id));
+  return db.select().from(promoTable).orderBy(desc(promoTable.id));
 }
 
 export async function getAdminPromo(id: number) {
