@@ -14,7 +14,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const locationTypeEnum = pgEnum("location_type_enum", [
+export const locationTypeEnum = pgEnum("locationtypeenum", [
   "meet_and_greet",
   "rental_office",
 ]);

@@ -11,7 +11,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const adminRoleEnum = pgEnum("admin_role_enum", [
+export const adminRoleEnum = pgEnum("adminroleenum", [
   "admin",
   "regional_manager",
   "service_manager",
