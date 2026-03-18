@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   CalendarClock, Car, ArrowRightLeft, CreditCard,
   PlayCircle, CheckCircle2, Flag, RotateCcw,
-  XCircle, UserX, AlertCircle, MapPin, Calendar
+  XCircle, UserX, AlertCircle, MapPin, Calendar,
+  Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine
 } from "lucide-react";
+import { Link } from "wouter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -474,6 +476,12 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
+  const alertSummaryQuery = useQuery<{ total: number; pickup: number; dropoff: number; overdue: number; conflict: number; service: number }>({
+    queryKey: ["dashboard-alerts-summary"],
+    queryFn: () => fetchJson("/api/admin/alerts/summary"),
+    staleTime: 60_000,
+  });
+
   const hasError = summaryQuery.isError || todayQuery.isError || fleetQuery.isError;
 
   return (
@@ -562,6 +570,49 @@ export default function Dashboard() {
           <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
         </h2>
         <FleetTimeline calendar={calendarQuery.data} isLoading={calendarQuery.isLoading} />
+      </div>
+
+      {/* Alert Summary Panel */}
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-primary" /> Operational Alerts
+          {alertSummaryQuery.data && alertSummaryQuery.data.total > 0 && (
+            <span className="ml-1 text-[10px] font-bold bg-red-500 text-white rounded-full px-2 py-0.5">{alertSummaryQuery.data.total}</span>
+          )}
+        </h2>
+        {alertSummaryQuery.isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          </div>
+        ) : alertSummaryQuery.data ? (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: "Overdue", count: alertSummaryQuery.data.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, type: "OVERDUE" },
+              { label: "Conflicts", count: alertSummaryQuery.data.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-4 h-4" />, type: "CONFLICT" },
+              { label: "Service Due", count: alertSummaryQuery.data.service, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_DUE" },
+              { label: "Dropoffs Today", count: alertSummaryQuery.data.dropoff, cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: <ArrowDownToLine className="w-4 h-4" />, type: "DROPOFF_TODAY" },
+              { label: "Pickups Today", count: alertSummaryQuery.data.pickup, cls: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: <ArrowUpFromLine className="w-4 h-4" />, type: "PICKUP_TODAY" },
+            ].map((tile) => (
+              <Link key={tile.type} href={`/alerts?type=${tile.type}`}>
+                <Card className={cn("overflow-hidden border cursor-pointer hover:opacity-80 transition-all", tile.cls)}>
+                  <div className="p-4 flex items-center gap-3">
+                    {tile.icon}
+                    <div>
+                      <div className="text-2xl font-black font-display leading-none">{tile.count}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider opacity-70 mt-0.5">{tile.label}</div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : null}
+        {alertSummaryQuery.data && alertSummaryQuery.data.total === 0 && (
+          <Card className="border-border/40 bg-card/60 p-4 flex items-center gap-3 text-muted-foreground">
+            <Bell className="w-5 h-5 opacity-30" />
+            <span className="text-sm">No active operational alerts</span>
+          </Card>
+        )}
       </div>
 
     </div>

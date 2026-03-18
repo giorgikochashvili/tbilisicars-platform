@@ -1,0 +1,244 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+
+Do NOT redesign working modules.
+Do NOT touch unrelated modules.
+Do NOT change booking logic.
+Do NOT introduce permissions logic in this block.
+Do NOT build external integrations (email, WhatsApp, etc.) yet.
+
+Your task now is to implement ONLY the Notifications / Alerts module for Tbilisicars CRM operations.
+
+==================================================
+BLOCK 12 GOAL
+==================================================
+
+Create a practical internal Alerts system that surfaces important operational events inside the CRM interface.
+
+These alerts must help operations staff quickly see critical issues such as:
+
+- vehicles to be picked up today
+- vehicles to be returned today
+- overdue returns
+- booking conflicts
+- service due alerts
+
+This is an internal CRM alert system only.
+No external messaging systems are required in this block.
+
+==================================================
+A. MODULE PURPOSE
+==================================================
+
+The Alerts module is used to surface operational warnings and reminders to CRM users.
+
+Alerts should appear in:
+
+1. A dedicated Alerts page
+2. Dashboard alert panel (if safe to add)
+3. Small alert counter in the sidebar or header if simple
+
+Alerts must be generated using existing CRM data.
+
+==================================================
+B. ALERT TYPES
+==================================================
+
+Create the following alert categories:
+
+1. Pickup Today
+Vehicles scheduled to be picked up today.
+
+2. Dropoff Today
+Vehicles scheduled to be returned today.
+
+3. Overdue Return
+Bookings whose dropoff date has passed but status is not "Returned".
+
+4. Booking Conflict
+Overlapping bookings for the same vehicle.
+
+5. Service Due
+Vehicle service records where next service date or mileage threshold is reached.
+
+Keep alert types structured.
+
+==================================================
+C. DATA SOURCES
+==================================================
+
+Use only existing modules:
+
+Bookings module
+- pickup date
+- dropoff date
+- vehicle
+- status
+
+Fleet module
+- vehicle status
+- vehicle region
+
+Service module
+- next service date
+- next service mileage if available
+
+Do NOT create duplicate tracking tables unless absolutely required.
+
+Alerts should be calculated dynamically where possible.
+
+==================================================
+D. ALERT STRUCTURE
+==================================================
+
+Each alert must contain:
+
+- alert type
+- vehicle (brand + model + plate)
+- booking id if applicable
+- region
+- alert message
+- date/time generated
+
+Example message formats:
+
+Pickup Today:
+"Vehicle Toyota Prius (ABC-123) scheduled for pickup today"
+
+Dropoff Today:
+"Vehicle Toyota Camry (DEF-456) scheduled for return today"
+
+Overdue:
+"Vehicle Toyota RAV4 (GHI-789) is overdue for return"
+
+Booking Conflict:
+"Vehicle Toyota Prius has overlapping bookings"
+
+Service Due:
+"Vehicle Toyota Prius requires scheduled maintenance"
+
+==================================================
+E. ALERT PAGE
+==================================================
+
+Create a dedicated Alerts page.
+
+Table columns:
+
+- alert type
+- vehicle
+- message
+- region
+- date
+
+Filters:
+
+- alert type
+- region
+- date range
+
+Alerts should appear newest first.
+
+==================================================
+F. DASHBOARD ALERT PANEL
+==================================================
+
+If safe to add without redesigning the dashboard:
+
+Add a small alert panel showing:
+
+- number of active alerts
+- list of latest alerts
+
+Example:
+
+"3 Pickups Today"
+"1 Overdue Return"
+"1 Booking Conflict"
+
+If dashboard modification is risky, skip and report it.
+
+==================================================
+G. ALERT INTERACTION
+==================================================
+
+Each alert should support useful navigation.
+
+Example:
+
+- clicking a pickup alert opens the booking
+- clicking a service alert opens the vehicle
+- clicking conflict alert opens the booking list
+
+Do not add editing features here.
+
+==================================================
+H. PERFORMANCE REQUIREMENT
+==================================================
+
+Alerts must load quickly.
+
+Requirements:
+
+- compute alerts efficiently
+- avoid heavy full-database scans
+- use filtered queries when possible
+
+Alerts do not need to be stored permanently unless required for performance.
+
+==================================================
+I. REQUIRED VERIFICATION
+==================================================
+
+You must verify in the running UI:
+
+1. Alerts page loads
+2. Pickup Today alerts appear when bookings exist
+3. Dropoff Today alerts appear correctly
+4. Overdue Return alerts appear for late bookings
+5. Booking Conflict alerts appear for overlapping bookings
+6. Service Due alerts appear when thresholds are reached
+7. Filters work correctly
+8. Clicking alerts navigates to the correct entity if implemented
+
+Use realistic QA data if necessary.
+
+==================================================
+J. FINAL REPORT FORMAT
+==================================================
+
+At the end report only in this structure:
+
+1. Alerts module result
+2. Pickup alerts result
+3. Dropoff alerts result
+4. Overdue return alerts result
+5. Conflict alerts result
+6. Service alerts result
+7. Dashboard alert integration result
+8. Verified UI flows
+   - Alerts page load: works / not
+   - Filters: works / not
+   - Pickup alerts: works / not
+   - Dropoff alerts: works / not
+   - Overdue alerts: works / not
+   - Conflict alerts: works / not
+   - Service alerts: works / not
+9. Remaining gaps if any
+
+Do not claim completion unless alerts display real data in the running UI.

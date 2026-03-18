@@ -2,8 +2,9 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +28,7 @@ const navItems = [
   { title: "Service", url: "/service", icon: Wrench },
   { title: "Accounting", url: "/accounting", icon: BookOpenText },
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Alerts", url: "/alerts", icon: Bell },
   { title: "Customers", url: "/customers", icon: Users },
   { title: "Locations", url: "/locations", icon: MapPin },
   { title: "Extras", url: "/extras", icon: Package },
@@ -38,6 +40,18 @@ const navItems = [
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+
+  const { data: alertSummary } = useQuery<{ total: number }>({
+    queryKey: ["alerts-summary"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/alerts/summary", { credentials: "include" });
+      if (!res.ok) return { total: 0 };
+      return res.json();
+    },
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+  const alertCount = alertSummary?.total ?? 0;
 
   return (
     <Sidebar variant="inset" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
@@ -60,6 +74,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => {
                 const isActive = location === item.url || (location === "/" && item.url === "/dashboard");
+                const showBadge = item.url === "/alerts" && alertCount > 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
@@ -68,9 +83,16 @@ export function AppSidebar() {
                       tooltip={item.title} 
                       className="data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-semibold transition-all duration-200 mx-2 rounded-lg py-5"
                     >
-                      <Link href={item.url} className="hover-elevate group">
-                        <item.icon className="w-5 h-5 mr-2 text-muted-foreground group-data-[active=true]:text-primary transition-colors" />
-                        <span className="text-sm">{item.title}</span>
+                      <Link href={item.url} className="hover-elevate group flex items-center justify-between w-full">
+                        <span className="flex items-center gap-0">
+                          <item.icon className="w-5 h-5 mr-2 text-muted-foreground group-data-[active=true]:text-primary transition-colors" />
+                          <span className="text-sm">{item.title}</span>
+                        </span>
+                        {showBadge && (
+                          <span className="ml-auto text-[10px] font-bold bg-red-500 text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
+                            {alertCount > 99 ? "99+" : alertCount}
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
