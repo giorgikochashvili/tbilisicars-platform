@@ -310,8 +310,19 @@ export default function BookingsPage() {
                         <div className="text-xs text-muted-foreground">
                           {b.vehicle.modelName} &middot; <span className="font-mono">{b.vehicle.licensePlate}</span>
                         </div>
+                      ) : b.vehicleModelName ? (
+                        <div className="text-xs text-muted-foreground italic">{b.vehicleModelName} (unassigned)</div>
                       ) : (
                         <span className="text-xs text-muted-foreground italic">No vehicle assigned</span>
+                      )}
+                      {b.source && b.source !== "admin" && (
+                        <span className={`inline-flex items-center mt-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          b.source === "website" ? "bg-blue-500/15 text-blue-400 border border-blue-500/25" :
+                          b.source === "api" ? "bg-violet-500/15 text-violet-400 border border-violet-500/25" :
+                          "bg-muted text-muted-foreground border border-border"
+                        }`}>
+                          {b.source === "website" ? "🌐 web" : b.source}
+                        </span>
                       )}
                     </TableCell>
                     <TableCell className="align-top pt-4">

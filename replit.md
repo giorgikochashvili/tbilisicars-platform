@@ -50,6 +50,20 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
+### `artifacts/website` (`@workspace/website`)
+
+Public-facing car rental booking website for customers. Light-mode, professional travel brand design (navy primary, sky blue accent).
+
+- **Base path**: `/website/`
+- **Authentication**: None (fully public, no login required)
+- **Tech**: React + Vite, TanStack Query, Tailwind CSS, shadcn/ui
+- **Features**: 5-step multi-step booking form: Trip Details → Choose Car → Add-ons → Contact Info → Review & Submit
+- **API calls**: `GET /api/public/booking-config`, `POST /api/public/validate-promo`, `POST /api/public/bookings`
+- **Vehicle filter**: Only shows models with `vehicle_model.available_for_external_systems = true`
+- Bookings created with `source="website"`, visible in CRM with "🌐 web" badge
+- Extras (optional add-ons) can be selected per booking
+- Promo code validation is real-time against the promos table
+
 ### `artifacts/crm` (`@workspace/crm`)
 
 React + Vite CRM admin application. Dark-mode only. Uses wouter for routing, TanStack Query for data fetching, shadcn/ui for components.
@@ -93,6 +107,14 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 | GET | `/api/rates` | List active rates (with tiers) |
 | GET | `/api/rates/:id` | Get rate by ID (with tiers) |
 | GET | `/api/extras` | List active extras |
+
+**Public booking endpoints (Block 13 — no auth required):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/public/booking-config` | Returns locations, vehicle models (available_for_external_systems=true), active extras |
+| POST | `/api/public/validate-promo` | Validates a promo code; returns `{valid, discountType, discountValue}` |
+| POST | `/api/public/bookings` | Creates a booking with source="website"; auto creates customer via findOrCreateCustomer |
 
 **Admin endpoints (Phase 2 — require `requireAdmin` per handler):**
 
