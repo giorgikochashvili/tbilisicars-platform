@@ -19,6 +19,7 @@ import ServicePage from "@/pages/Service";
 import AccountingPage from "@/pages/Accounting";
 import TeamPage from "@/pages/Team";
 import FleetCalendarPage from "@/pages/FleetCalendar";
+import ReportsPage from "@/pages/Reports";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/accounting"><ProtectedRoute component={AccountingPage} /></Route>
       <Route path="/team"><ProtectedRoute component={TeamPage} /></Route>
       <Route path="/fleet-calendar"><ProtectedRoute component={FleetCalendarPage} /></Route>
+      <Route path="/reports"><ProtectedRoute component={ReportsPage} /></Route>
       
       {/* Fallback */}
       <Route><ProtectedRoute component={NotFound} /></Route>
