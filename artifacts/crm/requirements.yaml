@@ -1,0 +1,9 @@
+packages:
+  "lucide-react": "Standard icons for the CRM"
+  "date-fns": "Date formatting"
+  "clsx": "Class merging for UI components"
+  "tailwind-merge": "Class merging for UI components"
+  "react-hook-form": "Form state management for login"
+  "@hookform/resolvers": "Zod integration for forms"
+  "zod": "Schema validation for forms"
+  "wouter": "Routing library"
