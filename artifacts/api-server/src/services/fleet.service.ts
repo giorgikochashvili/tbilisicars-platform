@@ -15,8 +15,32 @@ export async function listBrands() {
 
 export async function listVehicleModels() {
   return db
-    .select()
+    .select({
+      id: vehicleModelTable.id,
+      brandId: vehicleModelTable.brandId,
+      name: vehicleModelTable.name,
+      description: vehicleModelTable.description,
+      imageUrl: vehicleModelTable.imageUrl,
+      active: vehicleModelTable.active,
+      availableForExternalSystems: vehicleModelTable.availableForExternalSystems,
+      category: vehicleModelTable.category,
+      seats: vehicleModelTable.seats,
+      doors: vehicleModelTable.doors,
+      transmission: vehicleModelTable.transmission,
+      fuelType: vehicleModelTable.fuelType,
+      luggageCapacity: vehicleModelTable.luggageCapacity,
+      mileageLimitPerDay: vehicleModelTable.mileageLimitPerDay,
+      deposit: vehicleModelTable.deposit,
+      createdAt: vehicleModelTable.createdAt,
+      updatedAt: vehicleModelTable.updatedAt,
+      brand: {
+        id: brandTable.id,
+        name: brandTable.name,
+        logoUrl: brandTable.logoUrl,
+      },
+    })
     .from(vehicleModelTable)
+    .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
     .where(eq(vehicleModelTable.active, true))
     .orderBy(asc(vehicleModelTable.name));
 }

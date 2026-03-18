@@ -96,6 +96,13 @@ export const ListFleetModelsResponseItem = zod.object({
   luggageCapacity: zod.number().nullish(),
   mileageLimitPerDay: zod.number().nullish(),
   deposit: zod.string().nullish(),
+  brand: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      logoUrl: zod.string().nullish(),
+    })
+    .nullable(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });

@@ -22,6 +22,7 @@ export * from "./vehicle";
 export * from "./vehicleFuelType";
 export * from "./vehicleGroup";
 export * from "./vehicleModel";
+export * from "./vehicleModelBrand";
 export * from "./vehicleModelFuelType";
 export * from "./vehicleModelTransmission";
 export * from "./vehicleStatus";

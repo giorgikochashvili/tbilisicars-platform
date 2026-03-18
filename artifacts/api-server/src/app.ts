@@ -9,6 +9,16 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 
 const PgSession = connectPgSimple(session);
 
+const sessionSecret = process.env["SESSION_SECRET"];
+const isProduction = process.env["NODE_ENV"] === "production";
+
+if (!sessionSecret) {
+  if (isProduction) {
+    throw new Error("SESSION_SECRET environment variable must be set in production");
+  }
+  console.warn("[WARN] SESSION_SECRET not set — using insecure dev default");
+}
+
 const app: Express = express();
 
 app.use(cors({ origin: true, credentials: true }));
@@ -22,11 +32,11 @@ app.use(
       tableName: "session",
       createTableIfMissing: true,
     }),
-    secret: process.env["SESSION_SECRET"] ?? "dev-secret-change-in-production",
+    secret: sessionSecret ?? "dev-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env["NODE_ENV"] === "production",
+      secure: isProduction,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
@@ -34,7 +44,6 @@ app.use(
 );
 
 app.use("/api", router);
-
 app.use(errorHandler);
 
 export default app;

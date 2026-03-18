@@ -77,6 +77,16 @@ export const VehicleModelFuelType = {
   ELECTRIC: "ELECTRIC",
 } as const;
 
+/**
+ * @nullable
+ */
+export type VehicleModelBrand = {
+  id: number;
+  name: string;
+  /** @nullable */
+  logoUrl?: string | null;
+} | null;
+
 export interface VehicleModel {
   id: number;
   brandId: number;
@@ -103,6 +113,8 @@ export interface VehicleModel {
   mileageLimitPerDay?: number | null;
   /** @nullable */
   deposit?: string | null;
+  /** @nullable */
+  brand: VehicleModelBrand;
   createdAt: string;
   updatedAt: string;
 }

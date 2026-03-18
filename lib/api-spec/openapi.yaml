@@ -363,6 +363,18 @@ components:
           type: ["integer", "null"]
         deposit:
           type: ["string", "null"]
+        brand:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            logoUrl:
+              type: ["string", "null"]
+          required:
+            - id
+            - name
         createdAt:
           type: string
           format: date-time
@@ -375,6 +387,7 @@ components:
         - name
         - active
         - availableForExternalSystems
+        - brand
         - createdAt
         - updatedAt
 

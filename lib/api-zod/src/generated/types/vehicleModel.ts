@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { VehicleModelBrand } from "./vehicleModelBrand";
 import type { VehicleModelFuelType } from "./vehicleModelFuelType";
 import type { VehicleModelTransmission } from "./vehicleModelTransmission";
 
@@ -34,6 +35,8 @@ export interface VehicleModel {
   mileageLimitPerDay?: number | null;
   /** @nullable */
   deposit?: string | null;
+  /** @nullable */
+  brand: VehicleModelBrand;
   createdAt: Date;
   updatedAt: Date;
 }
