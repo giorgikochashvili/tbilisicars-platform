@@ -10,6 +10,15 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: locations
+    description: Pickup and return locations
+  - name: fleet
+    description: Brands, models, groups, and individual vehicles
+  - name: rates
+    description: Rental pricing rates and tiers
+  - name: extras
+    description: Add-on extras available at booking
+
 paths:
   /healthz:
     get:
@@ -24,8 +33,222 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Locations ────────────────────────────────────────────────────────────────
+
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: List active locations
+      responses:
+        "200":
+          description: Array of active locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+
+  /locations/{id}:
+    get:
+      operationId: getLocation
+      tags: [locations]
+      summary: Get a location by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Location found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "404":
+          description: Location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Fleet ────────────────────────────────────────────────────────────────────
+
+  /fleet/brands:
+    get:
+      operationId: listFleetBrands
+      tags: [fleet]
+      summary: List vehicle brands
+      responses:
+        "200":
+          description: Array of brands
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Brand"
+
+  /fleet/models:
+    get:
+      operationId: listFleetModels
+      tags: [fleet]
+      summary: List active vehicle models
+      responses:
+        "200":
+          description: Array of vehicle models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VehicleModel"
+
+  /fleet/groups:
+    get:
+      operationId: listFleetGroups
+      tags: [fleet]
+      summary: List active vehicle groups
+      responses:
+        "200":
+          description: Array of vehicle groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VehicleGroup"
+
+  /fleet/vehicles:
+    get:
+      operationId: listFleetVehicles
+      tags: [fleet]
+      summary: List vehicles with optional filters
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
+        - name: locationId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: vehicleGroupId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: vehicleModelId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Array of vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+
+  /fleet/vehicles/{id}:
+    get:
+      operationId: getFleetVehicle
+      tags: [fleet]
+      summary: Get a vehicle by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Rates ────────────────────────────────────────────────────────────────────
+
+  /rates:
+    get:
+      operationId: listRates
+      tags: [rates]
+      summary: List active rates (with tiers)
+      responses:
+        "200":
+          description: Array of active rates including their tiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RateWithTiers"
+
+  /rates/{id}:
+    get:
+      operationId: getRate
+      tags: [rates]
+      summary: Get a rate by ID (with tiers)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rate found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RateWithTiers"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Extras ───────────────────────────────────────────────────────────────────
+
+  /extras:
+    get:
+      operationId: listExtras
+      tags: [extras]
+      summary: List active extras
+      responses:
+        "200":
+          description: Array of active extras
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Extra"
+
 components:
   schemas:
+
+    # ─── Common ─────────────────────────────────────────────────────────────────
+
     HealthStatus:
       type: object
       properties:
@@ -34,3 +257,336 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    # ─── Locations ──────────────────────────────────────────────────────────────
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        latitude:
+          type: ["string", "null"]
+        longitude:
+          type: ["string", "null"]
+        locationType:
+          type: string
+          enum: [meet_and_greet, rental_office]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - locationType
+        - isActive
+        - createdAt
+        - updatedAt
+
+    # ─── Fleet ──────────────────────────────────────────────────────────────────
+
+    Brand:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+        countryOfOrigin:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    VehicleModel:
+      type: object
+      properties:
+        id:
+          type: integer
+        brandId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        availableForExternalSystems:
+          type: boolean
+        category:
+          type: ["string", "null"]
+        seats:
+          type: ["integer", "null"]
+        doors:
+          type: ["integer", "null"]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        luggageCapacity:
+          type: ["integer", "null"]
+        mileageLimitPerDay:
+          type: ["integer", "null"]
+        deposit:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - brandId
+        - name
+        - active
+        - availableForExternalSystems
+        - createdAt
+        - updatedAt
+
+    VehicleGroup:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        seats:
+          type: ["integer", "null"]
+        doors:
+          type: ["integer", "null"]
+        transmission:
+          type: ["string", "null"]
+        fuelType:
+          type: ["string", "null"]
+        basePricePerDay:
+          type: ["string", "null"]
+        basePricePerWeek:
+          type: ["string", "null"]
+        basePricePerMonth:
+          type: ["string", "null"]
+        features:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        displayOrder:
+          type: ["integer", "null"]
+        active:
+          type: ["boolean", "null"]
+        minRentalDays:
+          type: ["integer", "null"]
+        maxRentalDays:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleModelId:
+          type: ["integer", "null"]
+        vehicleGroupId:
+          type: ["integer", "null"]
+        year:
+          type: ["integer", "null"]
+        color:
+          type: ["string", "null"]
+        licensePlate:
+          type: ["string", "null"]
+        vehicleClass:
+          type: ["string", "null"]
+          enum: [ECONOMY, COMPACT, MIDSIZE, STANDARD, FULLSIZE, PREMIUM, LUXURY, SUV, MINIVAN, VAN, TRUCK, null]
+        fuelType:
+          type: ["string", "null"]
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        transmission:
+          type: ["string", "null"]
+          enum: [MANUAL, AUTOMATIC, null]
+        status:
+          type: ["string", "null"]
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE, null]
+        mileage:
+          type: ["integer", "null"]
+        locationId:
+          type: ["integer", "null"]
+        startingPrice:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - createdAt
+        - updatedAt
+
+    # ─── Rates ──────────────────────────────────────────────────────────────────
+
+    RateTier:
+      type: object
+      properties:
+        id:
+          type: integer
+        rateId:
+          type: integer
+        vehicleModelId:
+          type: integer
+        fromDays:
+          type: ["integer", "null"]
+        toDays:
+          type: ["integer", "null"]
+        pricePerDay:
+          type: string
+        currency:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rateId
+        - vehicleModelId
+        - pricePerDay
+        - createdAt
+        - updatedAt
+
+    Rate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        parentRateId:
+          type: ["integer", "null"]
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        minDays:
+          type: ["integer", "null"]
+        maxDays:
+          type: ["integer", "null"]
+        unlimitedKm:
+          type: ["boolean", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - validFrom
+        - validUntil
+        - createdAt
+        - updatedAt
+
+    RateWithTiers:
+      allOf:
+        - $ref: "#/components/schemas/Rate"
+        - type: object
+          properties:
+            tiers:
+              type: array
+              items:
+                $ref: "#/components/schemas/RateTier"
+          required:
+            - tiers
+
+    # ─── Extras ─────────────────────────────────────────────────────────────────
+
+    Extra:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: string
+        currency:
+          type: string
+        pricingType:
+          type: string
+          enum: [per_day, per_trip]
+        maxDays:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - price
+        - currency
+        - pricingType
+        - isActive
+        - createdAt
+        - updatedAt

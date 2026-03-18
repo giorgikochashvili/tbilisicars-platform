@@ -6,4 +6,24 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./brand";
+export * from "./errorResponse";
+export * from "./extra";
+export * from "./extraPricingType";
 export * from "./healthStatus";
+export * from "./listFleetVehiclesParams";
+export * from "./listFleetVehiclesStatus";
+export * from "./location";
+export * from "./locationLocationType";
+export * from "./rate";
+export * from "./rateTier";
+export * from "./rateWithTiers";
+export * from "./vehicle";
+export * from "./vehicleFuelType";
+export * from "./vehicleGroup";
+export * from "./vehicleModel";
+export * from "./vehicleModelFuelType";
+export * from "./vehicleModelTransmission";
+export * from "./vehicleStatus";
+export * from "./vehicleTransmission";
+export * from "./vehicleVehicleClass";

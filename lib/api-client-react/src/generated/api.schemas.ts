@@ -8,3 +8,311 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export type LocationLocationType =
+  (typeof LocationLocationType)[keyof typeof LocationLocationType];
+
+export const LocationLocationType = {
+  meet_and_greet: "meet_and_greet",
+  rental_office: "rental_office",
+} as const;
+
+export interface Location {
+  id: number;
+  name: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  latitude?: string | null;
+  /** @nullable */
+  longitude?: string | null;
+  locationType: LocationLocationType;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Brand {
+  id: number;
+  name: string;
+  /** @nullable */
+  logoUrl?: string | null;
+  /** @nullable */
+  countryOfOrigin?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type VehicleModelTransmission =
+  | (typeof VehicleModelTransmission)[keyof typeof VehicleModelTransmission]
+  | null;
+
+export const VehicleModelTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VehicleModelFuelType =
+  | (typeof VehicleModelFuelType)[keyof typeof VehicleModelFuelType]
+  | null;
+
+export const VehicleModelFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export interface VehicleModel {
+  id: number;
+  brandId: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  active: boolean;
+  availableForExternalSystems: boolean;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  seats?: number | null;
+  /** @nullable */
+  doors?: number | null;
+  /** @nullable */
+  transmission?: VehicleModelTransmission;
+  /** @nullable */
+  fuelType?: VehicleModelFuelType;
+  /** @nullable */
+  luggageCapacity?: number | null;
+  /** @nullable */
+  mileageLimitPerDay?: number | null;
+  /** @nullable */
+  deposit?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VehicleGroup {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  seats?: number | null;
+  /** @nullable */
+  doors?: number | null;
+  /** @nullable */
+  transmission?: string | null;
+  /** @nullable */
+  fuelType?: string | null;
+  /** @nullable */
+  basePricePerDay?: string | null;
+  /** @nullable */
+  basePricePerWeek?: string | null;
+  /** @nullable */
+  basePricePerMonth?: string | null;
+  /** @nullable */
+  features?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  displayOrder?: number | null;
+  /** @nullable */
+  active?: boolean | null;
+  /** @nullable */
+  minRentalDays?: number | null;
+  /** @nullable */
+  maxRentalDays?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type VehicleVehicleClass =
+  | (typeof VehicleVehicleClass)[keyof typeof VehicleVehicleClass]
+  | null;
+
+export const VehicleVehicleClass = {
+  ECONOMY: "ECONOMY",
+  COMPACT: "COMPACT",
+  MIDSIZE: "MIDSIZE",
+  STANDARD: "STANDARD",
+  FULLSIZE: "FULLSIZE",
+  PREMIUM: "PREMIUM",
+  LUXURY: "LUXURY",
+  SUV: "SUV",
+  MINIVAN: "MINIVAN",
+  VAN: "VAN",
+  TRUCK: "TRUCK",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VehicleFuelType =
+  | (typeof VehicleFuelType)[keyof typeof VehicleFuelType]
+  | null;
+
+export const VehicleFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VehicleTransmission =
+  | (typeof VehicleTransmission)[keyof typeof VehicleTransmission]
+  | null;
+
+export const VehicleTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+/**
+ * @nullable
+ */
+export type VehicleStatus =
+  | (typeof VehicleStatus)[keyof typeof VehicleStatus]
+  | null;
+
+export const VehicleStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface Vehicle {
+  id: number;
+  /** @nullable */
+  vehicleModelId?: number | null;
+  /** @nullable */
+  vehicleGroupId?: number | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  color?: string | null;
+  /** @nullable */
+  licensePlate?: string | null;
+  /** @nullable */
+  vehicleClass?: VehicleVehicleClass;
+  /** @nullable */
+  fuelType?: VehicleFuelType;
+  /** @nullable */
+  transmission?: VehicleTransmission;
+  /** @nullable */
+  status?: VehicleStatus;
+  /** @nullable */
+  mileage?: number | null;
+  /** @nullable */
+  locationId?: number | null;
+  /** @nullable */
+  startingPrice?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RateTier {
+  id: number;
+  rateId: number;
+  vehicleModelId: number;
+  /** @nullable */
+  fromDays?: number | null;
+  /** @nullable */
+  toDays?: number | null;
+  pricePerDay: string;
+  /** @nullable */
+  currency?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Rate {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  parentRateId?: number | null;
+  validFrom: string;
+  validUntil: string;
+  /** @nullable */
+  minDays?: number | null;
+  /** @nullable */
+  maxDays?: number | null;
+  /** @nullable */
+  unlimitedKm?: boolean | null;
+  /** @nullable */
+  isActive?: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RateWithTiers = Rate & {
+  tiers: RateTier[];
+};
+
+export type ExtraPricingType =
+  (typeof ExtraPricingType)[keyof typeof ExtraPricingType];
+
+export const ExtraPricingType = {
+  per_day: "per_day",
+  per_trip: "per_trip",
+} as const;
+
+export interface Extra {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  price: string;
+  currency: string;
+  pricingType: ExtraPricingType;
+  /** @nullable */
+  maxDays?: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ListFleetVehiclesParams = {
+  status?: ListFleetVehiclesStatus;
+  locationId?: number;
+  vehicleGroupId?: number;
+  vehicleModelId?: number;
+};
+
+export type ListFleetVehiclesStatus =
+  (typeof ListFleetVehiclesStatus)[keyof typeof ListFleetVehiclesStatus];
+
+export const ListFleetVehiclesStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;

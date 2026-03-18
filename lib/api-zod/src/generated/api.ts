@@ -14,3 +14,335 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List active locations
+ */
+export const ListLocationsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  address: zod.string().nullish(),
+  city: zod.string().nullish(),
+  country: zod.string().nullish(),
+  latitude: zod.string().nullish(),
+  longitude: zod.string().nullish(),
+  locationType: zod.enum(["meet_and_greet", "rental_office"]),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListLocationsResponse = zod.array(ListLocationsResponseItem);
+
+/**
+ * @summary Get a location by ID
+ */
+export const GetLocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetLocationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  address: zod.string().nullish(),
+  city: zod.string().nullish(),
+  country: zod.string().nullish(),
+  latitude: zod.string().nullish(),
+  longitude: zod.string().nullish(),
+  locationType: zod.enum(["meet_and_greet", "rental_office"]),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary List vehicle brands
+ */
+export const ListFleetBrandsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  logoUrl: zod.string().nullish(),
+  countryOfOrigin: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListFleetBrandsResponse = zod.array(ListFleetBrandsResponseItem);
+
+/**
+ * @summary List active vehicle models
+ */
+export const ListFleetModelsResponseItem = zod.object({
+  id: zod.number(),
+  brandId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  active: zod.boolean(),
+  availableForExternalSystems: zod.boolean(),
+  category: zod.string().nullish(),
+  seats: zod.number().nullish(),
+  doors: zod.number().nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  luggageCapacity: zod.number().nullish(),
+  mileageLimitPerDay: zod.number().nullish(),
+  deposit: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListFleetModelsResponse = zod.array(ListFleetModelsResponseItem);
+
+/**
+ * @summary List active vehicle groups
+ */
+export const ListFleetGroupsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string().nullish(),
+  seats: zod.number().nullish(),
+  doors: zod.number().nullish(),
+  transmission: zod.string().nullish(),
+  fuelType: zod.string().nullish(),
+  basePricePerDay: zod.string().nullish(),
+  basePricePerWeek: zod.string().nullish(),
+  basePricePerMonth: zod.string().nullish(),
+  features: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  displayOrder: zod.number().nullish(),
+  active: zod.boolean().nullish(),
+  minRentalDays: zod.number().nullish(),
+  maxRentalDays: zod.number().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListFleetGroupsResponse = zod.array(ListFleetGroupsResponseItem);
+
+/**
+ * @summary List vehicles with optional filters
+ */
+export const ListFleetVehiclesQueryParams = zod.object({
+  status: zod
+    .enum(["AVAILABLE", "RENTED", "MAINTENANCE", "RESERVED", "INACTIVE"])
+    .optional(),
+  locationId: zod.coerce.number().optional(),
+  vehicleGroupId: zod.coerce.number().optional(),
+  vehicleModelId: zod.coerce.number().optional(),
+});
+
+export const ListFleetVehiclesResponseItem = zod.object({
+  id: zod.number(),
+  vehicleModelId: zod.number().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  year: zod.number().nullish(),
+  color: zod.string().nullish(),
+  licensePlate: zod.string().nullish(),
+  vehicleClass: zod
+    .union([
+      zod.literal("ECONOMY"),
+      zod.literal("COMPACT"),
+      zod.literal("MIDSIZE"),
+      zod.literal("STANDARD"),
+      zod.literal("FULLSIZE"),
+      zod.literal("PREMIUM"),
+      zod.literal("LUXURY"),
+      zod.literal("SUV"),
+      zod.literal("MINIVAN"),
+      zod.literal("VAN"),
+      zod.literal("TRUCK"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  status: zod
+    .union([
+      zod.literal("AVAILABLE"),
+      zod.literal("RENTED"),
+      zod.literal("MAINTENANCE"),
+      zod.literal("RESERVED"),
+      zod.literal("INACTIVE"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mileage: zod.number().nullish(),
+  locationId: zod.number().nullish(),
+  startingPrice: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListFleetVehiclesResponse = zod.array(
+  ListFleetVehiclesResponseItem,
+);
+
+/**
+ * @summary Get a vehicle by ID
+ */
+export const GetFleetVehicleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetFleetVehicleResponse = zod.object({
+  id: zod.number(),
+  vehicleModelId: zod.number().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  year: zod.number().nullish(),
+  color: zod.string().nullish(),
+  licensePlate: zod.string().nullish(),
+  vehicleClass: zod
+    .union([
+      zod.literal("ECONOMY"),
+      zod.literal("COMPACT"),
+      zod.literal("MIDSIZE"),
+      zod.literal("STANDARD"),
+      zod.literal("FULLSIZE"),
+      zod.literal("PREMIUM"),
+      zod.literal("LUXURY"),
+      zod.literal("SUV"),
+      zod.literal("MINIVAN"),
+      zod.literal("VAN"),
+      zod.literal("TRUCK"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  status: zod
+    .union([
+      zod.literal("AVAILABLE"),
+      zod.literal("RENTED"),
+      zod.literal("MAINTENANCE"),
+      zod.literal("RESERVED"),
+      zod.literal("INACTIVE"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mileage: zod.number().nullish(),
+  locationId: zod.number().nullish(),
+  startingPrice: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary List active rates (with tiers)
+ */
+export const ListRatesResponseItem = zod
+  .object({
+    id: zod.number(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    parentRateId: zod.number().nullish(),
+    validFrom: zod.string(),
+    validUntil: zod.string(),
+    minDays: zod.number().nullish(),
+    maxDays: zod.number().nullish(),
+    unlimitedKm: zod.boolean().nullish(),
+    isActive: zod.boolean().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      tiers: zod.array(
+        zod.object({
+          id: zod.number(),
+          rateId: zod.number(),
+          vehicleModelId: zod.number(),
+          fromDays: zod.number().nullish(),
+          toDays: zod.number().nullish(),
+          pricePerDay: zod.string(),
+          currency: zod.string().nullish(),
+          createdAt: zod.date(),
+          updatedAt: zod.date(),
+        }),
+      ),
+    }),
+  );
+export const ListRatesResponse = zod.array(ListRatesResponseItem);
+
+/**
+ * @summary Get a rate by ID (with tiers)
+ */
+export const GetRateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetRateResponse = zod
+  .object({
+    id: zod.number(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    parentRateId: zod.number().nullish(),
+    validFrom: zod.string(),
+    validUntil: zod.string(),
+    minDays: zod.number().nullish(),
+    maxDays: zod.number().nullish(),
+    unlimitedKm: zod.boolean().nullish(),
+    isActive: zod.boolean().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      tiers: zod.array(
+        zod.object({
+          id: zod.number(),
+          rateId: zod.number(),
+          vehicleModelId: zod.number(),
+          fromDays: zod.number().nullish(),
+          toDays: zod.number().nullish(),
+          pricePerDay: zod.string(),
+          currency: zod.string().nullish(),
+          createdAt: zod.date(),
+          updatedAt: zod.date(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary List active extras
+ */
+export const ListExtrasResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.string(),
+  currency: zod.string(),
+  pricingType: zod.enum(["per_day", "per_trip"]),
+  maxDays: zod.number().nullish(),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListExtrasResponse = zod.array(ListExtrasResponseItem);

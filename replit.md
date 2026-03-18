@@ -55,12 +55,36 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- App setup: `src/app.ts` — cookie-parser, express-session (Postgres-backed), CORS, JSON parsing, error handler
+- Routes: `src/routes/index.ts` mounts all sub-routers
+- Services: `src/services/<domain>.service.ts` — thin Drizzle ORM wrappers; throw `AppError` subclasses
+- Error utilities: `src/lib/errors.ts` — `AppError`, `NotFoundError` (404), `ValidationError` (400), `UnauthorizedError` (401), `ForbiddenError` (403)
+- Middleware: `src/middlewares/errorHandler.ts` — global error handler; `auth.ts` / `requireAdmin.ts` — session-based auth stubs
+- Session: express-session + connect-pg-simple (Postgres store, auto-creates `session` table); session data: `userId?: string`, `isAdmin?: boolean`
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+
+**Live public endpoints (Step 4B):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/healthz` | Health check |
+| GET | `/api/locations` | List active locations |
+| GET | `/api/locations/:id` | Get location by ID |
+| GET | `/api/fleet/brands` | List brands |
+| GET | `/api/fleet/models` | List active vehicle models |
+| GET | `/api/fleet/groups` | List active vehicle groups |
+| GET | `/api/fleet/vehicles` | List vehicles (filters: status, locationId, vehicleGroupId, vehicleModelId) |
+| GET | `/api/fleet/vehicles/:id` | Get vehicle by ID |
+| GET | `/api/rates` | List active rates (with tiers) |
+| GET | `/api/rates/:id` | Get rate by ID (with tiers) |
+| GET | `/api/extras` | List active extras |
+
+**Auth boundaries:**
+- Public (no auth): all Step 4B endpoints above
+- Customer (`requireAuth`): POST /bookings, GET /bookings/:id, GET /users/me (Step 4C+)
+- Admin (`requireAdmin`): /api/crm/* (Step 5+)
 
 ### `lib/db` (`@workspace/db`)
 

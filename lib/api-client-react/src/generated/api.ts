@@ -13,7 +13,18 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  Brand,
+  ErrorResponse,
+  Extra,
+  HealthStatus,
+  ListFleetVehiclesParams,
+  Location,
+  RateWithTiers,
+  Vehicle,
+  VehicleGroup,
+  VehicleModel,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
 import type { ErrorType } from "../custom-fetch";
@@ -92,6 +103,794 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active locations
+ */
+export const getListLocationsUrl = () => {
+  return `/api/locations`;
+};
+
+export const listLocations = async (
+  options?: RequestInit,
+): Promise<Location[]> => {
+  return customFetch<Location[]>(getListLocationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListLocationsQueryKey = () => {
+  return [`/api/locations`] as const;
+};
+
+export const getListLocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listLocations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLocations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListLocationsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLocations>>> = ({
+    signal,
+  }) => listLocations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listLocations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListLocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listLocations>>
+>;
+export type ListLocationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active locations
+ */
+
+export function useListLocations<
+  TData = Awaited<ReturnType<typeof listLocations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listLocations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLocationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a location by ID
+ */
+export const getGetLocationUrl = (id: number) => {
+  return `/api/locations/${id}`;
+};
+
+export const getLocation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Location> => {
+  return customFetch<Location>(getGetLocationUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLocationQueryKey = (id: number) => {
+  return [`/api/locations/${id}`] as const;
+};
+
+export const getGetLocationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLocation>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLocationQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLocation>>> = ({
+    signal,
+  }) => getLocation(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLocation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLocationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLocation>>
+>;
+export type GetLocationQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a location by ID
+ */
+
+export function useGetLocation<
+  TData = Awaited<ReturnType<typeof getLocation>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLocationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List vehicle brands
+ */
+export const getListFleetBrandsUrl = () => {
+  return `/api/fleet/brands`;
+};
+
+export const listFleetBrands = async (
+  options?: RequestInit,
+): Promise<Brand[]> => {
+  return customFetch<Brand[]>(getListFleetBrandsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFleetBrandsQueryKey = () => {
+  return [`/api/fleet/brands`] as const;
+};
+
+export const getListFleetBrandsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFleetBrands>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetBrands>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFleetBrandsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFleetBrands>>> = ({
+    signal,
+  }) => listFleetBrands({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetBrands>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFleetBrandsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFleetBrands>>
+>;
+export type ListFleetBrandsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List vehicle brands
+ */
+
+export function useListFleetBrands<
+  TData = Awaited<ReturnType<typeof listFleetBrands>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetBrands>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFleetBrandsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active vehicle models
+ */
+export const getListFleetModelsUrl = () => {
+  return `/api/fleet/models`;
+};
+
+export const listFleetModels = async (
+  options?: RequestInit,
+): Promise<VehicleModel[]> => {
+  return customFetch<VehicleModel[]>(getListFleetModelsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFleetModelsQueryKey = () => {
+  return [`/api/fleet/models`] as const;
+};
+
+export const getListFleetModelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFleetModels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFleetModelsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFleetModels>>> = ({
+    signal,
+  }) => listFleetModels({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetModels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFleetModelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFleetModels>>
+>;
+export type ListFleetModelsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active vehicle models
+ */
+
+export function useListFleetModels<
+  TData = Awaited<ReturnType<typeof listFleetModels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetModels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFleetModelsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active vehicle groups
+ */
+export const getListFleetGroupsUrl = () => {
+  return `/api/fleet/groups`;
+};
+
+export const listFleetGroups = async (
+  options?: RequestInit,
+): Promise<VehicleGroup[]> => {
+  return customFetch<VehicleGroup[]>(getListFleetGroupsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFleetGroupsQueryKey = () => {
+  return [`/api/fleet/groups`] as const;
+};
+
+export const getListFleetGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFleetGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFleetGroupsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFleetGroups>>> = ({
+    signal,
+  }) => listFleetGroups({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFleetGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFleetGroups>>
+>;
+export type ListFleetGroupsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active vehicle groups
+ */
+
+export function useListFleetGroups<
+  TData = Awaited<ReturnType<typeof listFleetGroups>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFleetGroupsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List vehicles with optional filters
+ */
+export const getListFleetVehiclesUrl = (params?: ListFleetVehiclesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/fleet/vehicles?${stringifiedParams}`
+    : `/api/fleet/vehicles`;
+};
+
+export const listFleetVehicles = async (
+  params?: ListFleetVehiclesParams,
+  options?: RequestInit,
+): Promise<Vehicle[]> => {
+  return customFetch<Vehicle[]>(getListFleetVehiclesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFleetVehiclesQueryKey = (
+  params?: ListFleetVehiclesParams,
+) => {
+  return [`/api/fleet/vehicles`, ...(params ? [params] : [])] as const;
+};
+
+export const getListFleetVehiclesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFleetVehicles>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListFleetVehiclesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFleetVehicles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListFleetVehiclesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFleetVehicles>>
+  > = ({ signal }) => listFleetVehicles(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFleetVehicles>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFleetVehiclesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFleetVehicles>>
+>;
+export type ListFleetVehiclesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List vehicles with optional filters
+ */
+
+export function useListFleetVehicles<
+  TData = Awaited<ReturnType<typeof listFleetVehicles>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListFleetVehiclesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFleetVehicles>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFleetVehiclesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a vehicle by ID
+ */
+export const getGetFleetVehicleUrl = (id: number) => {
+  return `/api/fleet/vehicles/${id}`;
+};
+
+export const getFleetVehicle = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Vehicle> => {
+  return customFetch<Vehicle>(getGetFleetVehicleUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFleetVehicleQueryKey = (id: number) => {
+  return [`/api/fleet/vehicles/${id}`] as const;
+};
+
+export const getGetFleetVehicleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFleetVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFleetVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFleetVehicleQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getFleetVehicle>>> = ({
+    signal,
+  }) => getFleetVehicle(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFleetVehicle>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFleetVehicleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFleetVehicle>>
+>;
+export type GetFleetVehicleQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a vehicle by ID
+ */
+
+export function useGetFleetVehicle<
+  TData = Awaited<ReturnType<typeof getFleetVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getFleetVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFleetVehicleQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active rates (with tiers)
+ */
+export const getListRatesUrl = () => {
+  return `/api/rates`;
+};
+
+export const listRates = async (
+  options?: RequestInit,
+): Promise<RateWithTiers[]> => {
+  return customFetch<RateWithTiers[]>(getListRatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRatesQueryKey = () => {
+  return [`/api/rates`] as const;
+};
+
+export const getListRatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listRates>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListRatesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listRates>>> = ({
+    signal,
+  }) => listRates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRates>>
+>;
+export type ListRatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active rates (with tiers)
+ */
+
+export function useListRates<
+  TData = Awaited<ReturnType<typeof listRates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listRates>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a rate by ID (with tiers)
+ */
+export const getGetRateUrl = (id: number) => {
+  return `/api/rates/${id}`;
+};
+
+export const getRate = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RateWithTiers> => {
+  return customFetch<RateWithTiers>(getGetRateUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRateQueryKey = (id: number) => {
+  return [`/api/rates/${id}`] as const;
+};
+
+export const getGetRateQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRate>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getRate>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRateQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRate>>> = ({
+    signal,
+  }) => getRate(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRate>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetRateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRate>>
+>;
+export type GetRateQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a rate by ID (with tiers)
+ */
+
+export function useGetRate<
+  TData = Awaited<ReturnType<typeof getRate>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getRate>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRateQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List active extras
+ */
+export const getListExtrasUrl = () => {
+  return `/api/extras`;
+};
+
+export const listExtras = async (options?: RequestInit): Promise<Extra[]> => {
+  return customFetch<Extra[]>(getListExtrasUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListExtrasQueryKey = () => {
+  return [`/api/extras`] as const;
+};
+
+export const getListExtrasQueryOptions = <
+  TData = Awaited<ReturnType<typeof listExtras>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listExtras>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListExtrasQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listExtras>>> = ({
+    signal,
+  }) => listExtras({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listExtras>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListExtrasQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listExtras>>
+>;
+export type ListExtrasQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List active extras
+ */
+
+export function useListExtras<
+  TData = Awaited<ReturnType<typeof listExtras>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listExtras>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListExtrasQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
