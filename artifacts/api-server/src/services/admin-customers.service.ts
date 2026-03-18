@@ -52,11 +52,9 @@ export async function createAdminCustomer(data: {
   email?: string | null;
   phone?: string | null;
   fullName?: string | null;
-  dateOfBirth?: string | null;
-  nationality?: string | null;
-  documentType?: string | null;
-  documentNumber?: string | null;
-  documentExpiry?: string | null;
+  country?: string | null;
+  passportId?: string | null;
+  drivingLicense?: string | null;
   notes?: string | null;
 }) {
   const [row] = await db
@@ -72,11 +70,9 @@ export async function updateAdminCustomer(
     email: string | null;
     phone: string | null;
     fullName: string | null;
-    dateOfBirth: string | null;
-    nationality: string | null;
-    documentType: string | null;
-    documentNumber: string | null;
-    documentExpiry: string | null;
+    country: string | null;
+    passportId: string | null;
+    drivingLicense: string | null;
     notes: string | null;
   }>,
 ) {

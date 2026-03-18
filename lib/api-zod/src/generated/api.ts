@@ -1303,6 +1303,19 @@ export const ListAdminRatesResponseItem = zod.object({
   priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+  tiers: zod.array(
+    zod.object({
+      id: zod.number(),
+      rateId: zod.number(),
+      vehicleModelId: zod.number(),
+      fromDays: zod.number().nullish(),
+      toDays: zod.number().nullish(),
+      pricePerDay: zod.string(),
+      currency: zod.string().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    })
+  ).optional(),
 });
 export const ListAdminRatesResponse = zod.array(ListAdminRatesResponseItem);
 
@@ -1568,6 +1581,10 @@ export const ListAdminCustomersResponse = zod.object({
       email: zod.string().nullish(),
       phone: zod.string().nullish(),
       fullName: zod.string().nullish(),
+      country: zod.string().nullish(),
+      passportId: zod.string().nullish(),
+      drivingLicense: zod.string().nullish(),
+      notes: zod.string().nullish(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
     }),
@@ -1583,9 +1600,13 @@ export const ListAdminCustomersResponse = zod.object({
  * @summary Create customer (admin)
  */
 export const CreateAdminCustomerBody = zod.object({
-  email: zod.string().optional(),
-  phone: zod.string().optional(),
-  fullName: zod.string().optional(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  fullName: zod.string().nullish(),
+  country: zod.string().nullish(),
+  passportId: zod.string().nullish(),
+  drivingLicense: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 
 /**
@@ -1600,6 +1621,10 @@ export const GetAdminCustomerResponse = zod.object({
   email: zod.string().nullish(),
   phone: zod.string().nullish(),
   fullName: zod.string().nullish(),
+  country: zod.string().nullish(),
+  passportId: zod.string().nullish(),
+  drivingLicense: zod.string().nullish(),
+  notes: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1612,9 +1637,13 @@ export const UpdateAdminCustomerParams = zod.object({
 });
 
 export const UpdateAdminCustomerBody = zod.object({
-  email: zod.string().optional(),
-  phone: zod.string().optional(),
-  fullName: zod.string().optional(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  fullName: zod.string().nullish(),
+  country: zod.string().nullish(),
+  passportId: zod.string().nullish(),
+  drivingLicense: zod.string().nullish(),
+  notes: zod.string().nullish(),
 });
 
 export const UpdateAdminCustomerResponse = zod.object({
@@ -1622,6 +1651,10 @@ export const UpdateAdminCustomerResponse = zod.object({
   email: zod.string().nullish(),
   phone: zod.string().nullish(),
   fullName: zod.string().nullish(),
+  country: zod.string().nullish(),
+  passportId: zod.string().nullish(),
+  drivingLicense: zod.string().nullish(),
+  notes: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });

@@ -20,13 +20,20 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, MoreHorizontal, Edit, Trash2, Tag, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
+const EMPTY_FORM = {
+  code: "",
+  discountType: "PERCENT" as "PERCENT" | "FIXED",
+  discountValue: 0,
+  validFrom: "",
+  validUntil: "",
+  maxUses: 0,
+  active: true,
+};
+
 export default function PromotionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<any>(null);
-  const [formData, setFormData] = useState({ 
-    code: "", discountType: "percentage" as any, discountValue: 0, 
-    validFrom: "", validUntil: "", maxUses: 0, isActive: true 
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -43,29 +50,33 @@ export default function PromotionsPage() {
       setEditingPromo(promo);
       setFormData({
         code: promo.code || "",
-        discountType: promo.discountType || "percentage",
+        discountType: promo.discountType || "PERCENT",
         discountValue: Number(promo.discountValue) || 0,
         validFrom: promo.validFrom ? new Date(promo.validFrom).toISOString().split('T')[0] : "",
         validUntil: promo.validUntil ? new Date(promo.validUntil).toISOString().split('T')[0] : "",
         maxUses: promo.maxUses || 0,
-        isActive: promo.isActive ?? true,
+        active: promo.active ?? true,
       });
     } else {
       setEditingPromo(null);
-      setFormData({ 
-        code: "", discountType: "percentage", discountValue: 0, 
-        validFrom: "", validUntil: "", maxUses: 0, isActive: true 
-      });
+      setFormData(EMPTY_FORM);
     }
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
+    if (!formData.code.trim()) {
+      toast({ title: "Validation Error", description: "Promo code is required", variant: "destructive" });
+      return;
+    }
     const payload = {
-      ...formData,
-      discountValue: formData.discountValue.toString() as any,
+      code: formData.code.trim().toUpperCase(),
+      discountType: formData.discountType,
+      discountValue: formData.discountValue.toString(),
       validFrom: formData.validFrom || undefined,
       validUntil: formData.validUntil || undefined,
+      maxUses: formData.maxUses || undefined,
+      active: formData.active,
     };
     
     if (editingPromo) {
@@ -130,7 +141,7 @@ export default function PromotionsPage() {
           </h2>
           <p className="text-muted-foreground">Manage discount codes and campaigns</p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="shadow-sm hover-elevate bg-gradient-to-r from-primary to-primary/80">
+        <Button onClick={() => handleOpenModal()} className="shadow-sm hover-elevate">
           <Plus className="w-4 h-4 mr-2" /> Create Promo Code
         </Button>
       </div>
@@ -172,7 +183,7 @@ export default function PromotionsPage() {
                   const now = new Date();
                   const isExpired = promo.validUntil && new Date(promo.validUntil) < now;
                   const isExhausted = promo.maxUses > 0 && promo.timesUsed >= promo.maxUses;
-                  const active = promo.isActive && !isExpired && !isExhausted;
+                  const isActive = promo.active && !isExpired && !isExhausted;
                   
                   return (
                     <TableRow key={promo.id} className="border-border/20 hover:bg-muted/30 transition-colors">
@@ -187,8 +198,8 @@ export default function PromotionsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={promo.discountType === 'percentage' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"}>
-                          {promo.discountType === 'percentage' ? `${promo.discountValue}%` : `₾${promo.discountValue}`} OFF
+                        <Badge variant="outline" className={promo.discountType === 'PERCENT' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"}>
+                          {promo.discountType === 'PERCENT' ? `${promo.discountValue}%` : `₾${promo.discountValue}`} OFF
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -198,17 +209,17 @@ export default function PromotionsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{promo.timesUsed}</span>
+                          <span className="font-medium">{promo.timesUsed ?? 0}</span>
                           <span className="text-muted-foreground text-xs">/ {promo.maxUses ? promo.maxUses : '∞'}</span>
                         </div>
                         {promo.maxUses > 0 && (
                           <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                            <div className="h-full bg-primary" style={{ width: `${Math.min(100, (promo.timesUsed / promo.maxUses) * 100)}%` }} />
+                            <div className="h-full bg-primary" style={{ width: `${Math.min(100, ((promo.timesUsed ?? 0) / promo.maxUses) * 100)}%` }} />
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
-                        {active ? (
+                        {isActive ? (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Active</Badge>
                         ) : isExpired ? (
                           <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">Expired</Badge>
@@ -248,13 +259,18 @@ export default function PromotionsPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">{editingPromo ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
-            <DialogDescription>Generate marketing codes for customer discounts.</DialogDescription>
+            <DialogDescription>Discount codes for rental bookings.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Code</Label>
+              <Label>Code <span className="text-destructive">*</span></Label>
               <div className="flex gap-2">
-                <Input className="font-mono uppercase tracking-widest" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} placeholder="SUMMER2024" />
+                <Input 
+                  className="font-mono uppercase tracking-widest" 
+                  value={formData.code} 
+                  onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} 
+                  placeholder="SUMMER2026" 
+                />
                 {!editingPromo && (
                   <Button variant="outline" onClick={() => {
                     const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -270,14 +286,20 @@ export default function PromotionsPage() {
                 <Select value={formData.discountType} onValueChange={(val: any) => setFormData({...formData, discountType: val})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed Amount</SelectItem>
+                    <SelectItem value="PERCENT">Percentage (%)</SelectItem>
+                    <SelectItem value="FIXED">Fixed Amount (₾)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Value</Label>
-                <Input type="number" step="0.01" value={formData.discountValue} onChange={e => setFormData({...formData, discountValue: parseFloat(e.target.value) || 0})} />
+                <Label>Value {formData.discountType === "PERCENT" ? "(%)" : "(₾)"}</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  min="0"
+                  value={formData.discountValue} 
+                  onChange={e => setFormData({...formData, discountValue: parseFloat(e.target.value) || 0})} 
+                />
               </div>
             </div>
 
@@ -294,7 +316,7 @@ export default function PromotionsPage() {
 
             <div className="grid gap-2">
               <Label>Maximum Uses (0 = unlimited)</Label>
-              <Input type="number" value={formData.maxUses} onChange={e => setFormData({...formData, maxUses: parseInt(e.target.value) || 0})} />
+              <Input type="number" min="0" value={formData.maxUses} onChange={e => setFormData({...formData, maxUses: parseInt(e.target.value) || 0})} />
             </div>
 
             <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg mt-2 bg-muted/30">
@@ -302,7 +324,7 @@ export default function PromotionsPage() {
                 <Label className="text-base">Active Status</Label>
                 <p className="text-sm text-muted-foreground">Can this code be applied right now?</p>
               </div>
-              <Switch checked={formData.isActive} onCheckedChange={val => setFormData({...formData, isActive: val})} />
+              <Switch checked={formData.active} onCheckedChange={val => setFormData({...formData, active: val})} />
             </div>
           </div>
           <DialogFooter>

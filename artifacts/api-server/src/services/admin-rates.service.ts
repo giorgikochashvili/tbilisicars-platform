@@ -3,7 +3,12 @@ import { asc, eq } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 export async function listAllRates() {
-  return db.select().from(rateTable).orderBy(asc(rateTable.name));
+  const rates = await db.select().from(rateTable).orderBy(asc(rateTable.name));
+  const tiers = await db.select().from(ratetierTable).orderBy(asc(ratetierTable.fromDays));
+  return rates.map((rate) => ({
+    ...rate,
+    tiers: tiers.filter((t) => t.rateId === rate.id),
+  }));
 }
 
 export async function getAdminRate(id: number) {

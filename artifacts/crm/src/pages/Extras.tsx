@@ -26,7 +26,7 @@ export default function ExtrasPage() {
   const [editingExtra, setEditingExtra] = useState<any>(null);
   const [formData, setFormData] = useState({ 
     name: "", description: "", price: 0, currency: "GEL", 
-    pricingType: "per_day" as any, maxDays: 0, isActive: true 
+    pricingType: "per_day" as "per_day" | "per_trip", maxDays: 0, isActive: true 
   });
   
   const queryClient = useQueryClient();
@@ -47,7 +47,7 @@ export default function ExtrasPage() {
         description: extra.description || "",
         price: Number(extra.price) || 0,
         currency: extra.currency || "GEL",
-        pricingType: extra.pricingType || "per_day",
+        pricingType: (extra.pricingType === "per_trip" ? "per_trip" : "per_day"),
         maxDays: extra.maxDays || 0,
         isActive: extra.isActive ?? true,
       });
@@ -173,7 +173,7 @@ export default function ExtrasPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                        {extra.pricingType.replace('_', ' ')}
+                        {extra.pricingType === "per_trip" ? "per rental" : "per day"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -248,7 +248,7 @@ export default function ExtrasPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="per_day">Per Day</SelectItem>
-                    <SelectItem value="per_rental">Per Rental</SelectItem>
+                    <SelectItem value="per_trip">Per Rental (flat fee)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
