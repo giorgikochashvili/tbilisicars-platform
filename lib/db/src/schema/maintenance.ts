@@ -45,8 +45,6 @@ export const maintenanceServiceTypesTable = pgTable(
 
 // ─── Maintenance Services ─────────────────────────────────────────────────────
 // Individual service records for a vehicle.
-// NOTE: service_date column was added in migration 016, made nullable in 019,
-// and DROPPED in migration 020. The final effective schema does NOT have service_date.
 
 export const maintenanceServicesTable = pgTable(
   "maintenance_services",
@@ -60,6 +58,7 @@ export const maintenanceServicesTable = pgTable(
       .references(() => maintenanceServiceTypesTable.id, {
         onDelete: "restrict",
       }),
+    serviceDate: date("service_date"),
     mileage: integer("mileage"),
     cost: numeric("cost", { precision: 10, scale: 2 }),
     description: text("description"),
@@ -67,7 +66,7 @@ export const maintenanceServicesTable = pgTable(
     shopName: varchar("shop_name", { length: 200 }),
     nextServiceDate: date("next_service_date"),
     nextServiceMileage: integer("next_service_mileage"),
-    status: maintenanceStatusEnum("status").notNull().default("SCHEDULED"),
+    status: maintenanceStatusEnum("status").notNull().default("COMPLETED"),
     adminId: integer("admin_id").references(() => adminsTable.id, {
       onDelete: "set null",
     }),

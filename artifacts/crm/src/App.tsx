@@ -15,6 +15,7 @@ import BookingsPage from "@/pages/Bookings";
 import ExtrasPage from "@/pages/Extras";
 import RatesPage from "@/pages/Rates";
 import PromotionsPage from "@/pages/Promotions";
+import ServicePage from "@/pages/Service";
 import TeamPage from "@/pages/Team";
 import NotFound from "@/pages/not-found";
 
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/extras"><ProtectedRoute component={ExtrasPage} /></Route>
       <Route path="/rates"><ProtectedRoute component={RatesPage} /></Route>
       <Route path="/promotions"><ProtectedRoute component={PromotionsPage} /></Route>
+      <Route path="/service"><ProtectedRoute component={ServicePage} /></Route>
       <Route path="/team"><ProtectedRoute component={TeamPage} /></Route>
       
       {/* Fallback */}

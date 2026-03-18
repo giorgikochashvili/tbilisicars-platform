@@ -1,0 +1,180 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+
+Do NOT redesign working modules.
+Do NOT touch unrelated modules.
+Do NOT add speculative features.
+
+Your task now is to implement ONLY the Service / Maintenance module for Tbilisicars fleet operations.
+
+==================================================
+BLOCK 6 GOAL
+==================================================
+
+Create a real Service / Maintenance module that tracks vehicle maintenance history, mileage-related servicing, and completed service operations.
+
+This must behave like a real fleet maintenance tool, not a generic notes table.
+
+==================================================
+A. MODULE PURPOSE
+==================================================
+
+The Service module is used by operations/service staff to record completed or active service work for specific vehicles.
+
+The module must support:
+- creating service records
+- filtering service records
+- tracking service categories
+- linking service to a specific physical vehicle
+- storing service date, mileage, cost, notes, and work performed
+
+==================================================
+B. SERVICE CATEGORIES
+==================================================
+
+Seed and support these service categories as selectable structured values:
+
+- Oil
+- Air Filter
+- Saloon Filter
+- Brake Pads Front
+- Brake Pads Back
+- Brake Disk
+- Windshield
+- Windshield Cleaner
+- Brake Fluid
+- Transmission Fluid
+- Disk Repair
+- Tyre Fix
+- Tyre Change
+- Light Bulbs
+- Electric
+- Wheel Diagnostic
+
+Do not make these free-text only.
+Use structured selectable categories, but allow notes as well.
+
+==================================================
+C. SERVICE RECORD REQUIREMENTS
+==================================================
+
+Each service record must support:
+
+- vehicle (required)
+- service category (required, selectable)
+- service date
+- mileage at service
+- cost
+- currency if already supported simply, otherwise GEL is enough for now
+- vendor / service provider (optional)
+- notes / work description
+- status if useful (Completed / Planned / In Progress), but keep simple
+- createdAt / updatedAt if already part of system conventions
+
+Vehicle selection must use the real fleet data:
+- Brand
+- Model
+- License plate
+
+Correct example:
+- Toyota Prius — ABC-123
+
+Do not allow service records without a linked vehicle.
+
+==================================================
+D. FILTERING / LIST VIEW
+==================================================
+
+Service page must show a useful list/table of service records.
+
+Required filters:
+- by region/location if simple and supported through vehicle current location
+- by date range
+- by service category
+- by vehicle search or plate search
+
+Minimum useful list columns:
+- date
+- vehicle
+- category
+- mileage
+- cost
+- vendor
+- status
+
+Do not overcomplicate UI, but make it operationally useful.
+
+==================================================
+E. VEHICLE INTEGRATION
+==================================================
+
+This is important.
+
+Service records must integrate with vehicles in a meaningful way:
+
+1. A service record belongs to one specific vehicle
+2. Service page should use existing fleet data
+3. Mileage stored in service records must be visible and meaningful
+4. If simple to implement cleanly, vehicle detail view may show service history linkage
+   - only if it can be done without destabilizing working fleet pages
+
+Do not overbuild predictive maintenance yet.
+First make the service records correct and operational.
+
+==================================================
+F. CREATE / EDIT FLOW
+==================================================
+
+Requirements:
+- Add Service must work
+- Edit Service must work
+- Saved service must appear in the list
+- Validation must work
+- Filters must work
+
+Do not leave dead buttons or placeholder forms.
+
+==================================================
+G. REQUIRED VERIFICATION
+==================================================
+
+You must actually verify in the running UI:
+
+1. Add Service works
+2. Edit Service works
+3. Vehicle selector uses real fleet data
+4. Service category selector works
+5. Service record appears in table after save
+6. Filters return correct results for category/date/vehicle where applicable
+
+Use realistic QA data only if needed.
+
+==================================================
+H. FINAL REPORT FORMAT
+==================================================
+
+At the end, report only in this structure:
+
+1. Service module result
+2. Service categories result
+3. Vehicle linkage result
+4. Filtering result
+5. Verified UI flows
+   - Add Service: works / not
+   - Edit Service: works / not
+   - Vehicle selector: works / not
+   - Category filter: works / not
+   - Date filter: works / not
+6. Remaining gaps, if any
+
+Do not claim completion unless you actually tested the UI flows.
