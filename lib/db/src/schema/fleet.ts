@@ -31,7 +31,6 @@ export const vehicleClassEnum = pgEnum("vehicleclassenum", [
   "TRUCK",
 ]);
 
-// GASOLINE was renamed to PETROL in migration 999
 export const fuelTypeEnum = pgEnum("fueltypeenum", [
   "PETROL",
   "DIESEL",
@@ -44,7 +43,7 @@ export const transmissionEnum = pgEnum("transmissionenum", [
   "AUTOMATIC",
 ]);
 
-// TODO: verify exact status values from legacy code; these are inferred from routes/models
+// TODO: verify — inferred from route handlers; adjust if status values differ
 export const vehicleStatusEnum = pgEnum("vehiclestatusenum", [
   "AVAILABLE",
   "RENTED",
@@ -53,7 +52,6 @@ export const vehicleStatusEnum = pgEnum("vehiclestatusenum", [
   "INACTIVE",
 ]);
 
-// Legacy per-vehicle pricing enums (vehicleprice table)
 export const priceTypeEnum = pgEnum("pricetypeenum", [
   "BASE_DAILY",
   "WEEKLY",
@@ -71,6 +69,7 @@ export const currencyEnum = pgEnum("currencyenum", [
 ]);
 
 // ─── Brand ───────────────────────────────────────────────────────────────────
+// `active` column omitted — dropped in migration 026.
 
 export const brandTable = pgTable(
   "brand",
@@ -79,7 +78,6 @@ export const brandTable = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     logoUrl: varchar("logo_url", { length: 500 }),
     countryOfOrigin: varchar("country_of_origin", { length: 100 }),
-    // NOTE: migration 026 dropped `active` from brand — NOT included here
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -90,8 +88,7 @@ export const brandTable = pgTable(
 );
 
 // ─── Vehicle Model ────────────────────────────────────────────────────────────
-// NOTE: price/price_gel/price_usd were added in migration 027 and immediately
-// removed in migration 028. They are NOT in the final effective schema.
+// Price columns (price, price_gel, price_usd) omitted — added in 027, removed in 028.
 
 export const vehicleModelTable = pgTable(
   "vehicle_model",
@@ -144,9 +141,8 @@ export const vehicleModelPhotoTable = pgTable(
 );
 
 // ─── Vehicle Group ────────────────────────────────────────────────────────────
-// NOTE: After migration 035, rate tiers now reference vehicle_model, not vehiclegroup.
-// vehiclegroup is still used for organisational grouping of vehicles but is no longer
-// the primary pricing unit.
+// Organisational grouping. Note: rate tiers now reference vehicle_model (not vehiclegroup)
+// as of migration 035. vehiclegroup is still referenced from vehicle, promo, and booking.
 
 export const vehiclegroupTable = pgTable(
   "vehiclegroup",
@@ -160,14 +156,8 @@ export const vehiclegroupTable = pgTable(
     transmission: varchar("transmission", { length: 20 }),
     fuelType: varchar("fuel_type", { length: 20 }),
     basePricePerDay: numeric("base_price_per_day", { precision: 10, scale: 2 }),
-    basePricePerWeek: numeric("base_price_per_week", {
-      precision: 10,
-      scale: 2,
-    }),
-    basePricePerMonth: numeric("base_price_per_month", {
-      precision: 10,
-      scale: 2,
-    }),
+    basePricePerWeek: numeric("base_price_per_week", { precision: 10, scale: 2 }),
+    basePricePerMonth: numeric("base_price_per_month", { precision: 10, scale: 2 }),
     features: text("features"),
     imageUrl: varchar("image_url", { length: 500 }),
     displayOrder: integer("display_order").default(0),
@@ -185,8 +175,7 @@ export const vehiclegroupTable = pgTable(
 );
 
 // ─── Vehicle ──────────────────────────────────────────────────────────────────
-// NOTE: make/model are deprecated since migration 023 (replaced by vehicle_model_id)
-// but still exist as nullable fields for backward compatibility with legacy data.
+// make/model retained as nullable — deprecated since migration 023, not dropped.
 
 export const vehicleTable = pgTable(
   "vehicle",
@@ -200,7 +189,7 @@ export const vehicleTable = pgTable(
       () => vehiclegroupTable.id,
       { onDelete: "set null" },
     ),
-    // DEPRECATED: replaced by vehicle_model_id, kept for legacy data
+    // Deprecated: use vehicle_model_id instead
     make: varchar("make", { length: 100 }),
     model: varchar("model", { length: 100 }),
     year: integer("year"),
@@ -215,11 +204,7 @@ export const vehicleTable = pgTable(
     locationId: integer("location_id").references(() => locationTable.id, {
       onDelete: "set null",
     }),
-    // Added migration 010 — legacy starting price hint (mostly informational)
-    startingPrice: numeric("starting_price", {
-      precision: 10,
-      scale: 2,
-    }).default("50.00"),
+    startingPrice: numeric("starting_price", { precision: 10, scale: 2 }).default("50.00"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -275,7 +260,7 @@ export const vehicleHistoryTable = pgTable(
     vehicleId: integer("vehicle_id")
       .notNull()
       .references(() => vehicleTable.id, { onDelete: "cascade" }),
-    // changedById references admins.id — defined with lazy ref to avoid circular import
+    // FK to admins.id kept as plain integer to avoid circular import with admins.ts
     changedById: integer("changed_by_id"),
     changedAt: timestamp("changed_at").notNull().defaultNow(),
     actionType: varchar("action_type", { length: 50 }).notNull(),
@@ -294,9 +279,7 @@ export const vehicleHistoryTable = pgTable(
 );
 
 // ─── Vehicle Price (Legacy) ───────────────────────────────────────────────────
-// NOTE: This legacy table coexists with the newer rate/ratetier pricing system.
-// It may be partially deprecated. Included per archaeology report since it still
-// exists in the final effective schema.
+// Coexists with the rate/ratetier system; may be partially deprecated.
 
 export const vehiclepriceTable = pgTable(
   "vehicleprice",
@@ -372,9 +355,7 @@ export type VehicleModel = typeof vehicleModelTable.$inferSelect;
 export type InsertVehicleModel = z.infer<typeof insertVehicleModelSchema>;
 
 export type VehicleModelPhoto = typeof vehicleModelPhotoTable.$inferSelect;
-export type InsertVehicleModelPhoto = z.infer<
-  typeof insertVehicleModelPhotoSchema
->;
+export type InsertVehicleModelPhoto = z.infer<typeof insertVehicleModelPhotoSchema>;
 
 export type Vehiclegroup = typeof vehiclegroupTable.$inferSelect;
 export type InsertVehiclegroup = z.infer<typeof insertVehiclegroupSchema>;

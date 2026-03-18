@@ -9,7 +9,6 @@ import {
   numeric,
   timestamp,
   index,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -34,17 +33,12 @@ export const bookingStatusEnum = pgEnum("bookingstatusenum", [
   "NO_SHOW",
 ]);
 
-// NOTE: PREPAID was added then removed across migrations 014-018. Final enum has 4 values.
+// Final enum after migration churn: PREPAID was added then removed
 export const paymentStatusEnum = pgEnum("paymentstatusenum", [
   "UNPAID",
   "HALF",
   "PAID",
   "REFUNDED",
-]);
-
-export const extraPricingTypeEnum = pgEnum("extrapricingtypeenum", [
-  "per_day",
-  "per_trip",
 ]);
 
 export const bookingPhotoTypeEnum = pgEnum("bookingphototypeenum", [
@@ -53,34 +47,7 @@ export const bookingPhotoTypeEnum = pgEnum("bookingphototypeenum", [
   "RETURN",
 ]);
 
-// ─── Extra ────────────────────────────────────────────────────────────────────
-// Add-on items/services available for booking (GPS, child seat, insurance, etc.)
-
-export const extraTable = pgTable(
-  "extra",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 255 }).notNull(),
-    description: text("description"),
-    price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
-    pricingType: extraPricingTypeEnum("pricing_type")
-      .notNull()
-      .default("per_day"),
-    // Added migration 039: maximum number of days charged for per_day extras
-    maxDays: integer("max_days"),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (t) => [
-    index("idx_extra_is_active").on(t.isActive),
-    index("idx_extra_pricing_type").on(t.pricingType),
-  ],
-);
-
 // ─── Booking ──────────────────────────────────────────────────────────────────
-// Core rental booking record. Most heavily evolved table (20+ migrations).
 
 export const bookingTable = pgTable(
   "booking",
@@ -89,7 +56,6 @@ export const bookingTable = pgTable(
     userId: integer("user_id")
       .notNull()
       .references(() => userTable.id, { onDelete: "restrict" }),
-    // Vehicle assignment — all nullable; assigned at confirmation
     vehicleId: integer("vehicle_id").references(() => vehicleTable.id, {
       onDelete: "set null",
     }),
@@ -97,27 +63,23 @@ export const bookingTable = pgTable(
       () => vehiclegroupTable.id,
       { onDelete: "set null" },
     ),
-    // Added migration 036: tracks which model was requested
+    // Tracks which model was requested (added migration 036)
     vehicleModelId: integer("vehicle_model_id").references(
       () => vehicleModelTable.id,
       { onDelete: "set null" },
     ),
-    // Locations
     pickupLocationId: integer("pickup_location_id")
       .notNull()
       .references(() => locationTable.id, { onDelete: "restrict" }),
     dropoffLocationId: integer("dropoff_location_id")
       .notNull()
       .references(() => locationTable.id, { onDelete: "restrict" }),
-    // Dates
     pickupDatetime: timestamp("pickup_datetime").notNull(),
     dropoffDatetime: timestamp("dropoff_datetime").notNull(),
-    // Status
     status: bookingStatusEnum("status").notNull().default("PENDING"),
     paymentStatus: paymentStatusEnum("payment_status")
       .notNull()
       .default("UNPAID"),
-    // Pricing — rate links (added migration 009)
     rateId: integer("rate_id").references(() => rateTable.id, {
       onDelete: "set null",
     }),
@@ -125,7 +87,6 @@ export const bookingTable = pgTable(
       onDelete: "set null",
     }),
     pricePerDay: numeric("price_per_day", { precision: 10, scale: 2 }),
-    // Financial breakdown
     baseRate: numeric("base_rate", { precision: 10, scale: 2 }).default("0"),
     taxes: numeric("taxes", { precision: 10, scale: 2 }).default("0"),
     fees: numeric("fees", { precision: 10, scale: 2 }).default("0"),
@@ -136,27 +97,27 @@ export const bookingTable = pgTable(
     deposit: numeric("deposit", { precision: 10, scale: 2 }).default("0"),
     totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).default("0"),
     currency: varchar("currency", { length: 3 }).default("USD"),
-    // Contact info — single field since migration 020 (merged from first+last)
+    // Merged from first+last name in migration 020
     contactFullName: varchar("contact_full_name", { length: 200 }).notNull(),
     // Nullable since migration 014
     contactEmail: varchar("contact_email", { length: 255 }),
     contactPhone: varchar("contact_phone", { length: 50 }),
     notes: text("notes"),
-    // Broker tracking — three separate fields evolved across migrations 011, 022, 030
-    broker: varchar("broker", { length: 100 }),    // plain name (DiscoverCars, VIPCars, etc.)
-    brokerId: varchar("broker_id", { length: 100 }), // external booking reference ID
+    // Broker tracking evolved across migrations 011, 022, 030
+    broker: varchar("broker", { length: 100 }),
+    brokerId: varchar("broker_id", { length: 100 }),
     partnerId: integer("partner_id").references(() => partnerTable.id, {
       onDelete: "set null",
     }),
-    // Photo references (added migration 031) — object storage keys for quick access
+    // Object-storage keys for quick access to latest photos (added migration 031)
     pickupPhoto: varchar("pickup_photo", { length: 500 }),
     returnPhoto: varchar("return_photo", { length: 500 }),
     // Soft delete (added migration 032)
     deletedAt: timestamp("deleted_at"),
-    // Document info (added migration 034)
+    // Customer document details (added migration 034)
     documentType: varchar("document_type", { length: 20 }),
     documentNumber: varchar("document_number", { length: 100 }),
-    // Booking source (added migration 041)
+    // Booking origin (added migration 041): web / broker / admin
     source: varchar("source", { length: 20 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -182,32 +143,6 @@ export const bookingTable = pgTable(
   ],
 );
 
-// ─── Booking Extra (Junction) ─────────────────────────────────────────────────
-// TODO: verify — pre-migration baseline table; structure inferred from routes and models.
-// Adjust if actual schema differs (e.g., different column names or constraint details).
-
-export const bookingextraTable = pgTable(
-  "bookingextra",
-  {
-    id: serial("id").primaryKey(),
-    bookingId: integer("booking_id")
-      .notNull()
-      .references(() => bookingTable.id, { onDelete: "cascade" }),
-    extraId: integer("extra_id")
-      .notNull()
-      .references(() => extraTable.id, { onDelete: "restrict" }),
-    quantity: integer("quantity").default(1),
-    // Snapshot of the price at time of booking
-    priceAtBooking: numeric("price_at_booking", { precision: 10, scale: 2 }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (t) => [
-    index("idx_bookingextra_booking_id").on(t.bookingId),
-    index("idx_bookingextra_extra_id").on(t.extraId),
-  ],
-);
-
 // ─── Booking History (Audit Log) ──────────────────────────────────────────────
 
 export const bookingHistoryTable = pgTable(
@@ -217,9 +152,9 @@ export const bookingHistoryTable = pgTable(
     bookingId: integer("booking_id")
       .notNull()
       .references(() => bookingTable.id, { onDelete: "cascade" }),
-    // changed_by_id is a plain integer — references admins.id but FK is omitted
-    // to avoid circular import: bookings.ts → users.ts (adminsTable) → (no cycle, OK)
-    // Actually safe to include — users.ts does NOT import bookings.ts
+    // FK to admins.id omitted as plain integer to break the circular module dep
+    // admins.ts does not import bookings.ts, so this would be safe — but keeping
+    // it as a plain integer to remain consistent with the approach used across the schema.
     changedById: integer("changed_by_id"),
     changedAt: timestamp("changed_at").notNull().defaultNow(),
     actionType: varchar("action_type", { length: 50 }).notNull(),
@@ -238,7 +173,8 @@ export const bookingHistoryTable = pgTable(
 );
 
 // ─── Booking Vehicle Assignments ──────────────────────────────────────────────
-// Tracks vehicle swaps during a booking (start/end dates for each assigned vehicle).
+// Tracks vehicle swaps during a booking (added migration 017).
+// DB-level check (end_date > start_date) should be applied via a raw SQL migration.
 
 export const bookingVehicleAssignmentsTable = pgTable(
   "booking_vehicle_assignments",
@@ -264,12 +200,11 @@ export const bookingVehicleAssignmentsTable = pgTable(
   (t) => [
     index("idx_booking_vehicle_assignments_booking_id").on(t.bookingId),
     index("idx_booking_vehicle_assignments_vehicle_id").on(t.vehicleId),
-    // CHECK (end_date > start_date) enforced at the DB level — add via raw SQL migration
   ],
 );
 
 // ─── Booking Photo ────────────────────────────────────────────────────────────
-// Photos for a booking. photo_type added in migration 031.
+// photo_type added in migration 031.
 
 export const bookingphotoTable = pgTable(
   "bookingphoto",
@@ -291,19 +226,11 @@ export const bookingphotoTable = pgTable(
 
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
 
-export const insertExtraSchema = createInsertSchema(extraTable).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 export const insertBookingSchema = createInsertSchema(bookingTable).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
-export const insertBookingextraSchema = createInsertSchema(
-  bookingextraTable,
-).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBookingHistorySchema = createInsertSchema(
   bookingHistoryTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
@@ -316,14 +243,8 @@ export const insertBookingphotoSchema = createInsertSchema(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Extra = typeof extraTable.$inferSelect;
-export type InsertExtra = z.infer<typeof insertExtraSchema>;
-
 export type Booking = typeof bookingTable.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-
-export type Bookingextra = typeof bookingextraTable.$inferSelect;
-export type InsertBookingextra = z.infer<typeof insertBookingextraSchema>;
 
 export type BookingHistory = typeof bookingHistoryTable.$inferSelect;
 export type InsertBookingHistory = z.infer<typeof insertBookingHistorySchema>;

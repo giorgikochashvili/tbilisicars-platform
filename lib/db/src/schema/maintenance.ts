@@ -14,7 +14,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { vehicleTable } from "./fleet";
-import { adminsTable } from "./users";
+import { adminsTable } from "./admins";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 

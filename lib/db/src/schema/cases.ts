@@ -4,20 +4,18 @@ import {
   varchar,
   text,
   integer,
-  boolean,
-  numeric,
   timestamp,
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { adminsTable, userTable } from "./users";
+import { adminsTable } from "./admins";
+import { userTable } from "./users";
 import { bookingTable } from "./bookings";
-import { vehicleTable } from "./fleet";
 
 // ─── Cases ────────────────────────────────────────────────────────────────────
-// Internal case management for tracking issues, complaints, or incidents.
+// Internal case management for tracking issues, complaints, and incidents (added migration 022).
 
 export const casesTable = pgTable(
   "cases",
@@ -98,9 +96,8 @@ export const caseAttachmentsTable = pgTable(
 );
 
 // ─── Case Assignments (Junction) ──────────────────────────────────────────────
-// NOTE: This table was not explicitly created in the SQL migrations found (may have
-// been created via a direct SQL statement outside the migration system). Structure
-// inferred from the SQLAlchemy Admin model which uses secondary="case_assignments".
+// NOTE: not explicitly created in the migration SQL files — likely applied outside
+// the migration system. Structure inferred from the SQLAlchemy Admin model.
 
 export const caseAssignmentsTable = pgTable(
   "case_assignments",
@@ -114,33 +111,6 @@ export const caseAssignmentsTable = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.caseId, t.adminId] })],
-);
-
-// ─── Review ───────────────────────────────────────────────────────────────────
-// Customer reviews of vehicles or bookings.
-// TODO: verify — pre-migration baseline; no migration ever modifies this table.
-// Full schema is inferred from routes and model files only. Adjust if actual
-// column list differs.
-
-export const reviewTable = pgTable(
-  "review",
-  {
-    id: serial("id").primaryKey(),
-    bookingId: integer("booking_id").references(() => bookingTable.id),
-    userId: integer("user_id").references(() => userTable.id),
-    vehicleId: integer("vehicle_id").references(() => vehicleTable.id),
-    rating: integer("rating"), // 1-5
-    comment: text("comment"),
-    isApproved: boolean("is_approved").default(false),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (t) => [
-    index("idx_review_booking_id").on(t.bookingId),
-    index("idx_review_user_id").on(t.userId),
-    index("idx_review_vehicle_id").on(t.vehicleId),
-    index("idx_review_is_approved").on(t.isApproved),
-  ],
 );
 
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
@@ -157,11 +127,6 @@ export const insertCaseAttachmentSchema = createInsertSchema(
   caseAttachmentsTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCaseAssignmentSchema = createInsertSchema(caseAssignmentsTable);
-export const insertReviewSchema = createInsertSchema(reviewTable).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,6 +141,3 @@ export type InsertCaseAttachment = z.infer<typeof insertCaseAttachmentSchema>;
 
 export type CaseAssignment = typeof caseAssignmentsTable.$inferSelect;
 export type InsertCaseAssignment = z.infer<typeof insertCaseAssignmentSchema>;
-
-export type Review = typeof reviewTable.$inferSelect;
-export type InsertReview = z.infer<typeof insertReviewSchema>;
