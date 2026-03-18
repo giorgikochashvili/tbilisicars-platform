@@ -16,14 +16,17 @@ import {
   count,
   desc,
   eq,
+  gt,
   gte,
   ilike,
   isNull,
+  lt,
   lte,
+  ne,
   or,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { NotFoundError } from "../lib/errors.js";
+import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 
 // ─── Alias location table for pickup and dropoff joins ─────────────────────────
@@ -161,6 +164,71 @@ export interface ListBookingsFilters {
   limit?: number;
 }
 
+// ─── Helper: check if a vehicle has a conflicting booking in the given period ──
+//
+// A conflict exists when:
+//   - same vehicleId
+//   - booking is PENDING, CONFIRMED, or DELIVERED (active/upcoming)
+//   - periods truly overlap: existing.pickup < new.dropoff AND existing.dropoff > new.pickup
+//   - consecutive (touching at exact same datetime) is NOT a conflict
+//
+// Pass excludeBookingId when updating an existing booking to exclude itself.
+
+async function checkVehicleConflict(
+  vehicleId: number,
+  pickupDatetime: Date,
+  dropoffDatetime: Date,
+  excludeBookingId?: number,
+): Promise<{ conflict: boolean; conflictingBookingId?: number }> {
+  const conditions = [
+    eq(bookingTable.vehicleId, vehicleId),
+    isNull(bookingTable.deletedAt),
+    // True overlap: strictly less/greater (consecutive is fine)
+    lt(bookingTable.pickupDatetime, dropoffDatetime),
+    gt(bookingTable.dropoffDatetime, pickupDatetime),
+    // Only bookings that are still active/upcoming block the vehicle
+    or(
+      eq(bookingTable.status, "PENDING"),
+      eq(bookingTable.status, "CONFIRMED"),
+      eq(bookingTable.status, "DELIVERED"),
+    )!,
+  ];
+
+  if (excludeBookingId != null) {
+    conditions.push(ne(bookingTable.id, excludeBookingId));
+  }
+
+  const rows = await db
+    .select({ id: bookingTable.id })
+    .from(bookingTable)
+    .where(and(...conditions))
+    .limit(1);
+
+  if (rows.length > 0) {
+    return { conflict: true, conflictingBookingId: rows[0]!.id };
+  }
+  return { conflict: false };
+}
+
+// ─── Helper: validate vehicle belongs to given model ──────────────────────────
+
+async function validateVehicleBelongsToModel(
+  vehicleId: number,
+  vehicleModelId: number,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: vehicleTable.id })
+    .from(vehicleTable)
+    .where(
+      and(
+        eq(vehicleTable.id, vehicleId),
+        eq(vehicleTable.vehicleModelId, vehicleModelId),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 // ─── Service: list bookings ────────────────────────────────────────────────────
 
 export async function listAdminBookings(filters: ListBookingsFilters = {}) {
@@ -293,6 +361,13 @@ export async function getAdminBooking(id: number) {
 }
 
 // ─── Service: create booking ───────────────────────────────────────────────────
+//
+// Vehicle assignment rules:
+//   - vehicleModelId is required (booking must reference a model)
+//   - vehicleId is optional — booking is model-only until a vehicle is assigned
+//   - if vehicleId is provided:
+//       1. validate vehicle belongs to vehicleModelId
+//       2. check for time-period conflicts with other active bookings
 
 export async function createAdminBooking(data: {
   customerId?: number | null;
@@ -327,8 +402,33 @@ export async function createAdminBooking(data: {
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
   paymentStatus?: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
 }) {
-  let userId = data.customerId;
+  const pickupDate = new Date(data.pickupDatetime);
+  const dropoffDate = new Date(data.dropoffDatetime);
 
+  // Validate specific vehicle assignment if provided
+  if (data.vehicleId) {
+    // 1. Vehicle must belong to the selected model
+    if (data.vehicleModelId) {
+      const belongs = await validateVehicleBelongsToModel(data.vehicleId, data.vehicleModelId);
+      if (!belongs) {
+        throw new ConflictError("Vehicle does not belong to the selected model");
+      }
+    }
+
+    // 2. No overlapping active bookings for this vehicle
+    const { conflict, conflictingBookingId } = await checkVehicleConflict(
+      data.vehicleId,
+      pickupDate,
+      dropoffDate,
+    );
+    if (conflict) {
+      throw new ConflictError(
+        `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+      );
+    }
+  }
+
+  let userId = data.customerId;
   if (!userId) {
     const customer = await findOrCreateCustomer({
       email: data.customerEmail,
@@ -345,8 +445,8 @@ export async function createAdminBooking(data: {
     .values({
       ...rest,
       userId,
-      pickupDatetime: new Date(rest.pickupDatetime),
-      dropoffDatetime: new Date(rest.dropoffDatetime),
+      pickupDatetime: pickupDate,
+      dropoffDatetime: dropoffDate,
     } as any)
     .returning();
 
@@ -386,6 +486,46 @@ export async function updateAdminBooking(
     paymentStatus: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
   }>,
 ) {
+  // If assigning or changing a specific vehicle, validate ownership + conflicts
+  if (data.vehicleId) {
+    // Load current booking to know dates if not being changed
+    const current = await db
+      .select({
+        vehicleModelId: bookingTable.vehicleModelId,
+        pickupDatetime: bookingTable.pickupDatetime,
+        dropoffDatetime: bookingTable.dropoffDatetime,
+      })
+      .from(bookingTable)
+      .where(eq(bookingTable.id, id))
+      .limit(1);
+
+    const booking = current[0];
+    if (!booking) throw new NotFoundError(`Booking ${id} not found`);
+
+    const modelId = data.vehicleModelId ?? booking.vehicleModelId;
+    const pickup = data.pickupDatetime ? new Date(data.pickupDatetime) : booking.pickupDatetime;
+    const dropoff = data.dropoffDatetime ? new Date(data.dropoffDatetime) : booking.dropoffDatetime;
+
+    if (modelId) {
+      const belongs = await validateVehicleBelongsToModel(data.vehicleId, modelId);
+      if (!belongs) {
+        throw new ConflictError("Vehicle does not belong to the selected model");
+      }
+    }
+
+    const { conflict, conflictingBookingId } = await checkVehicleConflict(
+      data.vehicleId,
+      pickup,
+      dropoff,
+      id, // exclude self
+    );
+    if (conflict) {
+      throw new ConflictError(
+        `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+      );
+    }
+  }
+
   const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
   if (data.pickupDatetime) updateData.pickupDatetime = new Date(data.pickupDatetime);
   if (data.dropoffDatetime) updateData.dropoffDatetime = new Date(data.dropoffDatetime);
@@ -399,18 +539,78 @@ export async function updateAdminBooking(
   return getAdminBooking(id);
 }
 
-// ─── Service: update booking status ───────────────────────────────────────────
+// ─── Service: update booking status (with vehicle lifecycle effects) ───────────
+//
+// Vehicle status effects:
+//   DELIVERED  → vehicle.status = RENTED
+//   RETURNED   → vehicle.status = AVAILABLE + vehicle.locationId = dropoffLocationId
+//   CANCELED / NO_SHOW → if vehicle was RENTED or RESERVED, reset to AVAILABLE
+//
+// Effects only apply when the booking has a specific vehicle (vehicleId).
 
 export async function updateAdminBookingStatus(
   id: number,
   status: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW",
 ) {
+  // Load current booking to get vehicleId and dropoff location
+  const currentRows = await db
+    .select({
+      vehicleId: bookingTable.vehicleId,
+      dropoffLocationId: bookingTable.dropoffLocationId,
+      currentStatus: bookingTable.status,
+    })
+    .from(bookingTable)
+    .where(eq(bookingTable.id, id))
+    .limit(1);
+
+  const current = currentRows[0];
+  if (!current) throw new NotFoundError(`Booking ${id} not found`);
+
+  // Update booking status
   const [row] = await db
     .update(bookingTable)
     .set({ status, updatedAt: new Date() })
     .where(eq(bookingTable.id, id))
     .returning();
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
+
+  // Apply vehicle effects only when a specific vehicle is assigned
+  if (current.vehicleId) {
+    if (status === "DELIVERED") {
+      // Vehicle is now in use → mark as RENTED
+      await db
+        .update(vehicleTable)
+        .set({ status: "RENTED", updatedAt: new Date() })
+        .where(eq(vehicleTable.id, current.vehicleId));
+    } else if (status === "RETURNED") {
+      // Vehicle returned → mark Available and update its current location
+      await db
+        .update(vehicleTable)
+        .set({
+          status: "AVAILABLE",
+          locationId: current.dropoffLocationId,
+          updatedAt: new Date(),
+        })
+        .where(eq(vehicleTable.id, current.vehicleId));
+    } else if (status === "CANCELED" || status === "NO_SHOW") {
+      // Release vehicle — only unblock if it was RENTED or RESERVED by this booking
+      // (avoid changing status if already in maintenance or another booking has it)
+      const vehicleRows = await db
+        .select({ vehicleStatus: vehicleTable.status })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, current.vehicleId))
+        .limit(1);
+
+      const vehicleStatus = vehicleRows[0]?.vehicleStatus;
+      if (vehicleStatus === "RENTED" || vehicleStatus === "RESERVED") {
+        await db
+          .update(vehicleTable)
+          .set({ status: "AVAILABLE", updatedAt: new Date() })
+          .where(eq(vehicleTable.id, current.vehicleId));
+      }
+    }
+  }
+
   return getAdminBooking(id);
 }
 
