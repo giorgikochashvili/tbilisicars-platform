@@ -24,6 +24,7 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { NotFoundError } from "../lib/errors.js";
+import { findOrCreateCustomer } from "./admin-customers.service.js";
 
 // ─── Alias location table for pickup and dropoff joins ─────────────────────────
 
@@ -60,7 +61,7 @@ const bookingRowSelect = {
   partnerName: partnerTable.name,
 } as const;
 
-// ─── Extended select for detail view (adds all booking scalar fields) ─────────
+// ─── Booking detail select (additional fields for single booking view) ─────────
 
 const bookingDetailSelect = {
   ...bookingRowSelect,
@@ -85,7 +86,7 @@ const bookingDetailSelect = {
   deletedAt: bookingTable.deletedAt,
 } as const;
 
-// ─── Map flat join result to nested AdminBookingRow shape ──────────────────────
+// ─── Type and mapper ───────────────────────────────────────────────────────────
 
 type BookingRowFlat = {
   id: number;
@@ -291,3 +292,136 @@ export async function getAdminBooking(id: number) {
   };
 }
 
+// ─── Service: create booking ───────────────────────────────────────────────────
+
+export async function createAdminBooking(data: {
+  customerId?: number | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  customerFullName?: string | null;
+  pickupLocationId: number;
+  dropoffLocationId: number;
+  pickupDatetime: string;
+  dropoffDatetime: string;
+  vehicleId?: number | null;
+  vehicleGroupId?: number | null;
+  vehicleModelId?: number | null;
+  rateId?: number | null;
+  rateTierId?: number | null;
+  pricePerDay?: string | null;
+  baseRate?: string | null;
+  taxes?: string | null;
+  fees?: string | null;
+  discount?: string | null;
+  oneWayFee?: string | null;
+  deliveryFee?: string | null;
+  deposit?: string | null;
+  totalAmount?: string | null;
+  currency?: string | null;
+  contactFullName: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  notes?: string | null;
+  source?: string | null;
+  broker?: string | null;
+  status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
+  paymentStatus?: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+}) {
+  let userId = data.customerId;
+
+  if (!userId) {
+    const customer = await findOrCreateCustomer({
+      email: data.customerEmail,
+      phone: data.customerPhone,
+      fullName: data.customerFullName ?? data.contactFullName,
+    });
+    userId = customer.id;
+  }
+
+  const { customerId, customerEmail, customerPhone, customerFullName, ...rest } = data;
+
+  const [row] = await db
+    .insert(bookingTable)
+    .values({
+      ...rest,
+      userId,
+      pickupDatetime: new Date(rest.pickupDatetime),
+      dropoffDatetime: new Date(rest.dropoffDatetime),
+    } as any)
+    .returning();
+
+  return getAdminBooking(row!.id);
+}
+
+// ─── Service: update booking ───────────────────────────────────────────────────
+
+export async function updateAdminBooking(
+  id: number,
+  data: Partial<{
+    vehicleId: number | null;
+    vehicleGroupId: number | null;
+    vehicleModelId: number | null;
+    pickupLocationId: number;
+    dropoffLocationId: number;
+    pickupDatetime: string;
+    dropoffDatetime: string;
+    rateId: number | null;
+    rateTierId: number | null;
+    pricePerDay: string | null;
+    baseRate: string | null;
+    taxes: string | null;
+    fees: string | null;
+    discount: string | null;
+    oneWayFee: string | null;
+    deliveryFee: string | null;
+    deposit: string | null;
+    totalAmount: string | null;
+    currency: string | null;
+    contactFullName: string;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    notes: string | null;
+    source: string | null;
+    broker: string | null;
+    paymentStatus: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+  }>,
+) {
+  const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  if (data.pickupDatetime) updateData.pickupDatetime = new Date(data.pickupDatetime);
+  if (data.dropoffDatetime) updateData.dropoffDatetime = new Date(data.dropoffDatetime);
+
+  const [row] = await db
+    .update(bookingTable)
+    .set(updateData as any)
+    .where(eq(bookingTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Booking ${id} not found`);
+  return getAdminBooking(id);
+}
+
+// ─── Service: update booking status ───────────────────────────────────────────
+
+export async function updateAdminBookingStatus(
+  id: number,
+  status: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW",
+) {
+  const [row] = await db
+    .update(bookingTable)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(bookingTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Booking ${id} not found`);
+  return getAdminBooking(id);
+}
+
+// ─── Service: delete booking (soft delete) ────────────────────────────────────
+
+export async function deleteAdminBooking(id: number) {
+  const [row] = await db
+    .update(bookingTable)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(bookingTable.id, id), isNull(bookingTable.deletedAt)))
+    .returning();
+  if (!row) throw new NotFoundError(`Booking ${id} not found`);
+  return { message: "Booking deleted" };
+}

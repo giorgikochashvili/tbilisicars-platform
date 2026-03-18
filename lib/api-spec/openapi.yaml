@@ -36,6 +36,8 @@ tags:
     description: Admin — bookings management
   - name: admin-dashboard
     description: Admin — operations dashboard
+  - name: admin-team
+    description: Admin — team member management
 
 paths:
   /healthz:
@@ -359,6 +361,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+    post:
+      operationId: createAdminLocation
+      tags: [admin-locations]
+      summary: Create location (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateLocationBody"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLocation"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/locations/{id}:
     get:
       operationId: getAdminLocation
@@ -377,6 +403,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminLocation"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateAdminLocation
+      tags: [admin-locations]
+      summary: Update location (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateLocationBody"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLocation"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminLocation
+      tags: [admin-locations]
+      summary: Delete location (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
         "401":
           description: Not authenticated
           content:
@@ -434,6 +525,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+    post:
+      operationId: createAdminBrand
+      tags: [admin-fleet]
+      summary: Create brand (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateBrandBody"
+      responses:
+        "201":
+          description: Created brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBrand"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/fleet/brands/{id}:
     get:
       operationId: getAdminBrand
@@ -452,6 +567,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminBrand"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Brand not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateAdminBrand
+      tags: [admin-fleet]
+      summary: Update brand (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateBrandBody"
+      responses:
+        "200":
+          description: Updated brand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBrand"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Brand not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminBrand
+      tags: [admin-fleet]
+      summary: Delete brand (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
         "401":
           description: Not authenticated
           content:
@@ -486,6 +666,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+    post:
+      operationId: createAdminModel
+      tags: [admin-fleet]
+      summary: Create vehicle model (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateVehicleModelBody"
+      responses:
+        "201":
+          description: Created vehicle model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleModelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/fleet/models/{id}:
     get:
       operationId: getAdminModel
@@ -504,6 +708,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminVehicleModelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle model not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateAdminModel
+      tags: [admin-fleet]
+      summary: Update vehicle model (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateVehicleModelBody"
+      responses:
+        "200":
+          description: Updated vehicle model
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleModelDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle model not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminModel
+      tags: [admin-fleet]
+      summary: Delete vehicle model (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
         "401":
           description: Not authenticated
           content:
@@ -617,6 +886,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+    post:
+      operationId: createAdminVehicle
+      tags: [admin-fleet]
+      summary: Create vehicle (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateVehicleBody"
+      responses:
+        "201":
+          description: Created vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/fleet/vehicles/{id}:
     get:
       operationId: getAdminVehicle
@@ -650,6 +943,71 @@ paths:
 
   # ─── Admin Extras ─────────────────────────────────────────────────────────────
 
+    patch:
+      operationId: updateAdminVehicle
+      tags: [admin-fleet]
+      summary: Update vehicle (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateVehicleBody"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminVehicle
+      tags: [admin-fleet]
+      summary: Delete vehicle (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/extras:
     get:
       operationId: listAdminExtras
@@ -665,6 +1023,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AdminExtra"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: createAdminExtra
+      tags: [admin-extras]
+      summary: Create extra (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateExtraBody"
+      responses:
+        "201":
+          description: Created extra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminExtra"
         "401":
           description: Not authenticated
           content:
@@ -705,6 +1087,71 @@ paths:
 
   # ─── Admin Rates ──────────────────────────────────────────────────────────────
 
+    patch:
+      operationId: updateAdminExtra
+      tags: [admin-extras]
+      summary: Update extra (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateExtraBody"
+      responses:
+        "200":
+          description: Updated extra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminExtra"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Extra not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminExtra
+      tags: [admin-extras]
+      summary: Delete extra (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Extra not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/rates:
     get:
       operationId: listAdminRates
@@ -720,6 +1167,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AdminRate"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: createAdminRate
+      tags: [admin-rates]
+      summary: Create rate (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateRateBody"
+      responses:
+        "201":
+          description: Created rate with tiers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateDetail"
         "401":
           description: Not authenticated
           content:
@@ -760,6 +1231,71 @@ paths:
 
   # ─── Admin Promos ─────────────────────────────────────────────────────────────
 
+    patch:
+      operationId: updateAdminRate
+      tags: [admin-rates]
+      summary: Update rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateRateBody"
+      responses:
+        "200":
+          description: Updated rate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRate
+      tags: [admin-rates]
+      summary: Delete rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/promos:
     get:
       operationId: listAdminPromos
@@ -775,6 +1311,30 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AdminPromo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: createAdminPromo
+      tags: [admin-promos]
+      summary: Create promo (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreatePromoBody"
+      responses:
+        "201":
+          description: Created promo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPromo"
         "401":
           description: Not authenticated
           content:
@@ -815,6 +1375,71 @@ paths:
 
   # ─── Admin Customers ──────────────────────────────────────────────────────────
 
+    patch:
+      operationId: updateAdminPromo
+      tags: [admin-promos]
+      summary: Update promo (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdatePromoBody"
+      responses:
+        "200":
+          description: Updated promo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPromo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Promo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminPromo
+      tags: [admin-promos]
+      summary: Delete promo (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Promo not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/customers:
     get:
       operationId: listAdminCustomers
@@ -842,6 +1467,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminCustomerPaginatedResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: createAdminCustomer
+      tags: [admin-customers]
+      summary: Create customer (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateCustomerBody"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCustomer"
         "401":
           description: Not authenticated
           content:
@@ -881,6 +1530,71 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Admin Bookings ───────────────────────────────────────────────────────────
+
+    patch:
+      operationId: updateAdminCustomer
+      tags: [admin-customers]
+      summary: Update customer (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateCustomerBody"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCustomer"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminCustomer
+      tags: [admin-customers]
+      summary: Delete customer (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/bookings:
     get:
@@ -934,6 +1648,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+    post:
+      operationId: createAdminBooking
+      tags: [admin-bookings]
+      summary: Create booking (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateBookingBody"
+      responses:
+        "201":
+          description: Created booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/bookings/{id}:
     get:
       operationId: getAdminBooking
@@ -966,6 +1704,71 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   # ─── Admin Dashboard ───────────────────────────────────────────────────────────
+
+    patch:
+      operationId: updateAdminBooking
+      tags: [admin-bookings]
+      summary: Update booking (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateBookingBody"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminBooking
+      tags: [admin-bookings]
+      summary: Soft-delete booking (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/dashboard/summary:
     get:
@@ -1019,6 +1822,367 @@ paths:
                 $ref: "#/components/schemas/AdminFleetSnapshot"
         "401":
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
+  /admin/fleet/vehicles/{id}/status:
+    patch:
+      operationId: updateAdminVehicleStatus
+      tags: [admin-fleet]
+      summary: Update vehicle status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateVehicleStatusBody"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rates/{id}/tiers:
+    post:
+      operationId: createAdminRateTier
+      tags: [admin-rates]
+      summary: Add tier to rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateRateTierBody"
+      responses:
+        "201":
+          description: Created rate tier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateTier"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rates/{id}/tiers/{tierId}:
+    patch:
+      operationId: updateAdminRateTier
+      tags: [admin-rates]
+      summary: Update rate tier (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tierId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateRateTierBody"
+      responses:
+        "200":
+          description: Updated rate tier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateTier"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate tier not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRateTier
+      tags: [admin-rates]
+      summary: Delete rate tier (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tierId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate tier not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/bookings/{id}/status:
+    patch:
+      operationId: updateAdminBookingStatus
+      tags: [admin-bookings]
+      summary: Update booking status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateBookingStatusBody"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/dashboard/fleet-calendar:
+    get:
+      operationId: getAdminFleetCalendar
+      tags: [admin-dashboard]
+      summary: Fleet calendar — vehicles with bookings in date range (admin)
+      parameters:
+        - name: dateFrom
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Fleet calendar rows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFleetCalendarResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Team ──────────────────────────────────────────────────────────────
+
+  /admin/team:
+    get:
+      operationId: listAdminTeam
+      tags: [admin-team]
+      summary: List team members (admin)
+      responses:
+        "200":
+          description: Array of team members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminTeamMember"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createAdminTeamMember
+      tags: [admin-team]
+      summary: Create team member (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateTeamMemberBody"
+      responses:
+        "201":
+          description: Created team member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamMember"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/team/{id}:
+    get:
+      operationId: getAdminTeamMember
+      tags: [admin-team]
+      summary: Get team member (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Team member detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamMember"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Team member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAdminTeamMember
+      tags: [admin-team]
+      summary: Update team member (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateTeamMemberBody"
+      responses:
+        "200":
+          description: Updated team member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamMember"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Team member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminTeamMember
+      tags: [admin-team]
+      summary: Delete team member (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Team member not found
           content:
             application/json:
               schema:
@@ -2352,3 +3516,822 @@ components:
         - maintenance
         - reserved
         - inactive
+
+
+    DeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # ─── Admin Location Write Bodies ─────────────────────────────────────────────
+
+    AdminCreateLocationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        latitude:
+          type: string
+        longitude:
+          type: string
+        locationType:
+          type: string
+          enum: [meet_and_greet, rental_office]
+        isActive:
+          type: boolean
+      required:
+        - name
+        - locationType
+
+    AdminUpdateLocationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        latitude:
+          type: string
+        longitude:
+          type: string
+        locationType:
+          type: string
+          enum: [meet_and_greet, rental_office]
+        isActive:
+          type: boolean
+
+    # ─── Admin Fleet Write Bodies ────────────────────────────────────────────────
+
+    AdminCreateBrandBody:
+      type: object
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+        countryOfOrigin:
+          type: string
+      required:
+        - name
+
+    AdminUpdateBrandBody:
+      type: object
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+        countryOfOrigin:
+          type: string
+
+    AdminCreateVehicleModelBody:
+      type: object
+      properties:
+        brandId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        active:
+          type: boolean
+        availableForExternalSystems:
+          type: boolean
+        category:
+          type: string
+        seats:
+          type: integer
+        doors:
+          type: integer
+        transmission:
+          type: string
+          enum: [MANUAL, AUTOMATIC]
+        fuelType:
+          type: string
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
+        luggageCapacity:
+          type: integer
+        mileageLimitPerDay:
+          type: integer
+        deposit:
+          type: string
+      required:
+        - brandId
+        - name
+
+    AdminUpdateVehicleModelBody:
+      type: object
+      properties:
+        brandId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        active:
+          type: boolean
+        availableForExternalSystems:
+          type: boolean
+        category:
+          type: string
+        seats:
+          type: integer
+        doors:
+          type: integer
+        transmission:
+          type: string
+          enum: [MANUAL, AUTOMATIC]
+        fuelType:
+          type: string
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
+        luggageCapacity:
+          type: integer
+        mileageLimitPerDay:
+          type: integer
+        deposit:
+          type: string
+
+    AdminCreateVehicleBody:
+      type: object
+      properties:
+        vehicleModelId:
+          type: integer
+        vehicleGroupId:
+          type: integer
+        licensePlate:
+          type: string
+        vin:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        vehicleClass:
+          type: string
+          enum: [ECONOMY, COMPACT, MIDSIZE, STANDARD, FULLSIZE, PREMIUM, LUXURY, SUV, MINIVAN, VAN, TRUCK]
+        fuelType:
+          type: string
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
+        transmission:
+          type: string
+          enum: [MANUAL, AUTOMATIC]
+        status:
+          type: string
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
+        mileage:
+          type: integer
+        locationId:
+          type: integer
+        startingPrice:
+          type: string
+
+    AdminUpdateVehicleBody:
+      type: object
+      properties:
+        vehicleModelId:
+          type: integer
+        vehicleGroupId:
+          type: integer
+        licensePlate:
+          type: string
+        vin:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        vehicleClass:
+          type: string
+          enum: [ECONOMY, COMPACT, MIDSIZE, STANDARD, FULLSIZE, PREMIUM, LUXURY, SUV, MINIVAN, VAN, TRUCK]
+        fuelType:
+          type: string
+          enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
+        transmission:
+          type: string
+          enum: [MANUAL, AUTOMATIC]
+        status:
+          type: string
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
+        mileage:
+          type: integer
+        locationId:
+          type: integer
+        startingPrice:
+          type: string
+
+    AdminUpdateVehicleStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
+      required:
+        - status
+
+    # ─── Admin Extras Write Bodies ───────────────────────────────────────────────
+
+    AdminCreateExtraBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+        currency:
+          type: string
+        pricingType:
+          type: string
+          enum: [per_day, per_trip]
+        maxDays:
+          type: integer
+        isActive:
+          type: boolean
+      required:
+        - name
+        - price
+        - currency
+        - pricingType
+
+    AdminUpdateExtraBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+        currency:
+          type: string
+        pricingType:
+          type: string
+          enum: [per_day, per_trip]
+        maxDays:
+          type: integer
+        isActive:
+          type: boolean
+
+    # ─── Admin Rates Write Bodies ────────────────────────────────────────────────
+
+    AdminCreateRateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parentRateId:
+          type: integer
+        incrementType:
+          type: string
+        incrementValue:
+          type: string
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        minDays:
+          type: integer
+        maxDays:
+          type: integer
+        unlimitedKm:
+          type: boolean
+        editableBy:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - name
+        - validFrom
+        - validUntil
+
+    AdminUpdateRateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        parentRateId:
+          type: integer
+        incrementType:
+          type: string
+        incrementValue:
+          type: string
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        minDays:
+          type: integer
+        maxDays:
+          type: integer
+        unlimitedKm:
+          type: boolean
+        editableBy:
+          type: string
+        isActive:
+          type: boolean
+
+    AdminCreateRateTierBody:
+      type: object
+      properties:
+        vehicleModelId:
+          type: integer
+        fromDays:
+          type: integer
+        toDays:
+          type: integer
+        pricePerDay:
+          type: string
+        currency:
+          type: string
+      required:
+        - vehicleModelId
+        - pricePerDay
+
+    AdminUpdateRateTierBody:
+      type: object
+      properties:
+        vehicleModelId:
+          type: integer
+        fromDays:
+          type: integer
+        toDays:
+          type: integer
+        pricePerDay:
+          type: string
+        currency:
+          type: string
+
+    # ─── Admin Promos Write Bodies ───────────────────────────────────────────────
+
+    AdminCreatePromoBody:
+      type: object
+      properties:
+        code:
+          type: string
+        vehicleGroupId:
+          type: integer
+        rateId:
+          type: integer
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        discountValue:
+          type: string
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        maxUses:
+          type: integer
+        active:
+          type: boolean
+      required:
+        - discountType
+        - discountValue
+
+    AdminUpdatePromoBody:
+      type: object
+      properties:
+        code:
+          type: string
+        vehicleGroupId:
+          type: integer
+        rateId:
+          type: integer
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        discountValue:
+          type: string
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        maxUses:
+          type: integer
+        active:
+          type: boolean
+
+    # ─── Admin Customers Write Bodies ────────────────────────────────────────────
+
+    AdminCreateCustomerBody:
+      type: object
+      properties:
+        email:
+          type: string
+        phone:
+          type: string
+        fullName:
+          type: string
+
+    AdminUpdateCustomerBody:
+      type: object
+      properties:
+        email:
+          type: string
+        phone:
+          type: string
+        fullName:
+          type: string
+
+    # ─── Admin Bookings Write Bodies ─────────────────────────────────────────────
+
+    AdminCreateBookingBody:
+      type: object
+      properties:
+        customerId:
+          type: integer
+          description: Existing customer ID. If omitted, customerData creates a new customer.
+        customerData:
+          type: object
+          properties:
+            fullName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+        contactFullName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        vehicleId:
+          type: integer
+        vehicleModelId:
+          type: integer
+        vehicleGroupId:
+          type: integer
+        pickupLocationId:
+          type: integer
+        dropoffLocationId:
+          type: integer
+        pickupDatetime:
+          type: string
+          format: date-time
+        dropoffDatetime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        paymentStatus:
+          type: string
+          enum: [UNPAID, HALF, PAID, REFUNDED]
+        rateId:
+          type: integer
+        rateTierId:
+          type: integer
+        pricePerDay:
+          type: string
+        totalAmount:
+          type: string
+        currency:
+          type: string
+        source:
+          type: string
+        broker:
+          type: string
+        notes:
+          type: string
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        deposit:
+          type: string
+      required:
+        - contactFullName
+        - pickupLocationId
+        - dropoffLocationId
+        - pickupDatetime
+        - dropoffDatetime
+
+    AdminUpdateBookingBody:
+      type: object
+      properties:
+        contactFullName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        vehicleId:
+          type: integer
+        vehicleModelId:
+          type: integer
+        vehicleGroupId:
+          type: integer
+        pickupLocationId:
+          type: integer
+        dropoffLocationId:
+          type: integer
+        pickupDatetime:
+          type: string
+          format: date-time
+        dropoffDatetime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        paymentStatus:
+          type: string
+          enum: [UNPAID, HALF, PAID, REFUNDED]
+        rateId:
+          type: integer
+        rateTierId:
+          type: integer
+        pricePerDay:
+          type: string
+        totalAmount:
+          type: string
+        currency:
+          type: string
+        source:
+          type: string
+        broker:
+          type: string
+        notes:
+          type: string
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        deposit:
+          type: string
+
+    AdminUpdateBookingStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        paymentStatus:
+          type: string
+          enum: [UNPAID, HALF, PAID, REFUNDED]
+      required:
+        - status
+
+    # ─── Admin Team ───────────────────────────────────────────────────────────────
+
+    AdminTeamMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        adminRole:
+          type: string
+          enum: [admin, regional_manager, service_manager, rental_agent]
+        isActive:
+          type: boolean
+        isSuperAdmin:
+          type: boolean
+        lastLogin:
+          type: ["string", "null"]
+          format: date-time
+        canManageVehicles:
+          type: boolean
+        canManageBookings:
+          type: boolean
+        canManageUsers:
+          type: boolean
+        canViewReports:
+          type: boolean
+        canManageSettings:
+          type: boolean
+        canManageRates:
+          type: boolean
+        canManageExtras:
+          type: boolean
+        canManagePromotions:
+          type: boolean
+        canManageLocations:
+          type: boolean
+        canViewReviews:
+          type: boolean
+        canManageDamages:
+          type: boolean
+        canManageTasks:
+          type: boolean
+        canViewCalendar:
+          type: boolean
+        canManageCases:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - email
+        - fullName
+        - adminRole
+        - isActive
+        - isSuperAdmin
+        - canManageVehicles
+        - canManageBookings
+        - canManageUsers
+        - canViewReports
+        - canManageSettings
+        - canManageRates
+        - canManageExtras
+        - canManagePromotions
+        - canManageLocations
+        - canViewReviews
+        - canManageDamages
+        - canManageTasks
+        - canViewCalendar
+        - canManageCases
+        - createdAt
+        - updatedAt
+
+    AdminCreateTeamMemberBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        password:
+          type: string
+        adminRole:
+          type: string
+          enum: [admin, regional_manager, service_manager, rental_agent]
+        isActive:
+          type: boolean
+        canManageVehicles:
+          type: boolean
+        canManageBookings:
+          type: boolean
+        canManageUsers:
+          type: boolean
+        canViewReports:
+          type: boolean
+        canManageSettings:
+          type: boolean
+        canManageRates:
+          type: boolean
+        canManageExtras:
+          type: boolean
+        canManagePromotions:
+          type: boolean
+        canManageLocations:
+          type: boolean
+        canViewReviews:
+          type: boolean
+        canManageDamages:
+          type: boolean
+        canManageTasks:
+          type: boolean
+        canViewCalendar:
+          type: boolean
+        canManageCases:
+          type: boolean
+      required:
+        - username
+        - email
+        - fullName
+        - password
+
+    AdminUpdateTeamMemberBody:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        password:
+          type: string
+        adminRole:
+          type: string
+          enum: [admin, regional_manager, service_manager, rental_agent]
+        isActive:
+          type: boolean
+        canManageVehicles:
+          type: boolean
+        canManageBookings:
+          type: boolean
+        canManageUsers:
+          type: boolean
+        canViewReports:
+          type: boolean
+        canManageSettings:
+          type: boolean
+        canManageRates:
+          type: boolean
+        canManageExtras:
+          type: boolean
+        canManagePromotions:
+          type: boolean
+        canManageLocations:
+          type: boolean
+        canViewReviews:
+          type: boolean
+        canManageDamages:
+          type: boolean
+        canManageTasks:
+          type: boolean
+        canViewCalendar:
+          type: boolean
+        canManageCases:
+          type: boolean
+
+    # ─── Admin Fleet Calendar ────────────────────────────────────────────────────
+
+    AdminFleetCalendarBooking:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        customerName:
+          type: string
+        pickupDatetime:
+          type: string
+          format: date-time
+        dropoffDatetime:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - customerName
+        - pickupDatetime
+        - dropoffDatetime
+
+    AdminFleetCalendarVehicle:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        licensePlate:
+          type: ["string", "null"]
+        modelName:
+          type: ["string", "null"]
+        brandName:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE, null]
+        bookings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminFleetCalendarBooking"
+      required:
+        - vehicleId
+        - bookings
+
+    AdminFleetCalendarResponse:
+      type: object
+      properties:
+        dateFrom:
+          type: string
+        dateTo:
+          type: string
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminFleetCalendarVehicle"
+      required:
+        - dateFrom
+        - dateTo
+        - vehicles

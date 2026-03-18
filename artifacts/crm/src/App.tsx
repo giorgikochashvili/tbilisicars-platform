@@ -8,10 +8,14 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import { 
-  BookingsPage, FleetPage, CustomersPage, 
-  LocationsPage, ExtrasPage, RatesPage, PromotionsPage 
-} from "@/pages/Placeholders";
+import FleetPage from "@/pages/Fleet";
+import LocationsPage from "@/pages/Locations";
+import CustomersPage from "@/pages/Customers";
+import BookingsPage from "@/pages/Bookings";
+import ExtrasPage from "@/pages/Extras";
+import RatesPage from "@/pages/Rates";
+import PromotionsPage from "@/pages/Promotions";
+import TeamPage from "@/pages/Team";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -68,6 +72,7 @@ function Router() {
       <Route path="/extras"><ProtectedRoute component={ExtrasPage} /></Route>
       <Route path="/rates"><ProtectedRoute component={RatesPage} /></Route>
       <Route path="/promotions"><ProtectedRoute component={PromotionsPage} /></Route>
+      <Route path="/team"><ProtectedRoute component={TeamPage} /></Route>
       
       {/* Fallback */}
       <Route><ProtectedRoute component={NotFound} /></Route>

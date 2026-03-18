@@ -449,6 +449,20 @@ export const ListAdminLocationsResponse = zod.array(
 );
 
 /**
+ * @summary Create location (admin)
+ */
+export const CreateAdminLocationBody = zod.object({
+  name: zod.string(),
+  address: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string().optional(),
+  latitude: zod.string().optional(),
+  longitude: zod.string().optional(),
+  locationType: zod.enum(["meet_and_greet", "rental_office"]),
+  isActive: zod.boolean().optional(),
+});
+
+/**
  * @summary Get single location (admin)
  */
 export const GetAdminLocationParams = zod.object({
@@ -467,6 +481,49 @@ export const GetAdminLocationResponse = zod.object({
   isActive: zod.boolean(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update location (admin)
+ */
+export const UpdateAdminLocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminLocationBody = zod.object({
+  name: zod.string().optional(),
+  address: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string().optional(),
+  latitude: zod.string().optional(),
+  longitude: zod.string().optional(),
+  locationType: zod.enum(["meet_and_greet", "rental_office"]).optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateAdminLocationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  address: zod.string().nullish(),
+  city: zod.string().nullish(),
+  country: zod.string().nullish(),
+  latitude: zod.string().nullish(),
+  longitude: zod.string().nullish(),
+  locationType: zod.enum(["meet_and_greet", "rental_office"]),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete location (admin)
+ */
+export const DeleteAdminLocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminLocationResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -499,6 +556,15 @@ export const ListAdminBrandsResponseItem = zod.object({
 export const ListAdminBrandsResponse = zod.array(ListAdminBrandsResponseItem);
 
 /**
+ * @summary Create brand (admin)
+ */
+export const CreateAdminBrandBody = zod.object({
+  name: zod.string(),
+  logoUrl: zod.string().optional(),
+  countryOfOrigin: zod.string().optional(),
+});
+
+/**
  * @summary Get single brand (admin)
  */
 export const GetAdminBrandParams = zod.object({
@@ -512,6 +578,39 @@ export const GetAdminBrandResponse = zod.object({
   countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update brand (admin)
+ */
+export const UpdateAdminBrandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminBrandBody = zod.object({
+  name: zod.string().optional(),
+  logoUrl: zod.string().optional(),
+  countryOfOrigin: zod.string().optional(),
+});
+
+export const UpdateAdminBrandResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  logoUrl: zod.string().nullish(),
+  countryOfOrigin: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete brand (admin)
+ */
+export const DeleteAdminBrandParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminBrandResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -542,6 +641,26 @@ export const ListAdminModelsResponseItem = zod.object({
   updatedAt: zod.date(),
 });
 export const ListAdminModelsResponse = zod.array(ListAdminModelsResponseItem);
+
+/**
+ * @summary Create vehicle model (admin)
+ */
+export const CreateAdminModelBody = zod.object({
+  brandId: zod.number(),
+  name: zod.string(),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  active: zod.boolean().optional(),
+  availableForExternalSystems: zod.boolean().optional(),
+  category: zod.string().optional(),
+  seats: zod.number().optional(),
+  doors: zod.number().optional(),
+  transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
+  fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
+  luggageCapacity: zod.number().optional(),
+  mileageLimitPerDay: zod.number().optional(),
+  deposit: zod.string().optional(),
+});
 
 /**
  * @summary Get single vehicle model (admin)
@@ -586,6 +705,79 @@ export const GetAdminModelResponse = zod.object({
     .nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update vehicle model (admin)
+ */
+export const UpdateAdminModelParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminModelBody = zod.object({
+  brandId: zod.number().optional(),
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  imageUrl: zod.string().optional(),
+  active: zod.boolean().optional(),
+  availableForExternalSystems: zod.boolean().optional(),
+  category: zod.string().optional(),
+  seats: zod.number().optional(),
+  doors: zod.number().optional(),
+  transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
+  fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
+  luggageCapacity: zod.number().optional(),
+  mileageLimitPerDay: zod.number().optional(),
+  deposit: zod.string().optional(),
+});
+
+export const UpdateAdminModelResponse = zod.object({
+  id: zod.number(),
+  brandId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  imageUrl: zod.string().nullish(),
+  active: zod.boolean(),
+  availableForExternalSystems: zod.boolean(),
+  category: zod.string().nullish(),
+  seats: zod.number().nullish(),
+  doors: zod.number().nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  luggageCapacity: zod.number().nullish(),
+  mileageLimitPerDay: zod.number().nullish(),
+  deposit: zod.string().nullish(),
+  brand: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      logoUrl: zod.string().nullish(),
+      countryOfOrigin: zod.string().nullish(),
+    })
+    .nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete vehicle model (admin)
+ */
+export const DeleteAdminModelParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminModelResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -748,6 +940,41 @@ export const ListAdminVehiclesResponse = zod.object({
 });
 
 /**
+ * @summary Create vehicle (admin)
+ */
+export const CreateAdminVehicleBody = zod.object({
+  vehicleModelId: zod.number().optional(),
+  vehicleGroupId: zod.number().optional(),
+  licensePlate: zod.string().optional(),
+  vin: zod.string().optional(),
+  year: zod.number().optional(),
+  color: zod.string().optional(),
+  vehicleClass: zod
+    .enum([
+      "ECONOMY",
+      "COMPACT",
+      "MIDSIZE",
+      "STANDARD",
+      "FULLSIZE",
+      "PREMIUM",
+      "LUXURY",
+      "SUV",
+      "MINIVAN",
+      "VAN",
+      "TRUCK",
+    ])
+    .optional(),
+  fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
+  transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
+  status: zod
+    .enum(["AVAILABLE", "RENTED", "MAINTENANCE", "RESERVED", "INACTIVE"])
+    .optional(),
+  mileage: zod.number().optional(),
+  locationId: zod.number().optional(),
+  startingPrice: zod.string().optional(),
+});
+
+/**
  * @summary Get single vehicle (admin)
  */
 export const GetAdminVehicleParams = zod.object({
@@ -824,6 +1051,125 @@ export const GetAdminVehicleResponse = zod.object({
 });
 
 /**
+ * @summary Update vehicle (admin)
+ */
+export const UpdateAdminVehicleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminVehicleBody = zod.object({
+  vehicleModelId: zod.number().optional(),
+  vehicleGroupId: zod.number().optional(),
+  licensePlate: zod.string().optional(),
+  vin: zod.string().optional(),
+  year: zod.number().optional(),
+  color: zod.string().optional(),
+  vehicleClass: zod
+    .enum([
+      "ECONOMY",
+      "COMPACT",
+      "MIDSIZE",
+      "STANDARD",
+      "FULLSIZE",
+      "PREMIUM",
+      "LUXURY",
+      "SUV",
+      "MINIVAN",
+      "VAN",
+      "TRUCK",
+    ])
+    .optional(),
+  fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
+  transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
+  status: zod
+    .enum(["AVAILABLE", "RENTED", "MAINTENANCE", "RESERVED", "INACTIVE"])
+    .optional(),
+  mileage: zod.number().optional(),
+  locationId: zod.number().optional(),
+  startingPrice: zod.string().optional(),
+});
+
+export const UpdateAdminVehicleResponse = zod.object({
+  id: zod.number(),
+  vehicleModelId: zod.number().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  make: zod.string().nullish(),
+  model: zod.string().nullish(),
+  year: zod.number().nullish(),
+  color: zod.string().nullish(),
+  licensePlate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  vehicleClass: zod
+    .union([
+      zod.literal("ECONOMY"),
+      zod.literal("COMPACT"),
+      zod.literal("MIDSIZE"),
+      zod.literal("STANDARD"),
+      zod.literal("FULLSIZE"),
+      zod.literal("PREMIUM"),
+      zod.literal("LUXURY"),
+      zod.literal("SUV"),
+      zod.literal("MINIVAN"),
+      zod.literal("VAN"),
+      zod.literal("TRUCK"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  status: zod
+    .union([
+      zod.literal("AVAILABLE"),
+      zod.literal("RENTED"),
+      zod.literal("MAINTENANCE"),
+      zod.literal("RESERVED"),
+      zod.literal("INACTIVE"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mileage: zod.number().nullish(),
+  locationId: zod.number().nullish(),
+  startingPrice: zod.string(),
+  vehicleModel: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      brandId: zod.number(),
+      brandName: zod.string().nullish(),
+    })
+    .nullish(),
+  vehicleGroup: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+    })
+    .nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete vehicle (admin)
+ */
+export const DeleteAdminVehicleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminVehicleResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * Returns all extras including inactive ones.
  * @summary List all extras (admin)
  */
@@ -840,6 +1186,19 @@ export const ListAdminExtrasResponseItem = zod.object({
   updatedAt: zod.date(),
 });
 export const ListAdminExtrasResponse = zod.array(ListAdminExtrasResponseItem);
+
+/**
+ * @summary Create extra (admin)
+ */
+export const CreateAdminExtraBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  price: zod.string(),
+  currency: zod.string(),
+  pricingType: zod.enum(["per_day", "per_trip"]),
+  maxDays: zod.number().optional(),
+  isActive: zod.boolean().optional(),
+});
 
 /**
  * @summary Get single extra (admin)
@@ -859,6 +1218,47 @@ export const GetAdminExtraResponse = zod.object({
   isActive: zod.boolean(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update extra (admin)
+ */
+export const UpdateAdminExtraParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminExtraBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  price: zod.string().optional(),
+  currency: zod.string().optional(),
+  pricingType: zod.enum(["per_day", "per_trip"]).optional(),
+  maxDays: zod.number().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateAdminExtraResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.string(),
+  currency: zod.string(),
+  pricingType: zod.enum(["per_day", "per_trip"]),
+  maxDays: zod.number().nullish(),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete extra (admin)
+ */
+export const DeleteAdminExtraParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminExtraResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -887,6 +1287,24 @@ export const ListAdminRatesResponseItem = zod.object({
   updatedAt: zod.date(),
 });
 export const ListAdminRatesResponse = zod.array(ListAdminRatesResponseItem);
+
+/**
+ * @summary Create rate (admin)
+ */
+export const CreateAdminRateBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  parentRateId: zod.number().optional(),
+  incrementType: zod.string().optional(),
+  incrementValue: zod.string().optional(),
+  validFrom: zod.string(),
+  validUntil: zod.string(),
+  minDays: zod.number().optional(),
+  maxDays: zod.number().optional(),
+  unlimitedKm: zod.boolean().optional(),
+  editableBy: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+});
 
 /**
  * @summary Get single rate with tiers (admin)
@@ -936,6 +1354,79 @@ export const GetAdminRateResponse = zod
   );
 
 /**
+ * @summary Update rate (admin)
+ */
+export const UpdateAdminRateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminRateBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  parentRateId: zod.number().optional(),
+  incrementType: zod.string().optional(),
+  incrementValue: zod.string().optional(),
+  validFrom: zod.string().optional(),
+  validUntil: zod.string().optional(),
+  minDays: zod.number().optional(),
+  maxDays: zod.number().optional(),
+  unlimitedKm: zod.boolean().optional(),
+  editableBy: zod.string().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateAdminRateResponse = zod
+  .object({
+    id: zod.number(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    parentRateId: zod.number().nullish(),
+    incrementType: zod.string().nullish(),
+    incrementValue: zod.string().nullish(),
+    validFrom: zod.string(),
+    validUntil: zod.string(),
+    minDays: zod.number().nullish(),
+    maxDays: zod.number().nullish(),
+    unlimitedKm: zod.boolean().nullish(),
+    editableBy: zod.string().nullish(),
+    isActive: zod.boolean().nullish(),
+    priceModifierName: zod.string().nullish(),
+    priceModifierType: zod.string().nullish(),
+    priceModifierValue: zod.string().nullish(),
+    priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      tiers: zod.array(
+        zod.object({
+          id: zod.number(),
+          rateId: zod.number(),
+          vehicleModelId: zod.number(),
+          fromDays: zod.number().nullish(),
+          toDays: zod.number().nullish(),
+          pricePerDay: zod.string(),
+          currency: zod.string().nullish(),
+          createdAt: zod.date(),
+          updatedAt: zod.date(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Delete rate (admin)
+ */
+export const DeleteAdminRateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminRateResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * Returns all promotions including inactive ones.
  * @summary List all promotions (admin)
  */
@@ -955,6 +1446,21 @@ export const ListAdminPromosResponseItem = zod.object({
   updatedAt: zod.date(),
 });
 export const ListAdminPromosResponse = zod.array(ListAdminPromosResponseItem);
+
+/**
+ * @summary Create promo (admin)
+ */
+export const CreateAdminPromoBody = zod.object({
+  code: zod.string().optional(),
+  vehicleGroupId: zod.number().optional(),
+  rateId: zod.number().optional(),
+  discountType: zod.enum(["PERCENT", "FIXED"]),
+  discountValue: zod.string(),
+  validFrom: zod.string().optional(),
+  validUntil: zod.string().optional(),
+  maxUses: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
 
 /**
  * @summary Get single promotion (admin)
@@ -977,6 +1483,52 @@ export const GetAdminPromoResponse = zod.object({
   active: zod.boolean().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update promo (admin)
+ */
+export const UpdateAdminPromoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminPromoBody = zod.object({
+  code: zod.string().optional(),
+  vehicleGroupId: zod.number().optional(),
+  rateId: zod.number().optional(),
+  discountType: zod.enum(["PERCENT", "FIXED"]).optional(),
+  discountValue: zod.string().optional(),
+  validFrom: zod.string().optional(),
+  validUntil: zod.string().optional(),
+  maxUses: zod.number().optional(),
+  active: zod.boolean().optional(),
+});
+
+export const UpdateAdminPromoResponse = zod.object({
+  id: zod.number(),
+  code: zod.string().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  rateId: zod.number().nullish(),
+  discountType: zod.enum(["PERCENT", "FIXED"]),
+  discountValue: zod.string(),
+  validFrom: zod.string().nullish(),
+  validUntil: zod.string().nullish(),
+  maxUses: zod.number().nullish(),
+  timesUsed: zod.number().nullish(),
+  active: zod.boolean().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete promo (admin)
+ */
+export const DeleteAdminPromoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminPromoResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -1010,6 +1562,15 @@ export const ListAdminCustomersResponse = zod.object({
 });
 
 /**
+ * @summary Create customer (admin)
+ */
+export const CreateAdminCustomerBody = zod.object({
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  fullName: zod.string().optional(),
+});
+
+/**
  * @summary Get single customer (admin)
  */
 export const GetAdminCustomerParams = zod.object({
@@ -1023,6 +1584,39 @@ export const GetAdminCustomerResponse = zod.object({
   fullName: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update customer (admin)
+ */
+export const UpdateAdminCustomerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminCustomerBody = zod.object({
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  fullName: zod.string().optional(),
+});
+
+export const UpdateAdminCustomerResponse = zod.object({
+  id: zod.number(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  fullName: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete customer (admin)
+ */
+export const DeleteAdminCustomerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminCustomerResponse = zod.object({
+  message: zod.string(),
 });
 
 /**
@@ -1106,6 +1700,57 @@ export const ListAdminBookingsResponse = zod.object({
     limit: zod.number(),
     total: zod.number(),
   }),
+});
+
+/**
+ * @summary Create booking (admin)
+ */
+export const CreateAdminBookingBody = zod.object({
+  customerId: zod
+    .number()
+    .optional()
+    .describe(
+      "Existing customer ID. If omitted, customerData creates a new customer.",
+    ),
+  customerData: zod
+    .object({
+      fullName: zod.string().optional(),
+      email: zod.string().optional(),
+      phone: zod.string().optional(),
+    })
+    .optional(),
+  contactFullName: zod.string(),
+  contactEmail: zod.string().optional(),
+  contactPhone: zod.string().optional(),
+  vehicleId: zod.number().optional(),
+  vehicleModelId: zod.number().optional(),
+  vehicleGroupId: zod.number().optional(),
+  pickupLocationId: zod.number(),
+  dropoffLocationId: zod.number(),
+  pickupDatetime: zod.date(),
+  dropoffDatetime: zod.date(),
+  status: zod
+    .enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ])
+    .optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  rateId: zod.number().optional(),
+  rateTierId: zod.number().optional(),
+  pricePerDay: zod.string().optional(),
+  totalAmount: zod.string().optional(),
+  currency: zod.string().optional(),
+  source: zod.string().optional(),
+  broker: zod.string().optional(),
+  notes: zod.string().optional(),
+  documentType: zod.string().optional(),
+  documentNumber: zod.string().optional(),
+  deposit: zod.string().optional(),
 });
 
 /**
@@ -1215,6 +1860,160 @@ export const GetAdminBookingResponse = zod
       ),
     }),
   );
+
+/**
+ * @summary Update booking (admin)
+ */
+export const UpdateAdminBookingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminBookingBody = zod.object({
+  contactFullName: zod.string().optional(),
+  contactEmail: zod.string().optional(),
+  contactPhone: zod.string().optional(),
+  vehicleId: zod.number().optional(),
+  vehicleModelId: zod.number().optional(),
+  vehicleGroupId: zod.number().optional(),
+  pickupLocationId: zod.number().optional(),
+  dropoffLocationId: zod.number().optional(),
+  pickupDatetime: zod.date().optional(),
+  dropoffDatetime: zod.date().optional(),
+  status: zod
+    .enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ])
+    .optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  rateId: zod.number().optional(),
+  rateTierId: zod.number().optional(),
+  pricePerDay: zod.string().optional(),
+  totalAmount: zod.string().optional(),
+  currency: zod.string().optional(),
+  source: zod.string().optional(),
+  broker: zod.string().optional(),
+  notes: zod.string().optional(),
+  documentType: zod.string().optional(),
+  documentNumber: zod.string().optional(),
+  deposit: zod.string().optional(),
+});
+
+export const UpdateAdminBookingResponse = zod
+  .object({
+    id: zod.number(),
+    status: zod.enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    contactFullName: zod.string(),
+    contactEmail: zod.string().nullish(),
+    contactPhone: zod.string().nullish(),
+    pickupDatetime: zod.date(),
+    dropoffDatetime: zod.date(),
+    totalAmount: zod.string().nullish(),
+    currency: zod.string().nullish(),
+    source: zod.string().nullish(),
+    broker: zod.string().nullish(),
+    customer: zod.object({
+      id: zod.number(),
+      fullName: zod.string().nullish(),
+      email: zod.string().nullish(),
+    }),
+    vehicle: zod
+      .object({
+        id: zod.number(),
+        licensePlate: zod.string().nullish(),
+        modelName: zod.string().nullish(),
+      })
+      .nullish(),
+    pickupLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    dropoffLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    partner: zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+      })
+      .nullish(),
+    createdAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      userId: zod.number(),
+      vehicleId: zod.number().nullish(),
+      vehicleGroupId: zod.number().nullish(),
+      vehicleModelId: zod.number().nullish(),
+      rateId: zod.number().nullish(),
+      rateTierId: zod.number().nullish(),
+      pricePerDay: zod.string().nullish(),
+      baseRate: zod.string().nullish(),
+      taxes: zod.string().nullish(),
+      fees: zod.string().nullish(),
+      discount: zod.string().nullish(),
+      oneWayFee: zod.string().nullish(),
+      deliveryFee: zod.string().nullish(),
+      deposit: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentNumber: zod.string().nullish(),
+      pickupPhoto: zod.string().nullish(),
+      returnPhoto: zod.string().nullish(),
+      updatedAt: zod.date(),
+      deletedAt: zod.string().nullish(),
+      extras: zod.array(
+        zod.object({
+          id: zod.number(),
+          extraId: zod.number(),
+          extraName: zod.string(),
+          quantity: zod.number().nullish(),
+          priceAtBooking: zod.string().nullish(),
+        }),
+      ),
+      payments: zod.array(
+        zod.object({
+          id: zod.number(),
+          method: zod.enum([
+            "CARD",
+            "CASH",
+            "BANK_TRANSFER",
+            "STRIPE",
+            "PAYPAL",
+          ]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          amount: zod.string(),
+          currency: zod.string(),
+          transactionId: zod.string().nullish(),
+          paidAt: zod.date().nullish(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Soft-delete booking (admin)
+ */
+export const DeleteAdminBookingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminBookingResponse = zod.object({
+  message: zod.string(),
+});
 
 /**
  * @summary Booking status counts and revenue (admin)
@@ -1345,4 +2144,490 @@ export const GetAdminFleetSnapshotResponse = zod.object({
   maintenance: zod.number(),
   reserved: zod.number(),
   inactive: zod.number(),
+});
+
+/**
+ * @summary Update vehicle status (admin)
+ */
+export const UpdateAdminVehicleStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminVehicleStatusBody = zod.object({
+  status: zod.enum([
+    "AVAILABLE",
+    "RENTED",
+    "MAINTENANCE",
+    "RESERVED",
+    "INACTIVE",
+  ]),
+});
+
+export const UpdateAdminVehicleStatusResponse = zod.object({
+  id: zod.number(),
+  vehicleModelId: zod.number().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  make: zod.string().nullish(),
+  model: zod.string().nullish(),
+  year: zod.number().nullish(),
+  color: zod.string().nullish(),
+  licensePlate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  vehicleClass: zod
+    .union([
+      zod.literal("ECONOMY"),
+      zod.literal("COMPACT"),
+      zod.literal("MIDSIZE"),
+      zod.literal("STANDARD"),
+      zod.literal("FULLSIZE"),
+      zod.literal("PREMIUM"),
+      zod.literal("LUXURY"),
+      zod.literal("SUV"),
+      zod.literal("MINIVAN"),
+      zod.literal("VAN"),
+      zod.literal("TRUCK"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  status: zod
+    .union([
+      zod.literal("AVAILABLE"),
+      zod.literal("RENTED"),
+      zod.literal("MAINTENANCE"),
+      zod.literal("RESERVED"),
+      zod.literal("INACTIVE"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mileage: zod.number().nullish(),
+  locationId: zod.number().nullish(),
+  startingPrice: zod.string(),
+  vehicleModel: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      brandId: zod.number(),
+      brandName: zod.string().nullish(),
+    })
+    .nullish(),
+  vehicleGroup: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+    })
+    .nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Add tier to rate (admin)
+ */
+export const CreateAdminRateTierParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateAdminRateTierBody = zod.object({
+  vehicleModelId: zod.number(),
+  fromDays: zod.number().optional(),
+  toDays: zod.number().optional(),
+  pricePerDay: zod.string(),
+  currency: zod.string().optional(),
+});
+
+/**
+ * @summary Update rate tier (admin)
+ */
+export const UpdateAdminRateTierParams = zod.object({
+  id: zod.coerce.number(),
+  tierId: zod.coerce.number(),
+});
+
+export const UpdateAdminRateTierBody = zod.object({
+  vehicleModelId: zod.number().optional(),
+  fromDays: zod.number().optional(),
+  toDays: zod.number().optional(),
+  pricePerDay: zod.string().optional(),
+  currency: zod.string().optional(),
+});
+
+export const UpdateAdminRateTierResponse = zod.object({
+  id: zod.number(),
+  rateId: zod.number(),
+  vehicleModelId: zod.number(),
+  fromDays: zod.number().nullish(),
+  toDays: zod.number().nullish(),
+  pricePerDay: zod.string(),
+  currency: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete rate tier (admin)
+ */
+export const DeleteAdminRateTierParams = zod.object({
+  id: zod.coerce.number(),
+  tierId: zod.coerce.number(),
+});
+
+export const DeleteAdminRateTierResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Update booking status (admin)
+ */
+export const UpdateAdminBookingStatusParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminBookingStatusBody = zod.object({
+  status: zod.enum([
+    "PENDING",
+    "CONFIRMED",
+    "DELIVERED",
+    "RETURNED",
+    "CANCELED",
+    "NO_SHOW",
+  ]),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+});
+
+export const UpdateAdminBookingStatusResponse = zod
+  .object({
+    id: zod.number(),
+    status: zod.enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    contactFullName: zod.string(),
+    contactEmail: zod.string().nullish(),
+    contactPhone: zod.string().nullish(),
+    pickupDatetime: zod.date(),
+    dropoffDatetime: zod.date(),
+    totalAmount: zod.string().nullish(),
+    currency: zod.string().nullish(),
+    source: zod.string().nullish(),
+    broker: zod.string().nullish(),
+    customer: zod.object({
+      id: zod.number(),
+      fullName: zod.string().nullish(),
+      email: zod.string().nullish(),
+    }),
+    vehicle: zod
+      .object({
+        id: zod.number(),
+        licensePlate: zod.string().nullish(),
+        modelName: zod.string().nullish(),
+      })
+      .nullish(),
+    pickupLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    dropoffLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    partner: zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+      })
+      .nullish(),
+    createdAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      userId: zod.number(),
+      vehicleId: zod.number().nullish(),
+      vehicleGroupId: zod.number().nullish(),
+      vehicleModelId: zod.number().nullish(),
+      rateId: zod.number().nullish(),
+      rateTierId: zod.number().nullish(),
+      pricePerDay: zod.string().nullish(),
+      baseRate: zod.string().nullish(),
+      taxes: zod.string().nullish(),
+      fees: zod.string().nullish(),
+      discount: zod.string().nullish(),
+      oneWayFee: zod.string().nullish(),
+      deliveryFee: zod.string().nullish(),
+      deposit: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentNumber: zod.string().nullish(),
+      pickupPhoto: zod.string().nullish(),
+      returnPhoto: zod.string().nullish(),
+      updatedAt: zod.date(),
+      deletedAt: zod.string().nullish(),
+      extras: zod.array(
+        zod.object({
+          id: zod.number(),
+          extraId: zod.number(),
+          extraName: zod.string(),
+          quantity: zod.number().nullish(),
+          priceAtBooking: zod.string().nullish(),
+        }),
+      ),
+      payments: zod.array(
+        zod.object({
+          id: zod.number(),
+          method: zod.enum([
+            "CARD",
+            "CASH",
+            "BANK_TRANSFER",
+            "STRIPE",
+            "PAYPAL",
+          ]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          amount: zod.string(),
+          currency: zod.string(),
+          transactionId: zod.string().nullish(),
+          paidAt: zod.date().nullish(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Fleet calendar — vehicles with bookings in date range (admin)
+ */
+export const GetAdminFleetCalendarQueryParams = zod.object({
+  dateFrom: zod.date(),
+  dateTo: zod.date(),
+});
+
+export const GetAdminFleetCalendarResponse = zod.object({
+  dateFrom: zod.string(),
+  dateTo: zod.string(),
+  vehicles: zod.array(
+    zod.object({
+      vehicleId: zod.number(),
+      licensePlate: zod.string().nullish(),
+      modelName: zod.string().nullish(),
+      brandName: zod.string().nullish(),
+      status: zod
+        .union([
+          zod.literal("AVAILABLE"),
+          zod.literal("RENTED"),
+          zod.literal("MAINTENANCE"),
+          zod.literal("RESERVED"),
+          zod.literal("INACTIVE"),
+          zod.literal(null),
+        ])
+        .nullish(),
+      bookings: zod.array(
+        zod.object({
+          id: zod.number(),
+          status: zod.enum([
+            "PENDING",
+            "CONFIRMED",
+            "DELIVERED",
+            "RETURNED",
+            "CANCELED",
+            "NO_SHOW",
+          ]),
+          customerName: zod.string(),
+          pickupDatetime: zod.date(),
+          dropoffDatetime: zod.date(),
+        }),
+      ),
+    }),
+  ),
+});
+
+/**
+ * @summary List team members (admin)
+ */
+export const ListAdminTeamResponseItem = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  email: zod.string(),
+  fullName: zod.string(),
+  adminRole: zod.enum([
+    "admin",
+    "regional_manager",
+    "service_manager",
+    "rental_agent",
+  ]),
+  isActive: zod.boolean(),
+  isSuperAdmin: zod.boolean(),
+  lastLogin: zod.date().nullish(),
+  canManageVehicles: zod.boolean(),
+  canManageBookings: zod.boolean(),
+  canManageUsers: zod.boolean(),
+  canViewReports: zod.boolean(),
+  canManageSettings: zod.boolean(),
+  canManageRates: zod.boolean(),
+  canManageExtras: zod.boolean(),
+  canManagePromotions: zod.boolean(),
+  canManageLocations: zod.boolean(),
+  canViewReviews: zod.boolean(),
+  canManageDamages: zod.boolean(),
+  canManageTasks: zod.boolean(),
+  canViewCalendar: zod.boolean(),
+  canManageCases: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListAdminTeamResponse = zod.array(ListAdminTeamResponseItem);
+
+/**
+ * @summary Create team member (admin)
+ */
+export const CreateAdminTeamMemberBody = zod.object({
+  username: zod.string(),
+  email: zod.string(),
+  fullName: zod.string(),
+  password: zod.string(),
+  adminRole: zod
+    .enum(["admin", "regional_manager", "service_manager", "rental_agent"])
+    .optional(),
+  isActive: zod.boolean().optional(),
+  canManageVehicles: zod.boolean().optional(),
+  canManageBookings: zod.boolean().optional(),
+  canManageUsers: zod.boolean().optional(),
+  canViewReports: zod.boolean().optional(),
+  canManageSettings: zod.boolean().optional(),
+  canManageRates: zod.boolean().optional(),
+  canManageExtras: zod.boolean().optional(),
+  canManagePromotions: zod.boolean().optional(),
+  canManageLocations: zod.boolean().optional(),
+  canViewReviews: zod.boolean().optional(),
+  canManageDamages: zod.boolean().optional(),
+  canManageTasks: zod.boolean().optional(),
+  canViewCalendar: zod.boolean().optional(),
+  canManageCases: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get team member (admin)
+ */
+export const GetAdminTeamMemberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminTeamMemberResponse = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  email: zod.string(),
+  fullName: zod.string(),
+  adminRole: zod.enum([
+    "admin",
+    "regional_manager",
+    "service_manager",
+    "rental_agent",
+  ]),
+  isActive: zod.boolean(),
+  isSuperAdmin: zod.boolean(),
+  lastLogin: zod.date().nullish(),
+  canManageVehicles: zod.boolean(),
+  canManageBookings: zod.boolean(),
+  canManageUsers: zod.boolean(),
+  canViewReports: zod.boolean(),
+  canManageSettings: zod.boolean(),
+  canManageRates: zod.boolean(),
+  canManageExtras: zod.boolean(),
+  canManagePromotions: zod.boolean(),
+  canManageLocations: zod.boolean(),
+  canViewReviews: zod.boolean(),
+  canManageDamages: zod.boolean(),
+  canManageTasks: zod.boolean(),
+  canViewCalendar: zod.boolean(),
+  canManageCases: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update team member (admin)
+ */
+export const UpdateAdminTeamMemberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminTeamMemberBody = zod.object({
+  username: zod.string().optional(),
+  email: zod.string().optional(),
+  fullName: zod.string().optional(),
+  password: zod.string().optional(),
+  adminRole: zod
+    .enum(["admin", "regional_manager", "service_manager", "rental_agent"])
+    .optional(),
+  isActive: zod.boolean().optional(),
+  canManageVehicles: zod.boolean().optional(),
+  canManageBookings: zod.boolean().optional(),
+  canManageUsers: zod.boolean().optional(),
+  canViewReports: zod.boolean().optional(),
+  canManageSettings: zod.boolean().optional(),
+  canManageRates: zod.boolean().optional(),
+  canManageExtras: zod.boolean().optional(),
+  canManagePromotions: zod.boolean().optional(),
+  canManageLocations: zod.boolean().optional(),
+  canViewReviews: zod.boolean().optional(),
+  canManageDamages: zod.boolean().optional(),
+  canManageTasks: zod.boolean().optional(),
+  canViewCalendar: zod.boolean().optional(),
+  canManageCases: zod.boolean().optional(),
+});
+
+export const UpdateAdminTeamMemberResponse = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+  email: zod.string(),
+  fullName: zod.string(),
+  adminRole: zod.enum([
+    "admin",
+    "regional_manager",
+    "service_manager",
+    "rental_agent",
+  ]),
+  isActive: zod.boolean(),
+  isSuperAdmin: zod.boolean(),
+  lastLogin: zod.date().nullish(),
+  canManageVehicles: zod.boolean(),
+  canManageBookings: zod.boolean(),
+  canManageUsers: zod.boolean(),
+  canViewReports: zod.boolean(),
+  canManageSettings: zod.boolean(),
+  canManageRates: zod.boolean(),
+  canManageExtras: zod.boolean(),
+  canManagePromotions: zod.boolean(),
+  canManageLocations: zod.boolean(),
+  canViewReviews: zod.boolean(),
+  canManageDamages: zod.boolean(),
+  canManageTasks: zod.boolean(),
+  canViewCalendar: zod.boolean(),
+  canManageCases: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete team member (admin)
+ */
+export const DeleteAdminTeamMemberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminTeamMemberResponse = zod.object({
+  message: zod.string(),
 });

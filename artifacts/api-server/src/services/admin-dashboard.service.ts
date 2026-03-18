@@ -16,6 +16,8 @@ import {
   inArray,
   isNull,
   lt,
+  lte,
+  or,
   sum,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -270,4 +272,66 @@ export async function getFleetSnapshot() {
   }
 
   return snapshot;
+}
+
+// ─── Service: fleet calendar ───────────────────────────────────────────────────
+
+export async function getFleetCalendar(startDate: Date, endDate: Date) {
+  const vehicles = await db
+    .select({
+      id: vehicleTable.id,
+      licensePlate: vehicleTable.licensePlate,
+      status: vehicleTable.status,
+      locationId: vehicleTable.locationId,
+      modelName: vehicleModelTable.name,
+    })
+    .from(vehicleTable)
+    .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+    .orderBy(asc(vehicleTable.id));
+
+  const bookings = await db
+    .select({
+      id: bookingTable.id,
+      vehicleId: bookingTable.vehicleId,
+      status: bookingTable.status,
+      contactFullName: bookingTable.contactFullName,
+      pickupDatetime: bookingTable.pickupDatetime,
+      dropoffDatetime: bookingTable.dropoffDatetime,
+      totalAmount: bookingTable.totalAmount,
+      currency: bookingTable.currency,
+    })
+    .from(bookingTable)
+    .where(
+      and(
+        isNull(bookingTable.deletedAt),
+        or(
+          and(
+            gte(bookingTable.pickupDatetime, startDate),
+            lte(bookingTable.pickupDatetime, endDate),
+          ),
+          and(
+            gte(bookingTable.dropoffDatetime, startDate),
+            lte(bookingTable.dropoffDatetime, endDate),
+          ),
+          and(
+            lte(bookingTable.pickupDatetime, startDate),
+            gte(bookingTable.dropoffDatetime, endDate),
+          ),
+        ),
+      ),
+    );
+
+  const bookingsByVehicle = new Map<number, typeof bookings>();
+  for (const booking of bookings) {
+    if (!booking.vehicleId) continue;
+    if (!bookingsByVehicle.has(booking.vehicleId)) {
+      bookingsByVehicle.set(booking.vehicleId, []);
+    }
+    bookingsByVehicle.get(booking.vehicleId)!.push(booking);
+  }
+
+  return vehicles.map((v) => ({
+    ...v,
+    bookings: bookingsByVehicle.get(v.id) ?? [],
+  }));
 }

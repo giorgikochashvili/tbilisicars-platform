@@ -23,6 +23,37 @@ export async function getAdminBrand(id: number) {
   return row;
 }
 
+export async function createAdminBrand(data: {
+  name: string;
+  logoUrl?: string | null;
+  countryOfOrigin?: string | null;
+}) {
+  const [row] = await db.insert(brandTable).values(data).returning();
+  return row!;
+}
+
+export async function updateAdminBrand(
+  id: number,
+  data: Partial<{ name: string; logoUrl: string | null; countryOfOrigin: string | null }>,
+) {
+  const [row] = await db
+    .update(brandTable)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(brandTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Brand ${id} not found`);
+  return row;
+}
+
+export async function deleteAdminBrand(id: number) {
+  const [row] = await db
+    .delete(brandTable)
+    .where(eq(brandTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Brand ${id} not found`);
+  return { message: "Brand deleted" };
+}
+
 export async function listAdminModels() {
   return db
     .select({
@@ -76,6 +107,63 @@ export async function getAdminModel(id: number) {
   const row = rows[0];
   if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
   return row;
+}
+
+export async function createAdminModel(data: {
+  brandId: number;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  active?: boolean;
+  availableForExternalSystems?: boolean;
+  category?: string | null;
+  seats?: number | null;
+  doors?: number | null;
+  transmission?: "MANUAL" | "AUTOMATIC" | null;
+  fuelType?: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | null;
+  luggageCapacity?: number | null;
+  mileageLimitPerDay?: number | null;
+  deposit?: string | null;
+}) {
+  const [row] = await db.insert(vehicleModelTable).values(data).returning();
+  return getAdminModel(row!.id);
+}
+
+export async function updateAdminModel(
+  id: number,
+  data: Partial<{
+    brandId: number;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    active: boolean;
+    availableForExternalSystems: boolean;
+    category: string | null;
+    seats: number | null;
+    doors: number | null;
+    transmission: "MANUAL" | "AUTOMATIC" | null;
+    fuelType: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | null;
+    luggageCapacity: number | null;
+    mileageLimitPerDay: number | null;
+    deposit: string | null;
+  }>,
+) {
+  const [row] = await db
+    .update(vehicleModelTable)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(vehicleModelTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+  return getAdminModel(id);
+}
+
+export async function deleteAdminModel(id: number) {
+  const [row] = await db
+    .delete(vehicleModelTable)
+    .where(eq(vehicleModelTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+  return { message: "Vehicle model deleted" };
 }
 
 export async function listAdminGroups() {
@@ -207,4 +295,72 @@ export async function getAdminVehicle(id: number) {
         : null,
     vehicleGroup: groupId != null ? { id: groupId, name: groupName! } : null,
   };
+}
+
+export async function createAdminVehicle(data: {
+  vehicleModelId?: number | null;
+  vehicleGroupId?: number | null;
+  licensePlate?: string | null;
+  vin?: string | null;
+  year?: number | null;
+  color?: string | null;
+  vehicleClass?: string | null;
+  fuelType?: string | null;
+  transmission?: string | null;
+  status?: string | null;
+  mileage?: number | null;
+  locationId?: number | null;
+  startingPrice?: string | null;
+}) {
+  const [row] = await db.insert(vehicleTable).values(data as any).returning();
+  return getAdminVehicle(row!.id);
+}
+
+export async function updateAdminVehicle(
+  id: number,
+  data: Partial<{
+    vehicleModelId: number | null;
+    vehicleGroupId: number | null;
+    licensePlate: string | null;
+    vin: string | null;
+    year: number | null;
+    color: string | null;
+    vehicleClass: string | null;
+    fuelType: string | null;
+    transmission: string | null;
+    status: string | null;
+    mileage: number | null;
+    locationId: number | null;
+    startingPrice: string | null;
+  }>,
+) {
+  const [row] = await db
+    .update(vehicleTable)
+    .set({ ...(data as any), updatedAt: new Date() })
+    .where(eq(vehicleTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle ${id} not found`);
+  return getAdminVehicle(id);
+}
+
+export async function updateAdminVehicleStatus(
+  id: number,
+  status: NonNullable<Vehicle["status"]>,
+) {
+  const [row] = await db
+    .update(vehicleTable)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(vehicleTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle ${id} not found`);
+  return getAdminVehicle(id);
+}
+
+export async function deleteAdminVehicle(id: number) {
+  const [row] = await db
+    .delete(vehicleTable)
+    .where(eq(vehicleTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle ${id} not found`);
+  return { message: "Vehicle deleted" };
 }

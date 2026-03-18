@@ -1132,6 +1132,693 @@ export interface AdminFleetSnapshot {
   inactive: number;
 }
 
+export interface DeleteResponse {
+  message: string;
+}
+
+export type AdminCreateLocationBodyLocationType =
+  (typeof AdminCreateLocationBodyLocationType)[keyof typeof AdminCreateLocationBodyLocationType];
+
+export const AdminCreateLocationBodyLocationType = {
+  meet_and_greet: "meet_and_greet",
+  rental_office: "rental_office",
+} as const;
+
+export interface AdminCreateLocationBody {
+  name: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  latitude?: string;
+  longitude?: string;
+  locationType: AdminCreateLocationBodyLocationType;
+  isActive?: boolean;
+}
+
+export type AdminUpdateLocationBodyLocationType =
+  (typeof AdminUpdateLocationBodyLocationType)[keyof typeof AdminUpdateLocationBodyLocationType];
+
+export const AdminUpdateLocationBodyLocationType = {
+  meet_and_greet: "meet_and_greet",
+  rental_office: "rental_office",
+} as const;
+
+export interface AdminUpdateLocationBody {
+  name?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  latitude?: string;
+  longitude?: string;
+  locationType?: AdminUpdateLocationBodyLocationType;
+  isActive?: boolean;
+}
+
+export interface AdminCreateBrandBody {
+  name: string;
+  logoUrl?: string;
+  countryOfOrigin?: string;
+}
+
+export interface AdminUpdateBrandBody {
+  name?: string;
+  logoUrl?: string;
+  countryOfOrigin?: string;
+}
+
+export type AdminCreateVehicleModelBodyTransmission =
+  (typeof AdminCreateVehicleModelBodyTransmission)[keyof typeof AdminCreateVehicleModelBodyTransmission];
+
+export const AdminCreateVehicleModelBodyTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+export type AdminCreateVehicleModelBodyFuelType =
+  (typeof AdminCreateVehicleModelBodyFuelType)[keyof typeof AdminCreateVehicleModelBodyFuelType];
+
+export const AdminCreateVehicleModelBodyFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export interface AdminCreateVehicleModelBody {
+  brandId: number;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  active?: boolean;
+  availableForExternalSystems?: boolean;
+  category?: string;
+  seats?: number;
+  doors?: number;
+  transmission?: AdminCreateVehicleModelBodyTransmission;
+  fuelType?: AdminCreateVehicleModelBodyFuelType;
+  luggageCapacity?: number;
+  mileageLimitPerDay?: number;
+  deposit?: string;
+}
+
+export type AdminUpdateVehicleModelBodyTransmission =
+  (typeof AdminUpdateVehicleModelBodyTransmission)[keyof typeof AdminUpdateVehicleModelBodyTransmission];
+
+export const AdminUpdateVehicleModelBodyTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+export type AdminUpdateVehicleModelBodyFuelType =
+  (typeof AdminUpdateVehicleModelBodyFuelType)[keyof typeof AdminUpdateVehicleModelBodyFuelType];
+
+export const AdminUpdateVehicleModelBodyFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export interface AdminUpdateVehicleModelBody {
+  brandId?: number;
+  name?: string;
+  description?: string;
+  imageUrl?: string;
+  active?: boolean;
+  availableForExternalSystems?: boolean;
+  category?: string;
+  seats?: number;
+  doors?: number;
+  transmission?: AdminUpdateVehicleModelBodyTransmission;
+  fuelType?: AdminUpdateVehicleModelBodyFuelType;
+  luggageCapacity?: number;
+  mileageLimitPerDay?: number;
+  deposit?: string;
+}
+
+export type AdminCreateVehicleBodyVehicleClass =
+  (typeof AdminCreateVehicleBodyVehicleClass)[keyof typeof AdminCreateVehicleBodyVehicleClass];
+
+export const AdminCreateVehicleBodyVehicleClass = {
+  ECONOMY: "ECONOMY",
+  COMPACT: "COMPACT",
+  MIDSIZE: "MIDSIZE",
+  STANDARD: "STANDARD",
+  FULLSIZE: "FULLSIZE",
+  PREMIUM: "PREMIUM",
+  LUXURY: "LUXURY",
+  SUV: "SUV",
+  MINIVAN: "MINIVAN",
+  VAN: "VAN",
+  TRUCK: "TRUCK",
+} as const;
+
+export type AdminCreateVehicleBodyFuelType =
+  (typeof AdminCreateVehicleBodyFuelType)[keyof typeof AdminCreateVehicleBodyFuelType];
+
+export const AdminCreateVehicleBodyFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export type AdminCreateVehicleBodyTransmission =
+  (typeof AdminCreateVehicleBodyTransmission)[keyof typeof AdminCreateVehicleBodyTransmission];
+
+export const AdminCreateVehicleBodyTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+export type AdminCreateVehicleBodyStatus =
+  (typeof AdminCreateVehicleBodyStatus)[keyof typeof AdminCreateVehicleBodyStatus];
+
+export const AdminCreateVehicleBodyStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface AdminCreateVehicleBody {
+  vehicleModelId?: number;
+  vehicleGroupId?: number;
+  licensePlate?: string;
+  vin?: string;
+  year?: number;
+  color?: string;
+  vehicleClass?: AdminCreateVehicleBodyVehicleClass;
+  fuelType?: AdminCreateVehicleBodyFuelType;
+  transmission?: AdminCreateVehicleBodyTransmission;
+  status?: AdminCreateVehicleBodyStatus;
+  mileage?: number;
+  locationId?: number;
+  startingPrice?: string;
+}
+
+export type AdminUpdateVehicleBodyVehicleClass =
+  (typeof AdminUpdateVehicleBodyVehicleClass)[keyof typeof AdminUpdateVehicleBodyVehicleClass];
+
+export const AdminUpdateVehicleBodyVehicleClass = {
+  ECONOMY: "ECONOMY",
+  COMPACT: "COMPACT",
+  MIDSIZE: "MIDSIZE",
+  STANDARD: "STANDARD",
+  FULLSIZE: "FULLSIZE",
+  PREMIUM: "PREMIUM",
+  LUXURY: "LUXURY",
+  SUV: "SUV",
+  MINIVAN: "MINIVAN",
+  VAN: "VAN",
+  TRUCK: "TRUCK",
+} as const;
+
+export type AdminUpdateVehicleBodyFuelType =
+  (typeof AdminUpdateVehicleBodyFuelType)[keyof typeof AdminUpdateVehicleBodyFuelType];
+
+export const AdminUpdateVehicleBodyFuelType = {
+  PETROL: "PETROL",
+  DIESEL: "DIESEL",
+  HYBRID: "HYBRID",
+  ELECTRIC: "ELECTRIC",
+} as const;
+
+export type AdminUpdateVehicleBodyTransmission =
+  (typeof AdminUpdateVehicleBodyTransmission)[keyof typeof AdminUpdateVehicleBodyTransmission];
+
+export const AdminUpdateVehicleBodyTransmission = {
+  MANUAL: "MANUAL",
+  AUTOMATIC: "AUTOMATIC",
+} as const;
+
+export type AdminUpdateVehicleBodyStatus =
+  (typeof AdminUpdateVehicleBodyStatus)[keyof typeof AdminUpdateVehicleBodyStatus];
+
+export const AdminUpdateVehicleBodyStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface AdminUpdateVehicleBody {
+  vehicleModelId?: number;
+  vehicleGroupId?: number;
+  licensePlate?: string;
+  vin?: string;
+  year?: number;
+  color?: string;
+  vehicleClass?: AdminUpdateVehicleBodyVehicleClass;
+  fuelType?: AdminUpdateVehicleBodyFuelType;
+  transmission?: AdminUpdateVehicleBodyTransmission;
+  status?: AdminUpdateVehicleBodyStatus;
+  mileage?: number;
+  locationId?: number;
+  startingPrice?: string;
+}
+
+export type AdminUpdateVehicleStatusBodyStatus =
+  (typeof AdminUpdateVehicleStatusBodyStatus)[keyof typeof AdminUpdateVehicleStatusBodyStatus];
+
+export const AdminUpdateVehicleStatusBodyStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface AdminUpdateVehicleStatusBody {
+  status: AdminUpdateVehicleStatusBodyStatus;
+}
+
+export type AdminCreateExtraBodyPricingType =
+  (typeof AdminCreateExtraBodyPricingType)[keyof typeof AdminCreateExtraBodyPricingType];
+
+export const AdminCreateExtraBodyPricingType = {
+  per_day: "per_day",
+  per_trip: "per_trip",
+} as const;
+
+export interface AdminCreateExtraBody {
+  name: string;
+  description?: string;
+  price: string;
+  currency: string;
+  pricingType: AdminCreateExtraBodyPricingType;
+  maxDays?: number;
+  isActive?: boolean;
+}
+
+export type AdminUpdateExtraBodyPricingType =
+  (typeof AdminUpdateExtraBodyPricingType)[keyof typeof AdminUpdateExtraBodyPricingType];
+
+export const AdminUpdateExtraBodyPricingType = {
+  per_day: "per_day",
+  per_trip: "per_trip",
+} as const;
+
+export interface AdminUpdateExtraBody {
+  name?: string;
+  description?: string;
+  price?: string;
+  currency?: string;
+  pricingType?: AdminUpdateExtraBodyPricingType;
+  maxDays?: number;
+  isActive?: boolean;
+}
+
+export interface AdminCreateRateBody {
+  name: string;
+  description?: string;
+  parentRateId?: number;
+  incrementType?: string;
+  incrementValue?: string;
+  validFrom: string;
+  validUntil: string;
+  minDays?: number;
+  maxDays?: number;
+  unlimitedKm?: boolean;
+  editableBy?: string;
+  isActive?: boolean;
+}
+
+export interface AdminUpdateRateBody {
+  name?: string;
+  description?: string;
+  parentRateId?: number;
+  incrementType?: string;
+  incrementValue?: string;
+  validFrom?: string;
+  validUntil?: string;
+  minDays?: number;
+  maxDays?: number;
+  unlimitedKm?: boolean;
+  editableBy?: string;
+  isActive?: boolean;
+}
+
+export interface AdminCreateRateTierBody {
+  vehicleModelId: number;
+  fromDays?: number;
+  toDays?: number;
+  pricePerDay: string;
+  currency?: string;
+}
+
+export interface AdminUpdateRateTierBody {
+  vehicleModelId?: number;
+  fromDays?: number;
+  toDays?: number;
+  pricePerDay?: string;
+  currency?: string;
+}
+
+export type AdminCreatePromoBodyDiscountType =
+  (typeof AdminCreatePromoBodyDiscountType)[keyof typeof AdminCreatePromoBodyDiscountType];
+
+export const AdminCreatePromoBodyDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export interface AdminCreatePromoBody {
+  code?: string;
+  vehicleGroupId?: number;
+  rateId?: number;
+  discountType: AdminCreatePromoBodyDiscountType;
+  discountValue: string;
+  validFrom?: string;
+  validUntil?: string;
+  maxUses?: number;
+  active?: boolean;
+}
+
+export type AdminUpdatePromoBodyDiscountType =
+  (typeof AdminUpdatePromoBodyDiscountType)[keyof typeof AdminUpdatePromoBodyDiscountType];
+
+export const AdminUpdatePromoBodyDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export interface AdminUpdatePromoBody {
+  code?: string;
+  vehicleGroupId?: number;
+  rateId?: number;
+  discountType?: AdminUpdatePromoBodyDiscountType;
+  discountValue?: string;
+  validFrom?: string;
+  validUntil?: string;
+  maxUses?: number;
+  active?: boolean;
+}
+
+export interface AdminCreateCustomerBody {
+  email?: string;
+  phone?: string;
+  fullName?: string;
+}
+
+export interface AdminUpdateCustomerBody {
+  email?: string;
+  phone?: string;
+  fullName?: string;
+}
+
+export type AdminCreateBookingBodyCustomerData = {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+};
+
+export type AdminCreateBookingBodyStatus =
+  (typeof AdminCreateBookingBodyStatus)[keyof typeof AdminCreateBookingBodyStatus];
+
+export const AdminCreateBookingBodyStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type AdminCreateBookingBodyPaymentStatus =
+  (typeof AdminCreateBookingBodyPaymentStatus)[keyof typeof AdminCreateBookingBodyPaymentStatus];
+
+export const AdminCreateBookingBodyPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export interface AdminCreateBookingBody {
+  /** Existing customer ID. If omitted, customerData creates a new customer. */
+  customerId?: number;
+  customerData?: AdminCreateBookingBodyCustomerData;
+  contactFullName: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  vehicleId?: number;
+  vehicleModelId?: number;
+  vehicleGroupId?: number;
+  pickupLocationId: number;
+  dropoffLocationId: number;
+  pickupDatetime: string;
+  dropoffDatetime: string;
+  status?: AdminCreateBookingBodyStatus;
+  paymentStatus?: AdminCreateBookingBodyPaymentStatus;
+  rateId?: number;
+  rateTierId?: number;
+  pricePerDay?: string;
+  totalAmount?: string;
+  currency?: string;
+  source?: string;
+  broker?: string;
+  notes?: string;
+  documentType?: string;
+  documentNumber?: string;
+  deposit?: string;
+}
+
+export type AdminUpdateBookingBodyStatus =
+  (typeof AdminUpdateBookingBodyStatus)[keyof typeof AdminUpdateBookingBodyStatus];
+
+export const AdminUpdateBookingBodyStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type AdminUpdateBookingBodyPaymentStatus =
+  (typeof AdminUpdateBookingBodyPaymentStatus)[keyof typeof AdminUpdateBookingBodyPaymentStatus];
+
+export const AdminUpdateBookingBodyPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export interface AdminUpdateBookingBody {
+  contactFullName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  vehicleId?: number;
+  vehicleModelId?: number;
+  vehicleGroupId?: number;
+  pickupLocationId?: number;
+  dropoffLocationId?: number;
+  pickupDatetime?: string;
+  dropoffDatetime?: string;
+  status?: AdminUpdateBookingBodyStatus;
+  paymentStatus?: AdminUpdateBookingBodyPaymentStatus;
+  rateId?: number;
+  rateTierId?: number;
+  pricePerDay?: string;
+  totalAmount?: string;
+  currency?: string;
+  source?: string;
+  broker?: string;
+  notes?: string;
+  documentType?: string;
+  documentNumber?: string;
+  deposit?: string;
+}
+
+export type AdminUpdateBookingStatusBodyStatus =
+  (typeof AdminUpdateBookingStatusBodyStatus)[keyof typeof AdminUpdateBookingStatusBodyStatus];
+
+export const AdminUpdateBookingStatusBodyStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type AdminUpdateBookingStatusBodyPaymentStatus =
+  (typeof AdminUpdateBookingStatusBodyPaymentStatus)[keyof typeof AdminUpdateBookingStatusBodyPaymentStatus];
+
+export const AdminUpdateBookingStatusBodyPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export interface AdminUpdateBookingStatusBody {
+  status: AdminUpdateBookingStatusBodyStatus;
+  paymentStatus?: AdminUpdateBookingStatusBodyPaymentStatus;
+}
+
+export type AdminTeamMemberAdminRole =
+  (typeof AdminTeamMemberAdminRole)[keyof typeof AdminTeamMemberAdminRole];
+
+export const AdminTeamMemberAdminRole = {
+  admin: "admin",
+  regional_manager: "regional_manager",
+  service_manager: "service_manager",
+  rental_agent: "rental_agent",
+} as const;
+
+export interface AdminTeamMember {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  adminRole: AdminTeamMemberAdminRole;
+  isActive: boolean;
+  isSuperAdmin: boolean;
+  /** @nullable */
+  lastLogin?: string | null;
+  canManageVehicles: boolean;
+  canManageBookings: boolean;
+  canManageUsers: boolean;
+  canViewReports: boolean;
+  canManageSettings: boolean;
+  canManageRates: boolean;
+  canManageExtras: boolean;
+  canManagePromotions: boolean;
+  canManageLocations: boolean;
+  canViewReviews: boolean;
+  canManageDamages: boolean;
+  canManageTasks: boolean;
+  canViewCalendar: boolean;
+  canManageCases: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminCreateTeamMemberBodyAdminRole =
+  (typeof AdminCreateTeamMemberBodyAdminRole)[keyof typeof AdminCreateTeamMemberBodyAdminRole];
+
+export const AdminCreateTeamMemberBodyAdminRole = {
+  admin: "admin",
+  regional_manager: "regional_manager",
+  service_manager: "service_manager",
+  rental_agent: "rental_agent",
+} as const;
+
+export interface AdminCreateTeamMemberBody {
+  username: string;
+  email: string;
+  fullName: string;
+  password: string;
+  adminRole?: AdminCreateTeamMemberBodyAdminRole;
+  isActive?: boolean;
+  canManageVehicles?: boolean;
+  canManageBookings?: boolean;
+  canManageUsers?: boolean;
+  canViewReports?: boolean;
+  canManageSettings?: boolean;
+  canManageRates?: boolean;
+  canManageExtras?: boolean;
+  canManagePromotions?: boolean;
+  canManageLocations?: boolean;
+  canViewReviews?: boolean;
+  canManageDamages?: boolean;
+  canManageTasks?: boolean;
+  canViewCalendar?: boolean;
+  canManageCases?: boolean;
+}
+
+export type AdminUpdateTeamMemberBodyAdminRole =
+  (typeof AdminUpdateTeamMemberBodyAdminRole)[keyof typeof AdminUpdateTeamMemberBodyAdminRole];
+
+export const AdminUpdateTeamMemberBodyAdminRole = {
+  admin: "admin",
+  regional_manager: "regional_manager",
+  service_manager: "service_manager",
+  rental_agent: "rental_agent",
+} as const;
+
+export interface AdminUpdateTeamMemberBody {
+  username?: string;
+  email?: string;
+  fullName?: string;
+  password?: string;
+  adminRole?: AdminUpdateTeamMemberBodyAdminRole;
+  isActive?: boolean;
+  canManageVehicles?: boolean;
+  canManageBookings?: boolean;
+  canManageUsers?: boolean;
+  canViewReports?: boolean;
+  canManageSettings?: boolean;
+  canManageRates?: boolean;
+  canManageExtras?: boolean;
+  canManagePromotions?: boolean;
+  canManageLocations?: boolean;
+  canViewReviews?: boolean;
+  canManageDamages?: boolean;
+  canManageTasks?: boolean;
+  canViewCalendar?: boolean;
+  canManageCases?: boolean;
+}
+
+export type AdminFleetCalendarBookingStatus =
+  (typeof AdminFleetCalendarBookingStatus)[keyof typeof AdminFleetCalendarBookingStatus];
+
+export const AdminFleetCalendarBookingStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export interface AdminFleetCalendarBooking {
+  id: number;
+  status: AdminFleetCalendarBookingStatus;
+  customerName: string;
+  pickupDatetime: string;
+  dropoffDatetime: string;
+}
+
+/**
+ * @nullable
+ */
+export type AdminFleetCalendarVehicleStatus =
+  | (typeof AdminFleetCalendarVehicleStatus)[keyof typeof AdminFleetCalendarVehicleStatus]
+  | null;
+
+export const AdminFleetCalendarVehicleStatus = {
+  AVAILABLE: "AVAILABLE",
+  RENTED: "RENTED",
+  MAINTENANCE: "MAINTENANCE",
+  RESERVED: "RESERVED",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export interface AdminFleetCalendarVehicle {
+  vehicleId: number;
+  /** @nullable */
+  licensePlate?: string | null;
+  /** @nullable */
+  modelName?: string | null;
+  /** @nullable */
+  brandName?: string | null;
+  /** @nullable */
+  status?: AdminFleetCalendarVehicleStatus;
+  bookings: AdminFleetCalendarBooking[];
+}
+
+export interface AdminFleetCalendarResponse {
+  dateFrom: string;
+  dateTo: string;
+  vehicles: AdminFleetCalendarVehicle[];
+}
+
 export type AdminLogout200 = {
   message: string;
 };
@@ -1211,3 +1898,8 @@ export const ListAdminBookingsPaymentStatus = {
   PAID: "PAID",
   REFUNDED: "REFUNDED",
 } as const;
+
+export type GetAdminFleetCalendarParams = {
+  dateFrom: string;
+  dateTo: string;
+};

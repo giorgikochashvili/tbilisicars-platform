@@ -47,3 +47,73 @@ export async function getAdminCustomer(id: number) {
   if (!row) throw new NotFoundError(`Customer ${id} not found`);
   return row;
 }
+
+export async function createAdminCustomer(data: {
+  email?: string | null;
+  phone?: string | null;
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  nationality?: string | null;
+  documentType?: string | null;
+  documentNumber?: string | null;
+  documentExpiry?: string | null;
+  notes?: string | null;
+}) {
+  const [row] = await db
+    .insert(userTable)
+    .values(data as any)
+    .returning();
+  return row!;
+}
+
+export async function updateAdminCustomer(
+  id: number,
+  data: Partial<{
+    email: string | null;
+    phone: string | null;
+    fullName: string | null;
+    dateOfBirth: string | null;
+    nationality: string | null;
+    documentType: string | null;
+    documentNumber: string | null;
+    documentExpiry: string | null;
+    notes: string | null;
+  }>,
+) {
+  const [row] = await db
+    .update(userTable)
+    .set({ ...(data as any), updatedAt: new Date() })
+    .where(eq(userTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Customer ${id} not found`);
+  return row;
+}
+
+export async function deleteAdminCustomer(id: number) {
+  const [row] = await db
+    .delete(userTable)
+    .where(eq(userTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Customer ${id} not found`);
+  return { message: "Customer deleted" };
+}
+
+export async function findOrCreateCustomer(data: {
+  email?: string | null;
+  phone?: string | null;
+  fullName?: string | null;
+}) {
+  if (data.email) {
+    const existing = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.email, data.email))
+      .limit(1);
+    if (existing[0]) return existing[0];
+  }
+  const [row] = await db
+    .insert(userTable)
+    .values(data as any)
+    .returning();
+  return row!;
+}

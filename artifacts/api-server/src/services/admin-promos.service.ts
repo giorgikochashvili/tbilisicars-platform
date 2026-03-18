@@ -15,3 +15,54 @@ export async function getAdminPromo(id: number) {
   if (!row) throw new NotFoundError(`Promo ${id} not found`);
   return row;
 }
+
+export async function createAdminPromo(data: {
+  code: string;
+  description?: string | null;
+  discountType: "percentage" | "fixed";
+  discountValue: string;
+  minRentalDays?: number | null;
+  maxUsage?: number | null;
+  currentUsage?: number;
+  validFrom: string;
+  validUntil: string;
+  isActive?: boolean;
+  perUserLimit?: number | null;
+}) {
+  const [row] = await db.insert(promoTable).values(data as any).returning();
+  return row!;
+}
+
+export async function updateAdminPromo(
+  id: number,
+  data: Partial<{
+    code: string;
+    description: string | null;
+    discountType: "percentage" | "fixed";
+    discountValue: string;
+    minRentalDays: number | null;
+    maxUsage: number | null;
+    currentUsage: number;
+    validFrom: string;
+    validUntil: string;
+    isActive: boolean;
+    perUserLimit: number | null;
+  }>,
+) {
+  const [row] = await db
+    .update(promoTable)
+    .set({ ...(data as any), updatedAt: new Date() })
+    .where(eq(promoTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Promo ${id} not found`);
+  return row;
+}
+
+export async function deleteAdminPromo(id: number) {
+  const [row] = await db
+    .delete(promoTable)
+    .where(eq(promoTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Promo ${id} not found`);
+  return { message: "Promo deleted" };
+}
