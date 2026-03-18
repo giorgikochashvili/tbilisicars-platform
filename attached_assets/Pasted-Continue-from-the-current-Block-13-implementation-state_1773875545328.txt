@@ -1,0 +1,52 @@
+Continue from the current Block 13 implementation state.
+
+Important:
+Do NOT redesign the website.
+Do NOT refactor unrelated CRM modules.
+Do NOT claim final completion yet.
+
+The current result is good, but Block 13 requires full business-flow verification, not only website submit + DB creation.
+
+You must now verify the remaining required operational integrations end-to-end.
+
+Required next actions:
+
+1. Verify the website-created booking appears in the CRM Bookings list and opens correctly in the existing booking flow
+2. Verify the website-created booking appears in Fleet Calendar / Timeline
+3. Verify the website-created booking appears in Reports where applicable
+4. Verify the website-created booking participates in Alerts where applicable
+5. Verify pricing/extras/promotion linkage is reflected correctly in the created CRM booking data
+6. Verify customer create/link behavior carefully:
+   - existing customer by exact email should link correctly
+   - new customer should be created correctly
+7. Verify invalid/conflicting website booking requests are rejected correctly
+8. Verify the booking source marker is stored and visible in CRM in a meaningful way
+9. Fix any issues discovered during this verification
+10. Only then provide the final report in the exact required format
+
+You must test at least:
+- one valid website booking flow
+- one customer match/link scenario
+- one conflicting or invalid booking rejection scenario
+
+Final report format must be exactly:
+
+1. Website to CRM linkage result
+2. Booking creation result
+3. Customer linkage result
+4. Booking source tracking result
+5. Pricing / extras / promotions linkage result
+6. CRM visibility result
+7. Validation / conflict protection result
+8. Verified end-to-end flow
+   - Website submit: works / not
+   - CRM booking creation: works / not
+   - Customer create/link: works / not
+   - Source tracking: works / not
+   - Booking visible in CRM: works / not
+   - Timeline visibility: works / not
+   - Reports visibility: works / not
+   - Conflict rejection: works / not
+9. Remaining gaps if any
+
+Do not claim completion unless the website booking flow is verified across CRM visibility, timeline/reports participation, and conflict rejection behavior.

@@ -19,7 +19,7 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       SELECT
         b.id AS booking_id,
         v.id AS vehicle_id,
-        TRIM(COALESCE(br.name, b.vehicle_model_id::text, '') || ' ' || COALESCE(vm.name, '')) AS vehicle_label,
+        TRIM(COALESCE(br.name, '') || ' ' || COALESCE(vm.name, bm.name, '')) AS vehicle_label,
         COALESCE(v.license_plate, '—') AS plate,
         COALESCE(l.city, '—') AS region,
         b.pickup_datetime AS event_datetime,
@@ -28,6 +28,7 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       LEFT JOIN vehicle v ON v.id = b.vehicle_id
       LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
       LEFT JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle_model bm ON bm.id = b.vehicle_model_id
       LEFT JOIN location l ON l.id = b.pickup_location_id
       WHERE b.pickup_datetime::date = CURRENT_DATE
         AND b.status IN ('PENDING', 'CONFIRMED')

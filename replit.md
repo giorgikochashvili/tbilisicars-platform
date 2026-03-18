@@ -60,9 +60,11 @@ Public-facing car rental booking website for customers. Light-mode, professional
 - **Features**: 5-step multi-step booking form: Trip Details → Choose Car → Add-ons → Contact Info → Review & Submit
 - **API calls**: `GET /api/public/booking-config`, `POST /api/public/validate-promo`, `POST /api/public/bookings`
 - **Vehicle filter**: Only shows models with `vehicle_model.available_for_external_systems = true`
-- Bookings created with `source="website"`, visible in CRM with "🌐 web" badge
+- Bookings created with `source="website"`, `vehicle_id=NULL`, `vehicle_model_id` set; visible in CRM with "🌐 web" badge
+- CRM Bookings list shows "Prius (unassigned)" for model-only website bookings (resolved from `booking.vehicle_model_id` via `bookingModelTable` alias)
 - Extras (optional add-ons) can be selected per booking
 - Promo code validation is real-time against the promos table
+- Model-only bookings do NOT appear in Fleet Calendar (vehicle-specific only); they DO appear in Alerts and Reports
 
 ### `artifacts/crm` (`@workspace/crm`)
 

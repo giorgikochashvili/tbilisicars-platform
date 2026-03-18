@@ -29,10 +29,12 @@ import { alias } from "drizzle-orm/pg-core";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 
-// ─── Alias location table for pickup and dropoff joins ─────────────────────────
+// ─── Alias tables ──────────────────────────────────────────────────────────────
 
 const pickupLoc = alias(locationTable, "pickup_loc");
 const dropoffLoc = alias(locationTable, "dropoff_loc");
+// Second alias to join vehicle_model via booking.vehicle_model_id (for model-only bookings)
+const bookingModelTable = alias(vehicleModelTable, "booking_model");
 
 // ─── Shared select fields for booking row (list + today activity) ─────────────
 
@@ -56,6 +58,8 @@ const bookingRowSelect = {
   vehicleId: vehicleTable.id,
   vehicleLicensePlate: vehicleTable.licensePlate,
   vehicleModelName: vehicleModelTable.name,
+  // Model name from booking.vehicle_model_id (used when no specific vehicle is assigned)
+  bookingVehicleModelName: bookingModelTable.name,
   pickupLocationId: pickupLoc.id,
   pickupLocationName: pickupLoc.name,
   dropoffLocationId: dropoffLoc.id,
@@ -111,6 +115,7 @@ type BookingRowFlat = {
   vehicleId: number | null;
   vehicleLicensePlate: string | null;
   vehicleModelName: string | null;
+  bookingVehicleModelName: string | null;
   pickupLocationId: number;
   pickupLocationName: string;
   dropoffLocationId: number;
@@ -146,6 +151,9 @@ function mapToBookingRow(row: BookingRowFlat) {
           modelName: row.vehicleModelName,
         }
       : null,
+    // Top-level vehicleModelName: resolved from booking.vehicle_model_id directly
+    // Useful for model-only bookings (website) where no specific vehicle is assigned yet
+    vehicleModelName: row.bookingVehicleModelName ?? null,
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
@@ -264,6 +272,10 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
         vehicleModelTable,
         eq(vehicleTable.vehicleModelId, vehicleModelTable.id),
       )
+      .leftJoin(
+        bookingModelTable,
+        eq(bookingTable.vehicleModelId, bookingModelTable.id),
+      )
       .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
       .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
       .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id))
@@ -294,6 +306,10 @@ export async function getAdminBooking(id: number) {
     .leftJoin(
       vehicleModelTable,
       eq(vehicleTable.vehicleModelId, vehicleModelTable.id),
+    )
+    .leftJoin(
+      bookingModelTable,
+      eq(bookingTable.vehicleModelId, bookingModelTable.id),
     )
     .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
     .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))

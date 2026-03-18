@@ -1729,6 +1729,7 @@ export const ListAdminBookingsResponse = zod.object({
           modelName: zod.string().nullish(),
         })
         .nullish(),
+      vehicleModelName: zod.string().nullish(),
       pickupLocation: zod.object({
         id: zod.number(),
         name: zod.string(),
@@ -1851,6 +1852,7 @@ export const GetAdminBookingResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -1994,6 +1996,7 @@ export const UpdateAdminBookingResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -2397,6 +2400,7 @@ export const UpdateAdminBookingStatusResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),

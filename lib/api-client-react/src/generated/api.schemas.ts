@@ -1008,6 +1008,8 @@ export interface AdminBookingRow {
   customer: AdminBookingRowCustomer;
   /** @nullable */
   vehicle?: AdminBookingRowVehicle;
+  /** @nullable — resolved from booking.vehicle_model_id; present for model-only (website) bookings */
+  vehicleModelName?: string | null;
   pickupLocation: AdminBookingRowPickupLocation;
   dropoffLocation: AdminBookingRowDropoffLocation;
   /** @nullable */

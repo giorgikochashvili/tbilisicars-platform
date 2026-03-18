@@ -23,10 +23,11 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
-// ─── Location aliases ──────────────────────────────────────────────────────────
+// ─── Aliases ──────────────────────────────────────────────────────────────────
 
 const pickupLoc = alias(locationTable, "pickup_loc");
 const dropoffLoc = alias(locationTable, "dropoff_loc");
+const bookingModelTable = alias(vehicleModelTable, "booking_model");
 
 // ─── Shared select for booking row shape ─────────────────────────────────────
 
@@ -50,6 +51,7 @@ const bookingRowSelect = {
   vehicleId: vehicleTable.id,
   vehicleLicensePlate: vehicleTable.licensePlate,
   vehicleModelName: vehicleModelTable.name,
+  bookingVehicleModelName: bookingModelTable.name,
   pickupLocationId: pickupLoc.id,
   pickupLocationName: pickupLoc.name,
   pickupLocationCity: pickupLoc.city,
@@ -80,6 +82,7 @@ type BookingRowFlat = {
   vehicleId: number | null;
   vehicleLicensePlate: string | null;
   vehicleModelName: string | null;
+  bookingVehicleModelName: string | null;
   pickupLocationId: number;
   pickupLocationName: string;
   pickupLocationCity: string | null;
@@ -117,6 +120,7 @@ function mapToBookingRow(row: BookingRowFlat) {
           modelName: row.vehicleModelName,
         }
       : null,
+    vehicleModelName: row.bookingVehicleModelName ?? null,
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
@@ -241,6 +245,7 @@ export async function getTodayActivity(city?: string) {
       .innerJoin(userTable, eq(bookingTable.userId, userTable.id))
       .leftJoin(vehicleTable, eq(bookingTable.vehicleId, vehicleTable.id))
       .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+      .leftJoin(bookingModelTable, eq(bookingTable.vehicleModelId, bookingModelTable.id))
       .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
       .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
       .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id));
