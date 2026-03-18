@@ -6,11 +6,27 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./adminBookingDetail";
+export * from "./adminBookingExtra";
+export * from "./adminBookingPaginatedResponse";
+export * from "./adminBookingPayment";
+export * from "./adminBookingPaymentMethod";
+export * from "./adminBookingPaymentStatus";
+export * from "./adminBookingRow";
+export * from "./adminBookingRowCustomer";
+export * from "./adminBookingRowDropoffLocation";
+export * from "./adminBookingRowPartner";
+export * from "./adminBookingRowPaymentStatus";
+export * from "./adminBookingRowPickupLocation";
+export * from "./adminBookingRowStatus";
+export * from "./adminBookingRowVehicle";
 export * from "./adminBrand";
 export * from "./adminCustomer";
 export * from "./adminCustomerPaginatedResponse";
+export * from "./adminDashboardSummary";
 export * from "./adminExtra";
 export * from "./adminExtraPricingType";
+export * from "./adminFleetSnapshot";
 export * from "./adminLocation";
 export * from "./adminLocationLocationType";
 export * from "./adminLoginBody";
@@ -24,6 +40,7 @@ export * from "./adminPromoDiscountType";
 export * from "./adminRate";
 export * from "./adminRateDetail";
 export * from "./adminRateTier";
+export * from "./adminTodayActivity";
 export * from "./adminVehicleDetail";
 export * from "./adminVehicleDetailFuelType";
 export * from "./adminVehicleDetailStatus";
@@ -52,6 +69,9 @@ export * from "./errorResponse";
 export * from "./extra";
 export * from "./extraPricingType";
 export * from "./healthStatus";
+export * from "./listAdminBookingsParams";
+export * from "./listAdminBookingsPaymentStatus";
+export * from "./listAdminBookingsStatus";
 export * from "./listAdminCustomersParams";
 export * from "./listAdminVehiclesParams";
 export * from "./listAdminVehiclesStatus";

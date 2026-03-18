@@ -1024,3 +1024,325 @@ export const GetAdminCustomerResponse = zod.object({
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
+
+/**
+ * @summary Paginated booking list (admin)
+ */
+export const listAdminBookingsQueryPageDefault = 1;
+export const listAdminBookingsQueryLimitDefault = 20;
+
+export const ListAdminBookingsQueryParams = zod.object({
+  page: zod.coerce.number().default(listAdminBookingsQueryPageDefault),
+  limit: zod.coerce.number().default(listAdminBookingsQueryLimitDefault),
+  status: zod
+    .enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ])
+    .optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  search: zod.coerce.string().optional(),
+  dateFrom: zod.coerce.string().optional(),
+  dateTo: zod.coerce.string().optional(),
+});
+
+export const ListAdminBookingsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      status: zod.enum([
+        "PENDING",
+        "CONFIRMED",
+        "DELIVERED",
+        "RETURNED",
+        "CANCELED",
+        "NO_SHOW",
+      ]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      contactFullName: zod.string(),
+      contactEmail: zod.string().nullish(),
+      contactPhone: zod.string().nullish(),
+      pickupDatetime: zod.date(),
+      dropoffDatetime: zod.date(),
+      totalAmount: zod.string().nullish(),
+      currency: zod.string().nullish(),
+      source: zod.string().nullish(),
+      broker: zod.string().nullish(),
+      customer: zod.object({
+        id: zod.number(),
+        fullName: zod.string().nullish(),
+        email: zod.string().nullish(),
+      }),
+      vehicle: zod
+        .object({
+          id: zod.number(),
+          licensePlate: zod.string().nullish(),
+          modelName: zod.string().nullish(),
+        })
+        .nullish(),
+      pickupLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      dropoffLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      partner: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+        })
+        .nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+  meta: zod.object({
+    page: zod.number(),
+    limit: zod.number(),
+    total: zod.number(),
+  }),
+});
+
+/**
+ * @summary Get single booking with detail (admin)
+ */
+export const GetAdminBookingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminBookingResponse = zod
+  .object({
+    id: zod.number(),
+    status: zod.enum([
+      "PENDING",
+      "CONFIRMED",
+      "DELIVERED",
+      "RETURNED",
+      "CANCELED",
+      "NO_SHOW",
+    ]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    contactFullName: zod.string(),
+    contactEmail: zod.string().nullish(),
+    contactPhone: zod.string().nullish(),
+    pickupDatetime: zod.date(),
+    dropoffDatetime: zod.date(),
+    totalAmount: zod.string().nullish(),
+    currency: zod.string().nullish(),
+    source: zod.string().nullish(),
+    broker: zod.string().nullish(),
+    customer: zod.object({
+      id: zod.number(),
+      fullName: zod.string().nullish(),
+      email: zod.string().nullish(),
+    }),
+    vehicle: zod
+      .object({
+        id: zod.number(),
+        licensePlate: zod.string().nullish(),
+        modelName: zod.string().nullish(),
+      })
+      .nullish(),
+    pickupLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    dropoffLocation: zod.object({
+      id: zod.number(),
+      name: zod.string(),
+    }),
+    partner: zod
+      .object({
+        id: zod.number(),
+        name: zod.string(),
+      })
+      .nullish(),
+    createdAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      userId: zod.number(),
+      vehicleId: zod.number().nullish(),
+      vehicleGroupId: zod.number().nullish(),
+      vehicleModelId: zod.number().nullish(),
+      rateId: zod.number().nullish(),
+      rateTierId: zod.number().nullish(),
+      pricePerDay: zod.string().nullish(),
+      baseRate: zod.string().nullish(),
+      taxes: zod.string().nullish(),
+      fees: zod.string().nullish(),
+      discount: zod.string().nullish(),
+      oneWayFee: zod.string().nullish(),
+      deliveryFee: zod.string().nullish(),
+      deposit: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      documentType: zod.string().nullish(),
+      documentNumber: zod.string().nullish(),
+      pickupPhoto: zod.string().nullish(),
+      returnPhoto: zod.string().nullish(),
+      updatedAt: zod.date(),
+      deletedAt: zod.string().nullish(),
+      extras: zod.array(
+        zod.object({
+          id: zod.number(),
+          extraId: zod.number(),
+          extraName: zod.string(),
+          quantity: zod.number().nullish(),
+          priceAtBooking: zod.string().nullish(),
+        }),
+      ),
+      payments: zod.array(
+        zod.object({
+          id: zod.number(),
+          method: zod.enum([
+            "CARD",
+            "CASH",
+            "BANK_TRANSFER",
+            "STRIPE",
+            "PAYPAL",
+          ]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          amount: zod.string(),
+          currency: zod.string(),
+          transactionId: zod.string().nullish(),
+          paidAt: zod.string().nullish(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Booking status counts and revenue (admin)
+ */
+export const GetAdminDashboardSummaryResponse = zod.object({
+  total: zod.number(),
+  pending: zod.number(),
+  confirmed: zod.number(),
+  delivered: zod.number(),
+  returned: zod.number(),
+  canceled: zod.number(),
+  noShow: zod.number(),
+  totalRevenue: zod.string(),
+});
+
+/**
+ * @summary Today pickups and dropoffs (admin)
+ */
+export const GetAdminDashboardTodayResponse = zod.object({
+  pickups: zod.array(
+    zod.object({
+      id: zod.number(),
+      status: zod.enum([
+        "PENDING",
+        "CONFIRMED",
+        "DELIVERED",
+        "RETURNED",
+        "CANCELED",
+        "NO_SHOW",
+      ]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      contactFullName: zod.string(),
+      contactEmail: zod.string().nullish(),
+      contactPhone: zod.string().nullish(),
+      pickupDatetime: zod.date(),
+      dropoffDatetime: zod.date(),
+      totalAmount: zod.string().nullish(),
+      currency: zod.string().nullish(),
+      source: zod.string().nullish(),
+      broker: zod.string().nullish(),
+      customer: zod.object({
+        id: zod.number(),
+        fullName: zod.string().nullish(),
+        email: zod.string().nullish(),
+      }),
+      vehicle: zod
+        .object({
+          id: zod.number(),
+          licensePlate: zod.string().nullish(),
+          modelName: zod.string().nullish(),
+        })
+        .nullish(),
+      pickupLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      dropoffLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      partner: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+        })
+        .nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+  dropoffs: zod.array(
+    zod.object({
+      id: zod.number(),
+      status: zod.enum([
+        "PENDING",
+        "CONFIRMED",
+        "DELIVERED",
+        "RETURNED",
+        "CANCELED",
+        "NO_SHOW",
+      ]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      contactFullName: zod.string(),
+      contactEmail: zod.string().nullish(),
+      contactPhone: zod.string().nullish(),
+      pickupDatetime: zod.date(),
+      dropoffDatetime: zod.date(),
+      totalAmount: zod.string().nullish(),
+      currency: zod.string().nullish(),
+      source: zod.string().nullish(),
+      broker: zod.string().nullish(),
+      customer: zod.object({
+        id: zod.number(),
+        fullName: zod.string().nullish(),
+        email: zod.string().nullish(),
+      }),
+      vehicle: zod
+        .object({
+          id: zod.number(),
+          licensePlate: zod.string().nullish(),
+          modelName: zod.string().nullish(),
+        })
+        .nullish(),
+      pickupLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      dropoffLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      partner: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+        })
+        .nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Vehicle counts by status (admin)
+ */
+export const GetAdminFleetSnapshotResponse = zod.object({
+  available: zod.number(),
+  rented: zod.number(),
+  maintenance: zod.number(),
+  reserved: zod.number(),
+  inactive: zod.number(),
+});

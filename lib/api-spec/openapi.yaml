@@ -32,6 +32,10 @@ tags:
     description: Admin — promotions and discount codes
   - name: admin-customers
     description: Admin — customer accounts
+  - name: admin-bookings
+    description: Admin — bookings management
+  - name: admin-dashboard
+    description: Admin — operations dashboard
 
 paths:
   /healthz:
@@ -871,6 +875,150 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Bookings ───────────────────────────────────────────────────────────
+
+  /admin/bookings:
+    get:
+      operationId: listAdminBookings
+      tags: [admin-bookings]
+      summary: Paginated booking list (admin)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        - name: paymentStatus
+          in: query
+          schema:
+            type: string
+            enum: [UNPAID, HALF, PAID, REFUNDED]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated booking list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingPaginatedResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/bookings/{id}:
+    get:
+      operationId: getAdminBooking
+      tags: [admin-bookings]
+      summary: Get single booking with detail (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Booking with nested entities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Dashboard ───────────────────────────────────────────────────────────
+
+  /admin/dashboard/summary:
+    get:
+      operationId: getAdminDashboardSummary
+      tags: [admin-dashboard]
+      summary: Booking status counts and revenue (admin)
+      responses:
+        "200":
+          description: Summary counts and total revenue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardSummary"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/dashboard/today:
+    get:
+      operationId: getAdminDashboardToday
+      tags: [admin-dashboard]
+      summary: Today pickups and dropoffs (admin)
+      responses:
+        "200":
+          description: Today pickup and dropoff bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTodayActivity"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/dashboard/fleet-snapshot:
+    get:
+      operationId: getAdminFleetSnapshot
+      tags: [admin-dashboard]
+      summary: Vehicle counts by status (admin)
+      responses:
+        "200":
+          description: Vehicle counts grouped by status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminFleetSnapshot"
+        "401":
+          description: Not authenticated
           content:
             application/json:
               schema:
@@ -1918,3 +2066,288 @@ components:
       required:
         - data
         - meta
+
+    # ─── Admin Bookings ──────────────────────────────────────────────────────────
+
+    AdminBookingRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
+        paymentStatus:
+          type: string
+          enum: [UNPAID, HALF, PAID, REFUNDED]
+        contactFullName:
+          type: string
+        contactEmail:
+          type: ["string", "null"]
+        contactPhone:
+          type: ["string", "null"]
+        pickupDatetime:
+          type: string
+          format: date-time
+        dropoffDatetime:
+          type: string
+          format: date-time
+        totalAmount:
+          type: ["string", "null"]
+        currency:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        broker:
+          type: ["string", "null"]
+        customer:
+          type: object
+          properties:
+            id:
+              type: integer
+            fullName:
+              type: ["string", "null"]
+            email:
+              type: ["string", "null"]
+          required:
+            - id
+        vehicle:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            licensePlate:
+              type: ["string", "null"]
+            modelName:
+              type: ["string", "null"]
+          required:
+            - id
+        pickupLocation:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+          required:
+            - id
+            - name
+        dropoffLocation:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+          required:
+            - id
+            - name
+        partner:
+          type: ["object", "null"]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+          required:
+            - id
+            - name
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - paymentStatus
+        - contactFullName
+        - pickupDatetime
+        - dropoffDatetime
+        - customer
+        - pickupLocation
+        - dropoffLocation
+        - createdAt
+
+    AdminBookingExtra:
+      type: object
+      properties:
+        id:
+          type: integer
+        extraId:
+          type: integer
+        extraName:
+          type: string
+        quantity:
+          type: ["integer", "null"]
+        priceAtBooking:
+          type: ["string", "null"]
+      required:
+        - id
+        - extraId
+        - extraName
+
+    AdminBookingPayment:
+      type: object
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [CARD, CASH, BANK_TRANSFER, STRIPE, PAYPAL]
+        status:
+          type: string
+          enum: [UNPAID, HALF, PAID, REFUNDED]
+        amount:
+          type: string
+        currency:
+          type: string
+        transactionId:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - method
+        - status
+        - amount
+        - currency
+
+    AdminBookingDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminBookingRow"
+        - type: object
+          properties:
+            userId:
+              type: integer
+            vehicleId:
+              type: ["integer", "null"]
+            vehicleGroupId:
+              type: ["integer", "null"]
+            vehicleModelId:
+              type: ["integer", "null"]
+            rateId:
+              type: ["integer", "null"]
+            rateTierId:
+              type: ["integer", "null"]
+            pricePerDay:
+              type: ["string", "null"]
+            baseRate:
+              type: ["string", "null"]
+            taxes:
+              type: ["string", "null"]
+            fees:
+              type: ["string", "null"]
+            discount:
+              type: ["string", "null"]
+            oneWayFee:
+              type: ["string", "null"]
+            deliveryFee:
+              type: ["string", "null"]
+            deposit:
+              type: ["string", "null"]
+            notes:
+              type: ["string", "null"]
+            documentType:
+              type: ["string", "null"]
+            documentNumber:
+              type: ["string", "null"]
+            pickupPhoto:
+              type: ["string", "null"]
+            returnPhoto:
+              type: ["string", "null"]
+            updatedAt:
+              type: string
+              format: date-time
+            deletedAt:
+              type: ["string", "null"]
+            extras:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminBookingExtra"
+            payments:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminBookingPayment"
+          required:
+            - userId
+            - extras
+            - payments
+            - updatedAt
+
+    AdminBookingPaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBookingRow"
+        meta:
+          $ref: "#/components/schemas/AdminPaginationMeta"
+      required:
+        - data
+        - meta
+
+    # ─── Admin Dashboard ──────────────────────────────────────────────────────────
+
+    AdminDashboardSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        confirmed:
+          type: integer
+        delivered:
+          type: integer
+        returned:
+          type: integer
+        canceled:
+          type: integer
+        noShow:
+          type: integer
+        totalRevenue:
+          type: string
+      required:
+        - total
+        - pending
+        - confirmed
+        - delivered
+        - returned
+        - canceled
+        - noShow
+        - totalRevenue
+
+    AdminTodayActivity:
+      type: object
+      properties:
+        pickups:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBookingRow"
+        dropoffs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBookingRow"
+      required:
+        - pickups
+        - dropoffs
+
+    AdminFleetSnapshot:
+      type: object
+      properties:
+        available:
+          type: integer
+        rented:
+          type: integer
+        maintenance:
+          type: integer
+        reserved:
+          type: integer
+        inactive:
+          type: integer
+      required:
+        - available
+        - rented
+        - maintenance
+        - reserved
+        - inactive

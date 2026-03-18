@@ -927,6 +927,211 @@ export interface AdminCustomerPaginatedResponse {
   meta: AdminPaginationMeta;
 }
 
+export type AdminBookingRowStatus =
+  (typeof AdminBookingRowStatus)[keyof typeof AdminBookingRowStatus];
+
+export const AdminBookingRowStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type AdminBookingRowPaymentStatus =
+  (typeof AdminBookingRowPaymentStatus)[keyof typeof AdminBookingRowPaymentStatus];
+
+export const AdminBookingRowPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export type AdminBookingRowCustomer = {
+  id: number;
+  /** @nullable */
+  fullName?: string | null;
+  /** @nullable */
+  email?: string | null;
+};
+
+/**
+ * @nullable
+ */
+export type AdminBookingRowVehicle = {
+  id: number;
+  /** @nullable */
+  licensePlate?: string | null;
+  /** @nullable */
+  modelName?: string | null;
+} | null;
+
+export type AdminBookingRowPickupLocation = {
+  id: number;
+  name: string;
+};
+
+export type AdminBookingRowDropoffLocation = {
+  id: number;
+  name: string;
+};
+
+/**
+ * @nullable
+ */
+export type AdminBookingRowPartner = {
+  id: number;
+  name: string;
+} | null;
+
+export interface AdminBookingRow {
+  id: number;
+  status: AdminBookingRowStatus;
+  paymentStatus: AdminBookingRowPaymentStatus;
+  contactFullName: string;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  pickupDatetime: string;
+  dropoffDatetime: string;
+  /** @nullable */
+  totalAmount?: string | null;
+  /** @nullable */
+  currency?: string | null;
+  /** @nullable */
+  source?: string | null;
+  /** @nullable */
+  broker?: string | null;
+  customer: AdminBookingRowCustomer;
+  /** @nullable */
+  vehicle?: AdminBookingRowVehicle;
+  pickupLocation: AdminBookingRowPickupLocation;
+  dropoffLocation: AdminBookingRowDropoffLocation;
+  /** @nullable */
+  partner?: AdminBookingRowPartner;
+  createdAt: string;
+}
+
+export interface AdminBookingExtra {
+  id: number;
+  extraId: number;
+  extraName: string;
+  /** @nullable */
+  quantity?: number | null;
+  /** @nullable */
+  priceAtBooking?: string | null;
+}
+
+export type AdminBookingPaymentMethod =
+  (typeof AdminBookingPaymentMethod)[keyof typeof AdminBookingPaymentMethod];
+
+export const AdminBookingPaymentMethod = {
+  CARD: "CARD",
+  CASH: "CASH",
+  BANK_TRANSFER: "BANK_TRANSFER",
+  STRIPE: "STRIPE",
+  PAYPAL: "PAYPAL",
+} as const;
+
+export type AdminBookingPaymentStatus =
+  (typeof AdminBookingPaymentStatus)[keyof typeof AdminBookingPaymentStatus];
+
+export const AdminBookingPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
+
+export interface AdminBookingPayment {
+  id: number;
+  method: AdminBookingPaymentMethod;
+  status: AdminBookingPaymentStatus;
+  amount: string;
+  currency: string;
+  /** @nullable */
+  transactionId?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+}
+
+export type AdminBookingDetail = AdminBookingRow & {
+  userId: number;
+  /** @nullable */
+  vehicleId?: number | null;
+  /** @nullable */
+  vehicleGroupId?: number | null;
+  /** @nullable */
+  vehicleModelId?: number | null;
+  /** @nullable */
+  rateId?: number | null;
+  /** @nullable */
+  rateTierId?: number | null;
+  /** @nullable */
+  pricePerDay?: string | null;
+  /** @nullable */
+  baseRate?: string | null;
+  /** @nullable */
+  taxes?: string | null;
+  /** @nullable */
+  fees?: string | null;
+  /** @nullable */
+  discount?: string | null;
+  /** @nullable */
+  oneWayFee?: string | null;
+  /** @nullable */
+  deliveryFee?: string | null;
+  /** @nullable */
+  deposit?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  documentType?: string | null;
+  /** @nullable */
+  documentNumber?: string | null;
+  /** @nullable */
+  pickupPhoto?: string | null;
+  /** @nullable */
+  returnPhoto?: string | null;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt?: string | null;
+  extras: AdminBookingExtra[];
+  payments: AdminBookingPayment[];
+};
+
+export interface AdminBookingPaginatedResponse {
+  data: AdminBookingRow[];
+  meta: AdminPaginationMeta;
+}
+
+export interface AdminDashboardSummary {
+  total: number;
+  pending: number;
+  confirmed: number;
+  delivered: number;
+  returned: number;
+  canceled: number;
+  noShow: number;
+  totalRevenue: string;
+}
+
+export interface AdminTodayActivity {
+  pickups: AdminBookingRow[];
+  dropoffs: AdminBookingRow[];
+}
+
+export interface AdminFleetSnapshot {
+  available: number;
+  rented: number;
+  maintenance: number;
+  reserved: number;
+  inactive: number;
+}
+
 export type AdminLogout200 = {
   message: string;
 };
@@ -974,3 +1179,35 @@ export type ListAdminCustomersParams = {
   limit?: number;
   search?: string;
 };
+
+export type ListAdminBookingsParams = {
+  page?: number;
+  limit?: number;
+  status?: ListAdminBookingsStatus;
+  paymentStatus?: ListAdminBookingsPaymentStatus;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export type ListAdminBookingsStatus =
+  (typeof ListAdminBookingsStatus)[keyof typeof ListAdminBookingsStatus];
+
+export const ListAdminBookingsStatus = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  DELIVERED: "DELIVERED",
+  RETURNED: "RETURNED",
+  CANCELED: "CANCELED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type ListAdminBookingsPaymentStatus =
+  (typeof ListAdminBookingsPaymentStatus)[keyof typeof ListAdminBookingsPaymentStatus];
+
+export const ListAdminBookingsPaymentStatus = {
+  UNPAID: "UNPAID",
+  HALF: "HALF",
+  PAID: "PAID",
+  REFUNDED: "REFUNDED",
+} as const;
