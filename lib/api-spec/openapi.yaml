@@ -26,6 +26,12 @@ tags:
     description: Admin — brands, models, groups, and vehicles
   - name: admin-extras
     description: Admin — extras catalog management
+  - name: admin-rates
+    description: Admin — rates and pricing tiers
+  - name: admin-promos
+    description: Admin — promotions and discount codes
+  - name: admin-customers
+    description: Admin — customer accounts
 
 paths:
   /healthz:
@@ -688,6 +694,183 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Extra not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Rates ──────────────────────────────────────────────────────────────
+
+  /admin/rates:
+    get:
+      operationId: listAdminRates
+      tags: [admin-rates]
+      summary: List all rates (admin)
+      description: Returns all rates including inactive ones. Tiers not included in list.
+      responses:
+        "200":
+          description: Array of all rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminRate"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rates/{id}:
+    get:
+      operationId: getAdminRate
+      tags: [admin-rates]
+      summary: Get single rate with tiers (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rate with nested tiers array
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Promos ─────────────────────────────────────────────────────────────
+
+  /admin/promos:
+    get:
+      operationId: listAdminPromos
+      tags: [admin-promos]
+      summary: List all promotions (admin)
+      description: Returns all promotions including inactive ones.
+      responses:
+        "200":
+          description: Array of all promotions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPromo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/promos/{id}:
+    get:
+      operationId: getAdminPromo
+      tags: [admin-promos]
+      summary: Get single promotion (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Promotion record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPromo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Promotion not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin Customers ──────────────────────────────────────────────────────────
+
+  /admin/customers:
+    get:
+      operationId: listAdminCustomers
+      tags: [admin-customers]
+      summary: Paginated customer list (admin)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated customer list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCustomerPaginatedResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/customers/{id}:
+    get:
+      operationId: getAdminCustomer
+      tags: [admin-customers]
+      summary: Get single customer (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCustomer"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer not found
           content:
             application/json:
               schema:
@@ -1561,3 +1744,177 @@ components:
         - isActive
         - createdAt
         - updatedAt
+
+    # ─── Admin Rates ─────────────────────────────────────────────────────────────
+
+    AdminRate:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        parentRateId:
+          type: ["integer", "null"]
+        incrementType:
+          type: ["string", "null"]
+        incrementValue:
+          type: ["string", "null"]
+        validFrom:
+          type: string
+        validUntil:
+          type: string
+        minDays:
+          type: ["integer", "null"]
+        maxDays:
+          type: ["integer", "null"]
+        unlimitedKm:
+          type: ["boolean", "null"]
+        editableBy:
+          type: ["string", "null"]
+        isActive:
+          type: ["boolean", "null"]
+        priceModifierName:
+          type: ["string", "null"]
+        priceModifierType:
+          type: ["string", "null"]
+        priceModifierValue:
+          type: ["string", "null"]
+        priceModifierAppliesToAgreementOnly:
+          type: ["boolean", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - validFrom
+        - validUntil
+        - createdAt
+        - updatedAt
+
+    AdminRateTier:
+      type: object
+      properties:
+        id:
+          type: integer
+        rateId:
+          type: integer
+        vehicleModelId:
+          type: integer
+        fromDays:
+          type: ["integer", "null"]
+        toDays:
+          type: ["integer", "null"]
+        pricePerDay:
+          type: string
+        currency:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rateId
+        - vehicleModelId
+        - pricePerDay
+        - createdAt
+        - updatedAt
+
+    AdminRateDetail:
+      allOf:
+        - $ref: "#/components/schemas/AdminRate"
+        - type: object
+          properties:
+            tiers:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminRateTier"
+          required:
+            - tiers
+
+    # ─── Admin Promos ─────────────────────────────────────────────────────────────
+
+    AdminPromo:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: ["string", "null"]
+        vehicleGroupId:
+          type: ["integer", "null"]
+        rateId:
+          type: ["integer", "null"]
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        discountValue:
+          type: string
+        validFrom:
+          type: ["string", "null"]
+        validUntil:
+          type: ["string", "null"]
+        maxUses:
+          type: ["integer", "null"]
+        timesUsed:
+          type: ["integer", "null"]
+        active:
+          type: ["boolean", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - discountType
+        - discountValue
+        - createdAt
+        - updatedAt
+
+    # ─── Admin Customers ──────────────────────────────────────────────────────────
+
+    AdminCustomer:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        fullName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - createdAt
+        - updatedAt
+
+    AdminCustomerPaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminCustomer"
+        meta:
+          $ref: "#/components/schemas/AdminPaginationMeta"
+      required:
+        - data
+        - meta

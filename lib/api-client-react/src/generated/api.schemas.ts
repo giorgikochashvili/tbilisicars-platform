@@ -824,6 +824,109 @@ export interface AdminExtra {
   updatedAt: string;
 }
 
+export interface AdminRate {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  parentRateId?: number | null;
+  /** @nullable */
+  incrementType?: string | null;
+  /** @nullable */
+  incrementValue?: string | null;
+  validFrom: string;
+  validUntil: string;
+  /** @nullable */
+  minDays?: number | null;
+  /** @nullable */
+  maxDays?: number | null;
+  /** @nullable */
+  unlimitedKm?: boolean | null;
+  /** @nullable */
+  editableBy?: string | null;
+  /** @nullable */
+  isActive?: boolean | null;
+  /** @nullable */
+  priceModifierName?: string | null;
+  /** @nullable */
+  priceModifierType?: string | null;
+  /** @nullable */
+  priceModifierValue?: string | null;
+  /** @nullable */
+  priceModifierAppliesToAgreementOnly?: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminRateTier {
+  id: number;
+  rateId: number;
+  vehicleModelId: number;
+  /** @nullable */
+  fromDays?: number | null;
+  /** @nullable */
+  toDays?: number | null;
+  pricePerDay: string;
+  /** @nullable */
+  currency?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminRateDetail = AdminRate & {
+  tiers: AdminRateTier[];
+};
+
+export type AdminPromoDiscountType =
+  (typeof AdminPromoDiscountType)[keyof typeof AdminPromoDiscountType];
+
+export const AdminPromoDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export interface AdminPromo {
+  id: number;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  vehicleGroupId?: number | null;
+  /** @nullable */
+  rateId?: number | null;
+  discountType: AdminPromoDiscountType;
+  discountValue: string;
+  /** @nullable */
+  validFrom?: string | null;
+  /** @nullable */
+  validUntil?: string | null;
+  /** @nullable */
+  maxUses?: number | null;
+  /** @nullable */
+  timesUsed?: number | null;
+  /** @nullable */
+  active?: boolean | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminCustomer {
+  id: number;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  fullName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminCustomerPaginatedResponse {
+  data: AdminCustomer[];
+  meta: AdminPaginationMeta;
+}
+
 export type AdminLogout200 = {
   message: string;
 };
@@ -865,3 +968,9 @@ export const ListAdminVehiclesStatus = {
   RESERVED: "RESERVED",
   INACTIVE: "INACTIVE",
 } as const;
+
+export type ListAdminCustomersParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};

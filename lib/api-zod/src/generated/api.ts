@@ -860,3 +860,167 @@ export const GetAdminExtraResponse = zod.object({
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
+
+/**
+ * Returns all rates including inactive ones. Tiers not included in list.
+ * @summary List all rates (admin)
+ */
+export const ListAdminRatesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  parentRateId: zod.number().nullish(),
+  incrementType: zod.string().nullish(),
+  incrementValue: zod.string().nullish(),
+  validFrom: zod.string(),
+  validUntil: zod.string(),
+  minDays: zod.number().nullish(),
+  maxDays: zod.number().nullish(),
+  unlimitedKm: zod.boolean().nullish(),
+  editableBy: zod.string().nullish(),
+  isActive: zod.boolean().nullish(),
+  priceModifierName: zod.string().nullish(),
+  priceModifierType: zod.string().nullish(),
+  priceModifierValue: zod.string().nullish(),
+  priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListAdminRatesResponse = zod.array(ListAdminRatesResponseItem);
+
+/**
+ * @summary Get single rate with tiers (admin)
+ */
+export const GetAdminRateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminRateResponse = zod
+  .object({
+    id: zod.number(),
+    name: zod.string(),
+    description: zod.string().nullish(),
+    parentRateId: zod.number().nullish(),
+    incrementType: zod.string().nullish(),
+    incrementValue: zod.string().nullish(),
+    validFrom: zod.string(),
+    validUntil: zod.string(),
+    minDays: zod.number().nullish(),
+    maxDays: zod.number().nullish(),
+    unlimitedKm: zod.boolean().nullish(),
+    editableBy: zod.string().nullish(),
+    isActive: zod.boolean().nullish(),
+    priceModifierName: zod.string().nullish(),
+    priceModifierType: zod.string().nullish(),
+    priceModifierValue: zod.string().nullish(),
+    priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  })
+  .and(
+    zod.object({
+      tiers: zod.array(
+        zod.object({
+          id: zod.number(),
+          rateId: zod.number(),
+          vehicleModelId: zod.number(),
+          fromDays: zod.number().nullish(),
+          toDays: zod.number().nullish(),
+          pricePerDay: zod.string(),
+          currency: zod.string().nullish(),
+          createdAt: zod.date(),
+          updatedAt: zod.date(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * Returns all promotions including inactive ones.
+ * @summary List all promotions (admin)
+ */
+export const ListAdminPromosResponseItem = zod.object({
+  id: zod.number(),
+  code: zod.string().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  rateId: zod.number().nullish(),
+  discountType: zod.enum(["PERCENT", "FIXED"]),
+  discountValue: zod.string(),
+  validFrom: zod.string().nullish(),
+  validUntil: zod.string().nullish(),
+  maxUses: zod.number().nullish(),
+  timesUsed: zod.number().nullish(),
+  active: zod.boolean().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListAdminPromosResponse = zod.array(ListAdminPromosResponseItem);
+
+/**
+ * @summary Get single promotion (admin)
+ */
+export const GetAdminPromoParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminPromoResponse = zod.object({
+  id: zod.number(),
+  code: zod.string().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  rateId: zod.number().nullish(),
+  discountType: zod.enum(["PERCENT", "FIXED"]),
+  discountValue: zod.string(),
+  validFrom: zod.string().nullish(),
+  validUntil: zod.string().nullish(),
+  maxUses: zod.number().nullish(),
+  timesUsed: zod.number().nullish(),
+  active: zod.boolean().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Paginated customer list (admin)
+ */
+export const listAdminCustomersQueryPageDefault = 1;
+export const listAdminCustomersQueryLimitDefault = 20;
+
+export const ListAdminCustomersQueryParams = zod.object({
+  page: zod.coerce.number().default(listAdminCustomersQueryPageDefault),
+  limit: zod.coerce.number().default(listAdminCustomersQueryLimitDefault),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListAdminCustomersResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      email: zod.string().nullish(),
+      phone: zod.string().nullish(),
+      fullName: zod.string().nullish(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+  meta: zod.object({
+    page: zod.number(),
+    limit: zod.number(),
+    total: zod.number(),
+  }),
+});
+
+/**
+ * @summary Get single customer (admin)
+ */
+export const GetAdminCustomerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminCustomerResponse = zod.object({
+  id: zod.number(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  fullName: zod.string().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});

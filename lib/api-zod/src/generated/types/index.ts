@@ -7,6 +7,8 @@
  */
 
 export * from "./adminBrand";
+export * from "./adminCustomer";
+export * from "./adminCustomerPaginatedResponse";
 export * from "./adminExtra";
 export * from "./adminExtraPricingType";
 export * from "./adminLocation";
@@ -17,6 +19,11 @@ export * from "./adminOneWayFeeItem";
 export * from "./adminPaginationMeta";
 export * from "./adminProfile";
 export * from "./adminProfileAdminRole";
+export * from "./adminPromo";
+export * from "./adminPromoDiscountType";
+export * from "./adminRate";
+export * from "./adminRateDetail";
+export * from "./adminRateTier";
 export * from "./adminVehicleDetail";
 export * from "./adminVehicleDetailFuelType";
 export * from "./adminVehicleDetailStatus";
@@ -45,6 +52,7 @@ export * from "./errorResponse";
 export * from "./extra";
 export * from "./extraPricingType";
 export * from "./healthStatus";
+export * from "./listAdminCustomersParams";
 export * from "./listAdminVehiclesParams";
 export * from "./listAdminVehiclesStatus";
 export * from "./listFleetVehiclesParams";
