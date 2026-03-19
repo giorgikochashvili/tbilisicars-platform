@@ -5,8 +5,7 @@ import { pool } from "@workspace/db";
 const router: IRouter = Router();
 
 // ─── GET /api/admin/alerts ─────────────────────────────────────────────────────
-// Returns all operational alerts computed dynamically from live data.
-// Query params: type (PICKUP_TODAY|DROPOFF_TODAY|OVERDUE|CONFLICT|SERVICE_DUE), region
+// Query params: type (PICKUP_TODAY|DROPOFF_TODAY|OVERDUE|CONFLICT|SERVICE_WARNING|SERVICE_DUE|SERVICE_OVERDUE), region
 
 router.get("/admin/alerts", requireAdmin, async (req, res) => {
   const { type, region } = req.query as Record<string, string | undefined>;
@@ -181,67 +180,137 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
     }
   }
 
-  // ── 5. SERVICE DUE ──────────────────────────────────────────────────────────
-  if (!type || type === "SERVICE_DUE") {
+  // ── 5. MAINTENANCE ALERTS (three severity levels) ──────────────────────────
+  // SERVICE_WARNING: approaching in 7 days or within 1000 km
+  // SERVICE_DUE: date = today or mileage = threshold
+  // SERVICE_OVERDUE: date past or mileage exceeded by >1000 km
+  const isMaintType = !type || type === "SERVICE_WARNING" || type === "SERVICE_DUE" || type === "SERVICE_OVERDUE";
+  if (isMaintType) {
+    const severityFilter = type === "SERVICE_WARNING" ? "WHERE severity = 'SERVICE_WARNING'"
+      : type === "SERVICE_DUE" ? "WHERE severity = 'SERVICE_DUE'"
+      : type === "SERVICE_OVERDUE" ? "WHERE severity = 'SERVICE_OVERDUE'"
+      : "";
+
+    const regionFilter = region && region !== "all"
+      ? `AND l.city = '${region.replace(/'/g, "''")}'`
+      : "";
+
     const { rows } = await pool.query(`
-      SELECT
-        ms.id AS service_id,
-        v.id AS vehicle_id,
-        TRIM(COALESCE(br.name, '') || ' ' || COALESCE(vm.name, '')) AS vehicle_label,
-        COALESCE(v.license_plate, '—') AS plate,
-        COALESCE(l.city, '—') AS region,
-        ms.next_service_date,
-        ms.next_service_mileage,
-        v.mileage AS current_mileage,
-        CASE
-          WHEN ms.next_service_date <= CURRENT_DATE THEN 'date'
-          WHEN ms.next_service_mileage IS NOT NULL AND v.mileage >= ms.next_service_mileage THEN 'mileage'
-        END AS trigger_reason,
-        NOW() AS event_datetime
-      FROM maintenance_services ms
-      JOIN vehicle v ON v.id = ms.vehicle_id
-      LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
-      LEFT JOIN brand br ON br.id = vm.brand_id
-      LEFT JOIN location l ON l.id = v.location_id
-      WHERE (
-        (ms.next_service_date IS NOT NULL AND ms.next_service_date <= CURRENT_DATE)
-        OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL AND v.mileage >= ms.next_service_mileage)
+      WITH ranked AS (
+        SELECT
+          ms.id AS service_id,
+          ms.vehicle_id,
+          ms.next_service_date,
+          ms.next_service_mileage,
+          v.mileage AS current_mileage,
+          TRIM(COALESCE(br.name, '') || ' ' || COALESCE(vm.name, '')) AS vehicle_label,
+          COALESCE(v.license_plate, '—') AS plate,
+          COALESCE(l.city, '—') AS region,
+          NOW() AS event_datetime,
+          CASE
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage THEN 'SERVICE_DUE'
+            WHEN ms.next_service_date IS NOT NULL
+              AND ms.next_service_date > CURRENT_DATE
+              AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage - 1000
+              AND v.mileage < ms.next_service_mileage THEN 'SERVICE_WARNING'
+            ELSE NULL
+          END AS severity,
+          CASE
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage > ms.next_service_mileage + 1000 THEN 1
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage THEN 2
+            ELSE 3
+          END AS sev_rank
+        FROM maintenance_services ms
+        JOIN vehicle v ON v.id = ms.vehicle_id
+        LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+        LEFT JOIN brand br ON br.id = vm.brand_id
+        LEFT JOIN location l ON l.id = v.location_id
+        WHERE ms.status NOT IN ('IN_PROGRESS')
+          AND (
+            ms.next_service_date IS NOT NULL
+            OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL)
+          )
+          ${regionFilter}
+      ),
+      best AS (
+        SELECT DISTINCT ON (vehicle_id) *
+        FROM ranked
+        WHERE severity IS NOT NULL
+        ORDER BY vehicle_id, sev_rank ASC, service_id ASC
       )
-        AND ms.status NOT IN ('IN_PROGRESS')
-        ${region && region !== "all" ? `AND l.city = '${region.replace(/'/g, "''")}'` : ""}
-      ORDER BY ms.next_service_date ASC NULLS LAST, v.id
+      SELECT * FROM best
+      ${severityFilter}
+      ORDER BY sev_rank ASC, vehicle_id ASC
     `);
-    // Deduplicate by vehicle_id — show only one alert per vehicle
-    const seen = new Set<number>();
+
     for (const r of rows) {
-      if (seen.has(r.vehicle_id)) continue;
-      seen.add(r.vehicle_id);
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
       const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
-      const reason = r.trigger_reason === "mileage"
-        ? ` — mileage threshold reached (${r.current_mileage} km)`
-        : r.next_service_date
-        ? ` — service date was ${r.next_service_date}`
-        : "";
+
+      let message = "";
+      let detail = "";
+      if (r.severity === "SERVICE_OVERDUE") {
+        if (r.next_service_date && new Date(r.next_service_date) < new Date()) {
+          const days = Math.floor((Date.now() - new Date(r.next_service_date).getTime()) / 86400000);
+          detail = ` — overdue by ${days} day${days !== 1 ? "s" : ""}`;
+        } else if (r.next_service_mileage != null && r.current_mileage != null) {
+          const over = r.current_mileage - r.next_service_mileage;
+          detail = ` — ${over.toLocaleString()} km past threshold`;
+        }
+        message = `Vehicle ${label}${plateStr} service is overdue${detail}`;
+      } else if (r.severity === "SERVICE_DUE") {
+        if (r.next_service_date) {
+          detail = " — service date is today";
+        } else {
+          detail = ` — at ${r.current_mileage?.toLocaleString()} km threshold`;
+        }
+        message = `Vehicle ${label}${plateStr} service is due now${detail}`;
+      } else {
+        if (r.next_service_date) {
+          const days = Math.ceil((new Date(r.next_service_date).getTime() - Date.now()) / 86400000);
+          detail = ` — due in ${days} day${days !== 1 ? "s" : ""}`;
+        } else if (r.next_service_mileage != null && r.current_mileage != null) {
+          const remaining = r.next_service_mileage - r.current_mileage;
+          detail = ` — ${remaining.toLocaleString()} km remaining`;
+        }
+        message = `Vehicle ${label}${plateStr} service approaching${detail}`;
+      }
+
       alerts.push({
-        id: `service-${r.service_id}`,
-        alertType: "SERVICE_DUE",
+        id: `maint-${r.service_id}`,
+        alertType: r.severity,
         vehicleId: r.vehicle_id,
         bookingId: null,
         serviceId: r.service_id,
         vehicleLabel: label + plateStr,
         region: r.region,
         customer: null,
-        message: `Vehicle ${label}${plateStr} requires scheduled maintenance${reason}`,
+        nextServiceDate: r.next_service_date,
+        nextServiceMileage: r.next_service_mileage,
+        currentMileage: r.current_mileage,
+        message,
         eventDatetime: r.event_datetime,
         generatedAt: now,
       });
     }
   }
 
-  // Sort: newest event first
+  // Sort by priority
   alerts.sort((a: any, b: any) => {
-    const PRIORITY: Record<string, number> = { OVERDUE: 0, CONFLICT: 1, SERVICE_DUE: 2, DROPOFF_TODAY: 3, PICKUP_TODAY: 4 };
+    const PRIORITY: Record<string, number> = {
+      OVERDUE: 0, CONFLICT: 1, SERVICE_OVERDUE: 2, SERVICE_DUE: 3, SERVICE_WARNING: 4, DROPOFF_TODAY: 5, PICKUP_TODAY: 6,
+    };
     const pa = PRIORITY[a.alertType] ?? 99;
     const pb = PRIORITY[b.alertType] ?? 99;
     return pa !== pb ? pa - pb : new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime();
@@ -251,10 +320,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 });
 
 // ─── GET /api/admin/alerts/summary ────────────────────────────────────────────
-// Lightweight summary counts — used by dashboard panel and sidebar badge
 
 router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
-  const [pickupRes, dropoffRes, overdueRes, conflictRes, serviceRes] = await Promise.all([
+  const [pickupRes, dropoffRes, overdueRes, conflictRes, maintRes] = await Promise.all([
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE pickup_datetime::date = CURRENT_DATE AND status IN ('PENDING','CONFIRMED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime::date = CURRENT_DATE AND status IN ('CONFIRMED','DELIVERED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime < NOW() AND status NOT IN ('RETURNED','CANCELED','NO_SHOW') AND deleted_at IS NULL`),
@@ -269,14 +337,51 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
         AND b1.dropoff_datetime > b2.pickup_datetime
         AND b1.deleted_at IS NULL AND b2.deleted_at IS NULL
     `),
+    // Three-level maintenance counts (worst alert per vehicle)
     pool.query(`
-      SELECT COUNT(DISTINCT v.id) AS n
-      FROM maintenance_services ms
-      JOIN vehicle v ON v.id = ms.vehicle_id
-      WHERE (
-        (ms.next_service_date IS NOT NULL AND ms.next_service_date <= CURRENT_DATE)
-        OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL AND v.mileage >= ms.next_service_mileage)
-      ) AND ms.status NOT IN ('IN_PROGRESS')
+      WITH ranked AS (
+        SELECT
+          ms.vehicle_id,
+          CASE
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage THEN 'SERVICE_DUE'
+            WHEN ms.next_service_date IS NOT NULL
+              AND ms.next_service_date > CURRENT_DATE
+              AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage - 1000
+              AND v.mileage < ms.next_service_mileage THEN 'SERVICE_WARNING'
+            ELSE NULL
+          END AS severity,
+          CASE
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage > ms.next_service_mileage + 1000 THEN 1
+            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
+            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+              AND v.mileage >= ms.next_service_mileage THEN 2
+            ELSE 3
+          END AS sev_rank
+        FROM maintenance_services ms
+        JOIN vehicle v ON v.id = ms.vehicle_id
+        WHERE ms.status NOT IN ('IN_PROGRESS')
+          AND (ms.next_service_date IS NOT NULL OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL))
+      ),
+      best AS (
+        SELECT DISTINCT ON (vehicle_id) vehicle_id, severity
+        FROM ranked
+        WHERE severity IS NOT NULL
+        ORDER BY vehicle_id, sev_rank ASC
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE severity = 'SERVICE_WARNING') AS warning,
+        COUNT(*) FILTER (WHERE severity = 'SERVICE_DUE') AS due,
+        COUNT(*) FILTER (WHERE severity = 'SERVICE_OVERDUE') AS overdue
+      FROM best
     `),
   ]);
 
@@ -284,10 +389,13 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
   const dropoff = parseInt(dropoffRes.rows[0].n, 10);
   const overdue = parseInt(overdueRes.rows[0].n, 10);
   const conflict = parseInt(conflictRes.rows[0].n, 10);
-  const service = parseInt(serviceRes.rows[0].n, 10);
+  const serviceWarning = parseInt(maintRes.rows[0].warning, 10);
+  const serviceDue = parseInt(maintRes.rows[0].due, 10);
+  const serviceOverdue = parseInt(maintRes.rows[0].overdue, 10);
+  const service = serviceWarning + serviceDue + serviceOverdue;
   const total = pickup + dropoff + overdue + conflict + service;
 
-  res.json({ total, pickup, dropoff, overdue, conflict, service });
+  res.json({ total, pickup, dropoff, overdue, conflict, service, serviceWarning, serviceDue, serviceOverdue });
 });
 
 // ─── GET /api/admin/alerts/meta ───────────────────────────────────────────────
@@ -295,7 +403,7 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
 router.get("/admin/alerts/meta", requireAdmin, async (_req, res) => {
   const { rows } = await pool.query(`SELECT DISTINCT city FROM location WHERE city IS NOT NULL ORDER BY city`);
   res.json({
-    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "CONFLICT", "SERVICE_DUE"],
+    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "CONFLICT", "SERVICE_OVERDUE", "SERVICE_DUE", "SERVICE_WARNING"],
     regions: rows.map((r: any) => r.city),
   });
 });

@@ -1,0 +1,191 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+- Payments / Deposits works and is E2E verified
+- Vehicle Detail operational page works and is E2E verified
+
+Do NOT redesign existing modules.
+Do NOT rewrite Service module logic.
+Do NOT break Alerts module.
+Do NOT add permissions logic.
+Do NOT introduce external integrations.
+
+Your task now is to implement ONLY Maintenance Alerts Refinement.
+
+==================================================
+BLOCK 16 GOAL
+==================================================
+
+Improve the existing maintenance alert system so that vehicle service needs are detected earlier and displayed clearly to operations staff.
+
+The system must provide:
+
+- service due alerts
+- service overdue alerts
+- mileage-based warnings
+- date-based warnings
+- clear severity levels
+
+These alerts must integrate with:
+
+- Vehicle Detail
+- Alerts module
+- Dashboard alert panel
+
+==================================================
+A. ALERT TYPES
+==================================================
+
+Extend the service alert logic to support these states:
+
+1. SERVICE_WARNING
+Service approaching soon.
+
+Conditions:
+- next_service_date within 7 days
+OR
+- mileage within 1000 km of service threshold
+
+2. SERVICE_DUE
+Service must be performed now.
+
+Conditions:
+- next_service_date = today
+OR
+- mileage >= service threshold
+
+3. SERVICE_OVERDUE
+Service is late.
+
+Conditions:
+- next_service_date < today
+OR
+- mileage exceeded threshold by >1000 km
+
+==================================================
+B. ALERT DISPLAY
+==================================================
+
+Severity levels must be visually distinct.
+
+SERVICE_WARNING → yellow  
+SERVICE_DUE → orange  
+SERVICE_OVERDUE → red  
+
+These must appear in:
+
+- Alerts page
+- Dashboard alert panel
+- Vehicle Detail page
+
+==================================================
+C. VEHICLE DETAIL INTEGRATION
+==================================================
+
+Vehicle Detail page must clearly show:
+
+Maintenance Status section:
+
+- Last Service Date
+- Next Service Date
+- Mileage at Last Service
+- Next Service Mileage Threshold
+- Current Mileage
+
+If alert exists, show:
+
+Maintenance Warning badge.
+
+Example:
+
+"Service due in 5 days"
+"Service overdue by 1200 km"
+
+==================================================
+D. ALERT CALCULATION
+==================================================
+
+Alerts must be calculated using existing Service module data:
+
+- next_service_date
+- next_service_mileage
+- current vehicle mileage
+
+Do NOT create duplicate service data tables.
+
+Use existing service records.
+
+==================================================
+E. DASHBOARD INTEGRATION
+==================================================
+
+Dashboard alert panel must include:
+
+- count of vehicles with SERVICE_WARNING
+- count of vehicles with SERVICE_DUE
+- count of vehicles with SERVICE_OVERDUE
+
+Clicking these must open the Alerts page filtered to that alert type.
+
+==================================================
+F. PERFORMANCE REQUIREMENT
+==================================================
+
+Alert calculation must be efficient.
+
+Requirements:
+
+- filter only vehicles with service records
+- avoid scanning full tables unnecessarily
+- reuse existing alert infrastructure where possible
+
+==================================================
+G. REQUIRED VERIFICATION
+==================================================
+
+Verify in the running UI:
+
+1. SERVICE_WARNING appears when service date is within threshold
+2. SERVICE_DUE appears when service date/mileage reached
+3. SERVICE_OVERDUE appears when service is late
+4. Alerts appear in Alerts page
+5. Alerts appear in Vehicle Detail page
+6. Dashboard alert counts update correctly
+
+Use QA service records if necessary.
+
+==================================================
+H. FINAL REPORT FORMAT
+==================================================
+
+At the end report only in this structure:
+
+1. Maintenance alerts refinement result
+2. SERVICE_WARNING result
+3. SERVICE_DUE result
+4. SERVICE_OVERDUE result
+5. Vehicle detail integration result
+6. Dashboard integration result
+7. Verified UI flows
+   - Alerts page display: works / not
+   - Vehicle detail maintenance section: works / not
+   - Dashboard counts: works / not
+8. Remaining gaps if any
+
+Do not claim completion unless alerts appear correctly across the UI.

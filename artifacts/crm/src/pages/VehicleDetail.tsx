@@ -69,12 +69,14 @@ function ServiceStatusBadge({ status }: { status: string }) {
 function AlertBadge({ type }: { type: string }) {
   const colors: Record<string, string> = {
     OVERDUE: "bg-red-500/10 text-red-400 border-red-500/20",
+    SERVICE_OVERDUE: "bg-red-500/10 text-red-400 border-red-500/20",
     SERVICE_DUE: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    SERVICE_WARNING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
     CONFLICT: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   };
   return (
     <Badge variant="outline" className={`text-[10px] font-bold uppercase ${colors[type] ?? "bg-yellow-500/10 text-yellow-400"}`}>
-      {type.replace("_", " ")}
+      {type.replace(/_/g, " ")}
     </Badge>
   );
 }
@@ -296,23 +298,64 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                   <StatCard icon={Wrench} label="Service Cost" value={fmtMoney(data.financial.totalServiceCost)} />
                   <StatCard icon={Gauge} label="Current Mileage" value={v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"} />
                 </div>
-                {/* Mileage context */}
-                {(data.lastServiceDate || data.nextServiceDate) && (
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    {data.lastServiceDate && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Last service: <strong className="text-foreground">{fmtDate(data.lastServiceDate)}</strong>
-                      </span>
-                    )}
-                    {data.nextServiceDate && (
-                      <span className="flex items-center gap-1 text-amber-400">
-                        <AlertTriangle className="w-3 h-3" /> Next service due: <strong>{fmtDate(data.nextServiceDate)}</strong>
-                        {data.nextServiceMileage && <span>or at {data.nextServiceMileage.toLocaleString()} km</span>}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
+
+              {/* ─── Maintenance Status ───────────────────────────────────────── */}
+              {(() => {
+                const maintAlert = data.alerts?.find((a: any) =>
+                  a.alertType === "SERVICE_OVERDUE" || a.alertType === "SERVICE_DUE" || a.alertType === "SERVICE_WARNING"
+                );
+                const hasMaintInfo = data.lastServiceDate || data.nextServiceDate || data.nextServiceMileage || v.mileage != null;
+                if (!hasMaintInfo) return null;
+
+                const severityStyle: Record<string, { border: string; bg: string; text: string; badge: string }> = {
+                  SERVICE_OVERDUE: {
+                    border: "border-red-500/30",
+                    bg: "bg-red-500/5",
+                    text: "text-red-400",
+                    badge: "bg-red-500/15 text-red-400 border-red-500/30",
+                  },
+                  SERVICE_DUE: {
+                    border: "border-orange-500/30",
+                    bg: "bg-orange-500/5",
+                    text: "text-orange-400",
+                    badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+                  },
+                  SERVICE_WARNING: {
+                    border: "border-yellow-500/30",
+                    bg: "bg-yellow-500/5",
+                    text: "text-yellow-400",
+                    badge: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+                  },
+                };
+                const sty = maintAlert ? severityStyle[maintAlert.alertType] : null;
+
+                return (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <Wrench className="w-3.5 h-3.5" /> Maintenance Status
+                      {maintAlert && (
+                        <Badge variant="outline" className={`ml-1 text-[10px] font-bold uppercase ${sty?.badge}`}>
+                          {maintAlert.alertType.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                    </h3>
+                    {maintAlert && (
+                      <div className={`mb-3 rounded-lg border px-3 py-2 flex items-center gap-2 ${sty?.border} ${sty?.bg}`}>
+                        <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${sty?.text}`} />
+                        <span className={`text-sm font-medium ${sty?.text}`}>{maintAlert.message}</span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <StatCard icon={Clock} label="Last Service Date" value={data.lastServiceDate ? fmtDate(data.lastServiceDate) : "—"} />
+                      <StatCard icon={Gauge} label="Last Service Mileage" value={data.lastServiceMileage != null ? `${Number(data.lastServiceMileage).toLocaleString()} km` : "—"} />
+                      <StatCard icon={CalendarDays} label="Next Service Date" value={data.nextServiceDate ? fmtDate(data.nextServiceDate) : "—"} />
+                      <StatCard icon={Wrench} label="Next Service Mileage" value={data.nextServiceMileage != null ? `${Number(data.nextServiceMileage).toLocaleString()} km` : "—"} />
+                      <StatCard icon={Gauge} label="Current Mileage" value={v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"} />
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ─── Booking History ──────────────────────────────────────────── */}
               <div>

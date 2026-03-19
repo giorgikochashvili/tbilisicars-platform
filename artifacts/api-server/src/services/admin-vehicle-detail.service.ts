@@ -162,24 +162,62 @@ export async function getVehicleDetail(vehicleId: number) {
     });
   }
 
-  // Service due
-  const { rows: serviceDueRows } = await pool.query(
-    `SELECT ms.id AS service_id, ms.next_service_date, ms.next_service_mileage
+  // Maintenance alert (three severity levels)
+  const { rows: maintRows } = await pool.query(
+    `SELECT
+      ms.id AS service_id,
+      ms.next_service_date,
+      ms.next_service_mileage,
+      CASE
+        WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
+        WHEN ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL AND $2::int > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
+        WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
+        WHEN ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL AND $2::int >= ms.next_service_mileage THEN 'SERVICE_DUE'
+        WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date > CURRENT_DATE
+          AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
+        WHEN ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL
+          AND $2::int >= ms.next_service_mileage - 1000 AND $2::int < ms.next_service_mileage THEN 'SERVICE_WARNING'
+        ELSE NULL
+      END AS severity
     FROM maintenance_services ms
     WHERE ms.vehicle_id = $1
-      AND (
-        (ms.next_service_date IS NOT NULL AND ms.next_service_date <= CURRENT_DATE)
-        OR (ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL AND $2::int >= ms.next_service_mileage)
-      )
       AND ms.status NOT IN ('IN_PROGRESS')
+      AND (ms.next_service_date IS NOT NULL OR (ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL))
+    ORDER BY CASE
+      WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
+      WHEN ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL AND $2::int > ms.next_service_mileage + 1000 THEN 1
+      WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
+      WHEN ms.next_service_mileage IS NOT NULL AND $2::int IS NOT NULL AND $2::int >= ms.next_service_mileage THEN 2
+      ELSE 3
+    END ASC
     LIMIT 1`,
     [vehicleId, vehicle.mileage],
   );
-  if (serviceDueRows[0]) {
+  const maintRow = maintRows[0];
+  if (maintRow?.severity) {
+    let msg = "Vehicle requires scheduled maintenance";
+    if (maintRow.severity === "SERVICE_OVERDUE") {
+      if (maintRow.next_service_date && new Date(maintRow.next_service_date) < new Date()) {
+        const days = Math.floor((Date.now() - new Date(maintRow.next_service_date).getTime()) / 86400000);
+        msg = `Service overdue by ${days} day${days !== 1 ? "s" : ""}`;
+      } else if (maintRow.next_service_mileage != null && vehicle.mileage != null) {
+        msg = `Service overdue — ${(vehicle.mileage - maintRow.next_service_mileage).toLocaleString()} km past threshold`;
+      }
+    } else if (maintRow.severity === "SERVICE_DUE") {
+      if (maintRow.next_service_date) msg = "Service due today";
+      else msg = `Service due — mileage threshold reached`;
+    } else {
+      if (maintRow.next_service_date) {
+        const days = Math.ceil((new Date(maintRow.next_service_date).getTime() - Date.now()) / 86400000);
+        msg = `Service due in ${days} day${days !== 1 ? "s" : ""}`;
+      } else if (maintRow.next_service_mileage != null && vehicle.mileage != null) {
+        msg = `Service due in ${(maintRow.next_service_mileage - vehicle.mileage).toLocaleString()} km`;
+      }
+    }
     alerts.push({
-      alertType: "SERVICE_DUE",
-      serviceId: serviceDueRows[0].service_id,
-      message: "Vehicle requires scheduled maintenance",
+      alertType: maintRow.severity,
+      serviceId: maintRow.service_id,
+      message: msg,
     });
   }
 
@@ -230,6 +268,7 @@ export async function getVehicleDetail(vehicleId: number) {
     bookingHistory,
     serviceHistory,
     lastServiceDate: lastService?.service_date ?? null,
+    lastServiceMileage: lastService?.mileage ?? null,
     nextServiceDate: nextServiceEntry?.next_service_date ?? null,
     nextServiceMileage: nextServiceEntry?.next_service_mileage ?? null,
     financial,

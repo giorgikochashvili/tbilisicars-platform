@@ -16,7 +16,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "CONFLICT" | "SERVICE_DUE";
+type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "CONFLICT" | "SERVICE_OVERDUE" | "SERVICE_DUE" | "SERVICE_WARNING";
 
 interface Alert {
   id: string;
@@ -83,12 +83,26 @@ const ALERT_CONFIG: Record<string, {
     row: "border-l-2 border-l-orange-500/60",
     priority: 1,
   },
+  SERVICE_OVERDUE: {
+    label: "Svc Overdue",
+    icon: <Wrench className="w-3.5 h-3.5" />,
+    badge: "bg-red-500/15 text-red-400 border-red-500/30",
+    row: "border-l-2 border-l-red-500/60",
+    priority: 2,
+  },
   SERVICE_DUE: {
     label: "Service Due",
     icon: <Wrench className="w-3.5 h-3.5" />,
+    badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    row: "border-l-2 border-l-orange-500/60",
+    priority: 3,
+  },
+  SERVICE_WARNING: {
+    label: "Svc Warning",
+    icon: <Wrench className="w-3.5 h-3.5" />,
     badge: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
     row: "border-l-2 border-l-yellow-500/50",
-    priority: 2,
+    priority: 4,
   },
 };
 
@@ -122,19 +136,24 @@ interface Summary {
   overdue: number;
   conflict: number;
   service: number;
+  serviceWarning: number;
+  serviceDue: number;
+  serviceOverdue: number;
 }
 
 function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: AlertType) => void }) {
   const tiles = [
-    { key: "OVERDUE" as AlertType, label: "Overdue", count: summary.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-5 h-5" /> },
+    { key: "OVERDUE" as AlertType, label: "Overdue Return", count: summary.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-5 h-5" /> },
     { key: "CONFLICT" as AlertType, label: "Conflicts", count: summary.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-5 h-5" /> },
-    { key: "SERVICE_DUE" as AlertType, label: "Service Due", count: summary.service, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-5 h-5" /> },
+    { key: "SERVICE_OVERDUE" as AlertType, label: "Svc Overdue", count: summary.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-5 h-5" /> },
+    { key: "SERVICE_DUE" as AlertType, label: "Service Due", count: summary.serviceDue ?? 0, cls: "border-orange-500/20 bg-orange-500/5 text-orange-400", icon: <Wrench className="w-5 h-5" /> },
+    { key: "SERVICE_WARNING" as AlertType, label: "Svc Warning", count: summary.serviceWarning ?? 0, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-5 h-5" /> },
     { key: "DROPOFF_TODAY" as AlertType, label: "Dropoffs Today", count: summary.dropoff, cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: <ArrowDownToLine className="w-5 h-5" /> },
     { key: "PICKUP_TODAY" as AlertType, label: "Pickups Today", count: summary.pickup, cls: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: <ArrowUpFromLine className="w-5 h-5" /> },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
       {tiles.map((t) => (
         <button
           key={t.key}
@@ -185,7 +204,8 @@ export default function AlertsPage() {
   const lastRefresh = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—";
 
   function handleAlertClick(alert: Alert) {
-    if (alert.alertType === "SERVICE_DUE" && alert.vehicleId) {
+    const isServiceAlert = alert.alertType === "SERVICE_DUE" || alert.alertType === "SERVICE_WARNING" || alert.alertType === "SERVICE_OVERDUE";
+    if (isServiceAlert && alert.vehicleId) {
       navigate("/fleet");
     } else if (alert.bookingId) {
       navigate("/bookings");

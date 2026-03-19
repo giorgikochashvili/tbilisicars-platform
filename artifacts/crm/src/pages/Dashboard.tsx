@@ -476,7 +476,7 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
-  const alertSummaryQuery = useQuery<{ total: number; pickup: number; dropoff: number; overdue: number; conflict: number; service: number }>({
+  const alertSummaryQuery = useQuery<{ total: number; pickup: number; dropoff: number; overdue: number; conflict: number; service: number; serviceWarning: number; serviceDue: number; serviceOverdue: number }>({
     queryKey: ["dashboard-alerts-summary"],
     queryFn: () => fetchJson("/api/admin/alerts/summary"),
     staleTime: 60_000,
@@ -581,15 +581,17 @@ export default function Dashboard() {
           )}
         </h2>
         {alertSummaryQuery.isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+            {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
           </div>
         ) : alertSummaryQuery.data ? (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
             {[
-              { label: "Overdue", count: alertSummaryQuery.data.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, type: "OVERDUE" },
+              { label: "Overdue Return", count: alertSummaryQuery.data.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, type: "OVERDUE" },
               { label: "Conflicts", count: alertSummaryQuery.data.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-4 h-4" />, type: "CONFLICT" },
-              { label: "Service Due", count: alertSummaryQuery.data.service, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_DUE" },
+              { label: "Svc Overdue", count: alertSummaryQuery.data.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_OVERDUE" },
+              { label: "Service Due", count: alertSummaryQuery.data.serviceDue ?? 0, cls: "border-orange-500/20 bg-orange-500/5 text-orange-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_DUE" },
+              { label: "Svc Warning", count: alertSummaryQuery.data.serviceWarning ?? 0, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_WARNING" },
               { label: "Dropoffs Today", count: alertSummaryQuery.data.dropoff, cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: <ArrowDownToLine className="w-4 h-4" />, type: "DROPOFF_TODAY" },
               { label: "Pickups Today", count: alertSummaryQuery.data.pickup, cls: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: <ArrowUpFromLine className="w-4 h-4" />, type: "PICKUP_TODAY" },
             ].map((tile) => (
