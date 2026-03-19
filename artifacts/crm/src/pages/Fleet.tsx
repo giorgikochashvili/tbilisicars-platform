@@ -27,8 +27,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import VehicleDetail from "./VehicleDetail";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -81,6 +82,7 @@ export default function FleetPage() {
 function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
   const [formData, setFormData] = useState<{
     vehicleModelId: string;
     licensePlate: string;
@@ -231,7 +233,11 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 </TableRow>
               ) : (
                 vehicles?.map((v: any) => (
-                  <TableRow key={v.id} className="border-border/20 hover:bg-muted/30 transition-colors">
+                  <TableRow
+                    key={v.id}
+                    className="border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setDetailVehicleId(v.id)}
+                  >
                     <TableCell>
                       <div className="font-mono font-bold tracking-wider text-sm bg-muted px-2 py-1 rounded border border-border/50 inline-block">
                         {v.licensePlate || "—"}
@@ -266,7 +272,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                         {v.mileage?.toLocaleString() || "—"} km
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -274,6 +280,9 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setDetailVehicleId(v.id)}>
+                            <Info className="w-4 h-4 mr-2" /> View Detail
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleOpenModal(v)}>
                             <Edit className="w-4 h-4 mr-2" /> Edit Vehicle
                           </DropdownMenuItem>
@@ -372,6 +381,12 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VehicleDetail
+        vehicleId={detailVehicleId}
+        open={detailVehicleId !== null}
+        onClose={() => setDetailVehicleId(null)}
+      />
     </>
   );
 }

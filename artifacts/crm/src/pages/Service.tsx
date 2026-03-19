@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import VehicleDetail from "./VehicleDetail";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(path, {
@@ -58,6 +59,7 @@ export default function ServicePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
 
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -359,7 +361,12 @@ export default function ServicePage() {
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuContent align="end" className="w-48">
+                          {r.vehicleId && (
+                            <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
+                              <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleOpenModal(r)}>
                             <Edit className="w-4 h-4 mr-2" /> Edit
                           </DropdownMenuItem>
@@ -520,6 +527,12 @@ export default function ServicePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VehicleDetail
+        vehicleId={detailVehicleId}
+        open={detailVehicleId !== null}
+        onClose={() => setDetailVehicleId(null)}
+      />
     </div>
   );
 }

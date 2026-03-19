@@ -53,6 +53,7 @@ import {
   updateAdminVehicleStatus,
   deleteAdminVehicle,
 } from "../services/admin-fleet.service.js";
+import { getVehicleDetail } from "../services/admin-vehicle-detail.service.js";
 
 const router: IRouter = Router();
 
@@ -154,6 +155,15 @@ router.post("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
   const body = CreateAdminVehicleBody.parse(req.body);
   const vehicle = await createAdminVehicle(body as any);
   res.status(201).json(vehicle);
+});
+
+// ─── Vehicle Detail (operational hub — must be before /:id) ─────────────────
+router.get("/admin/fleet/vehicles/:id/detail", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid vehicle id" }); return; }
+  const detail = await getVehicleDetail(id);
+  if (!detail) { res.status(404).json({ error: "Vehicle not found" }); return; }
+  res.json(detail);
 });
 
 router.get("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
