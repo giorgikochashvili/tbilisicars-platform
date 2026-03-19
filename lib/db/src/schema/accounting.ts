@@ -15,6 +15,23 @@ import { z } from "zod/v4";
 import { bookingTable, paymentStatusEnum } from "./bookings";
 import { userTable } from "./users";
 
+// ─── Booking Payment Enums ────────────────────────────────────────────────────
+
+export const bookingPaymentTypeEnum = pgEnum("booking_payment_type_enum", [
+  "BOOKING_PAYMENT",
+  "DEPOSIT_RECEIVED",
+  "DEPOSIT_RETURNED",
+  "REFUND",
+  "ADJUSTMENT",
+]);
+
+export const bookingPaymentMethodEnum = pgEnum("booking_payment_method_enum", [
+  "CASH",
+  "CARD",
+  "BANK_TRANSFER",
+  "OTHER",
+]);
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export const paymentMethodEnum = pgEnum("paymentmethodenum", [
@@ -135,4 +152,39 @@ export const insertAccountingEntrySchema = createInsertSchema(accountingEntriesT
 
 export type ExchangeRate = typeof exchangeRatesTable.$inferSelect;
 export type AccountingEntry = typeof accountingEntriesTable.$inferSelect;
-export type InsertAccountingEntry = z.infer<typeof insertAccountingEntrySchema>;
+
+// ─── Booking Payment Table ─────────────────────────────────────────────────────
+
+export const bookingPaymentTable = pgTable(
+  "booking_payment",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .references(() => bookingTable.id, { onDelete: "cascade" }),
+    paymentType: bookingPaymentTypeEnum("payment_type").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: accountingCurrencyEnum("currency").notNull().default("GEL"),
+    convertedGel: numeric("converted_gel", { precision: 12, scale: 2 }).notNull(),
+    paymentDate: date("payment_date").notNull(),
+    method: bookingPaymentMethodEnum("method").notNull(),
+    notes: text("notes"),
+    accountingEntryId: integer("accounting_entry_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_booking_payment_booking_id").on(t.bookingId),
+    index("idx_booking_payment_type").on(t.paymentType),
+    index("idx_booking_payment_date").on(t.paymentDate),
+  ],
+);
+
+export const insertBookingPaymentSchema = createInsertSchema(bookingPaymentTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type BookingPayment = typeof bookingPaymentTable.$inferSelect;
+export type InsertBookingPayment = z.infer<typeof insertBookingPaymentSchema>;

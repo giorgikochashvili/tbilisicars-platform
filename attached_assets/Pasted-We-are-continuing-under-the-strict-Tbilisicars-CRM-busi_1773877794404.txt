@@ -1,0 +1,248 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+
+Do NOT redesign working modules.
+Do NOT touch unrelated modules.
+Do NOT rewrite booking logic.
+Do NOT introduce permissions logic in this block.
+Do NOT introduce external payment gateways in this block (Stripe, etc.).
+Do NOT break existing Accounting logic.
+
+Your task now is to implement ONLY the Payments / Deposits operational flow inside the CRM.
+
+==================================================
+BLOCK 14 GOAL
+==================================================
+
+Create a clear internal payment and deposit tracking system connected to bookings and accounting.
+
+This module must allow CRM staff to track:
+
+- booking payments
+- deposits received
+- deposits returned
+- unpaid balances
+- refunds
+- partial payments
+
+This is an **internal accounting/payment tracking layer**, not an online payment processor.
+
+==================================================
+A. CORE PRINCIPLE
+==================================================
+
+Payments must be tied to bookings.
+
+Every payment record must belong to a specific booking.
+
+Do NOT create disconnected payment records.
+
+Payments must integrate with the existing Accounting module where possible.
+
+==================================================
+B. PAYMENT TYPES
+==================================================
+
+Support the following structured payment types:
+
+- Booking Payment
+- Deposit Received
+- Deposit Returned
+- Refund
+- Adjustment (optional if simple)
+
+These should be selectable structured values, not free text.
+
+==================================================
+C. PAYMENT RECORD STRUCTURE
+==================================================
+
+Each payment record must contain:
+
+- booking_id (required)
+- payment type
+- amount
+- currency (GEL / USD / EUR)
+- GEL equivalent if using accounting conversion logic
+- payment date
+- payment method (Cash / Card / Transfer / Other)
+- notes
+- createdAt / updatedAt
+
+Payments must preserve original currency and value.
+
+==================================================
+D. BOOKING PAYMENT SUMMARY
+==================================================
+
+Each booking must show a payment summary.
+
+Minimum fields:
+
+- total booking price (if available)
+- total paid
+- remaining balance
+- deposit received
+- deposit returned
+
+Example:
+
+Booking price: ₾350  
+Paid: ₾200  
+Remaining: ₾150  
+Deposit: ₾300 (received)  
+
+This summary must update automatically when payments are recorded.
+
+==================================================
+E. PAYMENT ENTRY FLOW
+==================================================
+
+CRM staff must be able to add payments from the booking page.
+
+Example flow:
+
+1. Open booking
+2. Click "Add Payment"
+3. Enter amount, currency, type, method
+4. Save payment
+
+After saving:
+
+- payment record must be stored
+- booking payment summary must update
+- accounting entry should be created if safe to link
+
+==================================================
+F. ACCOUNTING INTEGRATION
+==================================================
+
+Payments should integrate with the Accounting module.
+
+Preferred behavior:
+
+- Booking Payment → Accounting income entry
+- Refund → Accounting expense entry
+- Deposit Received → Accounting income entry
+- Deposit Returned → Accounting expense entry
+
+Use existing currency handling and GEL conversion logic from Accounting.
+
+Do NOT duplicate accounting logic.
+
+==================================================
+G. PAYMENT METHODS
+==================================================
+
+Structured selectable values:
+
+- Cash
+- Card
+- Bank Transfer
+- Other
+
+This is for internal reporting.
+
+==================================================
+H. BOOKING UI INTEGRATION
+==================================================
+
+Inside booking detail page show:
+
+Payment section with:
+
+- payment history table
+- add payment button
+- booking payment summary
+
+Payment history columns:
+
+- date
+- type
+- amount
+- currency
+- method
+- notes
+
+Newest payments first.
+
+==================================================
+I. REPORTS INTEGRATION
+==================================================
+
+Payments must automatically appear in Financial Reports via Accounting.
+
+No separate reporting engine is required.
+
+Existing reports should include these entries automatically.
+
+==================================================
+J. VALIDATION RULES
+==================================================
+
+Payments must validate:
+
+- amount > 0
+- valid currency
+- booking exists
+- payment type selected
+- payment method selected
+
+Prevent obviously invalid data.
+
+==================================================
+K. REQUIRED VERIFICATION
+==================================================
+
+You must verify in the running UI:
+
+1. Payment can be added to a booking
+2. Payment appears in payment history
+3. Booking payment summary updates correctly
+4. Accounting entry is created where applicable
+5. Multiple payments per booking work
+6. Refund works correctly
+7. Deposit received and returned works
+8. Financial reports include the payment
+
+Use realistic QA data if necessary.
+
+==================================================
+L. FINAL REPORT FORMAT
+==================================================
+
+At the end report only in this structure:
+
+1. Payments module result
+2. Booking payment tracking result
+3. Deposit tracking result
+4. Accounting integration result
+5. Booking UI integration result
+6. Reports integration result
+7. Verified UI flows
+   - Add payment: works / not
+   - Payment history: works / not
+   - Booking summary update: works / not
+   - Accounting entry creation: works / not
+   - Refund flow: works / not
+   - Deposit received/returned: works / not
+8. Remaining gaps if any
+
+Do not claim completion unless payments update booking summaries and accounting correctly.

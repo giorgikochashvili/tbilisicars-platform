@@ -162,6 +162,9 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 | GET | `/api/admin/accounting/summary` | Income/expense totals by currency + GEL equivalents |
 | GET/POST | `/api/admin/accounting` | List (paginated+filter) / Create accounting entries |
 | GET/PATCH/DELETE | `/api/admin/accounting/:id` | Get / Update / Delete accounting entry |
+| GET | `/api/admin/bookings/:id/payments` | List all payments + payment summary for a booking |
+| POST | `/api/admin/bookings/:id/payments` | Add a payment record (auto-creates accounting entry) |
+| DELETE | `/api/admin/bookings/:id/payments/:paymentId` | Delete payment (also removes linked accounting entry) |
 
 **Auth boundaries:**
 - Public (no auth): all Step 4B endpoints above
@@ -184,7 +187,7 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
   - `partners.ts` — partner, partner_document, partner_vehicle
   - `maintenance.ts` — maintenance_service_types, maintenance_services
   - `damages.ts` — damagereport
-  - `accounting.ts` — payment
+  - `accounting.ts` — payment (legacy online payment), booking_payment (Block 14 internal tracking), accounting_entries, exchange_rates
   - `cases.ts` — cases, case_comments, case_attachments, case_assignments, review
   - `settings.ts` — company_settings
 - `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)

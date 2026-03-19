@@ -10,6 +10,7 @@ import {
   useListLocations,
 } from "@workspace/api-client-react";
 import { formatMoney } from "@/lib/utils";
+import BookingDetail from "./BookingDetail";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [booking, setBooking] = useState(EMPTY_BOOKING);
   const [customerSearch, setCustomerSearch] = useState("");
   
@@ -298,7 +300,11 @@ export default function BookingsPage() {
                 </TableRow>
               ) : (
                 bookings.map((b: any) => (
-                  <TableRow key={b.id} className="border-border/20 hover:bg-muted/30 transition-colors">
+                  <TableRow
+                    key={b.id}
+                    className="border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setDetailBookingId(b.id)}
+                  >
                     <TableCell className="font-mono text-xs font-medium text-muted-foreground align-top pt-4">
                       #{b.id}
                     </TableCell>
@@ -341,7 +347,7 @@ export default function BookingsPage() {
                       </div>
                       <PaymentBadge status={b.paymentStatus} />
                     </TableCell>
-                    <TableCell className="align-top pt-3">
+                    <TableCell className="align-top pt-3" onClick={(e) => e.stopPropagation()}>
                       <Select 
                         value={b.status} 
                         onValueChange={(val) => handleStatusChange(b.id, val)}
@@ -375,6 +381,13 @@ export default function BookingsPage() {
           </div>
         )}
       </Card>
+
+      {/* ─── Booking Detail / Payments Dialog ──────────────────────────── */}
+      <BookingDetail
+        bookingId={detailBookingId}
+        open={detailBookingId !== null}
+        onClose={() => setDetailBookingId(null)}
+      />
 
       {/* ─── New Booking Modal ──────────────────────────────────────────── */}
       <Dialog open={isNewBookingOpen} onOpenChange={setIsNewBookingOpen}>
