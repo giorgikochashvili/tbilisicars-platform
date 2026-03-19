@@ -1,0 +1,234 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+- Payments / Deposits works and is E2E verified
+- Vehicle Detail operational page works and is E2E verified
+- Maintenance Alerts Refinement works and is E2E verified
+- Booking Documents Core (Agreement + Voucher) works and is verified
+
+Do NOT redesign working modules.
+Do NOT rewrite Booking or Payments logic.
+Do NOT introduce payment gateways.
+Do NOT introduce permissions logic.
+Do NOT build complex PDF engines.
+
+Your task now is to implement ONLY Payment Documents (Block 17B).
+
+==================================================
+BLOCK 17B GOAL
+==================================================
+
+Create operational payment-related documents generated from real CRM payment and booking data.
+
+Documents must include:
+
+1. Payment Receipt
+2. Deposit Receipt
+3. Deposit Return Confirmation
+
+These documents must use existing booking, payment, customer, and vehicle data.
+
+==================================================
+A. CORE PRINCIPLE
+==================================================
+
+Documents must use REAL CRM data.
+
+Do NOT:
+- create fake receipt data
+- create a separate payment document system
+- duplicate payment logic
+- duplicate accounting logic
+
+Documents must reflect actual payment records already stored in the CRM.
+
+==================================================
+B. DOCUMENT TYPES
+==================================================
+
+1. Payment Receipt
+
+Must include:
+- Receipt/document title
+- Booking reference
+- Customer full name
+- Phone
+- Email
+- Vehicle (brand, model, plate OR model if unassigned)
+- Payment type
+- Payment method
+- Payment amount
+- Currency
+- GEL equivalent if available
+- Payment date
+- Notes
+- Company details (static for now)
+
+2. Deposit Receipt
+
+Must include:
+- Deposit receipt title
+- Booking reference
+- Customer
+- Vehicle or model
+- Deposit received amount
+- Currency
+- GEL equivalent if available
+- Payment date
+- Payment method
+- Notes
+- Company details
+
+This document is specifically for payment type = Deposit Received.
+
+3. Deposit Return Confirmation
+
+Must include:
+- Deposit return confirmation title
+- Booking reference
+- Customer
+- Vehicle or model
+- Returned deposit amount
+- Currency
+- GEL equivalent if available
+- Payment date
+- Payment method
+- Notes
+- Company details
+
+This document is specifically for payment type = Deposit Returned.
+
+==================================================
+C. PAYMENT TYPE SAFETY
+==================================================
+
+Document generation must respect payment type.
+
+Rules:
+- Payment Receipt can work for any payment type
+- Deposit Receipt must only be available for Deposit Received
+- Deposit Return Confirmation must only be available for Deposit Returned
+
+Do NOT show wrong document buttons for incompatible payment rows.
+
+==================================================
+D. MODEL-ONLY BOOKING SUPPORT
+==================================================
+
+If payment belongs to a booking with no vehicle assigned:
+
+- show vehicle model only
+- display as "Toyota Prius (to be assigned)"
+
+Do NOT break document generation for website bookings.
+
+==================================================
+E. UI INTEGRATION
+==================================================
+
+Integrate document actions into the existing payment flow inside Booking Detail.
+
+Expected location:
+- payment history table rows
+or
+- payment action menu/button
+
+Required actions:
+- Generate Receipt
+- Generate Deposit Receipt (only for Deposit Received)
+- Generate Deposit Return Confirmation (only for Deposit Returned)
+
+Click behavior:
+- opens document preview in a new page/tab
+
+Do NOT redesign the Booking Detail flow.
+
+==================================================
+F. DOCUMENT PREVIEW
+==================================================
+
+Create a clean print-friendly layout.
+
+Requirements:
+- readable formatting
+- clear sections
+- proper spacing
+- no raw JSON or debug output
+- Print button
+- Close button
+- browser print support
+
+Do NOT build advanced PDF generation.
+Use HTML preview + browser print, same safe approach as Block 17A.
+
+==================================================
+G. DATA MAPPING
+==================================================
+
+Documents must map directly from:
+
+- payment record
+- booking
+- customer
+- vehicle OR vehicle_model
+- GEL equivalent if already stored
+- payment method
+- payment type
+
+Do NOT create manual document form inputs.
+
+==================================================
+H. REQUIRED VERIFICATION
+==================================================
+
+You must verify:
+
+1. Payment Receipt generates correctly
+2. Deposit Receipt generates correctly for Deposit Received
+3. Deposit Return Confirmation generates correctly for Deposit Returned
+4. Incompatible payment rows do NOT show wrong document options
+5. Model-only booking payments work
+6. Print preview works
+7. No broken fields or missing data
+
+Use realistic QA payments if necessary.
+
+==================================================
+I. FINAL REPORT FORMAT
+==================================================
+
+At the end report only:
+
+1. Payment documents module result
+2. Payment Receipt result
+3. Deposit Receipt result
+4. Deposit Return Confirmation result
+5. Payment UI integration result
+6. Model-only booking support result
+7. Print/preview result
+8. Verified UI flows
+   - Generate Payment Receipt: works / not
+   - Generate Deposit Receipt: works / not
+   - Generate Deposit Return Confirmation: works / not
+   - Payment type safety: works / not
+   - Model-only booking payment: works / not
+   - Print preview: works / not
+9. Remaining gaps if any
+
+Do not claim completion unless payment documents render real CRM payment data correctly.

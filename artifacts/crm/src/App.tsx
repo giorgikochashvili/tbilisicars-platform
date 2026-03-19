@@ -22,6 +22,7 @@ import FleetCalendarPage from "@/pages/FleetCalendar";
 import ReportsPage from "@/pages/Reports";
 import AlertsPage from "@/pages/Alerts";
 import BookingDocument from "@/pages/BookingDocument";
+import PaymentDocument from "@/pages/PaymentDocument";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -105,6 +106,9 @@ function Router() {
 
       {/* Booking Documents — no sidebar layout */}
       <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
+
+      {/* Payment Documents — no sidebar layout */}
+      <Route path="/payment-doc/:bookingId/:paymentId/:type"><DocumentRoute component={PaymentDocument} /></Route>
       
       {/* Fallback */}
       <Route><ProtectedRoute component={NotFound} /></Route>

@@ -9,7 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket } from "lucide-react";
+import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket, Receipt, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const BASE = "/api";
 
@@ -458,14 +464,47 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
                             {p.notes || "—"}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeletePayment(p.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary">
+                                    <Receipt className="w-3 h-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="text-xs">
+                                  <DropdownMenuItem
+                                    className="text-xs gap-1.5"
+                                    onClick={() => window.open(`${import.meta.env.BASE_URL}payment-doc/${bookingId}/${p.id}/receipt`, "_blank")}
+                                  >
+                                    <Receipt className="w-3 h-3" /> Payment Receipt
+                                  </DropdownMenuItem>
+                                  {p.paymentType === "DEPOSIT_RECEIVED" && (
+                                    <DropdownMenuItem
+                                      className="text-xs gap-1.5"
+                                      onClick={() => window.open(`${import.meta.env.BASE_URL}payment-doc/${bookingId}/${p.id}/deposit-receipt`, "_blank")}
+                                    >
+                                      <FileText className="w-3 h-3" /> Deposit Receipt
+                                    </DropdownMenuItem>
+                                  )}
+                                  {p.paymentType === "DEPOSIT_RETURNED" && (
+                                    <DropdownMenuItem
+                                      className="text-xs gap-1.5"
+                                      onClick={() => window.open(`${import.meta.env.BASE_URL}payment-doc/${bookingId}/${p.id}/deposit-return`, "_blank")}
+                                    >
+                                      <Ticket className="w-3 h-3" /> Deposit Return
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDeletePayment(p.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

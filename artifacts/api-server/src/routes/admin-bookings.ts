@@ -109,6 +109,56 @@ router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) =
   res.json({ ...rows[0], extras, payment_summary: paySummary[0] });
 });
 
+router.get("/admin/bookings/:bookingId/payments/:paymentId/document-data", requireAdmin, async (req, res) => {
+  const bookingId = parseInt(req.params.bookingId, 10);
+  const paymentId = parseInt(req.params.paymentId, 10);
+  if (!bookingId || isNaN(bookingId) || !paymentId || isNaN(paymentId)) {
+    res.status(400).json({ error: "Invalid booking or payment ID" });
+    return;
+  }
+  const { rows } = await pool.query(
+    `SELECT
+      bp.id AS payment_id,
+      bp.booking_id,
+      bp.payment_type,
+      bp.amount,
+      bp.currency,
+      bp.converted_gel,
+      bp.payment_date,
+      bp.method,
+      bp.notes,
+      b.status AS booking_status,
+      b.contact_full_name,
+      b.contact_email,
+      b.contact_phone,
+      b.total_amount,
+      b.deposit,
+      u.full_name AS customer_name,
+      u.email AS customer_email,
+      v.id AS vehicle_id,
+      v.license_plate,
+      vm.name AS vehicle_model_name,
+      br.name AS vehicle_brand_name,
+      bm.name AS booking_model_name,
+      bbr.name AS booking_brand_name
+    FROM booking_payment bp
+    JOIN booking b ON b.id = bp.booking_id
+    JOIN "user" u ON u.id = b.user_id
+    LEFT JOIN vehicle v ON v.id = b.vehicle_id
+    LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+    LEFT JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle_model bm ON bm.id = b.vehicle_model_id
+    LEFT JOIN brand bbr ON bbr.id = bm.brand_id
+    WHERE bp.id = $1 AND bp.booking_id = $2 AND b.deleted_at IS NULL`,
+    [paymentId, bookingId],
+  );
+  if (!rows[0]) {
+    res.status(404).json({ error: "Payment not found" });
+    return;
+  }
+  res.json(rows[0]);
+});
+
 router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminBookingParams.parse(req.params);
   const body = UpdateAdminBookingBody.parse(req.body);
