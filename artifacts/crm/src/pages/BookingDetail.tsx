@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket, Receipt, ChevronDown, ClipboardList, ClipboardCheck } from "lucide-react";
+import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket, Receipt, ChevronDown, ClipboardList, ClipboardCheck, Activity } from "lucide-react";
+import { RecentActivity } from "@/components/RecentActivity";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -537,6 +538,17 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Recent Activity */}
+        {booking && (
+          <div className="mt-6 border-t border-border/40 pt-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
+            </div>
+            <RecentActivity entityType="booking" entityId={bookingId} limit={8} />
           </div>
         )}
 

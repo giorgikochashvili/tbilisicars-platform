@@ -23,6 +23,7 @@ import {
   updateAdminBookingStatus,
   deleteAdminBooking,
 } from "../services/admin-bookings.service.js";
+import { logAudit, bookingRef } from "../services/audit.service.js";
 
 const router = Router();
 
@@ -43,6 +44,15 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
 router.post("/admin/bookings", requireAdmin, async (req, res) => {
   const body = CreateAdminBookingBody.parse(req.body);
   const booking = await createAdminBooking(body as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: booking.id,
+    entityRef: bookingRef(booking.id),
+    action: "created",
+    summary: `Admin created booking ${bookingRef(booking.id)}`,
+    afterData: { status: booking.status, totalAmount: booking.totalAmount, currency: booking.currency },
+  });
   res.status(201).json(booking);
 });
 
@@ -166,19 +176,56 @@ router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminBookingParams.parse(req.params);
   const body = UpdateAdminBookingBody.parse(req.body);
   const booking = await updateAdminBooking(id, body as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "updated",
+    summary: `Admin updated booking ${bookingRef(id)}`,
+    afterData: { status: (booking as any).status },
+  });
   res.json(UpdateAdminBookingResponse.parse(booking));
 });
 
 router.patch("/admin/bookings/:id/status", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminBookingStatusParams.parse(req.params);
   const { status } = UpdateAdminBookingStatusBody.parse(req.body);
+
+  // Fetch current status for before snapshot
+  const { rows: cur } = await pool.query<{ status: string }>(
+    "SELECT status FROM booking WHERE id = $1 AND deleted_at IS NULL",
+    [id],
+  );
+  const prevStatus = cur[0]?.status ?? null;
+
   const booking = await updateAdminBookingStatus(id, status as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "status_changed",
+    summary: prevStatus
+      ? `Admin changed booking ${bookingRef(id)} status from ${prevStatus} to ${status}`
+      : `Admin changed booking ${bookingRef(id)} status to ${status}`,
+    beforeData: prevStatus ? { status: prevStatus } : null,
+    afterData: { status },
+  });
   res.json(UpdateAdminBookingStatusResponse.parse(booking));
 });
 
 router.delete("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = DeleteAdminBookingParams.parse(req.params);
   const result = await deleteAdminBooking(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "deleted",
+    summary: `Admin deleted booking ${bookingRef(id)}`,
+  });
   res.json(result);
 });
 

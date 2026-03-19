@@ -7,6 +7,7 @@ import {
   updateAdminTeamMember,
   deleteAdminTeamMember,
 } from "../services/admin-team.service.js";
+import { logAudit } from "../services/audit.service.js";
 
 const router: IRouter = Router();
 
@@ -42,6 +43,15 @@ router.post("/admin/team", requireAdmin, async (req, res) => {
     isActive: typeof isActive === "boolean" ? isActive : true,
     adminRole: isValidRole(adminRole) ? adminRole : "rental_agent",
   });
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "team_member",
+    entityId: member.id,
+    entityRef: email,
+    action: "created",
+    summary: `Admin created team member ${fullName} (${email})`,
+    afterData: { email, fullName, adminRole: isValidRole(adminRole) ? adminRole : "rental_agent" },
+  });
   res.status(201).json(member);
 });
 
@@ -65,6 +75,15 @@ router.patch("/admin/team/:id", requireAdmin, async (req, res) => {
   if (typeof isActive === "boolean") data.isActive = isActive;
   if (isValidRole(adminRole)) data.adminRole = adminRole;
   const member = await updateAdminTeamMember(id, data);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "team_member",
+    entityId: id,
+    entityRef: (member as any).email ?? String(id),
+    action: "updated",
+    summary: `Admin updated team member ${(member as any).fullName ?? id}`,
+    afterData: { isActive: (member as any).isActive, adminRole: (member as any).adminRole },
+  });
   res.json(member);
 });
 
@@ -72,6 +91,14 @@ router.delete("/admin/team/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const result = await deleteAdminTeamMember(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "team_member",
+    entityId: id,
+    entityRef: String(id),
+    action: "deleted",
+    summary: `Admin deleted/deactivated team member ID ${id}`,
+  });
   res.json(result);
 });
 

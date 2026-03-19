@@ -1,0 +1,281 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+- Payments / Deposits works and is E2E verified
+- Vehicle Detail operational page works and is E2E verified
+- Maintenance Alerts Refinement works and is E2E verified
+- Document layer works:
+  - Rental Agreement
+  - Booking Voucher
+  - Payment Receipt
+  - Deposit Receipt
+  - Deposit Return Confirmation
+  - Handover Sheet
+  - Return Sheet
+
+Do NOT redesign working modules.
+Do NOT rewrite business logic.
+Do NOT introduce permissions logic.
+Do NOT build a heavy compliance system.
+Do NOT break existing CRUD flows.
+
+Your task now is to implement ONLY the Audit / Activity Log layer for Tbilisicars CRM.
+
+==================================================
+BLOCK 18 GOAL
+==================================================
+
+Create a practical internal Audit / Activity Log system that records important operational changes across the CRM.
+
+The goal is simple:
+
+CRM staff must be able to see:
+- who performed an action
+- what entity was changed
+- what action happened
+- when it happened
+- key before/after context where useful
+
+This is an internal operational traceability layer.
+Do NOT overengineer this into a full enterprise event platform.
+
+==================================================
+A. CORE PRINCIPLE
+==================================================
+
+Audit logs must capture REAL system actions from existing modules.
+
+Do NOT:
+- create fake sample logs
+- create disconnected manual notes pretending to be logs
+- redesign existing entities
+
+Logs must be generated automatically from real create/update/delete/status-change/payment actions.
+
+==================================================
+B. MINIMUM MODULE COVERAGE
+==================================================
+
+Implement audit logging for these modules first:
+
+1. Bookings
+2. Payments / Deposits
+3. Service / Maintenance
+4. Customers
+5. Fleet / Vehicles
+6. Team Management
+
+If one or two are harder to wire fully, prioritize:
+Bookings, Payments, Service, Fleet.
+
+==================================================
+C. LOG ENTRY STRUCTURE
+==================================================
+
+Each audit log entry must store at minimum:
+
+- actor user/admin id if available
+- actor name/email if easily available
+- entity type
+  - booking
+  - payment
+  - service
+  - customer
+  - vehicle
+  - team_member
+- entity id
+- action type
+  - created
+  - updated
+  - deleted
+  - status_changed
+  - payment_added
+  - payment_deleted
+  - etc.
+- timestamp
+- short summary message
+
+If safely possible, also store:
+- before snapshot (only changed fields or compact JSON)
+- after snapshot (only changed fields or compact JSON)
+
+Do NOT store huge blobs unnecessarily.
+Keep it operational and readable.
+
+==================================================
+D. ACTIONS THAT MUST BE LOGGED
+==================================================
+
+At minimum log:
+
+Bookings:
+- booking created
+- booking updated
+- booking status changed
+- booking deleted if supported
+
+Payments:
+- payment added
+- payment deleted
+- refund added
+- deposit received
+- deposit returned
+
+Service:
+- service created
+- service updated
+- service deleted if supported
+
+Customers:
+- customer created
+- customer updated
+
+Fleet / Vehicles:
+- vehicle created
+- vehicle updated
+- vehicle status changed
+- vehicle location changed if already captured through update flow
+
+Team:
+- team member created
+- team member updated
+- team member deleted/inactivated if supported
+
+==================================================
+E. AUDIT PAGE
+==================================================
+
+Create a dedicated Audit Log page.
+
+Required columns:
+- date/time
+- actor
+- entity type
+- entity id/reference
+- action
+- summary
+
+Filters:
+- date range
+- entity type
+- action type
+- actor if simple
+- search by entity id/reference if simple
+
+Newest first.
+
+==================================================
+F. ENTITY DETAIL CONTEXT
+==================================================
+
+If safe and simple, show recent audit logs inside key detail views:
+
+- Booking Detail → recent activity
+- Vehicle Detail → recent activity
+- Customer detail if exists
+- Service record detail if exists
+
+This can be a compact "Recent Activity" list.
+
+If too much for this block, prioritize:
+- Booking Detail
+- Vehicle Detail
+
+==================================================
+G. SUMMARY MESSAGE STYLE
+==================================================
+
+Use readable summary messages.
+
+Examples:
+- "Giorgi created booking TC-00018"
+- "Maria changed booking TC-00018 status from PENDING to CONFIRMED"
+- "Admin added deposit received payment of ₾300 to booking TC-00018"
+- "Admin updated vehicle ABC-123 status from AVAILABLE to MAINTENANCE"
+- "Nino updated customer phone number"
+
+Keep messages concise and operational.
+
+==================================================
+H. IMPLEMENTATION APPROACH
+==================================================
+
+Preferred approach:
+- add a real audit log table
+- write log entries from backend service/route layer where actions are committed
+
+Do NOT rely on frontend-only logging.
+Do NOT rely on console logs.
+
+Logs must persist in the database.
+
+==================================================
+I. PERFORMANCE REQUIREMENT
+==================================================
+
+Keep the system efficient.
+
+Requirements:
+- write logs only on meaningful actions
+- index by timestamp/entity type/entity id if needed
+- paginated or limited fetching for UI
+
+Do NOT create extremely heavy snapshots.
+
+==================================================
+J. REQUIRED VERIFICATION
+==================================================
+
+You must verify in the running system:
+
+1. Creating a booking creates an audit log
+2. Updating booking status creates an audit log
+3. Adding a payment creates an audit log
+4. Creating/updating a service creates an audit log
+5. Updating a vehicle creates an audit log
+6. Audit Log page loads and filters work
+7. Recent activity appears in Booking Detail and/or Vehicle Detail if implemented
+
+Use realistic QA actions if necessary.
+
+==================================================
+K. FINAL REPORT FORMAT
+==================================================
+
+At the end report only in this structure:
+
+1. Audit module result
+2. Booking audit result
+3. Payment audit result
+4. Service audit result
+5. Vehicle audit result
+6. Team/customer audit result
+7. Audit page result
+8. Detail view activity integration result
+9. Verified UI flows
+   - Audit page load: works / not
+   - Filters: works / not
+   - Booking logs: works / not
+   - Payment logs: works / not
+   - Service logs: works / not
+   - Vehicle logs: works / not
+   - Detail activity section: works / not
+10. Remaining gaps if any
+
+Do not claim completion unless real backend actions generate persistent audit log entries visible in the UI.

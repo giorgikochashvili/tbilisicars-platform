@@ -54,6 +54,8 @@ import {
   deleteAdminVehicle,
 } from "../services/admin-fleet.service.js";
 import { getVehicleDetail } from "../services/admin-vehicle-detail.service.js";
+import { logAudit, vehicleRef } from "../services/audit.service.js";
+import { pool } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -154,6 +156,15 @@ router.get("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
 router.post("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
   const body = CreateAdminVehicleBody.parse(req.body);
   const vehicle = await createAdminVehicle(body as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "vehicle",
+    entityId: vehicle.id,
+    entityRef: vehicleRef((vehicle as any).licensePlate, vehicle.id),
+    action: "created",
+    summary: `Admin created vehicle ${vehicleRef((vehicle as any).licensePlate, vehicle.id)}`,
+    afterData: { status: (vehicle as any).status, licensePlate: (vehicle as any).licensePlate },
+  });
   res.status(201).json(vehicle);
 });
 
@@ -176,19 +187,63 @@ router.patch("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminVehicleParams.parse({ id: req.params.id });
   const body = UpdateAdminVehicleBody.parse(req.body);
   const vehicle = await updateAdminVehicle(id, body as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "vehicle",
+    entityId: id,
+    entityRef: vehicleRef((vehicle as any).licensePlate, id),
+    action: "updated",
+    summary: `Admin updated vehicle ${vehicleRef((vehicle as any).licensePlate, id)}`,
+    afterData: { status: (vehicle as any).status, licensePlate: (vehicle as any).licensePlate },
+  });
   res.json(UpdateAdminVehicleResponse.parse(vehicle));
 });
 
 router.patch("/admin/fleet/vehicles/:id/status", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminVehicleStatusParams.parse({ id: req.params.id });
   const { status } = UpdateAdminVehicleStatusBody.parse(req.body);
+
+  // Fetch current status + plate for before snapshot and ref
+  const { rows: cur } = await pool.query<{ status: string; license_plate: string | null }>(
+    "SELECT status, license_plate FROM vehicle WHERE id = $1",
+    [id],
+  );
+  const prevStatus = cur[0]?.status ?? null;
+  const plate = cur[0]?.license_plate ?? null;
+
   const vehicle = await updateAdminVehicleStatus(id, status as any);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "vehicle",
+    entityId: id,
+    entityRef: vehicleRef(plate, id),
+    action: "status_changed",
+    summary: prevStatus
+      ? `Admin changed vehicle ${vehicleRef(plate, id)} status from ${prevStatus} to ${status}`
+      : `Admin changed vehicle ${vehicleRef(plate, id)} status to ${status}`,
+    beforeData: prevStatus ? { status: prevStatus } : null,
+    afterData: { status },
+  });
   res.json(UpdateAdminVehicleStatusResponse.parse(vehicle));
 });
 
 router.delete("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
   const { id } = DeleteAdminVehicleParams.parse({ id: req.params.id });
+  // Fetch plate before deletion
+  const { rows: cur } = await pool.query<{ license_plate: string | null }>(
+    "SELECT license_plate FROM vehicle WHERE id = $1",
+    [id],
+  );
+  const plate = cur[0]?.license_plate ?? null;
   const result = await deleteAdminVehicle(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "vehicle",
+    entityId: id,
+    entityRef: vehicleRef(plate, id),
+    action: "deleted",
+    summary: `Admin deleted vehicle ${vehicleRef(plate, id)}`,
+  });
   res.json(result);
 });
 

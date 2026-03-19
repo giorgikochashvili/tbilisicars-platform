@@ -6,6 +6,7 @@ import {
   deleteBookingPayment,
 } from "../services/admin-booking-payments.service.js";
 import { NotFoundError } from "../lib/errors.js";
+import { logAudit, bookingRef, paymentRef } from "../services/audit.service.js";
 
 const router: IRouter = Router();
 
@@ -59,6 +60,32 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
       notes: notes || null,
       adminId,
     });
+
+    const actionMap: Record<string, string> = {
+      DEPOSIT_RECEIVED: "deposit_received",
+      DEPOSIT_RETURNED: "deposit_returned",
+      REFUND: "refund_added",
+    };
+    const action = actionMap[paymentType!] ?? "payment_added";
+    const amtStr = `${currency} ${Number(amount).toFixed(2)}`;
+    const typeLabel: Record<string, string> = {
+      BOOKING_PAYMENT: "booking payment",
+      DEPOSIT_RECEIVED: "deposit received",
+      DEPOSIT_RETURNED: "deposit returned",
+      REFUND: "refund",
+      ADJUSTMENT: "adjustment",
+    };
+
+    logAudit({
+      actorId: adminId ?? null,
+      entityType: "payment",
+      entityId: result.id,
+      entityRef: paymentRef(result.id),
+      action,
+      summary: `Admin added ${typeLabel[paymentType!] ?? paymentType} of ${amtStr} to booking ${bookingRef(bookingId)}`,
+      afterData: { bookingId, paymentType, amount: Number(amount), currency, method },
+    });
+
     res.status(201).json(result);
   } catch (err: any) {
     if (err instanceof NotFoundError) return res.status(404).json({ error: err.message });
@@ -75,6 +102,15 @@ router.delete("/admin/bookings/:id/payments/:paymentId", requireAdmin, async (re
 
   try {
     const result = await deleteBookingPayment(bookingId, paymentId);
+    logAudit({
+      actorId: req.session.adminId ?? null,
+      entityType: "payment",
+      entityId: paymentId,
+      entityRef: paymentRef(paymentId),
+      action: "payment_deleted",
+      summary: `Admin deleted payment ${paymentRef(paymentId)} from booking ${bookingRef(bookingId)}`,
+      beforeData: { bookingId },
+    });
     res.json(result);
   } catch (err: any) {
     if (err instanceof NotFoundError) return res.status(404).json({ error: err.message });

@@ -2,50 +2,37 @@ import { Router, type IRouter } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
   listServiceTypes,
-  seedServiceTypes,
   listServiceRecords,
-  getServiceRecord,
   createServiceRecord,
+  getServiceRecord,
   updateServiceRecord,
   deleteServiceRecord,
 } from "../services/admin-service.service.js";
+import { logAudit } from "../services/audit.service.js";
 
 const router: IRouter = Router();
-
-// Auto-seed categories on startup (idempotent)
-seedServiceTypes().catch((e) => console.error("Failed to seed service types:", e));
-
-// ─── Service Types (categories) ───────────────────────────────────────────────
 
 router.get("/admin/service/types", requireAdmin, async (_req, res) => {
   const types = await listServiceTypes();
   res.json(types);
 });
 
-// ─── Service Records ──────────────────────────────────────────────────────────
-
 router.get("/admin/service", requireAdmin, async (req, res) => {
-  const {
-    vehicleSearch,
-    serviceTypeId,
-    status,
-    dateFrom,
-    dateTo,
-    page,
-    limit,
-  } = req.query as Record<string, string>;
-
-  const result = await listServiceRecords({
-    vehicleSearch: vehicleSearch || undefined,
-    serviceTypeId: serviceTypeId ? parseInt(serviceTypeId) : undefined,
-    status: status || undefined,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-    page: page ? parseInt(page) : 1,
-    limit: limit ? parseInt(limit) : 50,
-  });
-  res.json(result);
+  const filters: Parameters<typeof listServiceRecords>[0] = {};
+  if (req.query.vehicleSearch) filters.vehicleSearch = String(req.query.vehicleSearch);
+  if (req.query.serviceTypeId) filters.serviceTypeId = parseInt(req.query.serviceTypeId as string);
+  if (req.query.status) filters.status = String(req.query.status);
+  if (req.query.dateFrom) filters.dateFrom = String(req.query.dateFrom);
+  if (req.query.dateTo) filters.dateTo = String(req.query.dateTo);
+  if (req.query.page) filters.page = parseInt(req.query.page as string);
+  if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
+  const records = await listServiceRecords(filters);
+  res.json(records);
 });
+
+function svcRef(id: number): string {
+  return `SVC-${String(id).padStart(5, "0")}`;
+}
 
 router.post("/admin/service", requireAdmin, async (req, res) => {
   const {
@@ -76,6 +63,17 @@ router.post("/admin/service", requireAdmin, async (req, res) => {
     shopName: shopName || null,
     status: status || "COMPLETED",
   });
+
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "service",
+    entityId: record.id,
+    entityRef: svcRef(record.id),
+    action: "created",
+    summary: `Admin created service record ${svcRef(record.id)} for vehicle ID ${vehicleId}`,
+    afterData: { vehicleId: parseInt(vehicleId), status: record.status, cost: record.cost },
+  });
+
   res.status(201).json(record);
 });
 
@@ -110,12 +108,31 @@ router.patch("/admin/service/:id", requireAdmin, async (req, res) => {
     ...(shopName !== undefined && { shopName }),
     ...(status !== undefined && { status }),
   });
+
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "service",
+    entityId: id,
+    entityRef: svcRef(id),
+    action: "updated",
+    summary: `Admin updated service record ${svcRef(id)}`,
+    afterData: { status: record.status },
+  });
+
   res.json(record);
 });
 
 router.delete("/admin/service/:id", requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id);
   const result = await deleteServiceRecord(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "service",
+    entityId: id,
+    entityRef: svcRef(id),
+    action: "deleted",
+    summary: `Admin deleted service record ${svcRef(id)}`,
+  });
   res.json(result);
 });
 

@@ -24,6 +24,7 @@ import AlertsPage from "@/pages/Alerts";
 import BookingDocument from "@/pages/BookingDocument";
 import PaymentDocument from "@/pages/PaymentDocument";
 import HandoverDocument from "@/pages/HandoverDocument";
+import AuditLogs from "@/pages/AuditLogs";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -104,6 +105,7 @@ function Router() {
       <Route path="/fleet-calendar"><ProtectedRoute component={FleetCalendarPage} /></Route>
       <Route path="/reports"><ProtectedRoute component={ReportsPage} /></Route>
       <Route path="/alerts"><ProtectedRoute component={AlertsPage} /></Route>
+      <Route path="/audit-logs"><ProtectedRoute component={AuditLogs} /></Route>
 
       {/* Booking Documents — no sidebar layout */}
       <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
