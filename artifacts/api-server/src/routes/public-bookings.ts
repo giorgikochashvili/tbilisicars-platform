@@ -91,6 +91,120 @@ router.post("/public/validate-promo", async (req, res) => {
   });
 });
 
+// ─── POST /api/public/quote ────────────────────────────────────────────────────
+// Estimate a booking total using CRM rate data.
+// Returns a structured quote; does NOT create a booking.
+
+router.post("/public/quote", async (req, res) => {
+  const body = req.body as {
+    vehicleModelId?: number;
+    pickupDatetime?: string;
+    dropoffDatetime?: string;
+    extras?: Array<{ extraId: number; quantity: number }>;
+    promoCode?: string;
+  };
+
+  if (!body.vehicleModelId || !body.pickupDatetime || !body.dropoffDatetime) {
+    return res.status(400).json({ error: "vehicleModelId, pickupDatetime and dropoffDatetime are required" });
+  }
+
+  const pickupDate = new Date(body.pickupDatetime);
+  const dropoffDate = new Date(body.dropoffDatetime);
+  if (isNaN(pickupDate.getTime()) || isNaN(dropoffDate.getTime()) || dropoffDate <= pickupDate) {
+    return res.status(400).json({ error: "Invalid dates" });
+  }
+
+  const days = Math.max(1, Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const pickupDateStr = pickupDate.toISOString().slice(0, 10);
+
+  // ── Resolve best active rate tier for this vehicle model + dates + duration ──
+  // Prefer the rate with the latest valid_from (most specific/seasonal), then
+  // the tier with the highest from_days (most granular duration band).
+  const { rows: tierRows } = await pool.query(
+    `SELECT rt.id AS tier_id, rt.rate_id, rt.price_per_day, rt.currency,
+            r.name AS rate_name, r.valid_from, r.valid_until
+     FROM ratetier rt
+     JOIN rate r ON r.id = rt.rate_id
+     WHERE rt.vehicle_model_id = $1
+       AND r.is_active = true
+       AND r.valid_from::date <= $2::date
+       AND r.valid_until::date >= $2::date
+       AND rt.from_days <= $3
+       AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= $3)
+     ORDER BY r.valid_from DESC, rt.from_days DESC
+     LIMIT 1`,
+    [body.vehicleModelId, pickupDateStr, days],
+  );
+
+  const tier = tierRows[0] ?? null;
+  const basePricePerDay: number | null = tier ? Number(tier.price_per_day) : null;
+  const baseCurrency: string | null = tier ? (tier.currency as string) : null;
+  const baseTotal: number | null = basePricePerDay !== null ? basePricePerDay * days : null;
+
+  // ── Extras total ────────────────────────────────────────────────────────────
+  let extrasTotal = 0;
+  if (body.extras && body.extras.length > 0) {
+    const extraIds = body.extras.map((e) => e.extraId);
+    const { rows: extraRows } = await pool.query(
+      `SELECT id, price FROM extra WHERE id = ANY($1) AND is_active = true`,
+      [extraIds],
+    );
+    const extraPriceMap = new Map(extraRows.map((r: any) => [r.id, Number(r.price)]));
+    for (const item of body.extras) {
+      const price = extraPriceMap.get(item.extraId);
+      if (price != null) {
+        extrasTotal += price * item.quantity * days;
+      }
+    }
+  }
+
+  // ── Promo discount (applied to baseTotal only if base is known) ─────────────
+  let promoDiscountType: string | null = null;
+  let promoDiscountValue: number | null = null;
+  let discountAmount: number | null = null;
+
+  if (body.promoCode?.trim()) {
+    const { rows: promoRows } = await pool.query(
+      `SELECT discount_type, discount_value FROM promo
+       WHERE code = $1 AND active = true
+         AND (valid_from IS NULL OR valid_from <= NOW())
+         AND (valid_until IS NULL OR valid_until >= NOW())
+       LIMIT 1`,
+      [body.promoCode.trim().toUpperCase()],
+    );
+    if (promoRows[0]) {
+      promoDiscountType = promoRows[0].discount_type as string;
+      promoDiscountValue = Number(promoRows[0].discount_value);
+      if (baseTotal !== null) {
+        discountAmount = promoDiscountType === "percentage"
+          ? Math.round(baseTotal * (promoDiscountValue / 100) * 100) / 100
+          : Math.min(promoDiscountValue, baseTotal);
+      }
+    }
+  }
+
+  // ── Estimated total ─────────────────────────────────────────────────────────
+  const estimatedTotal: number | null = baseTotal !== null
+    ? Math.max(0, baseTotal - (discountAmount ?? 0)) + extrasTotal
+    : null;
+
+  return res.json({
+    quotable: baseTotal !== null,
+    days,
+    rateId: tier?.rate_id ?? null,
+    rateTierId: tier?.tier_id ?? null,
+    rateName: tier?.rate_name ?? null,
+    basePricePerDay,
+    baseCurrency,
+    baseTotal,
+    extrasTotal,
+    promoDiscountType,
+    promoDiscountValue,
+    discountAmount,
+    estimatedTotal,
+  });
+});
+
 // ─── POST /api/public/bookings ─────────────────────────────────────────────────
 // Create a real CRM booking from website form submission
 
@@ -109,6 +223,11 @@ router.post("/public/bookings", async (req, res) => {
     extras?: Array<{ extraId: number; quantity: number }>;
     promoCode?: string;
     currency?: string;
+    // Quote-resolved fields (sent back from the website after /quote)
+    resolvedRateId?: number | null;
+    resolvedRateTierId?: number | null;
+    resolvedBaseRate?: number | null;
+    resolvedTotal?: number | null;
   };
 
   // ── Validate required fields ────────────────────────────────────────────────
@@ -190,7 +309,17 @@ router.post("/public/bookings", async (req, res) => {
 
   // ── Create the CRM booking ──────────────────────────────────────────────────
   const contactFullName = `${body.firstName!.trim()} ${body.lastName!.trim()}`;
+
+  // Derive currency from resolved rate if provided, else fall back to request or GEL
   const currency = body.currency ?? "GEL";
+
+  // Use client-resolved total when available (from /quote); otherwise fall back
+  // to extras-only total. Never fabricate a total when no base is known.
+  const totalAmount: string | null = body.resolvedTotal != null
+    ? String(body.resolvedTotal)
+    : extrasTotal > 0
+      ? String(extrasTotal)
+      : null;
 
   const booking = await createAdminBooking({
     contactFullName,
@@ -206,11 +335,15 @@ router.post("/public/bookings", async (req, res) => {
     vehicleModelId: Number(body.vehicleModelId),
     currency,
     discount,
-    totalAmount: extrasTotal > 0 ? String(extrasTotal) : null,
+    totalAmount,
     notes: body.notes?.trim() || null,
     source: "website",
     status: "PENDING",
     paymentStatus: "UNPAID",
+    // Rate fields resolved from /quote endpoint (null if no rate matched)
+    rateId: body.resolvedRateId ?? null,
+    rateTierId: body.resolvedRateTierId ?? null,
+    baseRate: body.resolvedBaseRate != null ? String(body.resolvedBaseRate) : null,
   });
 
   // ── Attach extras to the booking ────────────────────────────────────────────

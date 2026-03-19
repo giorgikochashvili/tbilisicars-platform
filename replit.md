@@ -110,13 +110,19 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 | GET | `/api/rates/:id` | Get rate by ID (with tiers) |
 | GET | `/api/extras` | List active extras |
 
-**Public booking endpoints (Block 13 — no auth required):**
+**Public booking endpoints (Block 13 + Block 19 — no auth required):**
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/public/booking-config` | Returns locations, vehicle models (available_for_external_systems=true), active extras |
 | POST | `/api/public/validate-promo` | Validates a promo code; returns `{valid, discountType, discountValue}` |
-| POST | `/api/public/bookings` | Creates a booking with source="website"; auto creates customer via findOrCreateCustomer |
+| POST | `/api/public/quote` | Resolves best active rate tier for vehicleModelId+date+duration; returns full itemised quote `{quotable, days, rateId, rateTierId, rateName, basePricePerDay, baseCurrency, baseTotal, extrasTotal, discountAmount, estimatedTotal}` |
+| POST | `/api/public/bookings` | Creates a booking with source="website"; auto creates customer via findOrCreateCustomer; accepts resolvedRateId/rateTierId/baseRate/resolvedTotal to store CRM pricing |
+
+**Website Pricing Sync (Block 19):**
+- Step5 (Review Booking) fetches `/api/public/quote` on mount and shows an "ESTIMATED PRICING" card when a rate is found
+- On submit, the resolved pricing is sent to `/api/public/bookings` so CRM stores `total_amount`, `rate_id`, `rate_tier_id`, `base_rate`
+- Toyota Prius (model ID 3) has Standard Season 2026 rate: 75 GEL/day; High Season 2026: 85 GEL/day (Jun–Aug)
 
 **Admin endpoints (Phase 2 — require `requireAdmin` per handler):**
 

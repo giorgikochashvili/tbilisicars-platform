@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -72,6 +72,22 @@ interface BookingResult {
   dropoffDatetime: string;
   status: string;
   message: string;
+}
+
+interface Quote {
+  quotable: boolean;
+  days: number;
+  rateId: number | null;
+  rateTierId: number | null;
+  rateName: string | null;
+  basePricePerDay: number | null;
+  baseCurrency: string | null;
+  baseTotal: number | null;
+  extrasTotal: number;
+  promoDiscountType: string | null;
+  promoDiscountValue: number | null;
+  discountAmount: number | null;
+  estimatedTotal: number | null;
 }
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
@@ -675,6 +691,7 @@ function Step5({
   models,
   locations,
   extras,
+  onQuoteResolved,
   onBack,
   onSubmit,
   submitting,
@@ -683,10 +700,51 @@ function Step5({
   models: VehicleModel[];
   locations: Location[];
   extras: Extra[];
+  onQuoteResolved: (q: Quote | null) => void;
   onBack: () => void;
   onSubmit: () => void;
   submitting: boolean;
 }) {
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quotePending, setQuotePending] = useState(true);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  // Fetch pricing quote once on mount
+  useEffect(() => {
+    const vehicleModelId = Number(form.vehicleModelId);
+    const pickupDatetime = form.pickupDatetime;
+    const dropoffDatetime = form.dropoffDatetime;
+
+    fetch("/api/public/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        vehicleModelId,
+        pickupDatetime,
+        dropoffDatetime,
+        extras: form.extras.length > 0 ? form.extras : undefined,
+        promoCode: form.promoCode.trim() || undefined,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((q: Quote) => {
+        setQuote(q);
+        onQuoteResolved(q);
+        setQuoteError(null);
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "network error";
+        setQuoteError(msg);
+        setQuote(null);
+        onQuoteResolved(null);
+      })
+      .finally(() => setQuotePending(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount — form values captured via closure
+
   const model = models.find((m) => String(m.id) === form.vehicleModelId);
   const pickupLoc = locations.find((l) => String(l.id) === form.pickupLocationId);
   const dropoffLoc = locations.find((l) => String(l.id) === form.dropoffLocationId);
@@ -697,18 +755,17 @@ function Step5({
     quantity: se.quantity,
   })).filter((x) => x.extra);
 
-  const extrasTotal = selectedExtras.reduce((sum, { extra, quantity }) => {
-    return sum + Number(extra!.price) * quantity * days;
-  }, 0);
-
-  function Row({ label, value }: { label: string; value: string }) {
+  function Row({ label, value, dimmed }: { label: string; value: string; dimmed?: boolean }) {
     return (
       <div className="flex justify-between py-2.5 border-b border-border last:border-0">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="text-sm font-medium text-foreground text-right max-w-xs">{value}</span>
+        <span className={cn("text-sm", dimmed ? "text-muted-foreground/60" : "text-muted-foreground")}>{label}</span>
+        <span className={cn("text-sm font-medium text-right max-w-xs", dimmed ? "text-muted-foreground/60" : "text-foreground")}>{value}</span>
       </div>
     );
   }
+
+  const cur = quote?.baseCurrency ?? "GEL";
+  const fmtMoney = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
 
   return (
     <div>
@@ -716,6 +773,7 @@ function Step5({
       <p className="text-muted-foreground text-sm mb-6">Please confirm all details before submitting</p>
 
       <div className="space-y-4 mb-6">
+        {/* Trip Details */}
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Trip Details</div>
           <Row label="Pickup" value={`${pickupLoc?.name ?? ""} (${pickupLoc?.city ?? ""})`} />
@@ -725,6 +783,7 @@ function Step5({
           <Row label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
         </div>
 
+        {/* Vehicle */}
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Vehicle</div>
           {model && <Row label="Car" value={`${model.brand} ${model.model}`} />}
@@ -732,27 +791,68 @@ function Step5({
           {model?.transmission && <Row label="Transmission" value={transmissionLabel(model.transmission)} />}
         </div>
 
-        {selectedExtras.length > 0 && (
+        {/* Pricing — shown when quote resolves */}
+        {quotePending ? (
           <div className="rounded-xl border border-border bg-card p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Add-ons</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Estimated Pricing</div>
+            <div className="space-y-2.5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-5 bg-muted/50 rounded animate-pulse" style={{ width: i === 3 ? "60%" : "100%" }} />
+              ))}
+            </div>
+          </div>
+        ) : quote?.quotable ? (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-2 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              Estimated Pricing
+            </div>
+            <Row label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmtMoney(quote.baseTotal!)} />
             {selectedExtras.map(({ extra, quantity }) => (
               <Row
                 key={extra!.id}
-                label={extra!.name}
-                value={`${(Number(extra!.price) * quantity * days).toLocaleString()} GEL`}
+                label={`${extra!.name} ×${quantity}`}
+                value={fmtMoney(Number(extra!.price) * quantity * days)}
               />
             ))}
-            <Row label="Add-ons Total" value={`${extrasTotal.toLocaleString()} GEL`} />
+            {quote.discountAmount != null && quote.discountAmount > 0 && (
+              <Row
+                label={`Promo (${form.promoCode}${quote.promoDiscountType === "percentage" ? ` −${quote.promoDiscountValue}%` : ""})`}
+                value={`−${fmtMoney(quote.discountAmount)}`}
+              />
+            )}
+            <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
+              <span className="text-sm font-semibold text-foreground">Estimated Total</span>
+              <span className="text-base font-bold text-primary">{fmtMoney(quote.estimatedTotal!)}</span>
+            </div>
+            {quote.rateName && (
+              <p className="text-xs text-muted-foreground mt-2">Rate: {quote.rateName}</p>
+            )}
           </div>
-        )}
-
-        {form.promoCode && (
+        ) : (
+          /* No rate found — honest fallback showing only what we know */
           <div className="rounded-xl border border-border bg-card p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Promo</div>
-            <Row label="Promo Code" value={form.promoCode} />
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Pricing</div>
+            {selectedExtras.length > 0 ? (
+              <>
+                {selectedExtras.map(({ extra, quantity }) => (
+                  <Row
+                    key={extra!.id}
+                    label={extra!.name}
+                    value={`${(Number(extra!.price) * quantity * days).toLocaleString()} GEL`}
+                  />
+                ))}
+                <Row label="Add-ons Total" value={`${selectedExtras.reduce((s, { extra, quantity }) => s + Number(extra!.price) * quantity * days, 0).toLocaleString()} GEL`} />
+              </>
+            ) : null}
+            {form.promoCode && <Row label="Promo Code" value={form.promoCode} />}
+            <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+              Base vehicle rate will be confirmed by our team.
+            </div>
           </div>
         )}
 
+        {/* Contact */}
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Contact</div>
           <Row label="Name" value={`${form.firstName} ${form.lastName}`} />
@@ -762,8 +862,12 @@ function Step5({
         </div>
       </div>
 
+      {/* Disclaimer */}
       <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 mb-6 text-sm text-foreground">
-        <span className="font-semibold">Note:</span> Submitting this form is a booking <em>request</em>. Our team will contact you within a few hours to confirm availability and provide final pricing.
+        {quote?.quotable
+          ? <><span className="font-semibold">Note:</span> The price shown is an estimate based on current rates. Final pricing is confirmed by our team before any charge is made.</>
+          : <><span className="font-semibold">Note:</span> Submitting this form is a booking <em>request</em>. Our team will contact you within a few hours to confirm availability and final pricing.</>
+        }
       </div>
 
       <div className="flex justify-between">
@@ -825,6 +929,8 @@ function BookingForm() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BookingResult | null>(null);
+  // quote is lifted to BookingForm so submit() can read it
+  const [resolvedQuote, setResolvedQuote] = useState<Quote | null>(null);
   const [form, setForm] = useState<FormData>({
     pickupLocationId: "",
     dropoffLocationId: "",
@@ -863,6 +969,12 @@ function BookingForm() {
           notes: form.notes.trim() || undefined,
           promoCode: form.promoCode || undefined,
           extras: form.extras.length > 0 ? form.extras : undefined,
+          // Pass resolved rate fields so CRM booking stores proper pricing
+          resolvedRateId: resolvedQuote?.rateId ?? null,
+          resolvedRateTierId: resolvedQuote?.rateTierId ?? null,
+          resolvedBaseRate: resolvedQuote?.basePricePerDay ?? null,
+          resolvedTotal: resolvedQuote?.estimatedTotal ?? null,
+          currency: resolvedQuote?.baseCurrency ?? undefined,
         }),
       });
       setResult(data);
@@ -877,6 +989,7 @@ function BookingForm() {
   function reset() {
     setStep(1);
     setResult(null);
+    setResolvedQuote(null);
     setForm({
       pickupLocationId: "",
       dropoffLocationId: "",
@@ -924,6 +1037,7 @@ function BookingForm() {
           models={config?.vehicleModels ?? []}
           locations={config?.locations ?? []}
           extras={config?.extras ?? []}
+          onQuoteResolved={setResolvedQuote}
           onBack={() => setStep(4)}
           onSubmit={submit}
           submitting={submitting}
