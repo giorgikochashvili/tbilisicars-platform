@@ -21,6 +21,7 @@ import TeamPage from "@/pages/Team";
 import FleetCalendarPage from "@/pages/FleetCalendar";
 import ReportsPage from "@/pages/Reports";
 import AlertsPage from "@/pages/Alerts";
+import BookingDocument from "@/pages/BookingDocument";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -58,6 +59,24 @@ function ProtectedRoute({ component: Component }: { component: any }) {
   );
 }
 
+function DocumentRoute({ component: Component }: { component: any }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -83,6 +102,9 @@ function Router() {
       <Route path="/fleet-calendar"><ProtectedRoute component={FleetCalendarPage} /></Route>
       <Route path="/reports"><ProtectedRoute component={ReportsPage} /></Route>
       <Route path="/alerts"><ProtectedRoute component={AlertsPage} /></Route>
+
+      {/* Booking Documents — no sidebar layout */}
+      <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
       
       {/* Fallback */}
       <Route><ProtectedRoute component={NotFound} /></Route>

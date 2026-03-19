@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle } from "lucide-react";
+import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket } from "lucide-react";
 
 const BASE = "/api";
 
@@ -218,6 +218,30 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
             ) : null}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Document generation buttons */}
+        {!loadingBooking && booking && (
+          <div className="flex gap-2 mt-1 pb-1 border-b border-border/30">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => window.open(`${import.meta.env.BASE_URL}document/${bookingId}/agreement`, "_blank")}
+            >
+              <FileText className="w-3 h-3" />
+              Rental Agreement
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => window.open(`${import.meta.env.BASE_URL}document/${bookingId}/voucher`, "_blank")}
+            >
+              <Ticket className="w-3 h-3" />
+              Booking Voucher
+            </Button>
+          </div>
+        )}
 
         {!loadingBooking && booking && (
           <div className="space-y-4 mt-1">

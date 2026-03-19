@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { pool } from "@workspace/db";
 import {
   GetAdminBookingParams,
   GetAdminBookingResponse,
@@ -49,6 +50,63 @@ router.get("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = GetAdminBookingParams.parse(req.params);
   const booking = await getAdminBooking(id);
   res.json(GetAdminBookingResponse.parse(booking));
+});
+
+router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const { rows } = await pool.query(
+    `SELECT
+      b.id, b.status, b.payment_status,
+      b.contact_full_name, b.contact_email, b.contact_phone,
+      b.pickup_datetime, b.dropoff_datetime,
+      b.total_amount, b.currency, b.deposit,
+      b.notes, b.source, b.document_type, b.document_number,
+      u.full_name AS customer_name,
+      u.email AS customer_email,
+      v.id AS vehicle_id,
+      v.license_plate,
+      vm.name AS vehicle_model_name,
+      br.name AS vehicle_brand_name,
+      bm.name AS booking_model_name,
+      bbr.name AS booking_brand_name,
+      pl.name AS pickup_location,
+      dl.name AS dropoff_location
+    FROM booking b
+    JOIN "user" u ON u.id = b.user_id
+    LEFT JOIN vehicle v ON v.id = b.vehicle_id
+    LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+    LEFT JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle_model bm ON bm.id = b.vehicle_model_id
+    LEFT JOIN brand bbr ON bbr.id = bm.brand_id
+    JOIN location pl ON pl.id = b.pickup_location_id
+    JOIN location dl ON dl.id = b.dropoff_location_id
+    WHERE b.id = $1 AND b.deleted_at IS NULL`,
+    [id],
+  );
+  if (!rows[0]) {
+    res.status(404).json({ error: "Booking not found" });
+    return;
+  }
+  const { rows: extras } = await pool.query(
+    `SELECT be.quantity, be.price_at_booking, e.name AS extra_name
+     FROM bookingextra be
+     JOIN extra e ON e.id = be.extra_id
+     WHERE be.booking_id = $1`,
+    [id],
+  );
+  const { rows: paySummary } = await pool.query(
+    `SELECT
+      COALESCE(SUM(amount::numeric) FILTER (WHERE payment_type IN ('BOOKING_PAYMENT','ADJUSTMENT')), 0)::numeric AS total_paid,
+      COALESCE(SUM(amount::numeric) FILTER (WHERE payment_type = 'DEPOSIT_RECEIVED'), 0)::numeric AS deposit_received,
+      COALESCE(SUM(amount::numeric) FILTER (WHERE payment_type = 'DEPOSIT_RETURNED'), 0)::numeric AS deposit_returned
+     FROM booking_payment WHERE booking_id = $1`,
+    [id],
+  );
+  res.json({ ...rows[0], extras, payment_summary: paySummary[0] });
 });
 
 router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {

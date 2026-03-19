@@ -1,0 +1,205 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+- Payments / Deposits works and is E2E verified
+- Vehicle Detail operational page works and is E2E verified
+- Maintenance Alerts Refinement works and is E2E verified
+
+Do NOT redesign working modules.
+Do NOT rewrite Booking logic.
+Do NOT introduce payment gateways.
+Do NOT introduce permissions logic.
+Do NOT build complex PDF engines.
+
+Your task now is to implement ONLY Booking Documents Core (Block 17A).
+
+==================================================
+BLOCK 17A GOAL
+==================================================
+
+Create operational booking documents that can be generated from real CRM data.
+
+Documents must include:
+
+1. Rental Agreement
+2. Booking Voucher / Confirmation
+
+These documents must be generated from existing booking, customer, vehicle, extras, and payment data.
+
+==================================================
+A. CORE PRINCIPLE
+==================================================
+
+Documents must use REAL CRM data.
+
+Do NOT:
+- create fake document data
+- create separate document data models
+- duplicate booking logic
+
+Documents must reflect actual booking records.
+
+==================================================
+B. DOCUMENT TYPES
+==================================================
+
+1. Rental Agreement
+
+Must include:
+
+- Booking reference
+- Customer full name
+- Phone
+- Email
+- Vehicle (brand, model, plate OR model if unassigned)
+- Pickup location
+- Dropoff location
+- Pickup date/time
+- Dropoff date/time
+- Extras (if any)
+- Total price (if available)
+- Deposit (if available)
+- Currency
+- Notes (if available)
+- Company details (static for now)
+
+2. Booking Voucher / Confirmation
+
+Must include:
+
+- Booking reference
+- Customer
+- Vehicle or model
+- Pickup / Dropoff details
+- Extras
+- Contact details
+- Short summary of booking
+
+Voucher must be simpler than agreement.
+
+==================================================
+C. MODEL-ONLY BOOKING SUPPORT
+==================================================
+
+If booking has no vehicle assigned:
+
+- show vehicle model only
+- display as "Toyota Prius (to be assigned)"
+
+Do NOT break document generation for website bookings.
+
+==================================================
+D. UI INTEGRATION
+==================================================
+
+Integrate into Booking Detail dialog/page.
+
+Add buttons:
+
+- "Generate Agreement"
+- "Generate Voucher"
+
+Click behavior:
+
+- opens document preview (new page or modal)
+
+==================================================
+E. DOCUMENT PREVIEW
+==================================================
+
+Create a clean print-friendly layout.
+
+Requirements:
+
+- readable formatting
+- clear sections
+- proper spacing
+- no raw JSON or debug data
+
+Include:
+
+- Print button
+- Browser print support
+
+Do NOT build advanced PDF generator.
+
+Use:
+- HTML preview
+- browser print
+
+==================================================
+F. DATA MAPPING
+==================================================
+
+Documents must map directly from:
+
+- booking
+- customer
+- vehicle OR vehicle_model
+- extras
+- payments (deposit if available)
+
+Do NOT create manual inputs.
+
+==================================================
+G. BOOKING STATUS SAFETY
+==================================================
+
+Documents must work for:
+
+- website bookings
+- CRM manual bookings
+- bookings with or without assigned vehicle
+
+Do NOT restrict document generation unnecessarily.
+
+==================================================
+H. REQUIRED VERIFICATION
+==================================================
+
+You must verify:
+
+1. Rental Agreement generates correctly
+2. Voucher generates correctly
+3. Model-only booking works
+4. Extras appear correctly
+5. Customer data appears correctly
+6. Print preview works
+7. No broken fields or missing data
+
+==================================================
+I. FINAL REPORT FORMAT
+==================================================
+
+At the end report only:
+
+1. Documents module result
+2. Rental Agreement result
+3. Voucher result
+4. Model-only booking support result
+5. Booking UI integration result
+6. Print/preview result
+7. Verified UI flows
+   - Generate Agreement: works / not
+   - Generate Voucher: works / not
+   - Model-only booking: works / not
+   - Print preview: works / not
+8. Remaining gaps if any
+
+Do not claim completion unless documents render real booking data correctly.
