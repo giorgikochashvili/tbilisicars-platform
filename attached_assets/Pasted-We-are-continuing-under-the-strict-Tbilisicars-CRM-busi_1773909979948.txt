@@ -1,0 +1,81 @@
+We are continuing under the strict Tbilisicars CRM business specification.
+
+Current confirmed state:
+- Fleet foundation works
+- Locations foundation works
+- Bookings creation/lifecycle/conflict logic works
+- Vehicle status and location updates work
+- Dashboard operational board works
+- Customers works
+- Extras works
+- Rates works
+- Promotions works
+- Service / Maintenance works and is E2E verified
+- Accounting works and is E2E verified
+- Team Management works and is E2E verified
+- Fleet Calendar / Timeline works and is E2E verified
+- Reports / Exports works and is E2E verified
+- Notifications / Alerts works and is E2E verified
+- Website ↔ CRM booking linkage works and is E2E verified
+- Payments / Deposits works and is E2E verified
+- Vehicle Detail operational page works and is E2E verified
+- Maintenance Alerts Refinement works and is E2E verified
+- Booking Documents Core (Agreement + Voucher) works
+- Payment Documents (Receipts + Deposit docs) works
+
+Do NOT redesign working modules.
+Do NOT rewrite Booking logic.
+Do NOT introduce permissions logic.
+Do NOT introduce external integrations.
+Do NOT over-engineer inspection systems.
+
+Your task now is to implement ONLY Handover / Return Sheets (Block 17C).
+
+==================================================
+BLOCK 17C GOAL
+==================================================
+
+Create operational vehicle handover and return documents used during pickup and drop-off.
+
+These documents must allow staff to:
+
+- record vehicle condition
+- record mileage
+- record fuel levels
+- note damages or issues
+- confirm vehicle handover and return
+
+These are real operational documents used during physical interaction with the customer.
+
+==================================================
+A. DOCUMENT TYPES
+==================================================
+
+1. Vehicle Handover Sheet (Pickup)
+
+2. Vehicle Return Sheet (Drop-off)
+
+Both must be generated from a booking.
+
+==================================================
+B. HANDOVER SHEET CONTENT
+==================================================
+
+Must include:
+
+Booking Info:
+- booking reference
+- customer full name
+- phone
+- email
+
+Vehicle Info:
+- brand
+- model
+- license plate (or model if unassigned)
+- current mileage (if available)
+
+Rental Info:
+- pickup date/time
+- pickup location
+- dropoff date

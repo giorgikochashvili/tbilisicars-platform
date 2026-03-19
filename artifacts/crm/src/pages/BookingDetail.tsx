@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket, Receipt, ChevronDown } from "lucide-react";
+import { Plus, Trash2, CreditCard, Wallet, Landmark, HelpCircle, FileText, Ticket, Receipt, ChevronDown, ClipboardList, ClipboardCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -227,7 +227,7 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
 
         {/* Document generation buttons */}
         {!loadingBooking && booking && (
-          <div className="flex gap-2 mt-1 pb-1 border-b border-border/30">
+          <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30">
             <Button
               size="sm"
               variant="outline"
@@ -245,6 +245,24 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
             >
               <Ticket className="w-3 h-3" />
               Booking Voucher
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => window.open(`${import.meta.env.BASE_URL}handover/${bookingId}/pickup`, "_blank")}
+            >
+              <ClipboardList className="w-3 h-3" />
+              Handover Sheet
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => window.open(`${import.meta.env.BASE_URL}handover/${bookingId}/return`, "_blank")}
+            >
+              <ClipboardCheck className="w-3 h-3" />
+              Return Sheet
             </Button>
           </div>
         )}
