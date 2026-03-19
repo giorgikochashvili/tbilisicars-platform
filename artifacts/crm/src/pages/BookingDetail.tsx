@@ -485,7 +485,13 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
                             <div className="flex items-center gap-1">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                    aria-label={`Generate document for payment ${p.id}`}
+                                    title="Generate document"
+                                  >
                                     <Receipt className="w-3 h-3" />
                                   </Button>
                                 </DropdownMenuTrigger>
