@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft, ChevronRight, GanttChart, AlertTriangle,
-  Car, MapPin, Calendar,
+  Car, MapPin, Calendar, Info,
 } from "lucide-react";
+import VehicleDetail from "./VehicleDetail";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ function isBookingInConflict(target: Booking, bookings: Booking[]): boolean {
 
 export default function FleetCalendarPage() {
   const [, navigate] = useLocation();
+  const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
 
   // Default: today to today + 13 (14 days)
   const today = useMemo(() => new Date(), []);
@@ -326,16 +328,19 @@ export default function FleetCalendarPage() {
                     className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group
                       ${rowHasConflict ? "bg-orange-500/5" : ""}`}
                   >
-                    {/* Vehicle label (fixed left) */}
+                    {/* Vehicle label (fixed left) — click to open Vehicle Detail */}
                     <div
-                      className="flex-shrink-0 flex flex-col justify-center px-3 py-2 border-r border-border/30 gap-1 bg-card/80"
+                      className="flex-shrink-0 flex flex-col justify-center px-3 py-2 border-r border-border/30 gap-1 bg-card/80 cursor-pointer hover:bg-primary/5 transition-colors group/label"
                       style={{ width: LABEL_WIDTH }}
+                      onClick={() => setDetailVehicleId(vehicle.id)}
+                      title="Open vehicle detail"
                     >
                       <div className="flex items-center gap-1.5">
                         <Car className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm font-semibold text-foreground truncate">
+                        <span className="text-sm font-semibold text-foreground truncate flex-1">
                           {vehicle.label}
                         </span>
+                        <Info className="w-3 h-3 text-muted-foreground/40 group-hover/label:text-primary/60 flex-shrink-0 transition-colors" />
                         {rowHasConflict && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -479,6 +484,12 @@ export default function FleetCalendarPage() {
           )}
         </div>
       )}
+
+      <VehicleDetail
+        vehicleId={detailVehicleId}
+        open={detailVehicleId !== null}
+        onClose={() => setDetailVehicleId(null)}
+      />
     </div>
   );
 }
