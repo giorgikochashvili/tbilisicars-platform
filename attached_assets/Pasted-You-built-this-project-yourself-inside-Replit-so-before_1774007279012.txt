@@ -1,0 +1,181 @@
+You built this project yourself inside Replit, so before changing anything, first inspect the existing implementation and preserve the current architecture, file structure, naming conventions, data flow, and working modules.
+
+This is an already-running full-stack monorepo with:
+- backend API
+- CRM frontend
+- public website
+- working auth
+- working customers / extras / vehicles / locations
+- working nginx/live deployment outside Replit
+
+Your task is to make a minimal, production-safe update for currency handling and dashboard revenue logic, without breaking unrelated features.
+
+CRITICAL RULES:
+- Do NOT refactor the project broadly
+- Do NOT change routing
+- Do NOT change auth/session logic
+- Do NOT rewrite working modules unnecessarily
+- Do NOT rename files unless absolutely required
+- Do NOT break existing API contracts unless explicitly stated below
+- First inspect the current DB schema, Zod schemas, services, routes, and CRM pages before editing
+- Reuse existing patterns already present in this repo
+- Make the smallest possible targeted changes
+
+==================================================
+PHASE 1 — INSPECT BEFORE CHANGING
+==================================================
+
+Before implementing changes, inspect and understand:
+- booking database schema
+- booking create/update/read endpoints
+- booking response schemas / DTOs
+- dashboard revenue source
+- accounting summary logic
+- rates schema and CRM rates form
+- website currency display logic if present
+
+Then apply only the scoped changes below.
+
+==================================================
+PHASE 2 — BOOKINGS: ADD CURRENCY SUPPORT
+==================================================
+
+Goal:
+Each booking must store and display its own currency:
+- GEL
+- USD
+- EUR
+
+Requirements:
+
+1. Database / schema:
+- Add booking currency field if missing
+- Allowed values: GEL, USD, EUR
+- Existing rows should safely default to GEL
+- Do this in the least disruptive way consistent with the current schema style
+
+2. Backend:
+- Update create booking logic to accept currency
+- Validate currency strictly
+- Include currency in booking read/list/detail responses
+- Do NOT change unrelated booking logic
+
+3. CRM booking form:
+- In booking creation/edit flow, Total Amount must have a currency selector
+- Currency options:
+  - GEL (₾)
+  - USD ($)
+  - EUR (€)
+- Preserve current styling and form structure as much as possible
+- Keep changes minimal and consistent with existing UI components
+
+4. CRM booking list:
+- Remove any hardcoded dollar symbol
+- Display booking amount using the stored booking currency:
+  - GEL → ₾
+  - USD → $
+  - EUR → €
+- Do not redesign the table
+
+Important:
+This is not just display formatting. The currency must be stored with the booking and returned by the API.
+
+==================================================
+PHASE 3 — DASHBOARD: REVENUE MUST BE GEL EQUIVALENT
+==================================================
+
+Goal:
+Dashboard revenue must display one single total in GEL (₾), combining bookings from all currencies.
+
+Business rule:
+- GEL stays GEL
+- USD must be converted to GEL
+- EUR must be converted to GEL
+- Final dashboard revenue must always display in ₾ only
+
+Implementation guidance:
+- First inspect whether dashboard revenue currently comes from bookings directly or from accounting summaries
+- If accounting already provides the best reusable source, use it
+- If not, implement the smallest backend-side aggregation needed
+
+Create a small reusable currency conversion helper instead of hardcoding logic repeatedly.
+
+For now use fixed internal rates:
+- USD → GEL = 2.7
+- EUR → GEL = 2.9
+
+Do not add external exchange-rate API integration in this task.
+Do not change other dashboard cards/widgets.
+
+==================================================
+PHASE 4 — RATES MODULE: EUR ONLY
+==================================================
+
+Goal:
+Rates must be managed only in EUR.
+
+Business rule:
+- CRM users should not choose rate currency
+- All rates/tier prices are EUR-based only
+- Website base pricing logic should assume EUR as the base rate currency
+
+Requirements:
+
+1. CRM Rates UI:
+- Remove the currency dropdown from rate tier creation/edit UI
+- Replace it with static EUR behavior
+- Label should clearly indicate EUR, e.g.:
+  Price per day (€)
+
+2. Backend / schema:
+- Preserve compatibility as much as possible
+- If a currency field already exists in rates/tiers, do not do a risky refactor unless necessary
+- Safer approach preferred:
+  - keep field if needed for compatibility
+  - force/store EUR consistently
+- Do not break existing tier logic, date logic, or model assignment logic
+
+3. Website:
+- Treat rate base price as EUR
+- If the website has a currency display switch, only convert for display
+- Do not redesign or deeply rewrite booking engine logic in this task
+
+==================================================
+PHASE 5 — SAFETY AND COMPATIBILITY
+==================================================
+
+Do NOT break these already working modules:
+- auth/login/logout/session persistence
+- customers
+- extras
+- brands/models/vehicles
+- locations
+- API routing
+- CRM routing
+- existing deployment assumptions
+
+Do NOT make speculative architectural changes.
+If something is already implemented in a compatible way, extend it instead of rewriting it.
+
+==================================================
+PHASE 6 — OUTPUT REQUIREMENT
+==================================================
+
+After making the changes, provide a concise implementation summary:
+1. Which files were changed
+2. What schema changes were made
+3. What API payloads changed
+4. What CRM UI changed
+5. Any migration/backfill behavior for existing bookings
+6. Any remaining assumptions or risks
+
+Also verify:
+- booking create works with currency
+- booking list shows correct symbols
+- dashboard revenue shows GEL equivalent only
+- rates no longer expose currency choice in CRM
+- no type errors
+- no runtime errors
+- no broken unrelated modules
+
+Make minimal, precise, production-safe changes only.
