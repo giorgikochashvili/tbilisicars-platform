@@ -23,12 +23,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, MoreHorizontal, Edit, Trash2, BadgeDollarSign, ChevronDown, ChevronRight, ListPlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { formatMoney } from "@/lib/utils";
+import { formatBookingAmount } from "@/lib/utils";
 
 function RateTiers({ rateId, tiers }: { rateId: number, tiers: any[] }) {
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<any>(null);
-  const [tierData, setTierData] = useState({ vehicleModelId: "", fromDays: 1, toDays: 0, pricePerDay: 0, currency: "GEL" });
+  const [tierData, setTierData] = useState({ vehicleModelId: "", fromDays: 1, toDays: 0, pricePerDay: 0, currency: "EUR" });
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -48,11 +48,11 @@ function RateTiers({ rateId, tiers }: { rateId: number, tiers: any[] }) {
         fromDays: tier.fromDays || 1,
         toDays: tier.toDays || 0,
         pricePerDay: Number(tier.pricePerDay) || 0,
-        currency: tier.currency || "GEL"
+        currency: tier.currency || "EUR"
       });
     } else {
       setEditingTier(null);
-      setTierData({ vehicleModelId: "", fromDays: 1, toDays: 0, pricePerDay: 0, currency: "GEL" });
+      setTierData({ vehicleModelId: "", fromDays: 1, toDays: 0, pricePerDay: 0, currency: "EUR" });
     }
     setIsTierModalOpen(true);
   };
@@ -147,7 +147,7 @@ function RateTiers({ rateId, tiers }: { rateId: number, tiers: any[] }) {
                     {tier.toDays ? `${tier.fromDays} - ${tier.toDays} days` : `${tier.fromDays}+ days`}
                   </TableCell>
                   <TableCell className="font-mono">
-                    {formatMoney(tier.pricePerDay)}
+                    {formatBookingAmount(tier.pricePerDay, "EUR")}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenTierModal(tier)} className="h-6 w-6">
