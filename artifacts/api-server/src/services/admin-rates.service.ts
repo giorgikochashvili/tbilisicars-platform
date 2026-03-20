@@ -95,7 +95,7 @@ export async function createAdminRateTier(
   await getAdminRate(rateId);
   const [row] = await db
     .insert(ratetierTable)
-    .values({ ...data, rateId } as any)
+    .values({ ...data, rateId, currency: "EUR" } as any)
     .returning();
   return row!;
 }
@@ -113,7 +113,7 @@ export async function updateAdminRateTier(
 ) {
   const [row] = await db
     .update(ratetierTable)
-    .set({ ...(data as any), updatedAt: new Date() })
+    .set({ ...(data as any), currency: "EUR", updatedAt: new Date() })
     .where(eq(ratetierTable.id, tierId))
     .returning();
   if (!row) throw new NotFoundError(`Rate tier ${tierId} not found`);

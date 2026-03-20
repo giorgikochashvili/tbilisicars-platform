@@ -199,19 +199,14 @@ function RateTiers({ rateId, tiers }: { rateId: number, tiers: any[] }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Price Per Day</Label>
+                <Label>Price per day (€)</Label>
                 <Input type="number" step="0.01" value={tierData.pricePerDay} onChange={e => setTierData({...tierData, pricePerDay: parseFloat(e.target.value) || 0})} />
               </div>
               <div className="grid gap-2">
                 <Label>Currency</Label>
-                <Select value={tierData.currency} onValueChange={(val) => setTierData({...tierData, currency: val})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GEL">GEL (₾)</SelectItem>
-                    <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
+                  EUR (€) — fixed
+                </div>
               </div>
             </div>
           </div>

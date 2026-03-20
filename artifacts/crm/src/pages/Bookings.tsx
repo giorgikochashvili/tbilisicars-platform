@@ -9,7 +9,7 @@ import {
   useListAdminVehicles,
   useListLocations,
 } from "@workspace/api-client-react";
-import { formatMoney } from "@/lib/utils";
+import { formatBookingAmount } from "@/lib/utils";
 import BookingDetail from "./BookingDetail";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ const EMPTY_BOOKING = {
   dropoffType: "airport",
   dropoffAddress: "",
   totalAmount: "",
+  currency: "GEL",
   notes: "",
   status: "PENDING" as const,
 };
@@ -203,6 +204,7 @@ export default function BookingsPage() {
 
     if (booking.vehicleId && booking.vehicleId !== "none") payload.vehicleId = parseInt(booking.vehicleId);
     if (booking.totalAmount) payload.totalAmount = booking.totalAmount;
+    payload.currency = booking.currency;
 
     if (booking.customerMode === "existing" && booking.customerId) {
       payload.customerId = parseInt(booking.customerId);
@@ -343,7 +345,7 @@ export default function BookingsPage() {
                     </TableCell>
                     <TableCell className="align-top pt-4">
                       <div className="font-mono font-bold text-sm mb-1">
-                        {b.totalAmount ? formatMoney(b.totalAmount) : "—"}
+                        {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : "—"}
                       </div>
                       <PaymentBadge status={b.paymentStatus} />
                     </TableCell>
@@ -593,12 +595,23 @@ export default function BookingsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Total Amount (optional)</Label>
-                  <Input 
-                    type="number" step="0.01" 
-                    placeholder="0.00"
-                    value={booking.totalAmount}
-                    onChange={e => setBooking({...booking, totalAmount: e.target.value})}
-                  />
+                  <div className="flex gap-2">
+                    <Input 
+                      type="number" step="0.01" 
+                      placeholder="0.00"
+                      value={booking.totalAmount}
+                      onChange={e => setBooking({...booking, totalAmount: e.target.value})}
+                      className="flex-1"
+                    />
+                    <Select value={booking.currency} onValueChange={(v) => setBooking({...booking, currency: v})}>
+                      <SelectTrigger className="w-[90px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GEL">₾ GEL</SelectItem>
+                        <SelectItem value="USD">$ USD</SelectItem>
+                        <SelectItem value="EUR">€ EUR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>Status</Label>

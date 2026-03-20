@@ -96,7 +96,7 @@ export const bookingTable = pgTable(
     deliveryFee: numeric("delivery_fee", { precision: 10, scale: 2 }).default("0"),
     deposit: numeric("deposit", { precision: 10, scale: 2 }).default("0"),
     totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).default("0"),
-    currency: varchar("currency", { length: 3 }).default("USD"),
+    currency: varchar("currency", { length: 3 }).default("GEL"),
     // Merged from first+last name in migration 020
     contactFullName: varchar("contact_full_name", { length: 200 }).notNull(),
     // Nullable since migration 014

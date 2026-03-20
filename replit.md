@@ -2,222 +2,66 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+This pnpm workspace monorepo, built with TypeScript, aims to develop a comprehensive car rental management system. The project includes a public-facing booking website, a CRM for internal management, and a robust API server, all designed to streamline car rental operations.
 
-## Stack
+The business vision is to provide a seamless digital experience for both customers and administrators, enhancing efficiency and customer satisfaction in the car rental market. The system is designed to be scalable, maintaining a clear separation of concerns across its different applications and shared libraries.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+## User Preferences
 
-## Structure
+The user prefers a clean, consistent coding style across the monorepo, leveraging TypeScript for strong typing and maintainability. Iterative development is preferred, with a focus on well-defined architectural patterns. The user expects clear and concise communication regarding any proposed changes or architectural decisions.
 
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
-```
+## System Architecture
 
-## TypeScript & Composite Projects
+The monorepo is structured with `artifacts/` for deployable applications and `lib/` for shared libraries. Each package manages its own dependencies within the monorepo.
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+**Core Technologies:**
+- **Monorepo Tool:** pnpm workspaces
+- **Node.js:** v24
+- **TypeScript:** v5.9
+- **API Framework:** Express 5
+- **Database:** PostgreSQL with Drizzle ORM
+- **Validation:** Zod (`zod/v4`) and `drizzle-zod`
+- **API Codegen:** Orval (from OpenAPI spec)
+- **Build Tool:** esbuild (CJS bundle)
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+**TypeScript & Composite Projects:**
+All packages extend `tsconfig.base.json` with `composite: true`, enabling efficient type checking and dependency resolution across the monorepo. `tsc --build --emitDeclarationOnly` is used for type checking, emitting only `.d.ts` files, while `esbuild` handles JavaScript bundling.
 
-## Root Scripts
+**Applications:**
+- **`artifacts/website` (`@workspace/website`)**:
+    - **Purpose**: Public-facing car rental booking website.
+    - **UI/UX**: Light-mode, professional travel brand design (navy primary, sky blue accent).
+    - **Tech Stack**: React, Vite, TanStack Query, Tailwind CSS, shadcn/ui.
+    - **Features**: A 5-step multi-step booking form (Trip Details → Choose Car → Add-ons → Contact Info → Review & Submit). Only displays `vehicle_model.available_for_external_systems = true`. Bookings are created with `source="website"`.
+    - **Authentication**: None (public access).
+- **`artifacts/crm` (`@workspace/crm`)**:
+    - **Purpose**: Internal CRM administration application.
+    - **UI/UX**: Dark-mode only.
+    - **Tech Stack**: React, Vite, wouter for routing, TanStack Query, shadcn/ui.
+    - **Features**: Comprehensive modules for Dashboard, Bookings, Fleet, Fleet Calendar, Service, Accounting, Customers, Locations, Extras, Rates, Promotions, and Team, each with CRUD capabilities. Dashboard includes region selectors, KPI cards, fleet status, and timeline views.
+    - **Authentication**: Session-based (cookies); redirects to `/crm/login` if unauthenticated.
+- **`artifacts/api-server` (`@workspace/api-server`)**:
+    - **Purpose**: Express 5 API server.
+    - **Design**: Routes are organized in `src/routes/` and leverage `@workspace/api-zod` for validation and `@workspace/db` for persistence. Services (`src/services/`) provide thin Drizzle ORM wrappers. Custom error handling with `AppError` subclasses is implemented.
+    - **Authentication**: Uses `express-session` with `connect-pg-simple` for session management. Includes public (no auth), customer (`requireAuth`), and admin (`requireAdmin`) endpoints.
+    - **Key Public Endpoints**: `/api/healthz`, `/api/locations`, `/api/fleet/brands`, `/api/fleet/models`, `/api/fleet/groups`, `/api/fleet/vehicles`, `/api/rates`, `/api/extras`.
+    - **Public Booking Endpoints**: `/api/public/booking-config`, `/api/public/validate-promo`, `/api/public/quote`, `/api/public/bookings`.
+    - **Admin Endpoints**: `/api/admin/*` for full CRUD operations on all entities (fleet, locations, rates, promos, customers, bookings, team, etc.), dashboard summaries, and accounting.
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+**Shared Libraries:**
+- **`lib/db` (`@workspace/db`)**: Drizzle ORM with PostgreSQL. Exports a Drizzle client and a comprehensive schema across 40 tables and 15 enums, with domain-split table definitions and `drizzle-zod` insert schemas.
+- **`lib/api-spec` (`@workspace/api-spec`)**: Manages the OpenAPI 3.1 specification (`openapi.yaml`) and Orval configuration (`orval.config.ts`) for generating API clients and schemas.
+- **`lib/api-zod` (`@workspace/api-zod`)**: Contains generated Zod schemas from the OpenAPI spec, used for request/response validation in the API server.
+- **`lib/api-client-react` (`@workspace/api-client-react`)**: Provides generated React Query hooks and a fetch client from the OpenAPI spec, facilitating data fetching in React applications.
+- **`scripts` (`@workspace/scripts`)**: A collection of utility scripts for various workspace tasks.
 
-## Packages
+## External Dependencies
 
-### `artifacts/website` (`@workspace/website`)
-
-Public-facing car rental booking website for customers. Light-mode, professional travel brand design (navy primary, sky blue accent).
-
-- **Base path**: `/website/`
-- **Authentication**: None (fully public, no login required)
-- **Tech**: React + Vite, TanStack Query, Tailwind CSS, shadcn/ui
-- **Features**: 5-step multi-step booking form: Trip Details → Choose Car → Add-ons → Contact Info → Review & Submit
-- **API calls**: `GET /api/public/booking-config`, `POST /api/public/validate-promo`, `POST /api/public/bookings`
-- **Vehicle filter**: Only shows models with `vehicle_model.available_for_external_systems = true`
-- Bookings created with `source="website"`, `vehicle_id=NULL`, `vehicle_model_id` set; visible in CRM with "🌐 web" badge
-- CRM Bookings list shows "Prius (unassigned)" for model-only website bookings (resolved from `booking.vehicle_model_id` via `bookingModelTable` alias)
-- Extras (optional add-ons) can be selected per booking
-- Promo code validation is real-time against the promos table
-- Model-only bookings do NOT appear in Fleet Calendar (vehicle-specific only); they DO appear in Alerts and Reports
-
-### `artifacts/crm` (`@workspace/crm`)
-
-React + Vite CRM admin application. Dark-mode only. Uses wouter for routing, TanStack Query for data fetching, shadcn/ui for components.
-
-- **Base path**: `/crm`
-- **Authentication**: Session-based (cookies), redirects to `/crm/login` if unauthenticated
-- **Admin credentials (dev)**: `admin@tbilisicars.ge` / `admin123`
-- **Sidebar modules**: Dashboard, Bookings, Fleet (Vehicles/Models/Brands tabs), Fleet Calendar, Service, Accounting, Customers, Locations, Extras, Rates, Promotions, Team
-- **Dashboard**: Region selector (All/Tbilisi/Kutaisi/Batumi), KPI cards (live booking counts + revenue), Fleet Live Status tiles (by current vehicle location), Today's Pickups/Dropoffs tables, 7-day Fleet Timeline (vehicles as rows, days as columns, booking blocks)
-- **Pages**: `src/pages/` — each module has a full CRUD page (tables, modals, search, pagination)
-- **Hooks**: Generated by Orval from OpenAPI spec, imported from `@workspace/api-client-react`
-- **All API calls use**: `credentials: "include"` for session cookie
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — cookie-parser, express-session (Postgres-backed), CORS, JSON parsing, error handler
-- Routes: `src/routes/index.ts` mounts all sub-routers
-- Services: `src/services/<domain>.service.ts` — thin Drizzle ORM wrappers; throw `AppError` subclasses
-- Error utilities: `src/lib/errors.ts` — `AppError`, `NotFoundError` (404), `ValidationError` (400), `UnauthorizedError` (401), `ForbiddenError` (403)
-- Middleware: `src/middlewares/errorHandler.ts` — global error handler; `auth.ts` / `requireAdmin.ts` — session-based auth stubs
-- Session: express-session + connect-pg-simple (Postgres store, auto-creates `session` table); session data: `userId?: string`, `isAdmin?: boolean`
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-
-**Live public endpoints (Step 4B):**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/healthz` | Health check |
-| GET | `/api/locations` | List active locations |
-| GET | `/api/locations/:id` | Get location by ID |
-| GET | `/api/fleet/brands` | List brands |
-| GET | `/api/fleet/models` | List active vehicle models |
-| GET | `/api/fleet/groups` | List active vehicle groups |
-| GET | `/api/fleet/vehicles` | List vehicles (filters: status, locationId, vehicleGroupId, vehicleModelId) |
-| GET | `/api/fleet/vehicles/:id` | Get vehicle by ID |
-| GET | `/api/rates` | List active rates (with tiers) |
-| GET | `/api/rates/:id` | Get rate by ID (with tiers) |
-| GET | `/api/extras` | List active extras |
-
-**Public booking endpoints (Block 13 + Block 19 — no auth required):**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/public/booking-config` | Returns locations, vehicle models (available_for_external_systems=true), active extras |
-| POST | `/api/public/validate-promo` | Validates a promo code; returns `{valid, discountType, discountValue}` |
-| POST | `/api/public/quote` | Resolves best active rate tier for vehicleModelId+date+duration; returns full itemised quote `{quotable, days, rateId, rateTierId, rateName, basePricePerDay, baseCurrency, baseTotal, extrasTotal, discountAmount, estimatedTotal}` |
-| POST | `/api/public/bookings` | Creates a booking with source="website"; auto creates customer via findOrCreateCustomer; accepts resolvedRateId/rateTierId/baseRate/resolvedTotal to store CRM pricing |
-
-**Website Pricing Sync (Block 19):**
-- Step5 (Review Booking) fetches `/api/public/quote` on mount and shows an "ESTIMATED PRICING" card when a rate is found
-- On submit, the resolved pricing is sent to `/api/public/bookings` so CRM stores `total_amount`, `rate_id`, `rate_tier_id`, `base_rate`
-- Toyota Prius (model ID 3) has Standard Season 2026 rate: 75 GEL/day; High Season 2026: 85 GEL/day (Jun–Aug)
-
-**Admin endpoints (Phase 2 — require `requireAdmin` per handler):**
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/admin/auth/login` | Admin login (email+password) |
-| POST | `/api/admin/auth/logout` | Admin logout |
-| GET | `/api/admin/auth/me` | Current admin user |
-| GET/POST | `/api/admin/fleet/brands` | List / Create brands |
-| PATCH/DELETE | `/api/admin/fleet/brands/:id` | Update / Delete brand |
-| GET/POST | `/api/admin/fleet/models` | List / Create models |
-| PATCH/DELETE | `/api/admin/fleet/models/:id` | Update / Delete model |
-| GET/POST | `/api/admin/fleet/vehicles` | List (paginated) / Create vehicles |
-| PATCH/DELETE | `/api/admin/fleet/vehicles/:id` | Update / Delete vehicle |
-| PATCH | `/api/admin/fleet/vehicles/:id/status` | Change vehicle status |
-| GET/POST | `/api/admin/locations` | List / Create locations |
-| PATCH/DELETE | `/api/admin/locations/:id` | Update / Delete location |
-| GET/POST | `/api/admin/extras` | List / Create extras |
-| PATCH/DELETE | `/api/admin/extras/:id` | Update / Delete extra |
-| GET/POST | `/api/admin/rates` | List / Create rates |
-| PATCH/DELETE | `/api/admin/rates/:id` | Update / Delete rate |
-| GET/POST | `/api/admin/rates/:id/tiers` | List / Create rate tiers |
-| PATCH/DELETE | `/api/admin/rates/:id/tiers/:tierId` | Update / Delete tier |
-| GET/POST | `/api/admin/promos` | List / Create promos |
-| PATCH/DELETE | `/api/admin/promos/:id` | Update / Delete promo |
-| GET/POST | `/api/admin/customers` | List / Create customers |
-| GET/PATCH/DELETE | `/api/admin/customers/:id` | Get / Update / Delete customer |
-| GET/POST | `/api/admin/bookings` | List (paginated+filter) / Create booking |
-| GET/PATCH/DELETE | `/api/admin/bookings/:id` | Get / Update / Soft-delete booking |
-| PATCH | `/api/admin/bookings/:id/status` | Update booking status |
-| GET/POST | `/api/admin/team` | List / Create team members |
-| PATCH/DELETE | `/api/admin/team/:id` | Update / Delete team member |
-| GET | `/api/admin/dashboard/summary?city=` | Booking KPIs (optional region filter) |
-| GET | `/api/admin/dashboard/today?city=` | Today's pickups/dropoffs (optional region filter) |
-| GET | `/api/admin/dashboard/fleet-snapshot?city=` | Fleet status counts (optional region filter) |
-| GET | `/api/admin/dashboard/fleet-calendar?dateFrom=&dateTo=&city=` | Fleet timeline data for date range |
-| GET | `/api/admin/fleet-calendar?startDate=&endDate=&city=` | Fleet Calendar timeline — all vehicles + bookings per date range (city optional) |
-| GET | `/api/admin/service/types` | List service type categories (16 pre-seeded) |
-| GET/POST | `/api/admin/service` | List (paginated+filter) / Create service records |
-| GET/PATCH/DELETE | `/api/admin/service/:id` | Get / Update / Delete service record |
-| GET | `/api/admin/accounting/categories` | Income and expense category lists |
-| GET/PUT | `/api/admin/accounting/rates` | Get / Update exchange rates (USD→GEL, EUR→GEL) |
-| GET | `/api/admin/accounting/summary` | Income/expense totals by currency + GEL equivalents |
-| GET/POST | `/api/admin/accounting` | List (paginated+filter) / Create accounting entries |
-| GET/PATCH/DELETE | `/api/admin/accounting/:id` | Get / Update / Delete accounting entry |
-| GET | `/api/admin/bookings/:id/payments` | List all payments + payment summary for a booking |
-| POST | `/api/admin/bookings/:id/payments` | Add a payment record (auto-creates accounting entry) |
-| DELETE | `/api/admin/bookings/:id/payments/:paymentId` | Delete payment (also removes linked accounting entry) |
-
-**Auth boundaries:**
-- Public (no auth): all Step 4B endpoints above
-- Customer (`requireAuth`): POST /bookings, GET /bookings/:id, GET /users/me (Step 4C+)
-- Admin (`requireAdmin`): all `/api/admin/*` endpoints
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models (40 tables, 15 enums, 40 insert schemas)
-- `src/schema/<domain>.ts` — domain-split table definitions with `drizzle-zod` insert schemas:
-  - `locations.ts` — location, one_way_fees
-  - `fleet.ts` — brand, vehicle_model, vehicle_model_photo, vehiclegroup, vehicle, vehiclephoto, document, vehicle_history, vehicleprice
-  - `rates.ts` — rate, ratetier, ratedayrange, ratehourrange, ratekmrange
-  - `users.ts` — user, admins, tasks, task_assignees
-  - `bookings.ts` — extra, booking, bookingextra, booking_history, booking_vehicle_assignments, bookingphoto
-  - `promotions.ts` — promo
-  - `partners.ts` — partner, partner_document, partner_vehicle
-  - `maintenance.ts` — maintenance_service_types, maintenance_services
-  - `damages.ts` — damagereport
-  - `accounting.ts` — payment (legacy online payment), booking_payment (Block 14 internal tracking), accounting_entries, exchange_rates
-  - `cases.ts` — cases, case_comments, case_attachments, case_assignments, review
-  - `settings.ts` — company_settings
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+- **PostgreSQL**: Primary database for all application data, including session management via `connect-pg-simple`.
+- **Orval**: API codegen tool used to generate TypeScript clients and Zod schemas from an OpenAPI specification.
+- **TanStack Query**: Used in both `artifacts/website` and `artifacts/crm` for data fetching, caching, and state management.
+- **Tailwind CSS**: Utility-first CSS framework used for styling in `artifacts/website` and `artifacts/crm`.
+- **shadcn/ui**: Component library providing accessible and customizable UI components for both front-end applications.
+- **Vite**: Build tool for both `artifacts/website` and `artifacts/crm`.
+- **wouter**: A tiny React router used in `artifacts/crm`.
+- **connect-pg-simple**: PostgreSQL session store for `express-session` in `artifacts/api-server`.

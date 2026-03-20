@@ -19,7 +19,7 @@ import {
   lt,
   lte,
   or,
-  sum,
+  sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
@@ -191,7 +191,14 @@ export async function getDashboardSummary(city?: string) {
     db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "CANCELED"))),
     db.select({ c: count() }).from(bookingTable).where(and(baseWhere, eq(bookingTable.status, "NO_SHOW"))),
     db
-      .select({ revenue: sum(bookingTable.totalAmount) })
+      .select({
+        revenue: sql<string>`COALESCE(SUM(CASE
+          WHEN ${bookingTable.currency} = 'GEL' THEN ${bookingTable.totalAmount}::numeric
+          WHEN ${bookingTable.currency} = 'USD' THEN ${bookingTable.totalAmount}::numeric * 2.7
+          WHEN ${bookingTable.currency} = 'EUR' THEN ${bookingTable.totalAmount}::numeric * 2.9
+          ELSE ${bookingTable.totalAmount}::numeric
+        END), 0)`,
+      })
       .from(bookingTable)
       .where(and(baseWhere, eq(bookingTable.status, "RETURNED"))),
   ]);
