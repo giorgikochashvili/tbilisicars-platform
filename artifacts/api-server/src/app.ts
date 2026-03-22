@@ -43,6 +43,10 @@ app.use(
   }),
 );
 
+app.get("/", (_req, res) => {
+  res.redirect("/website/");
+});
+
 app.use("/api", router);
 app.use(errorHandler);
 
