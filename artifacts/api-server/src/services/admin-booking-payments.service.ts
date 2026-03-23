@@ -3,7 +3,7 @@ import {
   bookingPaymentTable,
   accountingEntriesTable,
 } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { getExchangeRate, convertToGel } from "./admin-accounting.service.js";
 import { NotFoundError } from "../lib/errors.js";
 import { pool } from "@workspace/db";
@@ -62,6 +62,53 @@ export async function getBookingPaymentSummary(bookingId: number) {
     totalRefunded,
     netDeposit: depositReceived - depositReturned,
   };
+}
+
+// ─── Derive & persist booking payment status ──────────────────────────────────
+//
+// Compares the GEL-equivalent total paid against the booking's total amount
+// (converted to GEL) and writes the resulting paymentStatus to the booking row.
+
+async function updateBookingPaymentStatus(
+  bookingId: number,
+  summary: Awaited<ReturnType<typeof getBookingPaymentSummary>>,
+) {
+  const { rows: bookingRows } = await pool.query(
+    `SELECT total_amount, currency FROM booking WHERE id = $1`,
+    [bookingId],
+  );
+  const b = bookingRows[0];
+  if (!b) return;
+
+  const totalPaidGel = summary.totalPaid;
+
+  let newStatus: "UNPAID" | "HALF" | "PAID";
+
+  if (totalPaidGel <= 0) {
+    newStatus = "UNPAID";
+  } else if (!b.total_amount) {
+    // No booking price set — cannot confirm fully paid
+    newStatus = "HALF";
+  } else {
+    const bookingTotal = parseFloat(b.total_amount);
+    let bookingTotalGel: number;
+
+    if (!b.currency || b.currency === "GEL") {
+      bookingTotalGel = bookingTotal;
+    } else {
+      const rate = await getExchangeRate();
+      bookingTotalGel = rate
+        ? convertToGel(bookingTotal, b.currency as PaymentCurrency, rate)
+        : bookingTotal;
+    }
+
+    newStatus = totalPaidGel >= bookingTotalGel - 0.005 ? "PAID" : "HALF";
+  }
+
+  await pool.query(
+    `UPDATE booking SET payment_status = $1, updated_at = NOW() WHERE id = $2`,
+    [newStatus, bookingId],
+  );
 }
 
 // ─── List Payments ────────────────────────────────────────────────────────────
@@ -147,6 +194,8 @@ export async function addBookingPayment(input: AddPaymentInput) {
 
   const summary = await getBookingPaymentSummary(bookingId);
 
+  await updateBookingPaymentStatus(bookingId, summary);
+
   return { payment, summary };
 }
 
@@ -173,5 +222,8 @@ export async function deleteBookingPayment(bookingId: number, paymentId: number)
     .where(eq(bookingPaymentTable.id, paymentId));
 
   const summary = await getBookingPaymentSummary(bookingId);
+
+  await updateBookingPaymentStatus(bookingId, summary);
+
   return { summary };
 }

@@ -101,9 +101,10 @@ interface BookingDetailProps {
   bookingId: number | null;
   open: boolean;
   onClose: () => void;
+  onPaymentChanged?: () => void;
 }
 
-export default function BookingDetail({ bookingId, open, onClose }: BookingDetailProps) {
+export default function BookingDetail({ bookingId, open, onClose, onPaymentChanged }: BookingDetailProps) {
   const { toast } = useToast();
   const [booking, setBooking] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
@@ -120,6 +121,7 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
     try {
       const data = await apiFetch(`/admin/bookings/${bookingId}`);
       setBooking(data);
+      setForm((prev) => ({ ...prev, currency: data.currency ?? "GEL" }));
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -177,9 +179,11 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
         }),
       });
       toast({ title: "Payment Added", description: `${PAYMENT_TYPE_LABELS[form.paymentType] ?? form.paymentType} of ${currencySymbol(form.currency)}${form.amount} recorded.` });
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, currency: booking?.currency ?? "GEL" });
       setShowAddForm(false);
       fetchPayments();
+      fetchBooking();
+      onPaymentChanged?.();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -194,6 +198,8 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
       await apiFetch(`/admin/bookings/${bookingId}/payments/${paymentId}`, { method: "DELETE" });
       toast({ title: "Payment Deleted" });
       fetchPayments();
+      fetchBooking();
+      onPaymentChanged?.();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -290,7 +296,9 @@ export default function BookingDetail({ bookingId, open, onClose }: BookingDetai
               <div>
                 <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Booking Price</div>
                 <div className="font-mono font-bold text-base">
-                  {booking.totalAmount ? `₾${parseFloat(booking.totalAmount).toFixed(2)}` : "—"}
+                  {booking.totalAmount
+                    ? `${currencySymbol(booking.currency ?? "GEL")}${parseFloat(booking.totalAmount).toFixed(2)}`
+                    : "—"}
                 </div>
               </div>
               <div>

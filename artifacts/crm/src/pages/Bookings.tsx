@@ -462,6 +462,7 @@ export default function BookingsPage() {
         bookingId={detailBookingId}
         open={detailBookingId !== null}
         onClose={() => setDetailBookingId(null)}
+        onPaymentChanged={() => queryClient.invalidateQueries()}
       />
 
       {/* ─── New Booking Modal ──────────────────────────────────────────── */}
