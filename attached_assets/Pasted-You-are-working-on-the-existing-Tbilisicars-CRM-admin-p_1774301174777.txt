@@ -1,0 +1,333 @@
+You are working on the existing Tbilisicars CRM admin project. This is NOT a redesign from scratch. Do NOT change unrelated logic, styles, routes, database structure, or existing working modules unless required for the requested features below.
+
+Goal: implement a focused CRM usability and operations upgrade across Dashboard, Bookings, Fleet, Service, and New Booking flows.
+
+Important rules:
+1. Preserve the current dark premium admin design language.
+2. Do not break existing authentication, session logic, or API contracts unless explicitly required.
+3. Reuse existing components and patterns where possible.
+4. Keep code clean, typed, production-ready, and minimal.
+5. If any new persistence is needed for dashboard widget visibility, implement it safely and simply.
+6. Do not remove current working features.
+7. If a filter already exists, extend it instead of duplicating it.
+8. Make sure all new UI works well on desktop first, while remaining acceptable on tablet widths.
+9. After implementation, ensure the project still builds cleanly.
+
+==================================================
+FEATURE BLOCK A — LEFT SIDEBAR MUST STAY VISIBLE
+==================================================
+
+Current issue:
+The left CRM sidebar/menu behaves in a collapsible way that is inconvenient during module switching.
+
+Required change:
+- Make the CRM left sidebar persistently visible / expanded by default on desktop.
+- Users should not need to collapse/expand it just to move between modules.
+- Keep the current branding, dark theme, user card, module items, and overall layout style.
+- If there is a sidebar toggle button, either:
+  - remove its collapsing effect on desktop, or
+  - keep the button only for smaller screens but not for desktop collapse behavior.
+- Main content area must adapt correctly to the fixed visible sidebar.
+- Ensure there are no layout overflows or clipping after this change.
+
+Desktop expectation:
+- Sidebar always visible
+- Main content shifted correctly
+- Easy switching between Dashboard, Bookings, Fleet, Fleet Calendar, Service, Accounting, Reports, Alerts, Customers, Locations
+
+==================================================
+FEATURE BLOCK B — DASHBOARD IMPROVEMENTS
+==================================================
+
+--------------------------------------------------
+B1. Today’s Pickups / Today’s Dropoffs rows clickable
+--------------------------------------------------
+
+Required:
+- In Dashboard “Today’s Pickups” and “Today’s Dropoffs” tables/cards, each booking row must be clickable.
+- Clicking the row must open the detail page for that booking.
+- Use the project’s existing booking detail route if one already exists.
+- If rows currently have nested controls, make sure row click still feels natural and does not conflict.
+
+--------------------------------------------------
+B2. Dashboard widget/card visibility customization
+--------------------------------------------------
+
+Current requirement:
+The user wants to control which dashboard sections/cards are visible.
+
+Required:
+- Add an “Edit”, “Customize”, or similar dashboard customization mode.
+- User must be able to show/hide dashboard widgets such as:
+  - Total
+  - Revenue
+  - Pending
+  - Confirmed
+  - Delivered
+  - Returned
+  - Canceled
+  - No Show
+  - and any other current dashboard cards/sections that logically fit into customization
+- Also allow show/hide for dashboard content blocks where reasonable, such as:
+  - Booking Overview
+  - Fleet Live Status
+  - Today’s Operations
+- Save the selection so the dashboard remains in the user’s preferred view after refresh.
+
+Implementation guidance:
+- Use the simplest reliable persistence approach already compatible with the project.
+- If there is no existing per-user preference persistence, local storage is acceptable as a first implementation.
+- Keep the UX clean:
+  - one visible Customize/Edit button
+  - a modal, popover, dropdown panel, or drawer with toggle switches/checkboxes
+  - a Save action
+  - optional Reset to Default is a plus
+- Default state should preserve the current full dashboard view for first-time users.
+
+--------------------------------------------------
+B3. Scrollbar redesign for dark dashboard tables
+--------------------------------------------------
+
+Current issue:
+White horizontal scrollbar breaks the design.
+
+Required:
+- Restyle table/container scrollbars to match the dark theme.
+- Horizontal and vertical scrollbars should be subtle, dark, and modern.
+- Avoid bright white tracks/thumbs.
+- Apply this especially to Dashboard tables, and reuse globally if safe.
+
+--------------------------------------------------
+B4. Make Today’s Pickups / Dropoffs more informative
+--------------------------------------------------
+
+Current issue:
+The current columns are not optimized for operations.
+
+Required:
+Update Today’s Pickups and Today’s Dropoffs views so the row content is prioritized like this:
+
+1. Reservation code / booking reference
+2. Client name
+3. Phone number
+4. Assigned vehicle
+5. Reservation amount
+6. Route short code
+7. Pickup/Dropoff time
+8. Status (if there is room and it remains useful)
+
+Notes:
+- Keep layout compact and readable.
+- If needed, slightly rebalance column widths.
+- Avoid clutter.
+- Make sure the most operationally useful details are visible without entering the booking.
+
+--------------------------------------------------
+B5. Route/location short code formatting
+--------------------------------------------------
+
+Replace long pickup/dropoff route labels in dashboard operations tables with short operational codes.
+
+Use these mappings:
+- Tbilisi International Airport => TBS AIR
+- Kutaisi International Airport => KUT AIR
+- Batumi International Airport => BAT AIR
+- Tbilisi Downtown => TBS DT
+- Kutaisi Downtown => KUT DT
+- Batumi Downtown => BAT DT
+
+Hotel examples:
+- Batumi Hotel => BAT H
+- In general, hotel-style locations should use short city+hotel code format where possible.
+
+Implementation guidance:
+- Create a small centralized helper/formatter for location short labels instead of hardcoding them in multiple components.
+- If exact location labels differ in the data, map them intelligently and safely.
+- Fallback: if location cannot be matched, keep a shortened readable label rather than breaking the UI.
+
+--------------------------------------------------
+B6. Revenue card logic review
+--------------------------------------------------
+
+Current issue:
+The Revenue number on the dashboard is unclear and may be misleading.
+
+Required:
+- Review the dashboard revenue calculation logic.
+- Ensure the displayed revenue is clearly and correctly derived from existing booking/payment data.
+- If the project already has a business rule for dashboard revenue, align the card with that rule.
+- Do not guess silently. Make the implementation consistent with current data structures.
+- If needed, improve naming or tooltip/help text very lightly, but do not redesign the section unnecessarily.
+
+==================================================
+FEATURE BLOCK C — BOOKINGS PAGE FILTER EXPANSION
+==================================================
+
+Current issue:
+Bookings list filtering is too limited.
+
+Required:
+Enhance the Bookings page filter system so users can filter by:
+- Reservation number / booking reference
+- Customer name
+- Vehicle
+- Booking status
+- Date range
+- Location
+- Payment state:
+  - Paid
+  - Unpaid
+  - Prepaid
+  - and other relevant existing payment states if present in the project
+
+Implementation guidance:
+- Preserve current page layout and style.
+- Filters should be practical and fast.
+- Prefer a clean filter bar or expandable filter section.
+- If the project already has server-side filtering patterns, follow them.
+- If filtering is currently client-side and data size is manageable, keep it simple but robust.
+- Date range filter should be intuitive and usable.
+- Location filter should work with the project’s actual location data model.
+- Payment state filter should align with current payment summary/status logic already used elsewhere.
+
+Usability expectation:
+Operations staff should be able to quickly narrow bookings by multiple criteria without confusion.
+
+==================================================
+FEATURE BLOCK D — FLEET PAGE FILTERS + SEARCH
+==================================================
+
+Current issue:
+Fleet list needs better operational filtering.
+
+Required:
+On the Fleet page, add:
+- Filter by location
+- Filter by vehicle category
+- Search input that can find a vehicle by plate number / license plate
+
+Implementation guidance:
+- Place filters/search cleanly above the list/table.
+- Reuse existing select/search UI styles from the CRM.
+- Search should be fast and forgiving.
+- Plate search should work for full or partial input if feasible.
+- Do not remove the current table/tabs structure.
+
+==================================================
+FEATURE BLOCK E — SERVICE MODULE VEHICLE SELECTION
+==================================================
+
+Current issue:
+In Add Service Record, vehicle selection is currently too flat and not efficient.
+
+Required:
+Change vehicle selection flow in the Service module so it supports:
+
+Primary structured flow:
+1. Brand
+2. Model
+3. Specific vehicle
+
+Also required:
+- Add fast plate-number search so the user can directly type a vehicle plate and quickly find/select the car.
+
+Implementation guidance:
+- Keep the current modal/form styling.
+- Do not overload the form visually.
+- Brand selection should filter Model options.
+- Model selection should filter the specific Vehicle options.
+- Plate search should work alongside the structured flow, not replace it.
+- If there is already a vehicle search input in Service, improve and connect it properly.
+
+==================================================
+FEATURE BLOCK F — NEW BOOKING FORM VEHICLE UX
+==================================================
+
+Current issue:
+In New Booking, the Model dropdown shows all models together, which is messy and hard to use.
+
+Required:
+Update the New Booking vehicle selection so the flow becomes:
+1. Brand
+2. Model
+3. Optional specific vehicle (if current business logic supports assigning later)
+
+Detailed expectations:
+- First choose Brand
+- Then only show Models belonging to that Brand
+- Then keep the existing optional specific vehicle logic, filtered appropriately if needed
+- Preserve current ability to create a booking without assigning a specific vehicle immediately, if the current system already supports that
+
+Important:
+- This is a UX cleanup, not a business-logic rewrite.
+- Do not break current booking creation logic.
+- Do not remove “specific vehicle optional / assign later” behavior if it already exists and works.
+
+==================================================
+IMPLEMENTATION QUALITY REQUIREMENTS
+==================================================
+
+1. Keep all changes consistent with existing CRM design.
+2. Use reusable helpers where appropriate:
+   - dashboard visibility config helper/state
+   - location short-code formatter
+   - shared filter components if the codebase already supports them
+3. Avoid duplicate logic.
+4. Do not introduce unnecessary dependencies unless truly needed.
+5. Ensure accessibility/basic usability:
+   - clickable rows should have hover state and obvious affordance
+   - toggles/filters should be understandable
+6. Ensure dark theme remains visually polished.
+7. Check for overflow issues after adding new columns/filters.
+
+==================================================
+TESTING / VERIFICATION TO COMPLETE BEFORE FINISHING
+==================================================
+
+After implementing, verify:
+
+A. Sidebar
+- Desktop sidebar remains visible
+- Main layout is stable
+- Navigation between modules works
+
+B. Dashboard
+- Booking rows in Today’s Pickups/Dropoffs open booking details
+- Widget customization works
+- Saved visibility state persists after refresh
+- Scrollbars are dark-styled
+- Pickups/Dropoffs show the improved operational columns
+- Route short codes display correctly
+- Revenue logic is consistent and not obviously incorrect
+
+C. Bookings page
+- Filters work individually
+- Filters work in combination
+- Date range filtering works
+- Location and payment state filtering work
+
+D. Fleet page
+- Location filter works
+- Category filter works
+- Plate search works
+
+E. Service
+- Brand -> Model -> Vehicle flow works
+- Plate search works
+- Service record creation still works
+
+F. New Booking
+- Brand -> Model flow works
+- Optional specific vehicle still works
+- Booking creation still works end to end
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+When finished:
+1. Briefly summarize what changed
+2. List any schema/API/state changes made
+3. Mention any assumptions
+4. Confirm the project builds successfully
+5. Do not rewrite unrelated modules
