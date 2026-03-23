@@ -37,6 +37,9 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
     search: query.search,
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
+    bookingId: query.bookingId,
+    vehicleSearch: query.vehicleSearch,
+    locationId: query.locationId,
   });
   res.json(ListAdminBookingsResponse.parse(result));
 });

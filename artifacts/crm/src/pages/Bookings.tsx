@@ -5,6 +5,7 @@ import {
   useCreateAdminBooking,
   useUpdateAdminBookingStatus,
   useListAdminCustomers,
+  useListAdminBrands,
   useListAdminModels,
   useListAdminVehicles,
   useListLocations,
@@ -21,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -142,6 +143,7 @@ const EMPTY_BOOKING = {
   newCustomerName: "",
   newCustomerPhone: "",
   newCustomerEmail: "",
+  brandId: "",
   vehicleModelId: "",
   vehicleId: "",
   pickupLocationId: "",
@@ -163,6 +165,12 @@ const EMPTY_BOOKING = {
 export default function BookingsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [paymentFilter, setPaymentFilter] = useState<string>("ALL");
+  const [vehicleSearch, setVehicleSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [locationFilter, setLocationFilter] = useState<string>("ALL");
+  const [bookingIdSearch, setBookingIdSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
@@ -177,9 +185,30 @@ export default function BookingsPage() {
   const queryParams: any = { page, limit: 15 };
   if (search) queryParams.search = search;
   if (statusFilter !== "ALL") queryParams.status = statusFilter;
+  if (paymentFilter !== "ALL") queryParams.paymentStatus = paymentFilter;
+  if (vehicleSearch) queryParams.vehicleSearch = vehicleSearch;
+  if (dateFrom) queryParams.dateFrom = dateFrom;
+  if (dateTo) queryParams.dateTo = dateTo;
+  if (locationFilter !== "ALL") queryParams.locationId = parseInt(locationFilter);
+  if (bookingIdSearch && !isNaN(parseInt(bookingIdSearch))) queryParams.bookingId = parseInt(bookingIdSearch);
+
+  const hasActiveFilters = search || statusFilter !== "ALL" || paymentFilter !== "ALL" || vehicleSearch || dateFrom || dateTo || locationFilter !== "ALL" || bookingIdSearch;
+
+  const clearAllFilters = () => {
+    setSearch("");
+    setStatusFilter("ALL");
+    setPaymentFilter("ALL");
+    setVehicleSearch("");
+    setDateFrom("");
+    setDateTo("");
+    setLocationFilter("ALL");
+    setBookingIdSearch("");
+    setPage(1);
+  };
   
   const { data, isLoading } = useListAdminBookings(queryParams, reqOpts);
   const { data: customers } = useListAdminCustomers({ page: 1, limit: 50, search: customerSearch }, reqOpts);
+  const { data: brands } = useListAdminBrands(reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
   const { data: vehicleData } = useListAdminVehicles(
     booking.vehicleModelId ? { modelId: parseInt(booking.vehicleModelId) } as any : undefined,
@@ -195,7 +224,12 @@ export default function BookingsPage() {
   const allVehicles = (vehicleData as any)?.data || [];
   const allLocations = (locations as any) || [];
   const allModels = (models as any) || [];
+  const allBrands = (brands as any) || [];
   const allCustomers = (customers as any)?.data || [];
+
+  const filteredModels = booking.brandId
+    ? allModels.filter((m: any) => m.brand?.id?.toString() === booking.brandId)
+    : allModels;
 
   const handleStatusChange = (id: number, newStatus: any) => {
     statusMutation.mutate(
@@ -319,30 +353,103 @@ export default function BookingsPage() {
       </div>
 
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
-        <div className="p-4 border-b border-border/40 bg-background/50 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by customer..." 
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="pl-9 bg-background"
-            />
+        <div className="p-4 border-b border-border/40 bg-background/50 space-y-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Reservation ID */}
+            <div className="relative w-28">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="#ID"
+                value={bookingIdSearch}
+                onChange={(e) => { setBookingIdSearch(e.target.value.replace(/\D/g, "")); setPage(1); }}
+                className="pl-8 bg-background h-9 text-sm"
+              />
+            </div>
+            {/* Customer search */}
+            <div className="relative flex-1 min-w-40">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Customer name / phone / email…"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="pl-8 bg-background h-9 text-sm"
+              />
+            </div>
+            {/* Vehicle search */}
+            <div className="relative w-44">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Plate or model…"
+                value={vehicleSearch}
+                onChange={(e) => { setVehicleSearch(e.target.value); setPage(1); }}
+                className="pl-8 bg-background h-9 text-sm"
+              />
+            </div>
           </div>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-[180px] bg-background">
-              <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="DELIVERED">Delivered</SelectItem>
-              <SelectItem value="RETURNED">Returned</SelectItem>
-              <SelectItem value="CANCELED">Canceled</SelectItem>
-              <SelectItem value="NO_SHOW">No Show</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Status */}
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[148px] bg-background h-9 text-sm">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                <SelectItem value="DELIVERED">Delivered</SelectItem>
+                <SelectItem value="RETURNED">Returned</SelectItem>
+                <SelectItem value="CANCELED">Canceled</SelectItem>
+                <SelectItem value="NO_SHOW">No Show</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Payment status */}
+            <Select value={paymentFilter} onValueChange={(v) => { setPaymentFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[148px] bg-background h-9 text-sm">
+                <SelectValue placeholder="All Payments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Payments</SelectItem>
+                <SelectItem value="UNPAID">Unpaid</SelectItem>
+                <SelectItem value="HALF">Partially Paid</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="REFUNDED">Refunded</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Location */}
+            <Select value={locationFilter} onValueChange={(v) => { setLocationFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[180px] bg-background h-9 text-sm">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Locations</SelectItem>
+                {allLocations.map((loc: any) => (
+                  <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Date from */}
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="bg-background h-9 text-sm w-[140px]"
+              title="Pickup from"
+            />
+            {/* Date to */}
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="bg-background h-9 text-sm w-[140px]"
+              title="Pickup to"
+            />
+            {/* Clear all */}
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-muted-foreground hover:text-foreground" onClick={clearAllFilters}>
+                <X className="w-3.5 h-3.5" /> Clear all
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -542,11 +649,29 @@ export default function BookingsPage() {
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</h3>
               <div className="grid gap-2">
-                <Label>Model <span className="text-destructive">*</span></Label>
-                <Select value={booking.vehicleModelId} onValueChange={(v) => setBooking({...booking, vehicleModelId: v, vehicleId: ""})}>
-                  <SelectTrigger><SelectValue placeholder="Choose model..." /></SelectTrigger>
+                <Label>Brand</Label>
+                <Select
+                  value={booking.brandId}
+                  onValueChange={(v) => setBooking({ ...booking, brandId: v, vehicleModelId: "", vehicleId: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Any brand…" /></SelectTrigger>
                   <SelectContent>
-                    {allModels.map((m: any) => (
+                    <SelectItem value="any">Any brand</SelectItem>
+                    {allBrands.map((b: any) => (
+                      <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Model <span className="text-destructive">*</span></Label>
+                <Select
+                  value={booking.vehicleModelId}
+                  onValueChange={(v) => setBooking({ ...booking, vehicleModelId: v, vehicleId: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choose model…" /></SelectTrigger>
+                  <SelectContent>
+                    {filteredModels.map((m: any) => (
                       <SelectItem key={m.id} value={m.id.toString()}>
                         {m.brand?.name} {m.name}
                       </SelectItem>
@@ -556,10 +681,10 @@ export default function BookingsPage() {
               </div>
               <div className="grid gap-2">
                 <Label className="flex items-center gap-2">
-                  Specific Vehicle 
+                  Specific Vehicle
                   <span className="text-muted-foreground font-normal text-xs">(optional — can be assigned later)</span>
                 </Label>
-                <Select value={booking.vehicleId} onValueChange={(v) => setBooking({...booking, vehicleId: v})}>
+                <Select value={booking.vehicleId} onValueChange={(v) => setBooking({ ...booking, vehicleId: v })}>
                   <SelectTrigger><SelectValue placeholder="Any available vehicle" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Any available vehicle</SelectItem>

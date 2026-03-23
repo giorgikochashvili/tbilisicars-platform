@@ -1693,6 +1693,9 @@ export const ListAdminBookingsQueryParams = zod.object({
   search: zod.coerce.string().optional(),
   dateFrom: zod.coerce.string().optional(),
   dateTo: zod.coerce.string().optional(),
+  bookingId: zod.coerce.number().optional(),
+  vehicleSearch: zod.coerce.string().optional(),
+  locationId: zod.coerce.number().optional(),
 });
 
 export const ListAdminBookingsResponse = zod.object({

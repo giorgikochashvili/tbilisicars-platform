@@ -19,6 +19,7 @@ import {
   gt,
   gte,
   ilike,
+  inArray,
   isNull,
   lt,
   lte,
@@ -168,6 +169,9 @@ export interface ListBookingsFilters {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  bookingId?: number;
+  vehicleSearch?: string;
+  locationId?: number;
   page?: number;
   limit?: number;
 }
@@ -240,12 +244,13 @@ async function validateVehicleBelongsToModel(
 // ─── Service: list bookings ────────────────────────────────────────────────────
 
 export async function listAdminBookings(filters: ListBookingsFilters = {}) {
-  const { status, paymentStatus, search, dateFrom, dateTo } = filters;
+  const { status, paymentStatus, search, dateFrom, dateTo, bookingId, vehicleSearch, locationId } = filters;
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
   const offset = (page - 1) * limit;
 
   const conditions = [isNull(bookingTable.deletedAt)];
+  if (bookingId) conditions.push(eq(bookingTable.id, bookingId));
   if (status) conditions.push(eq(bookingTable.status, status));
   if (paymentStatus) conditions.push(eq(bookingTable.paymentStatus, paymentStatus));
   if (search) {
@@ -259,6 +264,36 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
   }
   if (dateFrom) conditions.push(gte(bookingTable.pickupDatetime, new Date(dateFrom)));
   if (dateTo) conditions.push(lte(bookingTable.pickupDatetime, new Date(dateTo)));
+  if (locationId) {
+    conditions.push(
+      or(
+        eq(bookingTable.pickupLocationId, locationId),
+        eq(bookingTable.dropoffLocationId, locationId),
+      )!,
+    );
+  }
+  if (vehicleSearch) {
+    const vehicleSubquery = db
+      .select({ id: vehicleTable.id })
+      .from(vehicleTable)
+      .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+      .where(
+        or(
+          ilike(vehicleTable.licensePlate, `%${vehicleSearch}%`),
+          ilike(vehicleModelTable.name, `%${vehicleSearch}%`),
+        ),
+      );
+    const modelSubquery = db
+      .select({ id: vehicleModelTable.id })
+      .from(vehicleModelTable)
+      .where(ilike(vehicleModelTable.name, `%${vehicleSearch}%`));
+    conditions.push(
+      or(
+        inArray(bookingTable.vehicleId, vehicleSubquery),
+        inArray(bookingTable.vehicleModelId, modelSubquery),
+      )!,
+    );
+  }
 
   const where = and(...conditions);
 
