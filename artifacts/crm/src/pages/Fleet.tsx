@@ -118,17 +118,21 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const allBrands: any[] = (brands as any) || [];
   const allLocations: any[] = (locations as any) || [];
 
-  // Derived filter options
-  const categoryOptions: string[] = Array.from(
-    new Set(allModels.map((m: any) => m.category).filter(Boolean))
-  ).sort();
-  const modelsForBrand = filterBrandId && filterBrandId !== "any"
-    ? allModels.filter((m: any) => m.brandId?.toString() === filterBrandId)
-    : allModels;
-
   // Map modelId -> category for category filtering (vehicles may not carry category inline)
   const modelCategoryMap: Record<string, string> = {};
   allModels.forEach((m: any) => { if (m.id != null && m.category) modelCategoryMap[m.id.toString()] = m.category; });
+
+  // Derived filter options — sourced from loaded vehicles to avoid dead-end options
+  const categoryOptions: string[] = (Array.from(
+    new Set(
+      vehicles.map((v: any) =>
+        (v.vehicleModel?.category ?? modelCategoryMap[v.vehicleModelId?.toString() ?? ""] ?? "") as string
+      ).filter(Boolean)
+    )
+  ) as string[]).sort();
+  const modelsForBrand = filterBrandId && filterBrandId !== "any"
+    ? allModels.filter((m: any) => m.brandId?.toString() === filterBrandId)
+    : allModels;
 
   // Filtered vehicles (client-side)
   const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId);

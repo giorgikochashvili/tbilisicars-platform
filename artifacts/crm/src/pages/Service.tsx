@@ -488,7 +488,7 @@ export default function ServicePage() {
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {svcFilteredVehicles.length === 0 ? (
-                    <div className="py-2 px-3 text-sm text-muted-foreground">No vehicles match</div>
+                    <SelectItem value="__none__" disabled>No vehicles match</SelectItem>
                   ) : (
                     svcFilteredVehicles.map((v: any) => (
                       <SelectItem key={v.id} value={v.id.toString()}>
