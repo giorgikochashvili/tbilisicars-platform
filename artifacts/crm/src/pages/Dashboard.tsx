@@ -291,9 +291,9 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
             <TableRow className="border-border/40 hover:bg-transparent">
               <TableHead className="w-[56px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ref</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Phone</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Amount</TableHead>
+              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Route</TableHead>
               <TableHead className="w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Time</TableHead>
             </TableRow>
@@ -304,9 +304,9 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   <TableRow key={i} className="border-border/20 hover:bg-transparent">
                     <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="hidden lg:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell className="hidden xl:table-cell"><Skeleton className="h-4 w-14" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-14" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-10" /></TableCell>
                   </TableRow>
@@ -338,7 +338,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                       <TableCell className="font-semibold text-sm text-foreground">
                         {b.customer?.fullName || b.customer?.email || b.contactFullName}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground hidden lg:table-cell">
+                      <TableCell className="text-xs text-muted-foreground">
                         {phone ?? <span className="italic opacity-50">—</span>}
                       </TableCell>
                       <TableCell>
@@ -353,7 +353,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                           <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs font-mono font-semibold text-foreground hidden xl:table-cell">
+                      <TableCell className="text-xs font-mono font-semibold text-foreground">
                         {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : <span className="opacity-40">—</span>}
                       </TableCell>
                       <TableCell>
@@ -599,7 +599,7 @@ function CustomizePopover({ config, onChange }: {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold font-display">Dashboard Layout</h3>
           <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground gap-1" onClick={reset}>
-            <RotateCw className="w-3 h-3" /> Reset
+            <RotateCw className="w-3 h-3" /> Reset to defaults
           </Button>
         </div>
         <div className="space-y-0.5 divide-y divide-border/30">
