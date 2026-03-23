@@ -151,3 +151,33 @@
   .hover-elevate:hover { @apply -translate-y-0.5 shadow-md; }
   .active-elevate-2:active { @apply translate-y-0 shadow-sm scale-[0.98]; }
 }
+
+/* Dark scrollbar — matches the CRM dark theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(215 28% 22%) hsl(222 47% 9%);
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: hsl(222 47% 9%);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(215 28% 22%);
+  border-radius: 4px;
+  border: 1px solid hsl(222 47% 12%);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 28% 30%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: hsl(222 47% 9%);
+}
