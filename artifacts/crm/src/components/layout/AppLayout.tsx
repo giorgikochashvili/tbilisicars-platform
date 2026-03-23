@@ -9,11 +9,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   } as React.CSSProperties;
 
   return (
-    <SidebarProvider
-      open={true}
-      onOpenChange={() => {}}
-      style={style}
-    >
+    <SidebarProvider style={style}>
       <div className="flex h-screen w-full bg-background overflow-hidden text-foreground selection:bg-primary/30">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
