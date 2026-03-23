@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info, Search, Filter, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
@@ -83,6 +83,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
+
+  // Filter state
+  const [plateSearch, setPlateSearch] = useState("");
+  const [filterLocationId, setFilterLocationId] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterBrandId, setFilterBrandId] = useState("");
+  const [filterModelId, setFilterModelId] = useState("");
+
   const [formData, setFormData] = useState<{
     vehicleModelId: string;
     licensePlate: string;
@@ -104,8 +112,39 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const { data, isLoading } = useListAdminVehicles(undefined, reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
   const { data: locations } = useListLocations(reqOpts);
+  const { data: brands } = useListAdminBrands(reqOpts);
   const vehicles = (data as any)?.data || [];
-  
+  const allModels: any[] = (models as any) || [];
+  const allBrands: any[] = (brands as any) || [];
+  const allLocations: any[] = (locations as any) || [];
+
+  // Derived filter options
+  const categoryOptions: string[] = Array.from(
+    new Set(allModels.map((m: any) => m.category).filter(Boolean))
+  ).sort();
+  const modelsForBrand = filterBrandId && filterBrandId !== "any"
+    ? allModels.filter((m: any) => m.brandId?.toString() === filterBrandId)
+    : allModels;
+
+  // Filtered vehicles (client-side)
+  const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId);
+  const filteredVehicles = vehicles.filter((v: any) => {
+    if (plateSearch && !v.licensePlate?.toUpperCase().includes(plateSearch.toUpperCase())) return false;
+    if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
+    if (filterCategory && v.vehicleModel?.category !== filterCategory) return false;
+    if (filterBrandId && filterBrandId !== "any" && v.vehicleModel?.brandId?.toString() !== filterBrandId) return false;
+    if (filterModelId && v.vehicleModelId?.toString() !== filterModelId) return false;
+    return true;
+  });
+
+  const clearFilters = () => {
+    setPlateSearch("");
+    setFilterLocationId("");
+    setFilterCategory("");
+    setFilterBrandId("");
+    setFilterModelId("");
+  };
+
   const createMutation = useCreateAdminVehicle(reqOpts);
   const updateMutation = useUpdateAdminVehicle(reqOpts);
   const deleteMutation = useDeleteAdminVehicle(reqOpts);
@@ -194,11 +233,82 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
   return (
     <>
+      {/* Header row */}
       <div className="flex justify-end mb-4">
         <Button onClick={() => handleOpenModal()} className="shadow-sm hover-elevate">
           <Plus className="w-4 h-4 mr-2" /> Add Vehicle
         </Button>
       </div>
+
+      {/* Filter bar */}
+      <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm p-4 mb-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Filter className="w-4 h-4" /> Filters
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="h-6 px-2 ml-auto text-xs" onClick={clearFilters}>
+                <X className="w-3 h-3 mr-1" /> Clear
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Plate search — primary */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Plate number…"
+                value={plateSearch}
+                onChange={(e) => setPlateSearch(e.target.value.toUpperCase())}
+                className="pl-9 bg-background h-9 text-sm font-mono uppercase"
+              />
+            </div>
+            {/* Location */}
+            <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All locations" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All locations</SelectItem>
+                {allLocations.map((loc: any) => (
+                  <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Category */}
+            <Select value={filterCategory || "all"} onValueChange={(v) => setFilterCategory(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All categories" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Brand */}
+            <Select value={filterBrandId || "all"} onValueChange={(v) => {
+              setFilterBrandId(v === "all" ? "" : v);
+              setFilterModelId("");
+            }}>
+              <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All brands" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All brands</SelectItem>
+                {allBrands.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Model (filtered by brand) */}
+            <Select value={filterModelId || "all"} onValueChange={(v) => setFilterModelId(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All models" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All models</SelectItem>
+                {modelsForBrand.map((m: any) => (
+                  <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
         <div className="overflow-x-auto">
           <Table>
@@ -224,15 +334,15 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                     <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
                   </TableRow>
                 ))
-              ) : vehicles?.length === 0 ? (
+              ) : filteredVehicles.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                     <Car className="w-8 h-8 opacity-20 mx-auto mb-2" />
-                    No vehicles found. Add a vehicle to get started.
+                    {hasActiveFilters ? "No vehicles match the current filters." : "No vehicles found. Add a vehicle to get started."}
                   </TableCell>
                 </TableRow>
               ) : (
-                vehicles?.map((v: any) => (
+                filteredVehicles?.map((v: any) => (
                   <TableRow
                     key={v.id}
                     className="border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"

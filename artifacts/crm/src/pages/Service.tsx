@@ -67,6 +67,11 @@ export default function ServicePage() {
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
+  // Modal vehicle cascade state
+  const [svcPlateSearch, setSvcPlateSearch] = useState("");
+  const [svcBrandId, setSvcBrandId] = useState("");
+  const [svcModelId, setSvcModelId] = useState("");
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -132,6 +137,8 @@ export default function ServicePage() {
   // ── Handlers ──────────────────────────────────────────────────────
 
   const handleOpenModal = (record: any = null) => {
+    setSvcPlateSearch("");
+    setSvcModelId("");
     if (record) {
       setEditingRecord(record);
       setFormData({
@@ -145,9 +152,14 @@ export default function ServicePage() {
         description: record.description ?? "",
         status: record.status ?? "COMPLETED",
       });
+      // Pre-fill cascade from saved vehicle
+      const savedVehicle = vehicles.find((v: any) => v.id?.toString() === record.vehicleId?.toString());
+      setSvcBrandId(savedVehicle?.vehicleModel?.brandId?.toString() ?? "");
+      setSvcModelId(savedVehicle?.vehicleModelId?.toString() ?? "");
     } else {
       setEditingRecord(null);
       setFormData(EMPTY_FORM);
+      setSvcBrandId("");
     }
     setIsModalOpen(true);
   };
@@ -197,6 +209,35 @@ export default function ServicePage() {
 
   const vehicleLabel = (v: any) =>
     `${v.vehicleModel?.brand?.name ?? ""} ${v.vehicleModel?.name ?? ""} — ${v.licensePlate ?? "no plate"}`.trim();
+
+  // ── Modal vehicle cascade ─────────────────────────────────────────
+  const svcBrands: any[] = Array.from(
+    new Map(
+      vehicles
+        .map((v: any) => v.vehicleModel?.brand)
+        .filter(Boolean)
+        .map((b: any) => [b.id, b])
+    ).values()
+  ).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+  const svcModelsForBrand: any[] = Array.from(
+    new Map(
+      vehicles
+        .filter((v: any) =>
+          !svcBrandId || svcBrandId === "any" || v.vehicleModel?.brand?.id?.toString() === svcBrandId
+        )
+        .map((v: any) => v.vehicleModel)
+        .filter(Boolean)
+        .map((m: any) => [m.id, m])
+    ).values()
+  ).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+  const svcFilteredVehicles: any[] = vehicles.filter((v: any) => {
+    if (svcBrandId && svcBrandId !== "any" && v.vehicleModel?.brand?.id?.toString() !== svcBrandId) return false;
+    if (svcModelId && svcModelId !== "any" && v.vehicleModelId?.toString() !== svcModelId) return false;
+    if (svcPlateSearch && !v.licensePlate?.toUpperCase().includes(svcPlateSearch.toUpperCase())) return false;
+    return true;
+  });
 
   // ── Render ────────────────────────────────────────────────────────
 
@@ -397,19 +438,64 @@ export default function ServicePage() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Vehicle */}
+            {/* Vehicle — plate search + Brand → Model → Vehicle cascade */}
             <div className="grid gap-2">
               <Label>Vehicle <span className="text-destructive">*</span></Label>
+              {/* Plate search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by plate…"
+                  value={svcPlateSearch}
+                  onChange={(e) => {
+                    setSvcPlateSearch(e.target.value.toUpperCase());
+                    setFormData({ ...formData, vehicleId: "" });
+                  }}
+                  className="pl-9 bg-background font-mono uppercase text-sm"
+                />
+              </div>
+              {/* Brand */}
+              <Select value={svcBrandId || "any"} onValueChange={(v) => {
+                setSvcBrandId(v === "any" ? "" : v);
+                setSvcModelId("");
+                setFormData({ ...formData, vehicleId: "" });
+              }}>
+                <SelectTrigger className="bg-background text-sm"><SelectValue placeholder="Any brand" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any brand</SelectItem>
+                  {svcBrands.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Model */}
+              <Select value={svcModelId || "any"} onValueChange={(v) => {
+                setSvcModelId(v === "any" ? "" : v);
+                setFormData({ ...formData, vehicleId: "" });
+              }}>
+                <SelectTrigger className="bg-background text-sm"><SelectValue placeholder="Any model" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any model</SelectItem>
+                  {svcModelsForBrand.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Vehicle */}
               <Select value={formData.vehicleId} onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}>
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select vehicle…" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {vehicles.map((v: any) => (
-                    <SelectItem key={v.id} value={v.id.toString()}>
-                      {v.vehicleModel?.brand?.name ?? ""} {v.vehicleModel?.name ?? ""} — {v.licensePlate ?? "no plate"}
-                    </SelectItem>
-                  ))}
+                  {svcFilteredVehicles.length === 0 ? (
+                    <div className="py-2 px-3 text-sm text-muted-foreground">No vehicles match</div>
+                  ) : (
+                    svcFilteredVehicles.map((v: any) => (
+                      <SelectItem key={v.id} value={v.id.toString()}>
+                        {v.vehicleModel?.brand?.name ?? ""} {v.vehicleModel?.name ?? ""} — {v.licensePlate ?? "no plate"}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
