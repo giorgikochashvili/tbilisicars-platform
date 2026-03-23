@@ -227,7 +227,7 @@ export default function BookingsPage() {
   const allBrands = (brands as any) || [];
   const allCustomers = (customers as any)?.data || [];
 
-  const filteredModels = booking.brandId
+  const filteredModels = booking.brandId && booking.brandId !== "any"
     ? allModels.filter((m: any) => m.brand?.id?.toString() === booking.brandId)
     : allModels;
 
