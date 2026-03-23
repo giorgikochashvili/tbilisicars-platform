@@ -126,13 +126,20 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     ? allModels.filter((m: any) => m.brandId?.toString() === filterBrandId)
     : allModels;
 
+  // Map modelId -> category for category filtering (vehicles may not carry category inline)
+  const modelCategoryMap: Record<string, string> = {};
+  allModels.forEach((m: any) => { if (m.id != null && m.category) modelCategoryMap[m.id.toString()] = m.category; });
+
   // Filtered vehicles (client-side)
   const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId);
   const filteredVehicles = vehicles.filter((v: any) => {
     if (plateSearch && !v.licensePlate?.toUpperCase().includes(plateSearch.toUpperCase())) return false;
     if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
-    if (filterCategory && v.vehicleModel?.category !== filterCategory) return false;
-    if (filterBrandId && filterBrandId !== "any" && v.vehicleModel?.brandId?.toString() !== filterBrandId) return false;
+    if (filterCategory) {
+      const cat = v.vehicleModel?.category ?? modelCategoryMap[v.vehicleModelId?.toString() ?? ""] ?? "";
+      if (cat !== filterCategory) return false;
+    }
+    if (filterBrandId && filterBrandId !== "any" && v.vehicleModel?.brand?.id?.toString() !== filterBrandId) return false;
     if (filterModelId && v.vehicleModelId?.toString() !== filterModelId) return false;
     return true;
   });

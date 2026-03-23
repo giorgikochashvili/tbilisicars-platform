@@ -154,7 +154,7 @@ export default function ServicePage() {
       });
       // Pre-fill cascade from saved vehicle
       const savedVehicle = vehicles.find((v: any) => v.id?.toString() === record.vehicleId?.toString());
-      setSvcBrandId(savedVehicle?.vehicleModel?.brandId?.toString() ?? "");
+      setSvcBrandId(savedVehicle?.vehicleModel?.brand?.id?.toString() ?? "");
       setSvcModelId(savedVehicle?.vehicleModelId?.toString() ?? "");
     } else {
       setEditingRecord(null);
