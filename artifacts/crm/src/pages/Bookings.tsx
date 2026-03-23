@@ -21,10 +21,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -53,6 +55,77 @@ function PaymentBadge({ status }: { status: string }) {
     <Badge variant="outline" className={`text-[10px] uppercase ${colors[status] || "bg-gray-500/10 text-gray-500"}`}>
       {status}
     </Badge>
+  );
+}
+
+const TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
+  const h = Math.floor(i / 4).toString().padStart(2, "0");
+  const m = ((i % 4) * 15).toString().padStart(2, "0");
+  return `${h}:${m}`;
+});
+
+function DateTimePicker({
+  label,
+  dateValue,
+  timeValue,
+  onDateChange,
+  onTimeChange,
+  required,
+}: {
+  label: string;
+  dateValue: string;
+  timeValue: string;
+  onDateChange: (d: string) => void;
+  onTimeChange: (t: string) => void;
+  required?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = dateValue ? new Date(dateValue + "T12:00:00") : undefined;
+
+  return (
+    <div className="grid gap-2">
+      <Label>
+        {label}{required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex-1 justify-start text-left font-normal h-9"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              {dateValue
+                ? format(new Date(dateValue + "T12:00:00"), "MMM d, yyyy")
+                : <span className="text-muted-foreground">Pick date…</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selected}
+              onSelect={(d) => {
+                if (d) {
+                  onDateChange(format(d, "yyyy-MM-dd"));
+                  setOpen(false);
+                }
+              }}
+              autoFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <Select value={timeValue} onValueChange={onTimeChange}>
+          <SelectTrigger className="w-[110px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-60">
+            {TIME_SLOTS.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 }
 
@@ -513,16 +586,14 @@ export default function BookingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 grid gap-2">
-                  <Label>Date <span className="text-destructive">*</span></Label>
-                  <Input type="date" value={booking.pickupDate} onChange={e => setBooking({...booking, pickupDate: e.target.value})} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Time</Label>
-                  <Input type="time" value={booking.pickupTime} onChange={e => setBooking({...booking, pickupTime: e.target.value})} />
-                </div>
-              </div>
+              <DateTimePicker
+                label="Date & Time"
+                dateValue={booking.pickupDate}
+                timeValue={booking.pickupTime}
+                onDateChange={(d) => setBooking({ ...booking, pickupDate: d })}
+                onTimeChange={(t) => setBooking({ ...booking, pickupTime: t })}
+                required
+              />
               <div className="grid gap-2">
                 <Label>Delivery Type</Label>
                 <Select value={booking.pickupType} onValueChange={(v) => setBooking({...booking, pickupType: v, pickupAddress: ""})}>
@@ -558,16 +629,14 @@ export default function BookingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 grid gap-2">
-                  <Label>Date <span className="text-destructive">*</span></Label>
-                  <Input type="date" value={booking.dropoffDate} onChange={e => setBooking({...booking, dropoffDate: e.target.value})} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Time</Label>
-                  <Input type="time" value={booking.dropoffTime} onChange={e => setBooking({...booking, dropoffTime: e.target.value})} />
-                </div>
-              </div>
+              <DateTimePicker
+                label="Date & Time"
+                dateValue={booking.dropoffDate}
+                timeValue={booking.dropoffTime}
+                onDateChange={(d) => setBooking({ ...booking, dropoffDate: d })}
+                onTimeChange={(t) => setBooking({ ...booking, dropoffTime: t })}
+                required
+              />
               <div className="grid gap-2">
                 <Label>Return Type</Label>
                 <Select value={booking.dropoffType} onValueChange={(v) => setBooking({...booking, dropoffType: v, dropoffAddress: ""})}>
