@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactElement } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +50,7 @@ const METHOD_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-const METHOD_ICONS: Record<string, JSX.Element> = {
+const METHOD_ICONS: Record<string, ReactElement> = {
   CASH: <Wallet className="w-3 h-3" />,
   CARD: <CreditCard className="w-3 h-3" />,
   BANK_TRANSFER: <Landmark className="w-3 h-3" />,

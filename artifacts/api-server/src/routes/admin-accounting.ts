@@ -94,7 +94,7 @@ router.post("/admin/accounting", requireAdmin, async (req, res) => {
 // ─── Single ───────────────────────────────────────────────────────────────────
 
 router.get("/admin/accounting/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const entry = await getAccountingEntry(id);
   res.json(entry);
 });
@@ -102,7 +102,7 @@ router.get("/admin/accounting/:id", requireAdmin, async (req, res) => {
 // ─── Update ───────────────────────────────────────────────────────────────────
 
 router.patch("/admin/accounting/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const entry = await updateAccountingEntry(id, req.body);
   res.json(entry);
 });
@@ -110,7 +110,7 @@ router.patch("/admin/accounting/:id", requireAdmin, async (req, res) => {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 router.delete("/admin/accounting/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const result = await deleteAccountingEntry(id);
   res.json(result);
 });

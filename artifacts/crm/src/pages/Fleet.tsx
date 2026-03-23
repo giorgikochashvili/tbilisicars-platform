@@ -458,7 +458,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
     const payload = {
       brandId: parseInt(formData.brandId),
       name: formData.name,
-      category: formData.category || null,
+      category: formData.category || undefined,
       seats: formData.seats,
       doors: formData.doors,
       transmission: formData.transmission as any || null,

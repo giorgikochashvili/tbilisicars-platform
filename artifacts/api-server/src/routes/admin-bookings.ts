@@ -63,7 +63,7 @@ router.get("/admin/bookings/:id", requireAdmin, async (req, res) => {
 });
 
 router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (!id || isNaN(id)) {
     res.status(400).json({ error: "Invalid booking ID" });
     return;
@@ -123,8 +123,8 @@ router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) =
 });
 
 router.get("/admin/bookings/:bookingId/payments/:paymentId/document-data", requireAdmin, async (req, res) => {
-  const bookingId = parseInt(req.params.bookingId, 10);
-  const paymentId = parseInt(req.params.paymentId, 10);
+  const bookingId = parseInt(String(req.params.bookingId), 10);
+  const paymentId = parseInt(String(req.params.paymentId), 10);
   if (!bookingId || isNaN(bookingId) || !paymentId || isNaN(paymentId)) {
     res.status(400).json({ error: "Invalid booking or payment ID" });
     return;

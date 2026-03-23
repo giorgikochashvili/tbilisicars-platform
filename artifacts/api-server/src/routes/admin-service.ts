@@ -78,13 +78,13 @@ router.post("/admin/service", requireAdmin, async (req, res) => {
 });
 
 router.get("/admin/service/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const record = await getServiceRecord(id);
   res.json(record);
 });
 
 router.patch("/admin/service/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const {
     vehicleId,
     serviceTypeId,
@@ -123,7 +123,7 @@ router.patch("/admin/service/:id", requireAdmin, async (req, res) => {
 });
 
 router.delete("/admin/service/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(String(req.params.id), 10);
   const result = await deleteServiceRecord(id);
   logAudit({
     actorId: req.session.adminId ?? null,

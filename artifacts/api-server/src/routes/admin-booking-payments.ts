@@ -13,8 +13,11 @@ const router: IRouter = Router();
 // ─── GET /api/admin/bookings/:id/payments ─────────────────────────────────────
 
 router.get("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
-  const bookingId = parseInt(req.params.id);
-  if (isNaN(bookingId)) return res.status(400).json({ error: "Invalid booking ID" });
+  const bookingId = parseInt(String(req.params.id), 10);
+  if (isNaN(bookingId)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
 
   const result = await listBookingPayments(bookingId);
   res.json(result);
@@ -23,8 +26,11 @@ router.get("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
 // ─── POST /api/admin/bookings/:id/payments ────────────────────────────────────
 
 router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
-  const bookingId = parseInt(req.params.id);
-  if (isNaN(bookingId)) return res.status(400).json({ error: "Invalid booking ID" });
+  const bookingId = parseInt(String(req.params.id), 10);
+  if (isNaN(bookingId)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
 
   const { paymentType, amount, currency, paymentDate, method, notes } = req.body as {
     paymentType?: string;
@@ -46,7 +52,10 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
   const validMethods = ["CASH", "CARD", "BANK_TRANSFER", "OTHER"];
   if (method && !validMethods.includes(method)) errors.push("Invalid payment method");
 
-  if (errors.length > 0) return res.status(422).json({ errors });
+  if (errors.length > 0) {
+    res.status(422).json({ errors });
+    return;
+  }
 
   try {
     const adminId = req.session.adminId ?? undefined;
@@ -55,7 +64,7 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
       paymentType: paymentType as any,
       amount: Number(amount),
       currency: currency as any,
-      paymentDate,
+      paymentDate: paymentDate ?? new Date().toISOString(),
       method: method as any,
       notes: notes || null,
       adminId,
@@ -79,8 +88,8 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
     logAudit({
       actorId: adminId ?? null,
       entityType: "payment",
-      entityId: result.id,
-      entityRef: paymentRef(result.id),
+      entityId: result.payment.id,
+      entityRef: paymentRef(result.payment.id),
       action,
       summary: `Admin added ${typeLabel[paymentType!] ?? paymentType} of ${amtStr} to booking ${bookingRef(bookingId)}`,
       afterData: { bookingId, paymentType, amount: Number(amount), currency, method },
@@ -88,7 +97,10 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
 
     res.status(201).json(result);
   } catch (err: any) {
-    if (err instanceof NotFoundError) return res.status(404).json({ error: err.message });
+    if (err instanceof NotFoundError) {
+      res.status(404).json({ error: err.message });
+      return;
+    }
     throw err;
   }
 });
@@ -96,9 +108,12 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
 // ─── DELETE /api/admin/bookings/:id/payments/:paymentId ───────────────────────
 
 router.delete("/admin/bookings/:id/payments/:paymentId", requireAdmin, async (req, res) => {
-  const bookingId = parseInt(req.params.id);
-  const paymentId = parseInt(req.params.paymentId);
-  if (isNaN(bookingId) || isNaN(paymentId)) return res.status(400).json({ error: "Invalid ID" });
+  const bookingId = parseInt(String(req.params.id), 10);
+  const paymentId = parseInt(String(req.params.paymentId), 10);
+  if (isNaN(bookingId) || isNaN(paymentId)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
 
   try {
     const result = await deleteBookingPayment(bookingId, paymentId);
@@ -113,7 +128,10 @@ router.delete("/admin/bookings/:id/payments/:paymentId", requireAdmin, async (re
     });
     res.json(result);
   } catch (err: any) {
-    if (err instanceof NotFoundError) return res.status(404).json({ error: err.message });
+    if (err instanceof NotFoundError) {
+      res.status(404).json({ error: err.message });
+      return;
+    }
     throw err;
   }
 });
