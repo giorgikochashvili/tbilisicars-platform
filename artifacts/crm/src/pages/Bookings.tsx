@@ -301,7 +301,6 @@ export default function BookingsPage() {
       dropoffLocationId: parseInt(booking.dropoffLocationId),
       pickupDatetime,
       dropoffDatetime,
-      vehicleModelId: vehicleModelIdNum,
       pickupType: booking.pickupType,
       pickupAddress: ["hotel", "address"].includes(booking.pickupType) ? booking.pickupAddress : null,
       dropoffType: booking.dropoffType,
@@ -311,6 +310,7 @@ export default function BookingsPage() {
       source: "admin",
     };
 
+    if (!isNaN(vehicleModelIdNum)) payload.vehicleModelId = vehicleModelIdNum;
     if (booking.vehicleId && booking.vehicleId !== "none") payload.vehicleId = parseInt(booking.vehicleId);
     if (booking.totalAmount) payload.totalAmount = booking.totalAmount;
     payload.currency = booking.currency;
