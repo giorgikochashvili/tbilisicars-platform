@@ -19,10 +19,12 @@ import {
 const router: IRouter = Router();
 
 // ─── Shared error handler ─────────────────────────────────────────────────────
+// Never expose raw SQL errors, stack traces, or internal implementation details.
 
 function safeError(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return "An unexpected error occurred";
+  // Log internally for debugging, but return a generic message to the client
+  console.error("[admin-ai] internal error:", err);
+  return "An internal error occurred. Please try again.";
 }
 
 // ─── GET /api/admin-ai/summary ────────────────────────────────────────────────

@@ -732,8 +732,8 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
   const now = new Date();
   const items: DiagnosticEntry[] = [];
 
-  const [overdueQ, noVehicleQ, unpaidQ] = await Promise.all([
-    // 1. Overdue returns — DELIVERED bookings past their return datetime
+  const [overdueQ, noVehicleQ, unpaidOldQ, noPlateVehicleQ] = await Promise.all([
+    // 1. Overdue returns — DELIVERED bookings past their scheduled return datetime
     pool.query(
       `SELECT b.id, b.contact_full_name, b.dropoff_datetime,
               v.license_plate, vm.name AS model_name, br.name AS brand_name
@@ -748,7 +748,7 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
        LIMIT 20`,
     ),
 
-    // 2. Active bookings with no vehicle assigned
+    // 2. Active (CONFIRMED/DELIVERED) bookings with no vehicle assigned
     pool.query(
       `SELECT b.id, b.contact_full_name, b.status, b.pickup_datetime,
               bm.name AS booking_model_name, bbr.name AS booking_brand_name
@@ -762,19 +762,36 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
        LIMIT 10`,
     ),
 
-    // 3. Unpaid active bookings
+    // 3. Unpaid active bookings older than 24 hours
     pool.query(
       `SELECT b.id, b.contact_full_name, b.total_amount, b.currency,
-              b.status, b.pickup_datetime
+              b.status, b.pickup_datetime, b.created_at
        FROM booking b
        WHERE b.payment_status = 'UNPAID'
          AND b.status IN ('CONFIRMED', 'DELIVERED')
+         AND b.created_at < NOW() - INTERVAL '24 hours'
          AND b.deleted_at IS NULL
-       ORDER BY b.pickup_datetime ASC
+       ORDER BY b.created_at ASC
+       LIMIT 10`,
+    ),
+
+    // 4. Active vehicles (AVAILABLE/RESERVED) with no license plate recorded
+    pool.query(
+      `SELECT v.id, v.status,
+              vm.name AS model_name, br.name AS brand_name,
+              l.name AS location_name, l.city AS location_city
+       FROM vehicle v
+       LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+       LEFT JOIN brand br ON br.id = vm.brand_id
+       LEFT JOIN location l ON l.id = v.location_id
+       WHERE (v.license_plate IS NULL OR v.license_plate = '')
+         AND v.status NOT IN ('INACTIVE')
+       ORDER BY v.id ASC
        LIMIT 10`,
     ),
   ]);
 
+  // 1. Overdue returns
   for (const r of overdueQ.rows) {
     const expectedReturn = new Date(r.dropoff_datetime);
     const hoursOverdue = Math.floor(
@@ -801,6 +818,7 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
     });
   }
 
+  // 2. Active bookings with no vehicle assigned
   for (const r of noVehicleQ.rows) {
     const bookedModel = r.booking_brand_name
       ? `${r.booking_brand_name} ${r.booking_model_name}`
@@ -819,7 +837,12 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
     });
   }
 
-  for (const r of unpaidQ.rows) {
+  // 3. Unpaid active bookings older than 24h
+  for (const r of unpaidOldQ.rows) {
+    const ageHours = Math.floor(
+      (now.getTime() - new Date(r.created_at).getTime()) / 3_600_000,
+    );
+
     items.push({
       time: now.toISOString(),
       module: "Payments",
@@ -827,13 +850,34 @@ async function buildAnomalyDiagnostics(): Promise<DiagnosticEntry[]> {
       status: "WARNING",
       entityType: "booking",
       entityId: r.id,
-      shortMessage: `Booking ${bookingRef(r.id)} is ${r.status} with no payment recorded`,
-      reason: `Booking for "${r.contact_full_name}" (status: ${r.status}) has payment status UNPAID. Total amount: ${r.total_amount != null ? `${r.total_amount} ${r.currency ?? "GEL"}` : "not set"}. Payment must be collected or recorded.`,
+      shortMessage: `Booking ${bookingRef(r.id)} is ${r.status} with no payment recorded (${ageHours}h old)`,
+      reason: `Booking for "${r.contact_full_name}" (status: ${r.status}) has been UNPAID for ${ageHours} hours. Total amount: ${r.total_amount != null ? `${r.total_amount} ${r.currency ?? "GEL"}` : "not set"}. Payment must be collected or recorded.`,
       meta: {
         totalAmount: r.total_amount ?? null,
         currency: r.currency ?? "GEL",
         status: r.status,
+        ageHours,
       },
+    });
+  }
+
+  // 4. Active vehicles with no license plate
+  for (const r of noPlateVehicleQ.rows) {
+    const displayName = vehicleDisplay(r.brand_name, r.model_name, r.id);
+    const locationDesc = r.location_name
+      ? [r.location_name, r.location_city].filter(Boolean).join(", ")
+      : "unknown location";
+
+    items.push({
+      time: now.toISOString(),
+      module: "Fleet",
+      action: "vehicle_missing_plate",
+      status: "WARNING",
+      entityType: "vehicle",
+      entityId: r.id,
+      shortMessage: `Vehicle #${r.id} (${displayName}) has no license plate recorded`,
+      reason: `Vehicle "${displayName}" (status: ${r.status}, location: ${locationDesc}) has no license plate number on record. A plate is required for vehicle assignment and handover documentation.`,
+      meta: { status: r.status, location: locationDesc },
     });
   }
 
