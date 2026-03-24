@@ -706,10 +706,12 @@ export async function getAILogs(filters?: {
     status: inferAuditStatus(r.action),
     entityType: r.entity_type,
     entityId: r.entity_id ?? null,
-    entityRef: r.entity_ref ?? null,
     shortMessage: r.summary ?? `${r.action} on ${r.entity_type}`,
-    reason: null,
-    performedBy: r.actor_name ?? "System",
+    reason: "",
+    meta: {
+      entityRef: r.entity_ref ?? null,
+      performedBy: r.actor_name ?? "System",
+    },
   }));
 
   // Always include synthesized anomaly diagnostics regardless of filters
