@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListAdminVehicles,
@@ -79,10 +80,22 @@ export default function FleetPage() {
   );
 }
 
+const VALID_STATUSES = ["AVAILABLE", "RENTED", "MAINTENANCE", "RESERVED", "INACTIVE"] as const;
+type VehicleStatus = (typeof VALID_STATUSES)[number];
+
 function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
+
+  // Read initial status filter from URL query param (e.g. ?status=AVAILABLE)
+  const [location] = useLocation();
+  const initialStatus = (() => {
+    const search = location.includes("?") ? location.split("?")[1] : "";
+    const params = new URLSearchParams(search);
+    const s = params.get("status")?.toUpperCase() ?? "";
+    return (VALID_STATUSES as readonly string[]).includes(s) ? (s as VehicleStatus) : "";
+  })();
 
   // Filter state
   const [plateSearch, setPlateSearch] = useState("");
@@ -90,6 +103,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterBrandId, setFilterBrandId] = useState("");
   const [filterModelId, setFilterModelId] = useState("");
+  const [filterStatus, setFilterStatus] = useState<VehicleStatus | "">(initialStatus);
 
   const [formData, setFormData] = useState<{
     vehicleModelId: string;
@@ -135,7 +149,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     : allModels;
 
   // Filtered vehicles (client-side)
-  const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId);
+  const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId || filterStatus);
   const filteredVehicles = vehicles.filter((v: any) => {
     if (plateSearch && !v.licensePlate?.toUpperCase().includes(plateSearch.toUpperCase())) return false;
     if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
@@ -145,6 +159,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     }
     if (filterBrandId && filterBrandId !== "any" && v.vehicleModel?.brand?.id?.toString() !== filterBrandId) return false;
     if (filterModelId && v.vehicleModelId?.toString() !== filterModelId) return false;
+    if (filterStatus && v.status !== filterStatus) return false;
     return true;
   });
 
@@ -154,6 +169,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     setFilterCategory("");
     setFilterBrandId("");
     setFilterModelId("");
+    setFilterStatus("");
   };
 
   const createMutation = useCreateAdminVehicle(reqOpts);
@@ -262,7 +278,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             {/* Plate search — primary */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -273,6 +289,18 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 className="pl-9 bg-background h-9 text-sm font-mono uppercase"
               />
             </div>
+            {/* Status */}
+            <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v as VehicleStatus)}>
+              <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="AVAILABLE">Available</SelectItem>
+                <SelectItem value="RENTED">Rented</SelectItem>
+                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                <SelectItem value="RESERVED">Reserved</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
             {/* Location */}
             <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
               <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All locations" /></SelectTrigger>

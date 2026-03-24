@@ -269,11 +269,19 @@ function StatCard({ title, value, icon: Icon, testId, isLoading, tooltip }: {
 
 // ─── Fleet Tile ───────────────────────────────────────────────────────────────
 
-function FleetTile({ label, count, colorClass, testId, isLoading }: {
-  label: string; count: number | undefined; colorClass: string; testId: string; isLoading: boolean;
+function FleetTile({ label, count, colorClass, testId, isLoading, onClick }: {
+  label: string; count: number | undefined; colorClass: string; testId: string; isLoading: boolean; onClick?: () => void;
 }) {
   return (
-    <Card className={cn("overflow-hidden border shadow-sm hover-elevate transition-all", colorClass)} data-testid={testId}>
+    <Card
+      className={cn(
+        "overflow-hidden border shadow-sm hover-elevate transition-all",
+        colorClass,
+        onClick && "cursor-pointer hover:brightness-110",
+      )}
+      data-testid={testId}
+      onClick={onClick}
+    >
       <div className="p-5 flex flex-col items-center justify-center gap-2 relative">
         {isLoading ? (
           <Skeleton className="h-10 w-16 bg-current opacity-20 rounded-lg" />
@@ -729,6 +737,7 @@ export default function Dashboard() {
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(loadWidgetConfig);
   const city = region === "All" ? undefined : region;
+  const [, navigate] = useLocation();
 
   const handleWidgetChange = (cfg: WidgetConfig) => {
     setWidgetConfig(cfg);
@@ -854,11 +863,11 @@ export default function Dashboard() {
             <Car className="w-4 h-4 text-primary" /> Fleet Live Status
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} />
-            <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} />
-            <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} />
-            <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} />
-            <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} />
+            <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=AVAILABLE")} />
+            <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=RENTED")} />
+            <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=MAINTENANCE")} />
+            <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=RESERVED")} />
+            <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=INACTIVE")} />
           </div>
         </div>
       )}
