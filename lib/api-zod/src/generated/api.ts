@@ -621,10 +621,8 @@ export const ListAdminModelsResponseItem = zod.object({
   brandId: zod.number(),
   name: zod.string(),
   active: zod.boolean(),
-  category: zod.string().nullish(),
   seats: zod.number().nullish(),
   doors: zod.number().nullish(),
-  luggageCapacity: zod.number().nullish(),
   transmission: zod
     .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
     .nullish(),
@@ -641,11 +639,6 @@ export const ListAdminModelsResponseItem = zod.object({
   deposit: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
-  brand: zod.object({
-    id: zod.number(),
-    name: zod.string().nullish(),
-    logoUrl: zod.string().nullish(),
-  }).nullish(),
 });
 export const ListAdminModelsResponse = zod.array(ListAdminModelsResponseItem);
 
@@ -937,17 +930,6 @@ export const ListAdminVehiclesResponse = zod.object({
       startingPrice: zod.string(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
-      vehicleModel: zod.object({
-        id: zod.number(),
-        name: zod.string().nullish(),
-        transmission: zod.string().nullish(),
-        fuelType: zod.string().nullish(),
-        seats: zod.number().nullish(),
-        brand: zod.object({
-          id: zod.number(),
-          name: zod.string().nullish(),
-        }).nullish(),
-      }).nullish(),
     }),
   ),
   meta: zod.object({
@@ -1303,19 +1285,6 @@ export const ListAdminRatesResponseItem = zod.object({
   priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
-  tiers: zod.array(
-    zod.object({
-      id: zod.number(),
-      rateId: zod.number(),
-      vehicleModelId: zod.number(),
-      fromDays: zod.number().nullish(),
-      toDays: zod.number().nullish(),
-      pricePerDay: zod.string(),
-      currency: zod.string().nullish(),
-      createdAt: zod.date(),
-      updatedAt: zod.date(),
-    })
-  ).optional(),
 });
 export const ListAdminRatesResponse = zod.array(ListAdminRatesResponseItem);
 
@@ -1581,10 +1550,6 @@ export const ListAdminCustomersResponse = zod.object({
       email: zod.string().nullish(),
       phone: zod.string().nullish(),
       fullName: zod.string().nullish(),
-      country: zod.string().nullish(),
-      passportId: zod.string().nullish(),
-      drivingLicense: zod.string().nullish(),
-      notes: zod.string().nullish(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
     }),
@@ -1600,13 +1565,9 @@ export const ListAdminCustomersResponse = zod.object({
  * @summary Create customer (admin)
  */
 export const CreateAdminCustomerBody = zod.object({
-  email: zod.string().nullish(),
-  phone: zod.string().nullish(),
-  fullName: zod.string().nullish(),
-  country: zod.string().nullish(),
-  passportId: zod.string().nullish(),
-  drivingLicense: zod.string().nullish(),
-  notes: zod.string().nullish(),
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  fullName: zod.string().optional(),
 });
 
 /**
@@ -1621,10 +1582,6 @@ export const GetAdminCustomerResponse = zod.object({
   email: zod.string().nullish(),
   phone: zod.string().nullish(),
   fullName: zod.string().nullish(),
-  country: zod.string().nullish(),
-  passportId: zod.string().nullish(),
-  drivingLicense: zod.string().nullish(),
-  notes: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1637,13 +1594,9 @@ export const UpdateAdminCustomerParams = zod.object({
 });
 
 export const UpdateAdminCustomerBody = zod.object({
-  email: zod.string().nullish(),
-  phone: zod.string().nullish(),
-  fullName: zod.string().nullish(),
-  country: zod.string().nullish(),
-  passportId: zod.string().nullish(),
-  drivingLicense: zod.string().nullish(),
-  notes: zod.string().nullish(),
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  fullName: zod.string().optional(),
 });
 
 export const UpdateAdminCustomerResponse = zod.object({
@@ -1651,10 +1604,6 @@ export const UpdateAdminCustomerResponse = zod.object({
   email: zod.string().nullish(),
   phone: zod.string().nullish(),
   fullName: zod.string().nullish(),
-  country: zod.string().nullish(),
-  passportId: zod.string().nullish(),
-  drivingLicense: zod.string().nullish(),
-  notes: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1732,7 +1681,6 @@ export const ListAdminBookingsResponse = zod.object({
           modelName: zod.string().nullish(),
         })
         .nullish(),
-      vehicleModelName: zod.string().nullish(),
       pickupLocation: zod.object({
         id: zod.number(),
         name: zod.string(),
@@ -1763,27 +1711,27 @@ export const ListAdminBookingsResponse = zod.object({
 export const CreateAdminBookingBody = zod.object({
   customerId: zod
     .number()
-    .nullish()
+    .optional()
     .describe(
       "Existing customer ID. If omitted, customerData creates a new customer.",
     ),
   customerData: zod
     .object({
-      fullName: zod.string().nullish(),
-      email: zod.string().nullish(),
-      phone: zod.string().nullish(),
+      fullName: zod.string().optional(),
+      email: zod.string().optional(),
+      phone: zod.string().optional(),
     })
-    .nullish(),
+    .optional(),
   contactFullName: zod.string(),
-  contactEmail: zod.string().nullish(),
-  contactPhone: zod.string().nullish(),
-  vehicleId: zod.number().nullish(),
-  vehicleModelId: zod.number().nullish(),
-  vehicleGroupId: zod.number().nullish(),
+  contactEmail: zod.string().optional(),
+  contactPhone: zod.string().optional(),
+  vehicleId: zod.number().optional(),
+  vehicleModelId: zod.number().optional(),
+  vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number(),
   dropoffLocationId: zod.number(),
-  pickupDatetime: zod.coerce.date(),
-  dropoffDatetime: zod.coerce.date(),
+  pickupDatetime: zod.date(),
+  dropoffDatetime: zod.date(),
   status: zod
     .enum([
       "PENDING",
@@ -1793,26 +1741,19 @@ export const CreateAdminBookingBody = zod.object({
       "CANCELED",
       "NO_SHOW",
     ])
-    .nullish(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).nullish(),
-  rateId: zod.number().nullish(),
-  rateTierId: zod.number().nullish(),
-  pricePerDay: zod.string().nullish(),
-  totalAmount: zod.string().nullish(),
-  currency: zod.string().nullish(),
-  source: zod.string().nullish(),
-  broker: zod.string().nullish(),
-  notes: zod.string().nullish(),
-  documentType: zod.string().nullish(),
-  documentNumber: zod.string().nullish(),
-  deposit: zod.string().nullish(),
-  pickupType: zod.string().nullish(),
-  pickupAddress: zod.string().nullish(),
-  dropoffType: zod.string().nullish(),
-  dropoffAddress: zod.string().nullish(),
-  customerFullName: zod.string().nullish(),
-  customerEmail: zod.string().nullish(),
-  customerPhone: zod.string().nullish(),
+    .optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  rateId: zod.number().optional(),
+  rateTierId: zod.number().optional(),
+  pricePerDay: zod.string().optional(),
+  totalAmount: zod.string().optional(),
+  currency: zod.string().optional(),
+  source: zod.string().optional(),
+  broker: zod.string().optional(),
+  notes: zod.string().optional(),
+  documentType: zod.string().optional(),
+  documentNumber: zod.string().optional(),
+  deposit: zod.string().optional(),
 });
 
 /**
@@ -1855,7 +1796,6 @@ export const GetAdminBookingResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
-    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -1999,7 +1939,6 @@ export const UpdateAdminBookingResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
-    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -2403,7 +2342,6 @@ export const UpdateAdminBookingStatusResponse = zod
         modelName: zod.string().nullish(),
       })
       .nullish(),
-    vehicleModelName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -2695,4 +2633,43 @@ export const DeleteAdminTeamMemberParams = zod.object({
 
 export const DeleteAdminTeamMemberResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+
+ * @summary Request a presigned URL for file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1),
+  size: zod.number().min(1),
+  contentType: zod.string().min(1),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url(),
+  objectPath: zod.string(),
+  metadata: zod
+    .object({
+      name: zod.string().min(1),
+      size: zod.number().min(1),
+      contentType: zod.string().min(1),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  filePath: zod.coerce.string(),
+});
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  objectPath: zod.coerce.string(),
 });

@@ -23,6 +23,10 @@ import {
   updateAdminBookingStatus,
   deleteAdminBooking,
 } from "../services/admin-bookings.service.js";
+import {
+  createHandover,
+  getHandoversForBooking,
+} from "../services/admin-handovers.service.js";
 import { logAudit, bookingRef } from "../services/audit.service.js";
 
 const router = Router();
@@ -230,6 +234,96 @@ router.delete("/admin/bookings/:id", requireAdmin, async (req, res) => {
     summary: `Admin deleted booking ${bookingRef(id)}`,
   });
   res.json(result);
+});
+
+// ─── Handover routes ──────────────────────────────────────────────────────────
+
+router.get("/admin/bookings/:id/handovers", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const result = await getHandoversForBooking(id);
+  res.json(result);
+});
+
+router.post("/admin/bookings/:id/pickup", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const { actionAt, mileage, fuelLevel, notes, photoUrls } = req.body as {
+    actionAt?: string;
+    mileage?: number | null;
+    fuelLevel?: number | null;
+    notes?: string | null;
+    photoUrls?: string[];
+  };
+  if (!actionAt) {
+    res.status(400).json({ error: "actionAt is required" });
+    return;
+  }
+  const handover = await createHandover({
+    bookingId: id,
+    handoverType: "PICKUP",
+    actionAt,
+    mileage: mileage ?? null,
+    fuelLevel: fuelLevel ?? null,
+    performedByAdminId: req.session.adminId ?? null,
+    notes: notes ?? null,
+    photoUrls: photoUrls ?? [],
+  });
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "pickup",
+    summary: `Admin recorded Pick Up for booking ${bookingRef(id)}`,
+    afterData: { mileage, fuelLevel, photoCount: (photoUrls ?? []).length },
+  });
+  res.status(201).json(handover);
+});
+
+router.post("/admin/bookings/:id/dropoff", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const { actionAt, mileage, fuelLevel, notes, photoUrls } = req.body as {
+    actionAt?: string;
+    mileage?: number | null;
+    fuelLevel?: number | null;
+    notes?: string | null;
+    photoUrls?: string[];
+  };
+  if (!actionAt) {
+    res.status(400).json({ error: "actionAt is required" });
+    return;
+  }
+  const handover = await createHandover({
+    bookingId: id,
+    handoverType: "DROPOFF",
+    actionAt,
+    mileage: mileage ?? null,
+    fuelLevel: fuelLevel ?? null,
+    performedByAdminId: req.session.adminId ?? null,
+    notes: notes ?? null,
+    photoUrls: photoUrls ?? [],
+  });
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "dropoff",
+    summary: `Admin recorded Drop Off for booking ${bookingRef(id)}`,
+    afterData: { mileage, fuelLevel, photoCount: (photoUrls ?? []).length },
+  });
+  res.status(201).json(handover);
 });
 
 export default router;

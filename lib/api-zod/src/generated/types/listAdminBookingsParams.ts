@@ -16,4 +16,7 @@ export type ListAdminBookingsParams = {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  bookingId?: number;
+  vehicleSearch?: string;
+  locationId?: number;
 };

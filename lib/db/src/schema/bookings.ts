@@ -229,6 +229,32 @@ export const bookingphotoTable = pgTable(
   ],
 );
 
+// ─── Booking Handover ─────────────────────────────────────────────────────────
+// Records formal vehicle handover and return actions (PICKUP / DROPOFF).
+// performed_by_admin_id is a plain integer FK to admins.id to avoid circular imports.
+
+export const bookingHandoverTable = pgTable(
+  "booking_handover",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .references(() => bookingTable.id, { onDelete: "cascade" }),
+    handoverType: varchar("handover_type", { length: 20 }).notNull(), // PICKUP | DROPOFF
+    actionAt: timestamp("action_at").notNull(),
+    mileage: integer("mileage"),
+    fuelLevel: integer("fuel_level"), // 0–100
+    performedByAdminId: integer("performed_by_admin_id"), // FK to admins.id (plain integer)
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_booking_handover_booking_id").on(t.bookingId),
+    index("idx_booking_handover_type").on(t.handoverType),
+  ],
+);
+
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
 
 export const insertBookingSchema = createInsertSchema(bookingTable).omit({

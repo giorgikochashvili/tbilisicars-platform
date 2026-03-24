@@ -1008,8 +1008,6 @@ export interface AdminBookingRow {
   customer: AdminBookingRowCustomer;
   /** @nullable */
   vehicle?: AdminBookingRowVehicle;
-  /** @nullable — resolved from booking.vehicle_model_id; present for model-only (website) bookings */
-  vehicleModelName?: string | null;
   pickupLocation: AdminBookingRowPickupLocation;
   dropoffLocation: AdminBookingRowDropoffLocation;
   /** @nullable */
@@ -1821,6 +1819,21 @@ export interface AdminFleetCalendarResponse {
   vehicles: AdminFleetCalendarVehicle[];
 }
 
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
 export type AdminLogout200 = {
   message: string;
 };
@@ -1877,6 +1890,9 @@ export type ListAdminBookingsParams = {
   search?: string;
   dateFrom?: string;
   dateTo?: string;
+  bookingId?: number;
+  vehicleSearch?: string;
+  locationId?: number;
 };
 
 export type ListAdminBookingsStatus =

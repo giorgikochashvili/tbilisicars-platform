@@ -143,6 +143,8 @@ export * from "./locationLocationType";
 export * from "./rate";
 export * from "./rateTier";
 export * from "./rateWithTiers";
+export * from "./uploadUrlRequest";
+export * from "./uploadUrlResponse";
 export * from "./vehicle";
 export * from "./vehicleFuelType";
 export * from "./vehicleGroup";
