@@ -119,7 +119,7 @@ export default function TbsAirParking() {
     }
     const brandMatch =
       !selectedBrandId || selectedBrandId === "any" ||
-      String(v.vehicleModel?.brand?.id) === selectedBrandId;
+      modelsForBrand.some((m: any) => m.id === v.vehicleModelId);
     const modelMatch =
       !selectedModelId || selectedModelId === "any" ||
       String(v.vehicleModelId) === selectedModelId;

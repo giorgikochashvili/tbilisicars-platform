@@ -31,6 +31,7 @@ export function errorHandler(
   }
 
   if (isZodError(err)) {
+    console.error("[zod validation error]", safeStringify(err), (err as any).errors ?? "");
     res.status(400).json({ error: "Invalid request parameters" });
     return;
   }

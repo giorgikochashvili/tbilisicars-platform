@@ -452,6 +452,10 @@ export async function createAdminBooking(data: {
   notes?: string | null;
   source?: string | null;
   broker?: string | null;
+  pickupType?: string | null;
+  pickupAddress?: string | null;
+  dropoffType?: string | null;
+  dropoffAddress?: string | null;
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
   paymentStatus?: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
 }) {
