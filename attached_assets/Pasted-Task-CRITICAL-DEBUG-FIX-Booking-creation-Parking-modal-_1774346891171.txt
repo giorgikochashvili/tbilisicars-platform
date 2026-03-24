@@ -1,0 +1,166 @@
+Task: CRITICAL DEBUG + FIX — Booking creation + Parking modal broken
+
+Current system is NOT working after last build. Do not assume anything is fixed. Perform full root-cause debugging and fix.
+
+REAL ISSUES (CONFIRMED)
+1) New Booking cannot be created → HTTP 400 Bad Request
+2) New customer data is not saved correctly
+3) TBS AIR PARKING modal:
+   - Brand does not load
+   - Model does not load
+   - Vehicle does not load
+   - Shows "No available vehicles"
+
+You must debug and fix ALL of these properly.
+
+--------------------------------------------------
+STEP 1 — LOG REAL BOOKING ERROR (MANDATORY)
+--------------------------------------------------
+In:
+artifacts/api-server/src/routes/admin-bookings.ts
+
+BEFORE validation:
+console.log("BOOKING REQUEST BODY:", req.body)
+
+Wrap Zod parsing in try/catch and log:
+console.error("ZOD ERROR:", error)
+
+We must see EXACTLY why HTTP 400 happens.
+
+--------------------------------------------------
+STEP 2 — FIX DATE VALIDATION (CRITICAL)
+--------------------------------------------------
+Check:
+lib/api-zod/src/generated/api.ts
+
+Find:
+CreateAdminBookingBody
+
+REQUIRED:
+pickupDatetime: zod.coerce.date()
+dropoffDatetime: zod.coerce.date()
+
+If still zod.date() → FIX IT
+
+IMPORTANT:
+After change:
+cd lib/api-zod
+npx tsc -p tsconfig.json
+
+Ensure API server uses UPDATED build (no stale code).
+
+--------------------------------------------------
+STEP 3 — VERIFY PAYLOAD FROM FRONTEND
+--------------------------------------------------
+In:
+artifacts/crm/src/pages/Bookings.tsx
+
+LOG payload before sending:
+console.log("BOOKING PAYLOAD:", payload)
+
+Fix rules:
+- If vehicleModelId === "any" → DO NOT SEND it
+- If parseInt(...) is NaN → DO NOT SEND it
+
+Frontend validation:
+- If model = "any"
+  → block submit
+  → show: "Please select a vehicle model"
+
+--------------------------------------------------
+STEP 4 — FIX NEW CUSTOMER DATA
+--------------------------------------------------
+Frontend must send:
+
+customerData: {
+  fullName,
+  phone,
+  email
+}
+
+NOT:
+customerFullName
+customerPhone
+customerEmail
+
+If existing customer selected:
+- send only customerId
+- DO NOT send customerData
+
+--------------------------------------------------
+STEP 5 — FIX PARKING MODAL (VERY IMPORTANT)
+--------------------------------------------------
+Problem:
+Brand / Model / Vehicle are empty
+
+You MUST debug full flow:
+
+1. Log frontend query params:
+console.log("PARKING QUERY:", params)
+
+2. NEVER send:
+"any"
+null
+NaN
+
+If "Any brand/model":
+→ omit filter completely
+
+3. Backend:
+Check vehicle list endpoint
+
+Ensure:
+- No invalid filtering
+- If no filter → return all available vehicles
+
+4. Confirm:
+- brands load
+- models load after brand
+- vehicles load after model
+
+--------------------------------------------------
+STEP 6 — VERIFY EVERYTHING
+--------------------------------------------------
+
+Must work:
+
+✅ Existing customer booking → SUCCESS
+✅ New customer booking → SUCCESS + saved phone/email
+✅ No HTTP 400 for valid data
+✅ Parking modal:
+   - brands visible
+   - models visible
+   - vehicles visible
+   - can assign vehicle
+
+--------------------------------------------------
+MANDATORY OUTPUT (VERY IMPORTANT)
+--------------------------------------------------
+
+Before finishing, PRINT:
+
+1) BOOKING REQUEST BODY
+2) BOOKING PAYLOAD (frontend)
+3) ZOD ERROR (exact message)
+4) PARKING QUERY PARAMS
+5) ROOT CAUSE for booking bug
+6) ROOT CAUSE for parking bug
+7) FILES changed
+
+--------------------------------------------------
+RULES
+--------------------------------------------------
+
+- DO NOT redesign UI
+- DO NOT change unrelated logic
+- DO NOT guess — use logs
+- FIX must be minimal and correct
+
+--------------------------------------------------
+DONE ONLY WHEN
+--------------------------------------------------
+
+- Booking works with no errors
+- Customer data saves correctly
+- Parking modal fully works
+- Logs confirm correct data flow
