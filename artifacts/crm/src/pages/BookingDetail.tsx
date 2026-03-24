@@ -312,6 +312,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const [showDropoffModal, setShowDropoffModal] = useState(false);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
   const [handoverFiles, setHandoverFiles] = useState<File[]>([]);
+  const [handoverPreviews, setHandoverPreviews] = useState<string[]>([]);
   const [savingHandover, setSavingHandover] = useState(false);
 
   const fetchBooking = useCallback(async () => {
@@ -451,8 +452,10 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       if (type === "pickup") setShowPickupModal(false);
       else setShowDropoffModal(false);
 
+      revokeHandoverPreviews(handoverPreviews);
       setHandoverForm(EMPTY_HANDOVER);
       setHandoverFiles([]);
+      setHandoverPreviews([]);
       fetchBooking();
       fetchHandovers();
     } catch (e: any) {
@@ -462,9 +465,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     }
   };
 
+  const revokeHandoverPreviews = (previews: string[]) => {
+    previews.forEach((url) => URL.revokeObjectURL(url));
+  };
+
   const openHandoverModal = (type: "pickup" | "dropoff") => {
     setHandoverForm({ ...EMPTY_HANDOVER, actionAt: new Date().toISOString().slice(0, 16) });
     setHandoverFiles([]);
+    setHandoverPreviews([]);
     if (type === "pickup") setShowPickupModal(true);
     else setShowDropoffModal(true);
   };
@@ -483,8 +491,13 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     const Icon = type === "pickup" ? Car : RotateCcw;
     const accentClass = type === "pickup" ? "text-emerald-400" : "text-blue-400";
 
+    const handleModalClose = () => {
+      revokeHandoverPreviews(handoverPreviews);
+      closeModal();
+    };
+
     return (
-      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) closeModal(); }}>
+      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) handleModalClose(); }}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -556,7 +569,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     className="hidden"
                     onChange={(e) => {
                       const files = Array.from(e.target.files ?? []);
+                      const newPreviews = files.map((f) => URL.createObjectURL(f));
                       setHandoverFiles((prev) => [...prev, ...files]);
+                      setHandoverPreviews((prev) => [...prev, ...newPreviews]);
                       e.target.value = "";
                     }}
                   />
@@ -567,14 +582,18 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   {handoverFiles.map((file, i) => (
                     <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border/40 bg-muted/20">
                       <img
-                        src={URL.createObjectURL(file)}
+                        src={handoverPreviews[i]}
                         alt={file.name}
                         className="w-full h-full object-cover"
                       />
                       <button
                         type="button"
                         className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
-                        onClick={() => setHandoverFiles((prev) => prev.filter((_, j) => j !== i))}
+                        onClick={() => {
+                          URL.revokeObjectURL(handoverPreviews[i]);
+                          setHandoverFiles((prev) => prev.filter((_, j) => j !== i));
+                          setHandoverPreviews((prev) => prev.filter((_, j) => j !== i));
+                        }}
                       >
                         <X className="w-2.5 h-2.5 text-white" />
                       </button>
@@ -585,7 +604,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
             </div>
 
             <div className="flex gap-2 justify-end pt-1">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={closeModal} disabled={savingHandover}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover}>
                 Cancel
               </Button>
               <Button
