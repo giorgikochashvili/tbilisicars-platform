@@ -1,0 +1,223 @@
+You are working on a production-ready system called "Tbilisicars CRM & Website".
+
+IMPORTANT CONTEXT (CRITICAL):
+
+- The system is already built in Replit
+- Backend (Express + PostgreSQL + Drizzle) is working
+- CRM is working
+- Authentication is working
+- HTTPS is fully configured and working
+- Deployment is live (Nginx + PM2)
+
+DO NOT BREAK ANY EXISTING FUNCTIONALITY.
+
+---
+
+# 🚫 STRICT RULES
+
+- DO NOT modify authentication logic
+- DO NOT change session or cookie behavior
+- DO NOT touch HTTPS or deployment configuration
+- DO NOT rebuild backend structure
+- DO NOT remove or rewrite working endpoints
+
+---
+
+# 🎯 YOUR TASK
+
+You must UPGRADE and COMPLETE the PUBLIC WEBSITE and ensure PERFECT integration with CRM.
+
+This is NOT a rebuild.
+This is a HIGH-END UI + FULL INTEGRATION task.
+
+---
+
+# 🎨 DESIGN SYSTEM (PREMIUM)
+
+Use brand style:
+
+- Dark Navy Blue (primary background)
+- Deep Red / Burgundy (accent)
+- White (text)
+
+Style:
+
+- Luxury / premium
+- Minimal
+- Smooth animations
+- Clean spacing
+- Modern UI
+
+Use provided logo and city skyline illustration as inspiration.
+
+---
+
+# 🧭 HEADER
+
+Sticky header with:
+
+- Home
+- Fleet
+- About Us
+- Terms & Conditions
+- Locations
+- Services
+
+---
+
+# 🏠 HOMEPAGE (CRITICAL)
+
+## HERO SECTION
+
+Centered booking box:
+
+FIELDS:
+
+1. Pickup Location (from CRM locations API)
+
+2. Checkbox (default checked):
+   "Return to same location"
+
+IF unchecked:
+→ show Return Location field
+
+3. Pickup Date + Time
+4. Return Date + Time
+
+CTA:
+→ "Search Vehicles"
+
+---
+
+# 🔗 MUST USE REAL DATA
+
+ALL data MUST come from backend API:
+
+- Locations
+- Vehicle models
+- Prices
+- Extras
+
+NO hardcoded data allowed.
+
+---
+
+# 🚗 VEHICLE LIST PAGE
+
+After search:
+
+- Show vehicles from CRM (models)
+- Include:
+  - Image
+  - Brand + Model
+  - Specs
+  - Price (from Rates)
+
+---
+
+# 📦 BOOKING FLOW
+
+## Step 1: Vehicle selected
+
+## Step 2: Extras (from CRM)
+- Must load dynamically
+- Show price + type
+
+## Step 3: Insurance
+
+3 plans (hardcoded for now BUT structured for future CRM control):
+
+- Basic (300€ deposit / 300€ excess)
+- Full (300€ deposit / 100€ excess)
+- Premium (100€ deposit / 100€ excess)
+
+---
+
+## Step 4: Customer Info
+
+- First Name
+- Last Name
+- Phone
+- Email (validated)
+- Nationality
+
+---
+
+## Step 5: Payment Method
+
+Selectable:
+
+- Credit Card
+- Debit Card
+- Cash
+- Revolut
+- Bank Transfer
+- Apple Pay
+- Google Pay
+- Stripe
+- AMEX
+
+---
+
+## Step 6: Confirmation
+
+- Show full summary
+
+On confirm:
+
+- Call POST /api/public/bookings
+- Create booking
+- Create or reuse customer
+- Set source = "website"
+- Send confirmation email
+
+---
+
+# 🔄 CRM INTEGRATION (CRITICAL)
+
+Ensure full sync:
+
+- Locations → from CRM
+- Vehicles → from CRM
+- Prices → from Rates module
+- Extras → from CRM
+
+---
+
+# 📊 CRM CONTROL
+
+CRM must control:
+
+- Pricing
+- Vehicle models
+- Images
+- Extras
+
+---
+
+# ⚙️ QUALITY REQUIREMENTS
+
+- No broken flows
+- No console errors
+- No fake data
+- Fully working booking process
+- Smooth UX
+
+---
+
+# 🎯 FINAL GOAL
+
+A premium, production-level booking website fully connected to CRM.
+
+---
+
+# 📦 OUTPUT
+
+Return:
+
+- Updated frontend pages (homepage + booking flow)
+- Any required backend adjustments (minimal)
+- Clean integration
+
+NO explanations.
+ONLY implementation.
