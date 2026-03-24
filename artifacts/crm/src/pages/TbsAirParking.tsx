@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useListLocations } from "@workspace/api-client-react";
 import { PlaneTakeoff, ParkingCircle, Trash2, Plus, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,15 +91,7 @@ export default function TbsAirParking() {
     enabled: showModal,
   });
 
-  const { data: locations } = useListLocations({
-    query: { enabled: showModal, queryKey: ["/api/locations", showModal] },
-  });
-
   // ─── Lookup maps ────────────────────────────────────────────────────────────
-
-  const locationMap = new Map<number, string>(
-    (locations ?? []).map((l: any) => [l.id, l.name as string])
-  );
 
   const modelMap = new Map<number, { name: string; brandId: number }>(
     (allModels ?? []).map((m: any) => [m.id, { name: m.name, brandId: m.brandId }])
@@ -146,15 +137,8 @@ export default function TbsAirParking() {
     const brandName = modelEntry ? (brandMap.get(modelEntry.brandId) ?? "") : "";
     const modelName = modelEntry?.name ?? "";
     const plate = v.licensePlate ?? `#${v.id}`;
-    const locationName = v.locationId != null ? (locationMap.get(Number(v.locationId)) ?? "") : "";
-
-    const parts: string[] = [];
     const prefix = [brandName, modelName].filter(Boolean).join(" ");
-    if (prefix) parts.push(prefix);
-    parts.push(plate);
-    if (locationName) parts.push(locationName);
-
-    return parts.join(" — ");
+    return prefix ? `${prefix} — ${plate}` : plate;
   }
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
