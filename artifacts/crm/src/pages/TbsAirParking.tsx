@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ChevronRight } from "lucide-react";
+import { useListLocations } from "@workspace/api-client-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${BASE}/api${path}`, {
+  const res = await fetch(`/api${path}`, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     ...opts,
@@ -63,8 +62,8 @@ export default function TbsAirParking() {
 
   // Modal state
   const [selectedZone, setSelectedZone] = useState("");
-  const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState("");
+  const [filterBrandId, setFilterBrandId] = useState("");
+  const [filterModelId, setFilterModelId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
 
   // ─── Data fetching ──────────────────────────────────────────────────────────
@@ -93,38 +92,70 @@ export default function TbsAirParking() {
     enabled: showModal,
   });
 
+  const { data: locations } = useListLocations({
+    query: { enabled: showModal, queryKey: ["/api/locations", showModal] },
+  });
+
+  // ─── Lookup maps ────────────────────────────────────────────────────────────
+
+  const locationMap = new Map<number, string>(
+    (locations ?? []).map((l: any) => [l.id, l.name as string])
+  );
+
+  const modelMap = new Map<number, { name: string; brandId: number }>(
+    (allModels ?? []).map((m: any) => [m.id, { name: m.name, brandId: m.brandId }])
+  );
+
+  const brandMap = new Map<number, string>(
+    (brands ?? []).map((b: any) => [b.id, b.name as string])
+  );
+
   // ─── Derived data for modal selectors ──────────────────────────────────────
 
-  const modelsForBrand = (allModels ?? []).filter(
-    (m: any) => !selectedBrandId || selectedBrandId === "any" || String(m.brandId) === selectedBrandId,
+  const modelsForBrandFilter = (allModels ?? []).filter(
+    (m: any) => !filterBrandId || filterBrandId === "any" || String(m.brandId) === filterBrandId,
   );
 
   const vehicleList: any[] = Array.isArray(allVehicles)
     ? allVehicles
     : (allVehicles?.data ?? []);
 
-  // Build a set of vehicleIds already parked so we can exclude them
   const parkedVehicleIds = new Set<number>(
     Object.values(zones ?? {}).flatMap((z: any) =>
       (z.assignments ?? []).map((a: any) => a.vehicleId)
     )
   );
 
-  const vehiclesForModel = vehicleList.filter((v: any) => {
+  const vehiclesFiltered = vehicleList.filter((v: any) => {
     if (v.status === "INACTIVE") return false;
     if (parkedVehicleIds.has(v.id)) return false;
-    // Vehicles without a vehicleModelId (orphans) only appear when no brand/model filter is set
     if (!v.vehicleModelId) {
-      return (!selectedBrandId || selectedBrandId === "any") && (!selectedModelId || selectedModelId === "any");
+      return (!filterBrandId || filterBrandId === "any") && (!filterModelId || filterModelId === "any");
     }
     const brandMatch =
-      !selectedBrandId || selectedBrandId === "any" ||
-      modelsForBrand.some((m: any) => m.id === v.vehicleModelId);
+      !filterBrandId || filterBrandId === "any" ||
+      modelsForBrandFilter.some((m: any) => m.id === v.vehicleModelId);
     const modelMatch =
-      !selectedModelId || selectedModelId === "any" ||
-      String(v.vehicleModelId) === selectedModelId;
+      !filterModelId || filterModelId === "any" ||
+      String(v.vehicleModelId) === filterModelId;
     return brandMatch && modelMatch;
   });
+
+  function getVehicleLabel(v: any): string {
+    const modelEntry = v.vehicleModelId != null ? modelMap.get(Number(v.vehicleModelId)) : undefined;
+    const brandName = modelEntry ? (brandMap.get(modelEntry.brandId) ?? "") : "";
+    const modelName = modelEntry?.name ?? "";
+    const plate = v.licensePlate ?? `#${v.id}`;
+    const locationName = v.locationId != null ? (locationMap.get(Number(v.locationId)) ?? "") : "";
+
+    const parts: string[] = [];
+    const prefix = [brandName, modelName].filter(Boolean).join(" ");
+    if (prefix) parts.push(prefix);
+    parts.push(plate);
+    if (locationName) parts.push(locationName);
+
+    return parts.join(" — ");
+  }
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -160,8 +191,8 @@ export default function TbsAirParking() {
 
   function handleOpenModal() {
     setSelectedZone("");
-    setSelectedBrandId("");
-    setSelectedModelId("");
+    setFilterBrandId("");
+    setFilterModelId("");
     setSelectedVehicleId("");
     setShowModal(true);
   }
@@ -169,8 +200,8 @@ export default function TbsAirParking() {
   function handleCloseModal() {
     setShowModal(false);
     setSelectedZone("");
-    setSelectedBrandId("");
-    setSelectedModelId("");
+    setFilterBrandId("");
+    setFilterModelId("");
     setSelectedVehicleId("");
   }
 
@@ -254,7 +285,7 @@ export default function TbsAirParking() {
                   zoneData.assignments.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-background/50 border border-border/40 group hover:border-border/70 transition-colors"
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-background/50 border border-border/40 hover:border-border/70 transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${zoneDef.color.replace("text-", "bg-")}`} />
@@ -272,7 +303,7 @@ export default function TbsAirParking() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0 transition-colors"
                         onClick={() => removeMutation.mutate(entry.id)}
                         disabled={removeMutation.isPending}
                         title="Remove from parking"
@@ -308,8 +339,8 @@ export default function TbsAirParking() {
                 value={selectedZone}
                 onValueChange={(v) => {
                   setSelectedZone(v);
-                  setSelectedBrandId("");
-                  setSelectedModelId("");
+                  setFilterBrandId("");
+                  setFilterModelId("");
                   setSelectedVehicleId("");
                 }}
               >
@@ -340,95 +371,100 @@ export default function TbsAirParking() {
               </Select>
             </div>
 
-            {/* Step 2: Brand */}
+            {/* Step 2: Vehicle (primary) */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <ChevronRight className="w-3 h-3" /> 2. Brand
-              </Label>
-              <Select
-                value={selectedBrandId}
-                disabled={!selectedZone}
-                onValueChange={(v) => {
-                  setSelectedBrandId(v);
-                  setSelectedModelId("");
-                  setSelectedVehicleId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedZone ? "Select brand…" : "Select a zone first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any brand</SelectItem>
-                  {(brands ?? []).map((b: any) => (
-                    <SelectItem key={b.id} value={String(b.id)}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Step 3: Model */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <ChevronRight className="w-3 h-3" /> 3. Model
-              </Label>
-              <Select
-                value={selectedModelId}
-                disabled={!selectedBrandId}
-                onValueChange={(v) => {
-                  setSelectedModelId(v);
-                  setSelectedVehicleId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedBrandId ? "Select model…" : "Select a brand first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any model</SelectItem>
-                  {modelsForBrand.map((m: any) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Step 4: Vehicle */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <ChevronRight className="w-3 h-3" /> 4. Vehicle
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                2. Vehicle
               </Label>
               <Select
                 value={selectedVehicleId}
-                disabled={vehiclesLoading}
+                disabled={!selectedZone || vehiclesLoading}
                 onValueChange={setSelectedVehicleId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={vehiclesLoading ? "Loading vehicles…" : "Select vehicle…"} />
+                  <SelectValue
+                    placeholder={
+                      !selectedZone
+                        ? "Select a zone first"
+                        : vehiclesLoading
+                        ? "Loading vehicles…"
+                        : "Select vehicle…"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehiclesForModel.length === 0 ? (
+                  {vehiclesFiltered.length === 0 ? (
                     <SelectItem value="none" disabled>
                       {vehiclesLoading ? "Loading…" : "No available vehicles"}
                     </SelectItem>
                   ) : (
-                    vehiclesForModel.map((v: any) => {
-                      const brand = v.vehicleModel?.brand?.name ?? "";
-                      const model = v.vehicleModel?.name ?? v.model ?? "";
-                      const plate = v.licensePlate ?? `#${v.id}`;
-                      const prefix = [brand, model].filter(Boolean).join(" ");
-                      const label = prefix ? `${prefix} — ${plate}` : plate;
-                      return (
-                        <SelectItem key={v.id} value={String(v.id)}>
-                          {label}
-                        </SelectItem>
-                      );
-                    })
+                    vehiclesFiltered.map((v: any) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {getVehicleLabel(v)}
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Optional filters */}
+            <div className="border border-border/40 rounded-lg p-3 space-y-3 bg-muted/20">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3 h-3" />
+                Optional filters
+              </p>
+
+              {/* Brand filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Brand</Label>
+                <Select
+                  value={filterBrandId}
+                  disabled={!selectedZone}
+                  onValueChange={(v) => {
+                    setFilterBrandId(v);
+                    setFilterModelId("");
+                    setSelectedVehicleId("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Any brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any brand</SelectItem>
+                    {(brands ?? []).map((b: any) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Model filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Model</Label>
+                <Select
+                  value={filterModelId}
+                  disabled={!selectedZone}
+                  onValueChange={(v) => {
+                    setFilterModelId(v);
+                    setSelectedVehicleId("");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Any model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any model</SelectItem>
+                    {modelsForBrandFilter.map((m: any) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
