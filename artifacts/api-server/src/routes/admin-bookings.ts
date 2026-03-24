@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ZodError } from "zod";
 import { pool } from "@workspace/db";
 import {
   GetAdminBookingParams,
@@ -49,7 +50,16 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
 });
 
 router.post("/admin/bookings", requireAdmin, async (req, res) => {
-  const body = CreateAdminBookingBody.parse(req.body);
+  let body: ReturnType<typeof CreateAdminBookingBody.parse>;
+  try {
+    body = CreateAdminBookingBody.parse(req.body);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      console.error("[booking validation error] BODY:", JSON.stringify(req.body));
+      console.error("[booking validation error] ISSUES:", JSON.stringify(err.issues));
+    }
+    throw err;
+  }
   const booking = await createAdminBooking(body as any);
   logAudit({
     actorId: req.session.adminId ?? null,

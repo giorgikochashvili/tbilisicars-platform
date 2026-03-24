@@ -19,7 +19,8 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "express-session": "^1.18.1",
-    "google-auth-library": "^10.6.2"
+    "google-auth-library": "^10.6.2",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

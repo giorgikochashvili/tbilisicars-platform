@@ -202,6 +202,9 @@ importers:
       google-auth-library:
         specifier: ^10.6.2
         version: 10.6.2
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/bcryptjs':
         specifier: ^3.0.0
