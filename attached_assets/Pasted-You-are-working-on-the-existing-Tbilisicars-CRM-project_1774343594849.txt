@@ -1,0 +1,248 @@
+You are working on the existing Tbilisicars CRM project.
+
+Important:
+Do NOT redesign the CRM.
+Do NOT rewrite unrelated modules.
+Do NOT add new features right now.
+Your task is to audit and fix integration bugs introduced by the recent changes around:
+
+- Brand / Model / Vehicle selection flows
+- TBS AIR PARKING vehicle assignment flow
+- New Booking vehicle selection flow
+- Pick Up / Drop Off modal form stability
+- Dashboard parking / fleet related click-through behavior only if affected by these bugs
+
+This is a bug-fix and integration-stabilization pass, not a new feature pass.
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Carefully inspect the current implementation and fix the broken data binding / state flow so that all related vehicle-dependent workflows work correctly again.
+
+The user reports these current regressions:
+
+1. TBS AIR PARKING:
+- when trying to assign a car into parking, the vehicle selection does not show the expected vehicles correctly
+
+2. New Booking:
+- brand/model/vehicle selection is broken
+- sometimes brand appears but model does not populate
+- sometimes model validation fails even after interaction
+- specific vehicle dropdown behavior is inconsistent
+
+3. Pick Up / Drop Off:
+- entering date, fuel, or other values causes the form to behave as if it refreshes/resets
+- typing a single number can reset the field or re-render incorrectly
+- modal form state is unstable
+
+Your job:
+find the root causes and fix them cleanly.
+
+==================================================
+BUG FIX BLOCK A — BRAND / MODEL / VEHICLE CHAIN
+==================================================
+
+Audit all recently changed vehicle selection flows and make them consistent:
+
+Affected areas:
+1. New Booking dialog
+2. TBS AIR PARKING "Enter Car in Parking"
+3. Any related Service / Fleet shared selectors if recent changes touched them
+
+Required correct behavior:
+- Brand select loads available brands correctly
+- After selecting Brand, only models for that brand appear
+- After selecting Model, only vehicles belonging to that model appear
+- Specific vehicle options must be based on real DB-linked vehicles
+- No unrelated vehicles should appear
+- Empty dropdowns should only happen when there is truly no matching data
+
+Critical implementation rule:
+Use a single, consistent relation chain:
+Brand -> Vehicle Model -> Vehicle
+
+Do NOT mix:
+- brand names in one place and brand ids in another
+- model ids in one place and model names in another
+- filtered labels without filtered values
+
+Inspect for bugs such as:
+- comparing string label to numeric id
+- using wrong property names
+- filtering vehicles by brand directly instead of via model.brandId
+- missing memo/state reset when parent select changes
+- invalid query data shape assumptions
+- stale selected model/vehicle when brand changes
+
+Required fixes:
+- when Brand changes -> reset Model and Vehicle
+- when Model changes -> reset Vehicle
+- selected values must always remain valid for current parent selection
+- validation must reflect the actual visible choices
+
+==================================================
+BUG FIX BLOCK B — TBS AIR PARKING ASSIGNMENT MODAL
+==================================================
+
+Current reported issue:
+Parking module does not correctly offer/select vehicles.
+
+Fix the parking assignment modal so that:
+- zone select works
+- brand select loads correctly
+- model select loads correctly after brand selection
+- vehicle select loads correctly after model selection
+- only real existing eligible vehicles are shown
+- labels are readable: Brand Model — Plate
+- if no vehicles match, show a meaningful empty state instead of broken behavior
+
+Also verify:
+- already parked vehicles are excluded correctly
+- vehicles already rented/delivered logic is respected if intended by current implementation
+- capacity checks still work
+- assign action sends the correct vehicle_id
+
+Do NOT rewrite parking architecture.
+Only fix broken selector/data wiring and related validation.
+
+==================================================
+BUG FIX BLOCK C — NEW BOOKING VEHICLE FLOW
+==================================================
+
+Current reported issue:
+New Booking vehicle section is inconsistent and sometimes throws validation like "Please select a vehicle model" even after brand interaction.
+
+Fix the New Booking modal so that:
+- Brand select is populated correctly
+- Model select depends on Brand correctly
+- Specific Vehicle select depends on selected Model correctly
+- "Any available vehicle" logic still works if specific vehicle is optional
+- form validation uses the real current state, not stale values
+- submission no longer fails because of broken cascading state
+
+Audit especially:
+- form schema / zod validation versus actual UI fields
+- whether modelId is truly being set in form state
+- whether brand selection incorrectly clears model after selection
+- whether select components are controlled correctly
+- whether default values are clashing with recent changes
+
+Important:
+Do not remove the optional specific vehicle behavior.
+Keep the business logic the same, just fix the broken chain.
+
+==================================================
+BUG FIX BLOCK D — PICK UP / DROP OFF MODAL STATE RESET
+==================================================
+
+Current reported issue:
+Pick Up / Drop Off modal inputs reset or behave as if the form is refreshing while typing.
+
+Fix this carefully.
+
+Required correct behavior:
+- typing in mileage should not reset the form
+- typing fuel level should not reset the form
+- editing date/time should not reset the form
+- modal must keep local form state stable until submit/cancel
+- no remount-on-every-keystroke behavior
+
+Audit likely causes:
+- component key changing on each render
+- form defaultValues being recreated on every render
+- parent state causing modal remount
+- useEffect resetting form too often
+- query refetch invalidating modal state
+- controlled/uncontrolled input mismatch
+- parsing numeric/date values in a way that overwrites user input
+- form object recreated every render without guard
+
+Implementation requirements:
+- initialize form once when modal opens or when booking/action context changes intentionally
+- do not call reset() on every state/query change
+- do not coerce partially typed numeric input in a way that erases it
+- preserve user input while editing
+- only submit validated normalized values on save
+
+Also verify:
+- uploaded photos UI still works
+- submit updates status/history correctly
+- no regression in delivered/returned flow
+
+==================================================
+BUG FIX BLOCK E — SHARED CONSISTENCY PASS
+==================================================
+
+Perform a consistency pass across all affected components so shared data assumptions match:
+
+Check:
+- API response shapes
+- query hooks
+- select option value types
+- id vs name usage
+- null/undefined handling
+- client-side filtering logic
+- form schema expectations
+- controlled select/input behavior
+
+If multiple components now solve Brand/Model/Vehicle selection separately in inconsistent ways, refactor lightly into a shared helper pattern ONLY if it reduces bugs without broad rewrite.
+
+Do NOT over-engineer.
+Do NOT start a large component library refactor.
+Keep it focused.
+
+==================================================
+EXPECTED RESULTS
+==================================================
+
+After the fixes:
+
+1. TBS AIR PARKING
+- brand -> model -> vehicle selection works
+- valid vehicles appear correctly
+- assignment works
+
+2. New Booking
+- brand -> model -> optional specific vehicle works
+- no false validation errors for vehicle model
+- dropdown values are consistent
+
+3. Pick Up / Drop Off
+- date/mileage/fuel fields no longer reset while typing
+- modal stays stable until submit
+- save flow still works
+
+4. Existing recent features remain intact
+- dashboard parking widget still works
+- fleet live status click-through still works
+- parking auto-removal on DELIVERED still works
+
+==================================================
+DEBUGGING APPROACH
+==================================================
+
+Before changing code, inspect the real current implementation and identify root causes.
+Do not blindly rewrite.
+
+Focus especially on files recently touched for:
+- Dashboard
+- Fleet
+- Bookings
+- TbsAirParking
+- BookingDetail / pickup-dropoff modals
+- shared select/form components if used
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+When finished:
+1. explain the root causes found
+2. summarize exactly what was fixed
+3. list files changed
+4. confirm the project builds successfully
+5. confirm these three flows were manually verified:
+   - parking assignment
+   - new booking vehicle flow
+   - pickup/dropoff modal typing stability
