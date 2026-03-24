@@ -1,0 +1,185 @@
+We are continuing the Tbilisicars CRM&WEB project.
+
+Current goal:
+Phase 1 — Super Admin AI (Exploration Mode)
+
+Important context:
+- Do not rebuild the CRM.
+- Do not break existing auth, bookings, fleet, customers, payments, reports, dashboard, service, parking, or document flows.
+- Keep the current architecture and extend it carefully.
+- The user is non-technical, so all implementation must be clean, safe, and production-minded.
+- This phase is NOT for full AI actions yet.
+- This phase is only to prepare a safe “visibility layer” for a future Super Admin AI.
+- For now, AI should only READ and EXPLAIN, not create/update/delete anything.
+
+Main objective of this step:
+Create a new admin-only backend layer that gives a future Super Admin AI clean, structured, read-only access to operational data and failure reasons.
+
+Implement a new route group:
+`/api/admin-ai/*`
+
+Security requirements:
+- Every endpoint must be protected with existing admin authentication middleware (`requireAdmin` or the project’s equivalent).
+- Only authenticated admin sessions can access these endpoints.
+- No public access.
+- No customer-facing exposure.
+
+Create these read-only endpoints:
+
+1) `GET /api/admin-ai/summary`
+Return a compact operational summary for AI and admin assistant use.
+Include at least:
+- totalBookings
+- activeBookings
+- todayPickups
+- todayDropoffs
+- availableVehicles
+- rentedVehicles
+- maintenanceVehicles
+- overdueReturns
+- pendingPayments if available
+- parking summary if available (TBS AIR PARKING: TERMINAL / OUT / FREE)
+
+2) `GET /api/admin-ai/bookings`
+Return a clean AI-readable bookings list.
+Support useful filters where easy and safe:
+- status
+- source
+- date range
+- location / region
+- payment state if available
+Each booking item should be normalized and human-readable, not raw DB dumps.
+Include useful fields such as:
+- id
+- booking reference
+- status
+- source
+- customer name
+- customer phone
+- vehicle display name
+- plate number
+- pickup location code
+- dropoff location code
+- pickup datetime
+- dropoff datetime
+- total amount
+- paid amount
+- remaining amount
+- currency
+- createdAt
+
+3) `GET /api/admin-ai/bookings/:id`
+Return a deep single-booking view for AI reasoning.
+Include:
+- booking identity
+- customer details
+- vehicle details
+- payment summary
+- payment history
+- pickup / dropoff info if present
+- recent activity / history if available
+- documents if already linked
+- any related notes if present
+
+4) `GET /api/admin-ai/vehicles`
+Return a clean vehicle list for AI.
+Include at least:
+- id
+- brand
+- model
+- plateNumber
+- status
+- location
+- category
+- mileage
+- current booking summary if any
+- maintenance status if available
+- parking zone if available
+
+5) `GET /api/admin-ai/customers`
+Return a clean customer list for AI.
+Include at least:
+- id
+- full name
+- phone
+- email
+- country
+- passport/id if already supported
+- driving license if already supported
+- total bookings count if easy to include
+- last booking date if easy to include
+
+6) `GET /api/admin-ai/logs`
+This is the most important endpoint for the future AI.
+Create a clean operational log / diagnostic feed from existing available sources.
+If a true centralized log table already exists, use it.
+If not, create a safe synthesized diagnostic response based on available data and recent system events/errors.
+Goal:
+allow future AI to explain why something failed or what happened.
+
+Each log item should try to follow this structure:
+- time
+- module
+- action
+- status (SUCCESS / FAILED / WARNING / INFO)
+- entityType
+- entityId
+- shortMessage
+- reason
+- meta / input summary if safe
+
+Examples of the kinds of things we want the future AI to explain:
+- booking creation failed because no matching vehicle was available
+- payment action incomplete because amount is missing
+- pickup not completed because required fields were not entered
+- parking assignment failed because TERMINAL zone is full
+- vehicle unavailable because status is rented or in service
+
+Very important behavior:
+- Do NOT expose raw stack traces to the frontend response.
+- Convert technical failures into structured admin-readable diagnostics.
+- Keep full technical errors only in server logs if needed.
+- Return safe structured explanation fields for admin AI use.
+
+Response design rules:
+- All responses must be JSON.
+- Keep them normalized and AI-readable.
+- Avoid raw SQL-shaped dumps where possible.
+- Prefer display-ready values where useful (for example vehicleDisplayName, routeCode, paymentSummary).
+- Keep naming consistent.
+
+Architecture rules:
+- Follow the existing project patterns for routes, services, schemas, validation, and auth.
+- Reuse existing service logic where possible.
+- Do not duplicate business logic unnecessarily.
+- Keep TypeScript types strict.
+- Do not introduce breaking changes to existing endpoints.
+
+Frontend requirement for this step:
+- Do NOT build the full AI chat yet.
+- Only add a very small temporary admin test page if appropriate, and only if it is easy and safe.
+- If added, it should be admin-only and simple: a page that can fetch `/api/admin-ai/summary` and maybe show counts/logs for testing.
+- If this risks destabilizing the current CRM UI, skip the frontend page entirely and keep this step backend-only.
+
+Diagnostics requirement:
+At the end, provide:
+1. exact files created/updated
+2. what each endpoint returns
+3. any assumptions made
+4. any limitations where true logs were not available
+5. safe test checklist
+6. note any areas that should be improved in Phase 2 (AI reasoning layer)
+
+Critical project-specific intent:
+The future Super Admin AI must be able to answer questions like:
+- “Why was this booking not created?”
+- “What cars are currently free in Tbilisi?”
+- “Which bookings have unpaid balance?”
+- “What happened today in pickups and dropoffs?”
+- “Why is a vehicle not visible in parking anymore?”
+But in this phase the system should only PREPARE the data layer for that.
+
+Do not overbuild.
+Do not invent fake AI.
+Do not add write actions yet.
+Build the safest possible admin-only read/explain foundation for Phase 1.
