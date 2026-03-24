@@ -58,8 +58,9 @@ export async function createHandover(data: {
   }
 
   // Advance booking status
-  const newStatus = handoverType === "PICKUP" ? "DELIVERED" : "RETURNED";
-  await updateAdminBookingStatus(bookingId, newStatus as any);
+  const newStatus: "DELIVERED" | "RETURNED" =
+    handoverType === "PICKUP" ? "DELIVERED" : "RETURNED";
+  await updateAdminBookingStatus(bookingId, newStatus);
 
   // Write booking history entry
   const parts: string[] = [];
