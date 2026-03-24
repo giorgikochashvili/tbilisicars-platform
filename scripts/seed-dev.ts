@@ -26,7 +26,11 @@ function dateAt(days: number, hour: number): Date {
 }
 
 function toDateString(days: number): string {
-  return daysFromNow(days).toISOString().slice(0, 10);
+  const d = daysFromNow(days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 // ─── 1. Locations ─────────────────────────────────────────────────────────────
@@ -184,8 +188,8 @@ async function seedBookings() {
     return;
   }
 
-  const users = await db.select({ id: userTable.id, fullName: userTable.fullName }).from(userTable);
-  const userMap = new Map(users.map((u) => [u.fullName!, u.id]));
+  const users = await db.select({ id: userTable.id, email: userTable.email }).from(userTable);
+  const userMap = new Map(users.map((u) => [u.email!, u.id]));
 
   const vehicles = await db.select({ id: vehicleTable.id, plate: vehicleTable.licensePlate }).from(vehicleTable);
   const vehicleMap = new Map(vehicles.map((v) => [v.plate!, v.id]));
@@ -200,7 +204,7 @@ async function seedBookings() {
 
   const bookings = [
     {
-      userId:            userMap.get("Giorgi Maisuradze")!,
+      userId:            userMap.get("giorgi.m@example.ge")!,
       vehicleId:         vehicleMap.get("GG-002-BB"),
       pickupLocationId:  tbilisiAirport,
       dropoffLocationId: tbilisiCity,
@@ -214,7 +218,7 @@ async function seedBookings() {
       contactPhone:      "+995591100001",
     },
     {
-      userId:            userMap.get("Nino Kvaratskhelia")!,
+      userId:            userMap.get("nino.k@example.ge")!,
       vehicleId:         vehicleMap.get("GG-005-EE"),
       pickupLocationId:  kutaisiAirport,
       dropoffLocationId: kutaisiAirport,
@@ -228,7 +232,7 @@ async function seedBookings() {
       contactPhone:      "+995591100002",
     },
     {
-      userId:            userMap.get("Luka Beridze")!,
+      userId:            userMap.get("luka.b@example.ge")!,
       vehicleId:         vehicleMap.get("GG-003-CC"),
       pickupLocationId:  tbilisiAirport,
       dropoffLocationId: tbilisiAirport,
@@ -242,7 +246,7 @@ async function seedBookings() {
       contactPhone:      "+995591100003",
     },
     {
-      userId:            userMap.get("Ana Tvalchrelidze")!,
+      userId:            userMap.get("ana.t@example.ge")!,
       vehicleId:         vehicleMap.get("GG-006-FF"),
       pickupLocationId:  batumiSeaPort,
       dropoffLocationId: batumiSeaPort,
@@ -256,7 +260,7 @@ async function seedBookings() {
       contactPhone:      "+995591100004",
     },
     {
-      userId:            userMap.get("Davit Chikvanaia")!,
+      userId:            userMap.get("davit.c@example.ge")!,
       vehicleId:         vehicleMap.get("GG-001-AA"),
       pickupLocationId:  tbilisiCity,
       dropoffLocationId: tbilisiAirport,
@@ -270,7 +274,7 @@ async function seedBookings() {
       contactPhone:      "+995591100005",
     },
     {
-      userId:            userMap.get("Giorgi Maisuradze")!,
+      userId:            userMap.get("giorgi.m@example.ge")!,
       vehicleId:         vehicleMap.get("GG-001-AA"),
       pickupLocationId:  tbilisiAirport,
       dropoffLocationId: tbilisiAirport,
