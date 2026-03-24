@@ -1,0 +1,83 @@
+You are working on the existing Tbilisicars CRM Dashboard.
+
+Do NOT redesign anything.
+Do NOT change data logic.
+
+Goal:
+Make Fleet Live Status cards clickable and navigate to Fleet page with filters applied.
+
+==================================================
+FEATURE — CLICKABLE FLEET LIVE STATUS
+==================================================
+
+Cards:
+- AVAILABLE
+- RENTED
+- MAINTENANCE
+- RESERVED
+- INACTIVE
+
+--------------------------------------------------
+1. Click behavior
+--------------------------------------------------
+
+Each card must be clickable.
+
+Navigation:
+
+AVAILABLE → /crm/fleet?status=AVAILABLE  
+RENTED → /crm/fleet?status=RENTED  
+MAINTENANCE → /crm/fleet?status=MAINTENANCE  
+RESERVED → /crm/fleet?status=RESERVED  
+INACTIVE → /crm/fleet?status=INACTIVE  
+
+--------------------------------------------------
+2. Fleet page behavior
+--------------------------------------------------
+
+Fleet page must:
+
+- read query param "status"
+- apply filter automatically
+- show active filter in UI
+- allow user to change/remove filter
+
+--------------------------------------------------
+3. UX
+--------------------------------------------------
+
+- cursor pointer
+- hover effect
+- keep existing design
+
+--------------------------------------------------
+4. Implementation
+--------------------------------------------------
+
+- reuse existing filter system
+- do NOT duplicate logic
+- keep status enum consistent
+
+--------------------------------------------------
+5. Out of scope
+--------------------------------------------------
+
+Do NOT:
+- redesign fleet page
+- change API
+- add new filters
+
+--------------------------------------------------
+6. Verification
+--------------------------------------------------
+
+- clicking cards filters correctly
+- URL updates
+- UI reflects filter
+- build passes
+
+--------------------------------------------------
+OUTPUT
+--------------------------------------------------
+
+Summarize and confirm functionality.
