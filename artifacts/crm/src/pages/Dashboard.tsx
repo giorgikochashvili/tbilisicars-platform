@@ -14,9 +14,9 @@ import {
   PlayCircle, CheckCircle2, Flag, RotateCcw,
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
-  Settings2, Info, RotateCw,
+  Settings2, Info, RotateCw, ParkingSquare,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -82,12 +82,32 @@ interface FleetCalendar {
   vehicles: CalendarVehicle[];
 }
 
+// ─── Parking types ────────────────────────────────────────────────────────────
+
+interface ParkingAssignment {
+  id: number;
+  vehicleId: number;
+  zone: string;
+}
+
+interface ParkingZoneData {
+  capacity: number | null;
+  assignments: ParkingAssignment[];
+}
+
+interface ParkingOverviewData {
+  TERMINAL?: ParkingZoneData;
+  OUT?: ParkingZoneData;
+  FREE?: ParkingZoneData;
+}
+
 // ─── Widget config ─────────────────────────────────────────────────────────────
 
 interface WidgetConfig {
   sections: {
     bookingOverview: boolean;
     fleetLiveStatus: boolean;
+    parkingOverview: boolean;
     todaysOperations: boolean;
     fleetTimeline: boolean;
     operationalAlerts: boolean;
@@ -108,6 +128,7 @@ const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
   sections: {
     bookingOverview: true,
     fleetLiveStatus: true,
+    parkingOverview: true,
     todaysOperations: true,
     fleetTimeline: true,
     operationalAlerts: true,
@@ -261,6 +282,76 @@ function FleetTile({ label, count, colorClass, testId, isLoading }: {
         )}
         <div className="text-[11px] font-bold uppercase tracking-widest opacity-90">{label}</div>
       </div>
+    </Card>
+  );
+}
+
+// ─── TBS Air Parking Widget ───────────────────────────────────────────────────
+
+const PARKING_ZONE_CONFIG = [
+  { key: "TERMINAL" as const, label: "Terminal", capacity: 5, colorClass: "text-sky-400 border-sky-500/30 bg-sky-500/10" },
+  { key: "OUT" as const, label: "Out", capacity: 10, colorClass: "text-violet-400 border-violet-500/30 bg-violet-500/10" },
+  { key: "FREE" as const, label: "Free", capacity: null, colorClass: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" },
+];
+
+function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; isLoading: boolean }) {
+  const [, navigate] = useLocation();
+
+  return (
+    <Card
+      className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm cursor-pointer hover:bg-card/80 hover:border-border/70 transition-all"
+      onClick={() => navigate("/tbs-parking")}
+    >
+      <CardHeader className="pb-3 pt-4 px-5 border-b border-border/30 flex flex-row items-center justify-between">
+        <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <ParkingSquare className="w-4 h-4 text-primary" />
+          TBS Air Parking
+        </CardTitle>
+        <span className="text-[10px] text-muted-foreground/60 font-medium">Click to manage →</span>
+      </CardHeader>
+      <CardContent className="px-5 py-4">
+        <div className="grid grid-cols-3 gap-3">
+          {PARKING_ZONE_CONFIG.map(({ key, label, capacity, colorClass }) => {
+            const zoneData = data?.[key];
+            const count = zoneData?.assignments?.length ?? 0;
+            const isFull = capacity != null && count >= capacity;
+
+            return (
+              <div
+                key={key}
+                className={cn(
+                  "rounded-lg border p-4 flex flex-col items-center justify-center gap-1.5 transition-colors",
+                  colorClass,
+                )}
+              >
+                {isLoading ? (
+                  <Skeleton className="h-8 w-10 bg-current opacity-20 rounded" />
+                ) : (
+                  <div className="text-3xl font-black font-display tracking-tighter leading-none">
+                    {capacity != null ? `${count}/${capacity}` : count}
+                  </div>
+                )}
+                <div className="text-[10px] font-bold uppercase tracking-widest opacity-90">{label}</div>
+                {isFull && !isLoading && (
+                  <Badge className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0 bg-red-500/20 text-red-400 border border-red-500/30 rounded-sm shadow-none">
+                    Full
+                  </Badge>
+                )}
+                {!isFull && capacity != null && !isLoading && (
+                  <div className="text-[9px] text-current opacity-50 font-medium">
+                    {capacity - count} left
+                  </div>
+                )}
+                {capacity == null && !isLoading && (
+                  <div className="text-[9px] text-current opacity-50 font-medium">
+                    {count === 1 ? "vehicle" : "vehicles"}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -607,6 +698,7 @@ function CustomizePopover({ config, onChange }: {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Sections</p>
             <SectionRow label="Booking Overview" k="bookingOverview" />
             <SectionRow label="Fleet Live Status" k="fleetLiveStatus" />
+            <SectionRow label="TBS Air Parking" k="parkingOverview" />
             <SectionRow label="Today's Operations" k="todaysOperations" />
             <SectionRow label="Fleet Timeline" k="fleetTimeline" />
             <SectionRow label="Operational Alerts" k="operationalAlerts" />
@@ -688,6 +780,12 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
+  const parkingQuery = useQuery<ParkingOverviewData>({
+    queryKey: ["dashboard-parking-overview"],
+    queryFn: () => fetchJson<ParkingOverviewData>(`${BASE}/admin/parking`),
+    staleTime: 30_000,
+  });
+
   const hasError = summaryQuery.isError || todayQuery.isError || fleetQuery.isError;
   const sc = widgetConfig.sections;
   const cc = widgetConfig.cards;
@@ -762,6 +860,16 @@ export default function Dashboard() {
             <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} />
             <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} />
           </div>
+        </div>
+      )}
+
+      {/* TBS Air Parking Overview */}
+      {sc.parkingOverview && (
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+            <ParkingSquare className="w-4 h-4 text-primary" /> TBS Air Parking
+          </h2>
+          <TbsAirParkingWidget data={parkingQuery.data} isLoading={parkingQuery.isLoading} />
         </div>
       )}
 
