@@ -87,7 +87,7 @@ export default function TbsAirParking() {
     enabled: showModal,
   });
 
-  const { data: allVehicles } = useQuery<any>({
+  const { data: allVehicles, isLoading: vehiclesLoading } = useQuery<any>({
     queryKey: ["fleet-vehicles"],
     queryFn: () => apiFetch("/admin/fleet/vehicles"),
     enabled: showModal,
@@ -103,15 +103,27 @@ export default function TbsAirParking() {
     ? allVehicles
     : (allVehicles?.data ?? []);
 
+  // Build a set of vehicleIds already parked so we can exclude them
+  const parkedVehicleIds = new Set<number>(
+    Object.values(zones ?? {}).flatMap((z: any) =>
+      (z.assignments ?? []).map((a: any) => a.vehicleId)
+    )
+  );
+
   const vehiclesForModel = vehicleList.filter((v: any) => {
+    if (v.status === "INACTIVE") return false;
+    if (parkedVehicleIds.has(v.id)) return false;
+    // Vehicles without a vehicleModelId (orphans) only appear when no brand/model filter is set
+    if (!v.vehicleModelId) {
+      return (!selectedBrandId || selectedBrandId === "any") && (!selectedModelId || selectedModelId === "any");
+    }
     const brandMatch =
       !selectedBrandId || selectedBrandId === "any" ||
       String(v.vehicleModel?.brand?.id) === selectedBrandId;
     const modelMatch =
       !selectedModelId || selectedModelId === "any" ||
       String(v.vehicleModelId) === selectedModelId;
-    const active = v.status !== "INACTIVE";
-    return brandMatch && modelMatch && active;
+    return brandMatch && modelMatch;
   });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
@@ -390,16 +402,16 @@ export default function TbsAirParking() {
               </Label>
               <Select
                 value={selectedVehicleId}
-                disabled={!selectedModelId}
+                disabled={vehiclesLoading}
                 onValueChange={setSelectedVehicleId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedModelId ? "Select vehicle…" : "Select a model first"} />
+                  <SelectValue placeholder={vehiclesLoading ? "Loading vehicles…" : "Select vehicle…"} />
                 </SelectTrigger>
                 <SelectContent>
                   {vehiclesForModel.length === 0 ? (
                     <SelectItem value="none" disabled>
-                      No active vehicles found
+                      {vehiclesLoading ? "Loading…" : "No available vehicles"}
                     </SelectItem>
                   ) : (
                     vehiclesForModel.map((v: any) => {

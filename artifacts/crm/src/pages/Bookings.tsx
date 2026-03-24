@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListAdminBookings,
@@ -210,10 +210,11 @@ export default function BookingsPage() {
   const { data: customers } = useListAdminCustomers({ page: 1, limit: 50, search: customerSearch }, reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
-  const { data: vehicleData } = useListAdminVehicles(
-    booking.vehicleModelId ? { modelId: parseInt(booking.vehicleModelId) } as any : undefined,
-    reqOpts
+  const vehicleQueryParams = useMemo(
+    () => (booking.vehicleModelId ? ({ modelId: parseInt(booking.vehicleModelId) } as any) : undefined),
+    [booking.vehicleModelId]
   );
+  const { data: vehicleData } = useListAdminVehicles(vehicleQueryParams, reqOpts);
   const { data: locations } = useListLocations(reqOpts);
 
   const statusMutation = useUpdateAdminBookingStatus(reqOpts);
@@ -228,7 +229,7 @@ export default function BookingsPage() {
   const allCustomers = (customers as any)?.data || [];
 
   const filteredModels = booking.brandId && booking.brandId !== "any"
-    ? allModels.filter((m: any) => m.brand?.id?.toString() === booking.brandId)
+    ? allModels.filter((m: any) => (m.brandId?.toString() ?? m.brand?.id?.toString()) === booking.brandId)
     : allModels;
 
   const handleStatusChange = (id: number, newStatus: any) => {
@@ -671,6 +672,7 @@ export default function BookingsPage() {
                 >
                   <SelectTrigger><SelectValue placeholder="Choose model…" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="any">Any model</SelectItem>
                     {filteredModels.map((m: any) => (
                       <SelectItem key={m.id} value={m.id.toString()}>
                         {m.brand?.name} {m.name}

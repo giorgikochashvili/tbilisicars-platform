@@ -286,6 +286,166 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
   );
 }
 
+// ─── Handover Modal (top-level — must NOT be defined inside BookingDetail) ────
+// Defining it inside BookingDetail would create a new component reference on
+// every render, causing React to unmount/remount the Dialog on every keystroke.
+
+interface HandoverModalProps {
+  type: "pickup" | "dropoff";
+  open: boolean;
+  onClose: () => void;
+  handoverForm: { actionAt: string; mileage: string; fuelLevel: string; notes: string };
+  setHandoverForm: React.Dispatch<React.SetStateAction<{ actionAt: string; mileage: string; fuelLevel: string; notes: string }>>;
+  handoverFiles: File[];
+  setHandoverFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  handoverPreviews: string[];
+  setHandoverPreviews: React.Dispatch<React.SetStateAction<string[]>>;
+  savingHandover: boolean;
+  onSubmit: (type: "pickup" | "dropoff") => void;
+}
+
+function HandoverModal({
+  type, open, onClose,
+  handoverForm, setHandoverForm,
+  handoverFiles, setHandoverFiles,
+  handoverPreviews, setHandoverPreviews,
+  savingHandover, onSubmit,
+}: HandoverModalProps) {
+  const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
+  const Icon = type === "pickup" ? Car : RotateCcw;
+  const accentClass = type === "pickup" ? "text-emerald-400" : "text-blue-400";
+
+  const handleModalClose = () => {
+    handoverPreviews.forEach((url) => URL.revokeObjectURL(url));
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) handleModalClose(); }}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Icon className={`w-4 h-4 ${accentClass}`} />
+            {title}
+          </DialogTitle>
+          <DialogDescription>
+            Record the vehicle {type === "pickup" ? "pick up" : "drop off"} details. This will update the booking status.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 grid gap-1.5">
+              <Label className="text-xs">Action Date & Time <span className="text-destructive">*</span></Label>
+              <Input
+                type="datetime-local"
+                value={handoverForm.actionAt}
+                onChange={(e) => setHandoverForm((prev) => ({ ...prev, actionAt: e.target.value }))}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Mileage (km)</Label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="e.g. 45200"
+                value={handoverForm.mileage}
+                onChange={(e) => setHandoverForm((prev) => ({ ...prev, mileage: e.target.value }))}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Fuel Level (0–100%)</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="e.g. 75"
+                value={handoverForm.fuelLevel}
+                onChange={(e) => setHandoverForm((prev) => ({ ...prev, fuelLevel: e.target.value }))}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="col-span-2 grid gap-1.5">
+              <Label className="text-xs">Notes</Label>
+              <Textarea
+                placeholder="Optional notes about the vehicle condition…"
+                value={handoverForm.notes}
+                onChange={(e) => setHandoverForm((prev) => ({ ...prev, notes: e.target.value }))}
+                className="text-xs resize-none"
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* Photo upload */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Photos</Label>
+            <div className="rounded-lg border border-dashed border-border/60 p-3 bg-muted/10">
+              <label className="flex flex-col items-center gap-1.5 cursor-pointer">
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Click to add photos</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    const newPreviews = files.map((f) => URL.createObjectURL(f));
+                    setHandoverFiles((prev) => [...prev, ...files]);
+                    setHandoverPreviews((prev) => [...prev, ...newPreviews]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {handoverFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {handoverFiles.map((file, i) => (
+                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border/40 bg-muted/20">
+                    <img
+                      src={handoverPreviews[i]}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                      onClick={() => {
+                        URL.revokeObjectURL(handoverPreviews[i]);
+                        setHandoverFiles((prev) => prev.filter((_, j) => j !== i));
+                        setHandoverPreviews((prev) => prev.filter((_, j) => j !== i));
+                      }}
+                    >
+                      <X className="w-2.5 h-2.5 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => onSubmit(type)}
+              disabled={savingHandover}
+            >
+              {savingHandover ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface BookingDetailProps {
@@ -452,7 +612,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       if (type === "pickup") setShowPickupModal(false);
       else setShowDropoffModal(false);
 
-      revokeHandoverPreviews(handoverPreviews);
+      handoverPreviews.forEach((url) => URL.revokeObjectURL(url));
       setHandoverForm(EMPTY_HANDOVER);
       setHandoverFiles([]);
       setHandoverPreviews([]);
@@ -463,10 +623,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     } finally {
       setSavingHandover(false);
     }
-  };
-
-  const revokeHandoverPreviews = (previews: string[]) => {
-    previews.forEach((url) => URL.revokeObjectURL(url));
   };
 
   const openHandoverModal = (type: "pickup" | "dropoff") => {
@@ -483,144 +639,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
   const canPickUp = booking?.status === "CONFIRMED" && !handovers.pickup;
   const canDropOff = booking?.status === "DELIVERED" && !handovers.dropoff;
-
-  // ─── Handover Modal ─────────────────────────────────────────────────────────
-
-  function HandoverModal({ type, open: modalOpen, onClose: closeModal }: { type: "pickup" | "dropoff"; open: boolean; onClose: () => void }) {
-    const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
-    const Icon = type === "pickup" ? Car : RotateCcw;
-    const accentClass = type === "pickup" ? "text-emerald-400" : "text-blue-400";
-
-    const handleModalClose = () => {
-      revokeHandoverPreviews(handoverPreviews);
-      closeModal();
-    };
-
-    return (
-      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) handleModalClose(); }}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Icon className={`w-4 h-4 ${accentClass}`} />
-              {title}
-            </DialogTitle>
-            <DialogDescription>
-              Record the vehicle {type === "pickup" ? "pick up" : "drop off"} details. This will update the booking status.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 mt-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 grid gap-1.5">
-                <Label className="text-xs">Action Date & Time <span className="text-destructive">*</span></Label>
-                <Input
-                  type="datetime-local"
-                  value={handoverForm.actionAt}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, actionAt: e.target.value })}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Mileage (km)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 45200"
-                  value={handoverForm.mileage}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, mileage: e.target.value })}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Fuel Level (0–100%)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="e.g. 75"
-                  value={handoverForm.fuelLevel}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, fuelLevel: e.target.value })}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="col-span-2 grid gap-1.5">
-                <Label className="text-xs">Notes</Label>
-                <Textarea
-                  placeholder="Optional notes about the vehicle condition…"
-                  value={handoverForm.notes}
-                  onChange={(e) => setHandoverForm({ ...handoverForm, notes: e.target.value })}
-                  className="text-xs resize-none"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            {/* Photo upload */}
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Photos</Label>
-              <div className="rounded-lg border border-dashed border-border/60 p-3 bg-muted/10">
-                <label className="flex flex-col items-center gap-1.5 cursor-pointer">
-                  <Upload className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Click to add photos</span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      const newPreviews = files.map((f) => URL.createObjectURL(f));
-                      setHandoverFiles((prev) => [...prev, ...files]);
-                      setHandoverPreviews((prev) => [...prev, ...newPreviews]);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
-              {handoverFiles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {handoverFiles.map((file, i) => (
-                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border/40 bg-muted/20">
-                      <img
-                        src={handoverPreviews[i]}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
-                        onClick={() => {
-                          URL.revokeObjectURL(handoverPreviews[i]);
-                          setHandoverFiles((prev) => prev.filter((_, j) => j !== i));
-                          setHandoverPreviews((prev) => prev.filter((_, j) => j !== i));
-                        }}
-                      >
-                        <X className="w-2.5 h-2.5 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2 justify-end pt-1">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => handleHandoverSubmit(type)}
-                disabled={savingHandover}
-              >
-                {savingHandover ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <>
@@ -1063,10 +1081,34 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       </Dialog>
 
       {/* Pick Up Modal */}
-      <HandoverModal type="pickup" open={showPickupModal} onClose={() => setShowPickupModal(false)} />
+      <HandoverModal
+        type="pickup"
+        open={showPickupModal}
+        onClose={() => setShowPickupModal(false)}
+        handoverForm={handoverForm}
+        setHandoverForm={setHandoverForm}
+        handoverFiles={handoverFiles}
+        setHandoverFiles={setHandoverFiles}
+        handoverPreviews={handoverPreviews}
+        setHandoverPreviews={setHandoverPreviews}
+        savingHandover={savingHandover}
+        onSubmit={handleHandoverSubmit}
+      />
 
       {/* Drop Off Modal */}
-      <HandoverModal type="dropoff" open={showDropoffModal} onClose={() => setShowDropoffModal(false)} />
+      <HandoverModal
+        type="dropoff"
+        open={showDropoffModal}
+        onClose={() => setShowDropoffModal(false)}
+        handoverForm={handoverForm}
+        setHandoverForm={setHandoverForm}
+        handoverFiles={handoverFiles}
+        setHandoverFiles={setHandoverFiles}
+        handoverPreviews={handoverPreviews}
+        setHandoverPreviews={setHandoverPreviews}
+        savingHandover={savingHandover}
+        onSubmit={handleHandoverSubmit}
+      />
     </>
   );
 }
