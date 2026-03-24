@@ -5,14 +5,13 @@
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { createAdminBooking } from "../services/admin-bookings.service.js";
-import { db, bookingextraTable, extraTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, bookingextraTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 // ─── GET /api/public/booking-config ───────────────────────────────────────────
 // Returns data needed to render the website booking form:
-// locations, vehicle models available for website, extras
+// locations, vehicle models available for website (with min price), extras
 
 router.get("/public/booking-config", async (_req, res) => {
   const [locRows, modelRows, extraRows] = await Promise.all([
@@ -29,13 +28,23 @@ router.get("/public/booking-config", async (_req, res) => {
         vm.description,
         vm.image_url,
         vm.deposit,
-        -- Check if any active vehicle of this model exists
-        COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count
+        COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
+        price_info.min_price_per_day,
+        price_info.price_currency
       FROM vehicle_model vm
       JOIN brand br ON br.id = vm.brand_id
       LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
+      LEFT JOIN LATERAL (
+        SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
+        FROM ratetier rt
+        JOIN rate r ON r.id = rt.rate_id
+        WHERE rt.vehicle_model_id = vm.id
+          AND r.is_active = true
+        ORDER BY rt.price_per_day ASC
+        LIMIT 1
+      ) price_info ON true
       WHERE vm.available_for_external_systems = true AND vm.active = true
-      GROUP BY vm.id, br.name
+      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
       HAVING COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') > 0
       ORDER BY br.name, vm.name
     `),
@@ -74,7 +83,6 @@ router.post("/public/validate-promo", async (req, res) => {
     return res.json({ valid: false, error: "Invalid or expired promo code" });
   }
 
-  // Date validity check
   const now = new Date();
   if (promo.valid_from && new Date(promo.valid_from) > now) {
     return res.json({ valid: false, error: "Promo code is not active yet" });
@@ -117,9 +125,7 @@ router.post("/public/quote", async (req, res) => {
   const days = Math.max(1, Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)));
   const pickupDateStr = pickupDate.toISOString().slice(0, 10);
 
-  // ── Resolve best active rate tier for this vehicle model + dates + duration ──
-  // Prefer the rate with the latest valid_from (most specific/seasonal), then
-  // the tier with the highest from_days (most granular duration band).
+  // Resolve best active rate tier for this vehicle model + dates + duration
   const { rows: tierRows } = await pool.query(
     `SELECT rt.id AS tier_id, rt.rate_id, rt.price_per_day, rt.currency,
             r.name AS rate_name, r.valid_from, r.valid_until
@@ -141,7 +147,6 @@ router.post("/public/quote", async (req, res) => {
   const baseCurrency: string | null = tier ? (tier.currency as string) : null;
   const baseTotal: number | null = basePricePerDay !== null ? basePricePerDay * days : null;
 
-  // ── Extras total ────────────────────────────────────────────────────────────
   let extrasTotal = 0;
   if (body.extras && body.extras.length > 0) {
     const extraIds = body.extras.map((e) => e.extraId);
@@ -158,7 +163,6 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  // ── Promo discount (applied to baseTotal only if base is known) ─────────────
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
   let discountAmount: number | null = null;
@@ -183,7 +187,6 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  // ── Estimated total ─────────────────────────────────────────────────────────
   const estimatedTotal: number | null = baseTotal !== null
     ? Math.max(0, baseTotal - (discountAmount ?? 0)) + extrasTotal
     : null;
@@ -223,14 +226,16 @@ router.post("/public/bookings", async (req, res) => {
     extras?: Array<{ extraId: number; quantity: number }>;
     promoCode?: string;
     currency?: string;
-    // Quote-resolved fields (sent back from the website after /quote)
     resolvedRateId?: number | null;
     resolvedRateTierId?: number | null;
     resolvedBaseRate?: number | null;
     resolvedTotal?: number | null;
+    // New website fields — stored in booking notes
+    nationality?: string;
+    paymentMethod?: string;
+    insurancePlan?: string;
   };
 
-  // ── Validate required fields ────────────────────────────────────────────────
   const errors: string[] = [];
   if (!body.pickupLocationId) errors.push("Pickup location is required");
   if (!body.dropoffLocationId) errors.push("Drop-off location is required");
@@ -246,7 +251,6 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors });
   }
 
-  // ── Date validation ─────────────────────────────────────────────────────────
   const pickupDate = new Date(body.pickupDatetime!);
   const dropoffDate = new Date(body.dropoffDatetime!);
 
@@ -257,13 +261,11 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Drop-off date must be after pickup date"] });
   }
 
-  // ── Basic email format validation ───────────────────────────────────────────
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(body.email!)) {
     return res.status(422).json({ errors: ["Invalid email address"] });
   }
 
-  // ── Validate vehicle model is available for website ─────────────────────────
   const { rows: modelRows } = await pool.query(
     `SELECT vm.id, br.name AS brand, vm.name AS model
      FROM vehicle_model vm
@@ -275,7 +277,6 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Selected vehicle model is not available for online booking"] });
   }
 
-  // ── Resolve promo discount ──────────────────────────────────────────────────
   let discount: string | null = null;
   if (body.promoCode) {
     const { rows: promoRows } = await pool.query(
@@ -287,7 +288,6 @@ router.post("/public/bookings", async (req, res) => {
     }
   }
 
-  // ── Calculate extras cost ───────────────────────────────────────────────────
   let extrasTotal = 0;
   const validatedExtras: Array<{ extraId: number; quantity: number; price: number }> = [];
   if (body.extras && body.extras.length > 0) {
@@ -307,19 +307,29 @@ router.post("/public/bookings", async (req, res) => {
     }
   }
 
-  // ── Create the CRM booking ──────────────────────────────────────────────────
   const contactFullName = `${body.firstName!.trim()} ${body.lastName!.trim()}`;
-
-  // Derive currency from resolved rate if provided, else fall back to request or GEL
   const currency = body.currency ?? "GEL";
 
-  // Use client-resolved total when available (from /quote); otherwise fall back
-  // to extras-only total. Never fabricate a total when no base is known.
   const totalAmount: string | null = body.resolvedTotal != null
     ? String(body.resolvedTotal)
     : extrasTotal > 0
       ? String(extrasTotal)
       : null;
+
+  // ── Build structured notes block ────────────────────────────────────────────
+  // Append [WEBSITE DATA] block; preserve any free-text notes from the user
+  const websiteDataLines: string[] = [];
+  if (body.nationality?.trim()) websiteDataLines.push(`Nationality: ${body.nationality.trim()}`);
+  if (body.paymentMethod?.trim()) websiteDataLines.push(`Payment Method: ${body.paymentMethod.trim()}`);
+  if (body.insurancePlan?.trim()) websiteDataLines.push(`Insurance: ${body.insurancePlan.trim()}`);
+
+  let combinedNotes: string | null = body.notes?.trim() || null;
+  if (websiteDataLines.length > 0) {
+    const websiteBlock = `[WEBSITE DATA]\n${websiteDataLines.join("\n")}`;
+    combinedNotes = combinedNotes
+      ? `${combinedNotes}\n\n${websiteBlock}`
+      : websiteBlock;
+  }
 
   const booking = await createAdminBooking({
     contactFullName,
@@ -336,17 +346,15 @@ router.post("/public/bookings", async (req, res) => {
     currency,
     discount,
     totalAmount,
-    notes: body.notes?.trim() || null,
+    notes: combinedNotes,
     source: "website",
     status: "PENDING",
     paymentStatus: "UNPAID",
-    // Rate fields resolved from /quote endpoint (null if no rate matched)
     rateId: body.resolvedRateId ?? null,
     rateTierId: body.resolvedRateTierId ?? null,
     baseRate: body.resolvedBaseRate != null ? String(body.resolvedBaseRate) : null,
   });
 
-  // ── Attach extras to the booking ────────────────────────────────────────────
   if (validatedExtras.length > 0) {
     await db.insert(bookingextraTable).values(
       validatedExtras.map((e) => ({
