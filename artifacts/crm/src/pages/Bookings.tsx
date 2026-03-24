@@ -210,10 +210,10 @@ export default function BookingsPage() {
   const { data: customers } = useListAdminCustomers({ page: 1, limit: 50, search: customerSearch }, reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
-  const vehicleQueryParams = useMemo(
-    () => (booking.vehicleModelId ? ({ modelId: parseInt(booking.vehicleModelId) } as any) : undefined),
-    [booking.vehicleModelId]
-  );
+  const vehicleQueryParams = useMemo(() => {
+    const id = parseInt(booking.vehicleModelId);
+    return !isNaN(id) ? ({ modelId: id } as any) : undefined;
+  }, [booking.vehicleModelId]);
   const { data: vehicleData } = useListAdminVehicles(vehicleQueryParams, reqOpts);
   const { data: locations } = useListLocations(reqOpts);
 
