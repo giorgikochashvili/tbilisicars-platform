@@ -6,10 +6,10 @@ import {
   vehicleTable,
   userTable,
   bookingTable,
-  maintenanceServiceTypesTable,
   maintenanceServicesTable,
 } from "@workspace/db";
-import { eq, count, sql } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
+import { seedServiceTypes } from "../artifacts/api-server/src/services/admin-service.service.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,11 +71,11 @@ async function seedBrands() {
 
 async function seedUsers() {
   const rows = [
-    { fullName: "Giorgi Maisuradze",   phone: "+995591100001", email: "giorgi.m@example.ge",  country: "Georgia" },
-    { fullName: "Nino Kvaratskhelia",  phone: "+995591100002", email: "nino.k@example.ge",    country: "Georgia" },
-    { fullName: "Luka Beridze",        phone: "+995591100003", email: "luka.b@example.ge",     country: "Georgia" },
-    { fullName: "Ana Tvalchrelidze",   phone: "+995591100004", email: "ana.t@example.ge",      country: "Georgia" },
-    { fullName: "Davit Chikvanaia",    phone: "+995591100005", email: "davit.c@example.ge",    country: "Georgia" },
+    { fullName: "Giorgi Maisuradze",  phone: "+995591100001", email: "giorgi.m@example.ge", country: "Georgia" },
+    { fullName: "Nino Kvaratskhelia", phone: "+995591100002", email: "nino.k@example.ge",   country: "Georgia" },
+    { fullName: "Luka Beridze",       phone: "+995591100003", email: "luka.b@example.ge",   country: "Georgia" },
+    { fullName: "Ana Tvalchrelidze",  phone: "+995591100004", email: "ana.t@example.ge",    country: "Georgia" },
+    { fullName: "Davit Chikvanaia",   phone: "+995591100005", email: "davit.c@example.ge",  country: "Georgia" },
   ];
 
   const result = await db
@@ -87,29 +87,12 @@ async function seedUsers() {
 }
 
 // ─── 4. Maintenance Service Types ─────────────────────────────────────────────
-// No unique index — SELECT-before-INSERT by name (mirrors existing seedServiceTypes()).
+// Delegates to canonical seedServiceTypes() in admin-service.service.ts.
+// That function inserts the project's 16 service types via SELECT-before-INSERT.
 
-async function seedServiceTypes() {
-  const names = [
-    "Oil", "Air Filter", "Saloon Filter", "Brake Pads Front", "Brake Pads Back",
-    "Brake Disk", "Windshield", "Windshield Cleaner", "Brake Fluid",
-    "Transmission Fluid", "Disk Repair", "Tyre Fix", "Tyre Change",
-    "Light Bulbs", "Electric", "Wheel Diagnostic",
-  ];
-
-  let inserted = 0;
-  for (const name of names) {
-    const existing = await db
-      .select({ id: maintenanceServiceTypesTable.id })
-      .from(maintenanceServiceTypesTable)
-      .where(eq(maintenanceServiceTypesTable.name, name))
-      .limit(1);
-    if (existing.length === 0) {
-      await db.insert(maintenanceServiceTypesTable).values({ name });
-      inserted++;
-    }
-  }
-  console.log(`  service types: ${inserted} inserted, ${names.length - inserted} skipped`);
+async function runSeedServiceTypes() {
+  await seedServiceTypes();
+  console.log("  service types: seeded via admin-service.service.ts seedServiceTypes()");
 }
 
 // ─── 5. Vehicle Models ────────────────────────────────────────────────────────
@@ -204,18 +187,16 @@ async function seedBookings() {
   const users = await db.select({ id: userTable.id, fullName: userTable.fullName }).from(userTable);
   const userMap = new Map(users.map((u) => [u.fullName!, u.id]));
 
-  const vehicles = await db
-    .select({ id: vehicleTable.id, plate: vehicleTable.licensePlate })
-    .from(vehicleTable);
+  const vehicles = await db.select({ id: vehicleTable.id, plate: vehicleTable.licensePlate }).from(vehicleTable);
   const vehicleMap = new Map(vehicles.map((v) => [v.plate!, v.id]));
 
   const locations = await db.select({ id: locationTable.id, name: locationTable.name }).from(locationTable);
   const locMap = new Map(locations.map((l) => [l.name, l.id]));
 
-  const tbilisiAirport   = locMap.get("Tbilisi International Airport")!;
-  const tbilisiCity      = locMap.get("Tbilisi City Center")!;
-  const kutaisiAirport   = locMap.get("Kutaisi International Airport")!;
-  const baturmiSeaPort   = locMap.get("Batumi Sea Port")!;
+  const tbilisiAirport = locMap.get("Tbilisi International Airport")!;
+  const tbilisiCity    = locMap.get("Tbilisi City Center")!;
+  const kutaisiAirport = locMap.get("Kutaisi International Airport")!;
+  const batumiSeaPort  = locMap.get("Batumi Sea Port")!;
 
   const bookings = [
     {
@@ -225,8 +206,8 @@ async function seedBookings() {
       dropoffLocationId: tbilisiCity,
       pickupDatetime:    dateAt(0, 10),
       dropoffDatetime:   dateAt(3, 10),
-      status:            "DELIVERED"  as const,
-      paymentStatus:     "HALF"       as const,
+      status:            "DELIVERED" as const,
+      paymentStatus:     "HALF"      as const,
       totalAmount:       "270.00",
       currency:          "GEL",
       contactFullName:   "Giorgi Maisuradze",
@@ -239,8 +220,8 @@ async function seedBookings() {
       dropoffLocationId: kutaisiAirport,
       pickupDatetime:    dateAt(-3, 9),
       dropoffDatetime:   dateAt(0, 9),
-      status:            "DELIVERED"  as const,
-      paymentStatus:     "PAID"       as const,
+      status:            "DELIVERED" as const,
+      paymentStatus:     "PAID"      as const,
       totalAmount:       "450.00",
       currency:          "GEL",
       contactFullName:   "Nino Kvaratskhelia",
@@ -253,8 +234,8 @@ async function seedBookings() {
       dropoffLocationId: tbilisiAirport,
       pickupDatetime:    dateAt(2, 12),
       dropoffDatetime:   dateAt(5, 12),
-      status:            "CONFIRMED"  as const,
-      paymentStatus:     "UNPAID"     as const,
+      status:            "CONFIRMED" as const,
+      paymentStatus:     "UNPAID"    as const,
       totalAmount:       "240.00",
       currency:          "GEL",
       contactFullName:   "Luka Beridze",
@@ -263,12 +244,12 @@ async function seedBookings() {
     {
       userId:            userMap.get("Ana Tvalchrelidze")!,
       vehicleId:         vehicleMap.get("GG-006-FF"),
-      pickupLocationId:  baturmiSeaPort,
-      dropoffLocationId: baturmiSeaPort,
+      pickupLocationId:  batumiSeaPort,
+      dropoffLocationId: batumiSeaPort,
       pickupDatetime:    dateAt(-10, 11),
       dropoffDatetime:   dateAt(-7, 11),
-      status:            "RETURNED"   as const,
-      paymentStatus:     "PAID"       as const,
+      status:            "RETURNED"  as const,
+      paymentStatus:     "PAID"      as const,
       totalAmount:       "360.00",
       currency:          "GEL",
       contactFullName:   "Ana Tvalchrelidze",
@@ -281,8 +262,8 @@ async function seedBookings() {
       dropoffLocationId: tbilisiAirport,
       pickupDatetime:    dateAt(-5, 14),
       dropoffDatetime:   dateAt(-2, 14),
-      status:            "RETURNED"   as const,
-      paymentStatus:     "REFUNDED"   as const,
+      status:            "RETURNED"  as const,
+      paymentStatus:     "REFUNDED"  as const,
       totalAmount:       "180.00",
       currency:          "GEL",
       contactFullName:   "Davit Chikvanaia",
@@ -295,8 +276,8 @@ async function seedBookings() {
       dropoffLocationId: tbilisiAirport,
       pickupDatetime:    dateAt(-30, 10),
       dropoffDatetime:   dateAt(-27, 10),
-      status:            "CANCELED"   as const,
-      paymentStatus:     "UNPAID"     as const,
+      status:            "CANCELED"  as const,
+      paymentStatus:     "UNPAID"    as const,
       totalAmount:       "180.00",
       currency:          "GEL",
       contactFullName:   "Giorgi Maisuradze",
@@ -323,9 +304,10 @@ async function seedServiceRecords() {
     .from(vehicleTable);
   const vehicleMap = new Map(vehicles.map((v) => [v.plate!, v.id]));
 
+  const { maintenanceServiceTypesTable: svcTypesTable } = await import("@workspace/db");
   const types = await db
-    .select({ id: maintenanceServiceTypesTable.id, name: maintenanceServiceTypesTable.name })
-    .from(maintenanceServiceTypesTable);
+    .select({ id: svcTypesTable.id, name: svcTypesTable.name })
+    .from(svcTypesTable);
   const typeMap = new Map(types.map((t) => [t.name, t.id]));
 
   const records = [
@@ -370,7 +352,7 @@ async function main() {
   await seedLocations();
   await seedBrands();
   await seedUsers();
-  await seedServiceTypes();
+  await runSeedServiceTypes();
   await seedVehicleModels();
   await seedVehicles();
   await seedBookings();

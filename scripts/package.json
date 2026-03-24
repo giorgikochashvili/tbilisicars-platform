@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "seed:dev": "tsx ./src/seed-dev.ts",
+    "seed:dev": "tsx ./seed-dev.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
