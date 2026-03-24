@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -36,6 +36,7 @@ const navItems = [
   { title: "Promotions", url: "/promotions", icon: Tag },
   { title: "Team", url: "/team", icon: UserCog },
   { title: "Audit Log", url: "/audit-logs", icon: Activity },
+  { title: "TBS AIR PARKING", url: "/tbs-parking", icon: PlaneTakeoff },
 ];
 
 export function AppSidebar() {

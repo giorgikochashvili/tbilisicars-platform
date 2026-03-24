@@ -29,6 +29,7 @@ import {
 import { alias } from "drizzle-orm/pg-core";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
+import { removeFromParkingByVehicle } from "./admin-parking.service.js";
 
 // ─── Alias tables ──────────────────────────────────────────────────────────────
 
@@ -633,6 +634,8 @@ export async function updateAdminBookingStatus(
         .update(vehicleTable)
         .set({ status: "RENTED", updatedAt: new Date() })
         .where(eq(vehicleTable.id, current.vehicleId));
+      // Auto-remove from TBS AIR PARKING if the vehicle was parked there
+      await removeFromParkingByVehicle(current.vehicleId);
     } else if (status === "RETURNED") {
       // Vehicle returned → mark Available and update its current location
       await db
