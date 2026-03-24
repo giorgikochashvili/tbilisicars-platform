@@ -418,7 +418,8 @@ export default function TbsAirParking() {
                       const brand = v.vehicleModel?.brand?.name ?? "";
                       const model = v.vehicleModel?.name ?? v.model ?? "";
                       const plate = v.licensePlate ?? `#${v.id}`;
-                      const label = [brand, model].filter(Boolean).join(" ") + ` — ${plate}`;
+                      const prefix = [brand, model].filter(Boolean).join(" ");
+                      const label = prefix ? `${prefix} — ${plate}` : plate;
                       return (
                         <SelectItem key={v.id} value={String(v.id)}>
                           {label}
