@@ -56,7 +56,7 @@ export function AppSidebar() {
   const alertCount = alertSummary?.total ?? 0;
 
   return (
-    <Sidebar variant="inset" collapsible="none" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
+    <Sidebar variant="inset" collapsible="offcanvas" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
       <SidebarHeader className="border-b border-border/40 py-5 px-4 flex flex-row items-center gap-3">
         <div className="bg-primary text-primary-foreground p-2 rounded-xl shadow-lg shadow-primary/20 hover-elevate">
           <CarFront className="w-5 h-5" />
