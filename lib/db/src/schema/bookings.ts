@@ -21,6 +21,7 @@ import {
 import { locationTable } from "./locations";
 import { rateTable, ratetierTable } from "./rates";
 import { partnerTable } from "./partners";
+import { adminsTable } from "./admins";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -231,7 +232,7 @@ export const bookingphotoTable = pgTable(
 
 // ─── Booking Handover ─────────────────────────────────────────────────────────
 // Records formal vehicle handover and return actions (PICKUP / DROPOFF).
-// performed_by_admin_id is a plain integer FK to admins.id to avoid circular imports.
+// performed_by_admin_id is a real FK to admins.id (admins.ts does not import bookings.ts).
 
 export const bookingHandoverTable = pgTable(
   "booking_handover",
@@ -244,7 +245,10 @@ export const bookingHandoverTable = pgTable(
     actionAt: timestamp("action_at").notNull(),
     mileage: integer("mileage"),
     fuelLevel: integer("fuel_level"), // 0–100
-    performedByAdminId: integer("performed_by_admin_id"), // FK to admins.id (plain integer)
+    performedByAdminId: integer("performed_by_admin_id").references(
+      () => adminsTable.id,
+      { onDelete: "set null" },
+    ),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

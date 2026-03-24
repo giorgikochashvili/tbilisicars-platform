@@ -239,6 +239,14 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
             <FuelBar level={handover.fuelLevel} />
           </div>
         )}
+        {handover.performedByAdminName && (
+          <div>
+            <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
+              <User className="w-3 h-3" /> Performed By
+            </div>
+            <div className="text-sm font-medium">{handover.performedByAdminName}</div>
+          </div>
+        )}
         {handover.notes && (
           <div className="col-span-2 sm:col-span-3">
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">Notes</div>

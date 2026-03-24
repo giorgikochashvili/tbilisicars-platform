@@ -3,9 +3,9 @@ import {
   bookingHandoverTable,
   bookingphotoTable,
   bookingHistoryTable,
+  adminsTable,
 } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
-import { NotFoundError } from "../lib/errors.js";
 import { updateAdminBookingStatus } from "./admin-bookings.service.js";
 
 export async function createHandover(data: {
@@ -82,9 +82,25 @@ export async function createHandover(data: {
 }
 
 export async function getHandoversForBooking(bookingId: number) {
-  const handovers = await db
-    .select()
+  // Fetch handovers with performer name via JOIN on admins
+  const handoverRows = await db
+    .select({
+      id: bookingHandoverTable.id,
+      bookingId: bookingHandoverTable.bookingId,
+      handoverType: bookingHandoverTable.handoverType,
+      actionAt: bookingHandoverTable.actionAt,
+      mileage: bookingHandoverTable.mileage,
+      fuelLevel: bookingHandoverTable.fuelLevel,
+      performedByAdminId: bookingHandoverTable.performedByAdminId,
+      performedByAdminName: adminsTable.fullName,
+      notes: bookingHandoverTable.notes,
+      createdAt: bookingHandoverTable.createdAt,
+    })
     .from(bookingHandoverTable)
+    .leftJoin(
+      adminsTable,
+      eq(bookingHandoverTable.performedByAdminId, adminsTable.id),
+    )
     .where(eq(bookingHandoverTable.bookingId, bookingId))
     .orderBy(asc(bookingHandoverTable.actionAt));
 
@@ -102,8 +118,8 @@ export async function getHandoversForBooking(bookingId: number) {
     .filter((p) => p.photoType === "RETURN")
     .map((p) => p.photoUrl);
 
-  const pickup = handovers.find((h) => h.handoverType === "PICKUP") ?? null;
-  const dropoff = handovers.find((h) => h.handoverType === "DROPOFF") ?? null;
+  const pickup = handoverRows.find((h) => h.handoverType === "PICKUP") ?? null;
+  const dropoff = handoverRows.find((h) => h.handoverType === "DROPOFF") ?? null;
 
   return {
     pickup: pickup ? { ...pickup, photos: pickupPhotos } : null,
