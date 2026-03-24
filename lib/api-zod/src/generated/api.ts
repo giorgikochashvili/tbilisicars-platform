@@ -1730,8 +1730,8 @@ export const CreateAdminBookingBody = zod.object({
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number(),
   dropoffLocationId: zod.number(),
-  pickupDatetime: zod.date(),
-  dropoffDatetime: zod.date(),
+  pickupDatetime: zod.coerce.date(),
+  dropoffDatetime: zod.coerce.date(),
   status: zod
     .enum([
       "PENDING",
@@ -1880,8 +1880,8 @@ export const UpdateAdminBookingBody = zod.object({
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number().optional(),
   dropoffLocationId: zod.number().optional(),
-  pickupDatetime: zod.date().optional(),
-  dropoffDatetime: zod.date().optional(),
+  pickupDatetime: zod.coerce.date().optional(),
+  dropoffDatetime: zod.coerce.date().optional(),
   status: zod
     .enum([
       "PENDING",

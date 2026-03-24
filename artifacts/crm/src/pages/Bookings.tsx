@@ -260,7 +260,8 @@ export default function BookingsPage() {
       toast({ title: "Validation Error", description: "Customer name is required", variant: "destructive" });
       return;
     }
-    if (!booking.vehicleModelId) {
+    const vehicleModelIdNum = parseInt(booking.vehicleModelId);
+    if (!booking.vehicleModelId || booking.vehicleModelId === "any" || isNaN(vehicleModelIdNum)) {
       toast({ title: "Validation Error", description: "Please select a vehicle model", variant: "destructive" });
       return;
     }
@@ -300,7 +301,7 @@ export default function BookingsPage() {
       dropoffLocationId: parseInt(booking.dropoffLocationId),
       pickupDatetime,
       dropoffDatetime,
-      vehicleModelId: parseInt(booking.vehicleModelId),
+      vehicleModelId: vehicleModelIdNum,
       pickupType: booking.pickupType,
       pickupAddress: ["hotel", "address"].includes(booking.pickupType) ? booking.pickupAddress : null,
       dropoffType: booking.dropoffType,
@@ -317,9 +318,11 @@ export default function BookingsPage() {
     if (booking.customerMode === "existing" && booking.customerId) {
       payload.customerId = parseInt(booking.customerId);
     } else {
-      payload.customerFullName = booking.newCustomerName;
-      payload.customerPhone = booking.newCustomerPhone || null;
-      payload.customerEmail = booking.newCustomerEmail || null;
+      payload.customerData = {
+        fullName: booking.newCustomerName || undefined,
+        phone: booking.newCustomerPhone || undefined,
+        email: booking.newCustomerEmail || undefined,
+      };
     }
 
     createMutation.mutate(

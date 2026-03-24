@@ -423,6 +423,7 @@ export async function getAdminBooking(id: number) {
 
 export async function createAdminBooking(data: {
   customerId?: number | null;
+  customerData?: { fullName?: string; email?: string; phone?: string } | null;
   customerEmail?: string | null;
   customerPhone?: string | null;
   customerFullName?: string | null;
@@ -483,14 +484,14 @@ export async function createAdminBooking(data: {
   let userId = data.customerId;
   if (!userId) {
     const customer = await findOrCreateCustomer({
-      email: data.customerEmail,
-      phone: data.customerPhone,
-      fullName: data.customerFullName ?? data.contactFullName,
+      email: data.customerData?.email ?? data.customerEmail,
+      phone: data.customerData?.phone ?? data.customerPhone,
+      fullName: data.customerData?.fullName ?? data.customerFullName ?? data.contactFullName,
     });
     userId = customer.id;
   }
 
-  const { customerId, customerEmail, customerPhone, customerFullName, ...rest } = data;
+  const { customerId, customerData, customerEmail, customerPhone, customerFullName, ...rest } = data;
 
   const [row] = await db
     .insert(bookingTable)
