@@ -682,9 +682,10 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3">Pricing Estimate</div>
             <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
-            {selectedExtras.map(({ extra, qty }) => (
-              <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * days)} />
-            ))}
+            {selectedExtras.map(({ extra, qty }) => {
+              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+              return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
+            })}
             {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
               <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
             )}
@@ -696,9 +697,10 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
         ) : (
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
-            {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => (
-              <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * days).toLocaleString()} GEL`} />
-            ))}
+            {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => {
+              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+              return <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * multiplier).toLocaleString()} GEL`} />;
+            })}
             <p className="text-xs text-muted-foreground mt-2">Base rate will be confirmed by our team.</p>
           </div>
         )}
