@@ -226,7 +226,8 @@ export default function AdminAI() {
   };
 
   const handleExample = (q: string) => {
-    sendMessage(q);
+    setInput(q);
+    textareaRef.current?.focus();
   };
 
   const isEmpty = messages.length === 0 && !isLoading;
