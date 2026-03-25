@@ -26,6 +26,7 @@ import PaymentDocument from "@/pages/PaymentDocument";
 import HandoverDocument from "@/pages/HandoverDocument";
 import AuditLogs from "@/pages/AuditLogs";
 import TbsAirParking from "@/pages/TbsAirParking";
+import AdminAI from "@/pages/AdminAI";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -108,6 +109,7 @@ function Router() {
       <Route path="/alerts"><ProtectedRoute component={AlertsPage} /></Route>
       <Route path="/audit-logs"><ProtectedRoute component={AuditLogs} /></Route>
       <Route path="/tbs-parking"><ProtectedRoute component={TbsAirParking} /></Route>
+      <Route path="/admin-ai"><ProtectedRoute component={AdminAI} /></Route>
 
       {/* Booking Documents — no sidebar layout */}
       <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
