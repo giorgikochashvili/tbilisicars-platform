@@ -45,17 +45,11 @@ function vehicleDisplay(brand: string | null, model: string | null, id: number):
 // ─── 1. Summary ───────────────────────────────────────────────────────────────
 
 export async function getAISummary() {
-  const [bookingSummary, todayActivity, fleetSnapshot, parkingQ, overdueQ, pendingPayQ] =
+  const [bookingSummary, todayActivity, fleetSnapshot, overdueQ, pendingPayQ] =
     await Promise.all([
       getDashboardSummary(),
       getTodayActivity(),
       getFleetSnapshot(),
-      pool.query<{ zone: string; count: string }>(
-        `SELECT zone, COUNT(*) AS count
-         FROM parking_assignment
-         WHERE removed_at IS NULL
-         GROUP BY zone`,
-      ),
       pool.query<{ count: string }>(
         `SELECT COUNT(*) AS count
          FROM booking
@@ -72,9 +66,27 @@ export async function getAISummary() {
       ),
     ]);
 
-  const parking: Record<string, number> = { TERMINAL: 0, OUT: 0, FREE: 0 };
-  for (const r of parkingQ.rows) {
-    parking[r.zone] = parseInt(r.count, 10);
+  // Parking is an optional module — query it separately so a missing table
+  // never crashes the rest of the summary.
+  let parkingSection: { terminal: number; out: number; free: number } | null = null;
+  try {
+    const parkingQ = await pool.query<{ zone: string; count: string }>(
+      `SELECT zone, COUNT(*) AS count
+       FROM parking_assignment
+       WHERE removed_at IS NULL
+       GROUP BY zone`,
+    );
+    const parking: Record<string, number> = { TERMINAL: 0, OUT: 0, FREE: 0 };
+    for (const r of parkingQ.rows) {
+      parking[r.zone] = parseInt(r.count, 10);
+    }
+    parkingSection = {
+      terminal: parking["TERMINAL"] ?? 0,
+      out: parking["OUT"] ?? 0,
+      free: parking["FREE"] ?? 0,
+    };
+  } catch {
+    // Table does not exist or module not installed — omit parking from response
   }
 
   return {
@@ -99,11 +111,7 @@ export async function getAISummary() {
       reserved: fleetSnapshot.reserved,
       inactive: fleetSnapshot.inactive,
     },
-    parking: {
-      terminal: parking["TERMINAL"] ?? 0,
-      out: parking["OUT"] ?? 0,
-      free: parking["FREE"] ?? 0,
-    },
+    parking: parkingSection,
     todayActivity: {
       pickupsCount: todayActivity.pickups.length,
       dropoffsCount: todayActivity.dropoffs.length,
