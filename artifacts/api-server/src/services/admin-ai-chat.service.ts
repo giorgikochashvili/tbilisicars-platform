@@ -199,10 +199,10 @@ async function fetchDataForIntent(
       if (bookingId !== null) {
         const booking = await getAIBooking(bookingId);
         if (booking) {
-          sources.push({ type: "booking_detail", count: 1 });
+          sources.push({ type: "bookings", count: 1 });
           data.booking = booking;
         } else {
-          sources.push({ type: "booking_detail", count: 0 });
+          sources.push({ type: "bookings", count: 0 });
           data.booking = null;
           warnings.push(`No booking found with ID ${bookingId}.`);
         }
@@ -221,7 +221,7 @@ async function fetchDataForIntent(
         getAIBookings({ paymentStatus: "UNPAID", status: "DELIVERED", limit: 50 }),
       ]);
       const allUnpaid = [...confirmed.rows, ...delivered.rows];
-      sources.push({ type: "unpaid_bookings", count: allUnpaid.length });
+      sources.push({ type: "bookings", count: allUnpaid.length });
       data.unpaidBookings = {
         total: confirmed.total + delivered.total,
         confirmedCount: confirmed.total,
@@ -336,20 +336,20 @@ export async function processAdminChat(
   const intent = detectIntent(message);
   const startMs = Date.now();
 
-  console.log(
-    `[admin-ai-chat] intent=${intent} adminId=${adminId}`,
-  );
-
   let fetchedContext: FetchedContext;
   try {
     fetchedContext = await fetchDataForIntent(intent, message);
   } catch (err) {
     const safeMsg = err instanceof Error ? err.message.slice(0, 120) : "unknown";
-    console.error(`[admin-ai-chat] data-fetch error intent=${intent} error=${safeMsg}`);
+    console.error(`[admin-ai-chat] intent=${intent} sources=[] adminId=${adminId} data-fetch-error=${safeMsg}`);
     throw new Error("data_fetch_failed");
   }
 
   const { sources, data, warnings } = fetchedContext;
+
+  console.log(
+    `[admin-ai-chat] intent=${intent} sources=[${sources.map((s) => s.type).join(",")}] adminId=${adminId}`,
+  );
   const systemPrompt = buildSystemPrompt(intent, sources, data);
 
   let answer: string;
