@@ -6,6 +6,7 @@ import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { createAdminBooking } from "../services/admin-bookings.service.js";
 import { db, bookingextraTable } from "@workspace/db";
+import { sendBookingConfirmationEmail } from "../services/email.service.js";
 
 const router: IRouter = Router();
 
@@ -45,7 +46,6 @@ router.get("/public/booking-config", async (_req, res) => {
       ) price_info ON true
       WHERE vm.available_for_external_systems = true AND vm.active = true
       GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-      HAVING COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') > 0
       ORDER BY br.name, vm.name
     `),
     pool.query(`
@@ -230,10 +230,13 @@ router.post("/public/bookings", async (req, res) => {
     resolvedRateTierId?: number | null;
     resolvedBaseRate?: number | null;
     resolvedTotal?: number | null;
-    // New website fields — stored in booking notes
+    // Website fields — stored in booking notes [WEBSITE DATA] block
     nationality?: string;
     paymentMethod?: string;
     insurancePlan?: string;
+    whatsApp?: string;
+    age?: string;
+    flightNumber?: string;
   };
 
   const errors: string[] = [];
@@ -320,6 +323,9 @@ router.post("/public/bookings", async (req, res) => {
   // Append [WEBSITE DATA] block; preserve any free-text notes from the user
   const websiteDataLines: string[] = [];
   if (body.nationality?.trim()) websiteDataLines.push(`Nationality: ${body.nationality.trim()}`);
+  if (body.age?.trim()) websiteDataLines.push(`Age: ${body.age.trim()}`);
+  if (body.whatsApp?.trim()) websiteDataLines.push(`WhatsApp: ${body.whatsApp.trim()}`);
+  if (body.flightNumber?.trim()) websiteDataLines.push(`Flight Number: ${body.flightNumber.trim()}`);
   if (body.paymentMethod?.trim()) websiteDataLines.push(`Payment Method: ${body.paymentMethod.trim()}`);
   if (body.insurancePlan?.trim()) websiteDataLines.push(`Insurance: ${body.insurancePlan.trim()}`);
 
@@ -366,13 +372,42 @@ router.post("/public/bookings", async (req, res) => {
     );
   }
 
+  const reference = `TC-${String(booking.id).padStart(5, "0")}`;
+  const vehicleName = `${modelRows[0]!.brand} ${modelRows[0]!.model}`;
+
+  // Send confirmation email (non-blocking — fire and forget)
+  const { rows: locationRows } = await pool.query(
+    `SELECT id, name, city FROM location WHERE id = ANY($1)`,
+    [[body.pickupLocationId, body.dropoffLocationId]],
+  );
+  const locMap = new Map(locationRows.map((l: any) => [l.id, `${l.name}, ${l.city}`]));
+  const pickupLocation = locMap.get(Number(body.pickupLocationId)) ?? String(body.pickupLocationId);
+  const dropoffLocation = locMap.get(Number(body.dropoffLocationId)) ?? String(body.dropoffLocationId);
+
+  sendBookingConfirmationEmail({
+    toEmail: body.email!.trim(),
+    toName: contactFullName,
+    reference,
+    vehicle: vehicleName,
+    pickupLocation,
+    dropoffLocation,
+    pickupDatetime: body.pickupDatetime!,
+    dropoffDatetime: body.dropoffDatetime!,
+    insurancePlan: body.insurancePlan?.trim() || undefined,
+    paymentMethod: body.paymentMethod?.trim() || undefined,
+    flightNumber: body.flightNumber?.trim() || undefined,
+    estimatedTotal: body.resolvedTotal ?? null,
+    currency: body.currency ?? "GEL",
+  }).catch((err) => console.error("[email] Unexpected error:", err));
+
   return res.status(201).json({
     success: true,
     bookingId: booking.id,
-    reference: `TC-${String(booking.id).padStart(5, "0")}`,
-    vehicle: `${modelRows[0]!.brand} ${modelRows[0]!.model}`,
+    reference,
+    vehicle: vehicleName,
     pickupDatetime: body.pickupDatetime,
     dropoffDatetime: body.dropoffDatetime,
+    pickupLocationId: body.pickupLocationId,
     status: "PENDING",
     message: "Your booking request has been received. We will confirm shortly.",
   });

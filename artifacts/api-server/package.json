@@ -21,6 +21,7 @@
     "express": "^5",
     "express-session": "^1.18.1",
     "google-auth-library": "^10.6.2",
+    "resend": "^6.9.4",
     "zod": "catalog:"
   },
   "devDependencies": {

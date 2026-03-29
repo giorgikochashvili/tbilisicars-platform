@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Car, Users, Fuel, Settings, ChevronRight } from "lucide-react";
+import { Car, Users, Fuel, Settings, ChevronRight, Phone } from "lucide-react";
 
 interface VehicleModel {
   id: number;
@@ -109,14 +109,15 @@ export default function Fleet() {
               const fuel = fuelLabel(m.fuel_type);
               const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
               const currency = m.price_currency ?? "GEL";
+              const isOnRequest = Number(m.vehicle_count) === 0;
 
               return (
                 <div
                   key={m.id}
-                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/10 group"
+                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/10 group flex flex-col"
                 >
                   {/* Vehicle image */}
-                  <div className="relative h-48 bg-muted overflow-hidden">
+                  <div className="relative h-48 bg-muted overflow-hidden shrink-0">
                     {m.image_url ? (
                       <img
                         src={m.image_url}
@@ -128,12 +129,20 @@ export default function Fleet() {
                         <Car className="w-16 h-16 text-muted-foreground/30" />
                       </div>
                     )}
+                    {/* Category badge */}
                     {m.category && (
                       <span className="absolute top-3 left-3 bg-primary/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                         {m.category}
                       </span>
                     )}
-                    {price !== null && (
+                    {/* On Request badge */}
+                    {isOnRequest && (
+                      <span className="absolute top-3 right-3 bg-amber-500/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                        On Request
+                      </span>
+                    )}
+                    {/* Price badge (only when vehicle is available) */}
+                    {!isOnRequest && price !== null && (
                       <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm border border-border text-white text-sm font-bold px-3 py-1 rounded-full">
                         From {price.toLocaleString()} {currency}/day
                       </div>
@@ -141,7 +150,7 @@ export default function Fleet() {
                   </div>
 
                   {/* Card body */}
-                  <div className="p-5">
+                  <div className="p-5 flex flex-col flex-1">
                     <h3 className="text-lg font-bold text-white mb-1">
                       {m.brand} {m.model}
                     </h3>
@@ -175,8 +184,15 @@ export default function Fleet() {
                     )}
 
                     {/* Price row */}
-                    {price !== null ? (
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="mb-4 mt-auto">
+                      {isOnRequest ? (
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-1.5">
+                            <Phone className="w-3 h-3" />
+                            Available on request — contact us for pricing
+                          </span>
+                        </div>
+                      ) : price !== null ? (
                         <div>
                           <span className="text-xs text-muted-foreground">Starting from</span>
                           <div className="text-xl font-bold text-primary">
@@ -184,20 +200,30 @@ export default function Fleet() {
                             <span className="text-sm font-normal text-muted-foreground">/day</span>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="mb-4">
-                        <span className="text-xs text-muted-foreground">Contact us for pricing</span>
-                      </div>
-                    )}
+                      ) : (
+                        <div>
+                          <span className="text-xs text-muted-foreground">Contact us for pricing</span>
+                        </div>
+                      )}
+                    </div>
 
-                    <button
-                      onClick={() => bookVehicle(m.id)}
-                      className="w-full bg-primary hover:bg-accent text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
-                    >
-                      Book This Car
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    {isOnRequest ? (
+                      <a
+                        href="tel:+995557376363"
+                        className="w-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+                      >
+                        <Phone className="w-4 h-4" />
+                        Call to Enquire
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => bookVehicle(m.id)}
+                        className="w-full bg-primary hover:bg-accent text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+                      >
+                        Book This Car
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
