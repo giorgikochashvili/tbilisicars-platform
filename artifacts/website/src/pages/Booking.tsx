@@ -438,8 +438,9 @@ function StepBar({ step, onGoTo }: { step: number; onGoTo?: (n: number) => void 
 
 // ─── Trip Details Banner (shown inline when dates/locations missing) ───────────
 
-function TripDetailsBanner({ form, setForm, locations }: {
+function TripDetailsBanner({ form, setForm, locations, onClose }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; locations: Location[];
+  onClose?: () => void;
 }) {
   const cities = Array.from(new Set(locations.map((l) => l.city))).sort();
   const LocOpts = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
@@ -456,10 +457,21 @@ function TripDetailsBanner({ form, setForm, locations }: {
   const md = minDT();
 
   return (
-    <div className="bg-secondary/30 border border-border rounded-xl p-4 mb-6">
-      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        <Calendar className="w-3.5 h-3.5 text-primary" />
-        Trip Details
+    <div className="bg-secondary/30 border border-border rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <Calendar className="w-3.5 h-3.5 text-primary" />
+          Trip Details
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs text-primary hover:underline font-medium focus:outline-none"
+          >
+            Done
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
@@ -505,7 +517,9 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   models: VehicleModel[]; locations: Location[]; onNext: () => void;
   isRefetching?: boolean;
 }) {
+  const [editSearch, setEditSearch] = useState(false);
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
+  const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
 
   function validate() {
@@ -520,12 +534,19 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Choose Your Vehicle</h2>
-      <p className="text-muted-foreground text-sm mb-6">Select from our available fleet for your journey</p>
+      <p className="text-muted-foreground text-sm mb-3">Select from our available fleet for your journey</p>
 
-      {needTrip && <TripDetailsBanner form={form} setForm={setForm} locations={locations} />}
+      {showBanner && (
+        <TripDetailsBanner
+          form={form}
+          setForm={setForm}
+          locations={locations}
+          onClose={editSearch && !needTrip ? () => setEditSearch(false) : undefined}
+        />
+      )}
 
-      {!needTrip && (
-        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-5">
+      {!showBanner && (
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
               <MapPin className="w-3.5 h-3.5" />
@@ -545,12 +566,19 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
                 {days} {days === 1 ? "day" : "days"}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => setEditSearch(true)}
+              className="ml-auto text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors focus:outline-none"
+            >
+              Edit Search
+            </button>
           </div>
         </div>
       )}
 
       {isRefetching ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <div className="flex flex-col items-center justify-center py-8 gap-3">
           <svg className="animate-spin h-7 w-7 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -558,24 +586,25 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
           <p className="text-sm text-muted-foreground">Checking availability…</p>
         </div>
       ) : models.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
-            <Car className="w-7 h-7 text-primary/50" />
+        <div className="text-center py-6">
+          <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3">
+            <Car className="w-6 h-6 text-primary/50" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">No vehicles found</h3>
-          <p className="text-sm text-muted-foreground mb-2 max-w-xs mx-auto leading-relaxed">
+          <h3 className="text-base font-bold text-white mb-1">No vehicles found</h3>
+          <p className="text-sm text-muted-foreground mb-1 max-w-xs mx-auto leading-relaxed">
             No vehicles are currently listed for online booking.
           </p>
-          <p className="text-xs text-amber-400/80 mb-6">
+          <p className="text-xs text-amber-400/80 mb-4">
             Some vehicles may still be available on request — contact us directly.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={() => setEditSearch(true)}
               className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
             >
               Edit Search
-            </Link>
+            </button>
             <a
               href="tel:+995557376363"
               className="inline-flex items-center gap-2 border border-border text-foreground hover:bg-secondary/50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
@@ -1812,12 +1841,19 @@ export default function Booking() {
   // ───────────────────────────────────────────────────────────────────────────
 
   const { data: config, isLoading, isFetching: configFetching, error } = useQuery<BookingConfig>({
-    queryKey: ["booking-config", form.pickupLocationId ?? null],
+    queryKey: [
+      "booking-config",
+      form.pickupLocationId || null,
+      form.pickupDatetime || null,
+      form.dropoffDatetime || null,
+    ],
     queryFn: () => {
-      const url = form.pickupLocationId
-        ? `/api/public/booking-config?location_id=${form.pickupLocationId}`
-        : "/api/public/booking-config";
-      return apiFetch(url);
+      const params = new URLSearchParams();
+      if (form.pickupLocationId) params.set("location_id", form.pickupLocationId);
+      if (form.pickupDatetime) params.set("pickup_datetime", form.pickupDatetime);
+      if (form.dropoffDatetime) params.set("dropoff_datetime", form.dropoffDatetime);
+      const qs = params.toString();
+      return apiFetch(qs ? `/api/public/booking-config?${qs}` : "/api/public/booking-config");
     },
   });
 

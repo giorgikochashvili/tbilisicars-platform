@@ -1,0 +1,107 @@
+We are continuing an already working Tbilisicars CRM & website codebase. Implement the approved Plan #10 carefully, with minimal refactor and no unrelated changes.
+
+CRITICAL SAFETY RULES
+
+- Do not break existing API contracts except for the explicitly requested optional query params.
+- Do not rename existing schema fields or statuses.
+- Do not change unrelated booking steps, CRM screens, or email content.
+- Preserve existing region/city filtering behavior.
+- Preserve existing booking-status semantics. If the codebase already has a defined set of statuses that block vehicle availability, reuse that exact logic consistently in the new SQL filters. Do not invent new status rules.
+
+IMPLEMENT EXACTLY THESE CHANGES
+
+1) Date-range availability in booking-config API
+   File:
+
+- artifacts/api-server/src/routes/public-bookings.ts
+
+Task:
+
+- Accept optional "pickup_datetime" and "dropoff_datetime" query params.
+- When both are present, update both SQL queries ("globalModelSql" and "cityModelSql") so "vehicle_count" excludes:
+  - vehicles that have an overlapping booking during the requested window using the codebase’s existing blocking booking statuses
+  - vehicles whose vehicle status is "MAINTENANCE"
+- Keep behavior unchanged when one or both datetimes are missing.
+- Use overlap logic correctly for booking windows.
+- Do not break existing location/city/global model loading.
+
+Important:
+
+- Reuse existing booking status semantics from the codebase. If current logic already treats "PENDING", "CONFIRMED", and "DELIVERED" as blocking, use that exact same set. Otherwise use the existing blocking set already established in the project.
+- Do not make assumptions that conflict with current system behavior.
+
+2) Include datetimes in booking page data fetch
+   File:
+
+- artifacts/website/src/pages/Booking.tsx
+
+Task:
+
+- Update the React Query key and fetch URL for booking config so "pickup_datetime" and "dropoff_datetime" are included when both are set.
+- Make sure refetch happens correctly when user edits the trip details inline.
+
+3) Enable On Request models for city-scoped results
+   File:
+
+- artifacts/api-server/src/routes/public-bookings.ts
+
+Task:
+
+- Remove the city-level HAVING clause that currently hides models with zero city availability.
+- Return those models with "vehicle_count = 0".
+- Do not change the existing frontend On Request rendering if it is already working.
+- Do not change booking submission behavior for On Request if booking is already created as "PENDING" by default.
+
+4) Compact Step 1 layout
+   File:
+
+- artifacts/website/src/pages/Booking.tsx
+
+Task:
+
+- Reduce excessive vertical space in Step 1 only.
+- Tighten spacing for:
+  - the step heading block
+  - loading/spinner state
+  - empty state / “No vehicles found” block
+- Goal:
+  - on a standard laptop screen, the empty state content fits comfortably above the fold
+  - both action buttons are visible without awkward scrolling
+- Keep desktop design premium and dark.
+- Do not redesign other booking steps.
+
+5) Inline Edit Search behavior
+   File:
+
+- artifacts/website/src/pages/Booking.tsx
+
+Task:
+
+- Add "editSearch" boolean state for Step 1.
+- Show "TripDetailsBanner" when "needTrip || editSearch".
+- Add an Edit action in the compact trip summary.
+- Replace the empty-state “Edit Search” homepage redirect behavior with an inline button that sets "editSearch = true".
+- When opened via editSearch:
+  - prefill all four trip fields from current booking state
+  - allow apply/update in place
+  - refresh vehicle results in the same page
+  - do not redirect to homepage
+- Add a close/apply UX inside the inline banner so users can dismiss it after updating.
+
+FILES TO TOUCH
+
+- artifacts/api-server/src/routes/public-bookings.ts
+- artifacts/website/src/pages/Booking.tsx
+
+REFERENCE-ONLY FILES IF NEEDED
+
+- lib/db/src/schema/bookings.ts
+- lib/db/src/schema/fleet.ts
+
+OUTPUT FORMAT
+Return:
+
+1. exact files changed
+2. concise summary of logic changes
+3. any assumptions reused from existing code
+4. confirmation that no unrelated booking steps were changed

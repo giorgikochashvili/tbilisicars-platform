@@ -16,7 +16,6 @@ const router: IRouter = Router();
 
 router.get("/public/booking-config", async (req, res) => {
   // Optional: filter vehicle models by pickup location's city.
-  // Read before any Zod parsing so the raw query param is accessible.
   const locationIdRaw = req.query.location_id;
   const locationId =
     locationIdRaw && !Array.isArray(locationIdRaw)
@@ -24,7 +23,49 @@ router.get("/public/booking-config", async (req, res) => {
       : NaN;
   const filterByLocation = !isNaN(locationId) && locationId > 0;
 
-  // Base vehicle model query — global counts (no location filter).
+  // Optional: filter available vehicle count by date range.
+  // Both must be present and valid for the filter to activate.
+  const pickupDtRaw = req.query.pickup_datetime;
+  const dropoffDtRaw = req.query.dropoff_datetime;
+  const pickupDt = pickupDtRaw && !Array.isArray(pickupDtRaw) ? String(pickupDtRaw) : null;
+  const dropoffDt = dropoffDtRaw && !Array.isArray(dropoffDtRaw) ? String(dropoffDtRaw) : null;
+  const filterByDates =
+    pickupDt !== null &&
+    dropoffDt !== null &&
+    !isNaN(new Date(pickupDt).getTime()) &&
+    !isNaN(new Date(dropoffDt).getTime());
+
+  // Shared price lateral — identical across all four query variants.
+  const priceLateral = `
+    LEFT JOIN LATERAL (
+      SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
+      FROM ratetier rt
+      JOIN rate r ON r.id = rt.rate_id
+      WHERE rt.vehicle_model_id = vm.id
+        AND r.is_active = true
+      ORDER BY rt.price_per_day ASC
+      LIMIT 1
+    ) price_info ON true`;
+
+  // The available-vehicle FILTER condition.
+  // When dates are provided, additionally exclude MAINTENANCE vehicles and
+  // vehicles with an overlapping active booking (PENDING/CONFIRMED/DELIVERED
+  // — the same set already used throughout the system for availability checks).
+  // $p1 = pickup_datetime, $p2 = dropoff_datetime (positions vary per query).
+  const baseCountFilter = `v.status != 'INACTIVE'`;
+  const dateCountFilter = (p1: string, p2: string) =>
+    `v.status != 'INACTIVE'
+      AND v.status != 'MAINTENANCE'
+      AND NOT EXISTS (
+        SELECT 1 FROM booking b
+        WHERE b.vehicle_id = v.id
+          AND b.status IN ('PENDING', 'CONFIRMED', 'DELIVERED')
+          AND b.pickup_datetime < ${p2}::timestamptz
+          AND b.dropoff_datetime > ${p1}::timestamptz
+      )`;
+
+  // ── Global queries (no location filter) ───────────────────────────────────
+
   const globalModelSql = `
     SELECT
       vm.id,
@@ -37,29 +78,48 @@ router.get("/public/booking-config", async (req, res) => {
       vm.description,
       vm.image_url,
       vm.deposit,
-      COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
+      COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
       price_info.min_price_per_day,
       price_info.price_currency
     FROM vehicle_model vm
     JOIN brand br ON br.id = vm.brand_id
     LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-    LEFT JOIN LATERAL (
-      SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
-      FROM ratetier rt
-      JOIN rate r ON r.id = rt.rate_id
-      WHERE rt.vehicle_model_id = vm.id
-        AND r.is_active = true
-      ORDER BY rt.price_per_day ASC
-      LIMIT 1
-    ) price_info ON true
+    ${priceLateral}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
     ORDER BY br.name, vm.name
   `;
 
-  // City-scoped vehicle model query — only models with available vehicles in
-  // the same city as the requested location. Uses a subquery to resolve city
-  // from the location id so no extra round-trip is needed.
+  // $1 = pickup_datetime, $2 = dropoff_datetime
+  const globalModelWithDatesSql = `
+    SELECT
+      vm.id,
+      br.name AS brand,
+      vm.name AS model,
+      vm.category,
+      vm.seats,
+      vm.transmission,
+      vm.fuel_type,
+      vm.description,
+      vm.image_url,
+      vm.deposit,
+      COUNT(v.id) FILTER (WHERE ${dateCountFilter("$1", "$2")}) AS vehicle_count,
+      price_info.min_price_per_day,
+      price_info.price_currency
+    FROM vehicle_model vm
+    JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
+    ${priceLateral}
+    WHERE vm.available_for_external_systems = true AND vm.active = true
+    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+    ORDER BY br.name, vm.name
+  `;
+
+  // ── City-scoped queries ($1 = location_id) ─────────────────────────────────
+  // HAVING clause intentionally removed: models with zero city-scoped vehicles
+  // are returned with vehicle_count = 0 so the frontend can show them as
+  // "On Request" instead of hiding them entirely.
+
   const cityModelSql = `
     SELECT
       vm.id,
@@ -72,7 +132,7 @@ router.get("/public/booking-config", async (req, res) => {
       vm.description,
       vm.image_url,
       vm.deposit,
-      COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
+      COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
       price_info.min_price_per_day,
       price_info.price_currency
     FROM vehicle_model vm
@@ -83,26 +143,57 @@ router.get("/public/booking-config", async (req, res) => {
         SELECT id FROM location
         WHERE city = (SELECT city FROM location WHERE id = $1)
       )
-    LEFT JOIN LATERAL (
-      SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
-      FROM ratetier rt
-      JOIN rate r ON r.id = rt.rate_id
-      WHERE rt.vehicle_model_id = vm.id
-        AND r.is_active = true
-      ORDER BY rt.price_per_day ASC
-      LIMIT 1
-    ) price_info ON true
+    ${priceLateral}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-    HAVING COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') > 0
     ORDER BY br.name, vm.name
   `;
 
+  // $1 = location_id, $2 = pickup_datetime, $3 = dropoff_datetime
+  const cityModelWithDatesSql = `
+    SELECT
+      vm.id,
+      br.name AS brand,
+      vm.name AS model,
+      vm.category,
+      vm.seats,
+      vm.transmission,
+      vm.fuel_type,
+      vm.description,
+      vm.image_url,
+      vm.deposit,
+      COUNT(v.id) FILTER (WHERE ${dateCountFilter("$2", "$3")}) AS vehicle_count,
+      price_info.min_price_per_day,
+      price_info.price_currency
+    FROM vehicle_model vm
+    JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle v
+      ON v.vehicle_model_id = vm.id
+      AND v.location_id IN (
+        SELECT id FROM location
+        WHERE city = (SELECT city FROM location WHERE id = $1)
+      )
+    ${priceLateral}
+    WHERE vm.available_for_external_systems = true AND vm.active = true
+    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+    ORDER BY br.name, vm.name
+  `;
+
+  // Choose the appropriate query based on which filters are active.
+  let modelQueryPromise: Promise<{ rows: unknown[] }>;
+  if (filterByLocation && filterByDates) {
+    modelQueryPromise = pool.query(cityModelWithDatesSql, [locationId, pickupDt, dropoffDt]);
+  } else if (filterByLocation) {
+    modelQueryPromise = pool.query(cityModelSql, [locationId]);
+  } else if (filterByDates) {
+    modelQueryPromise = pool.query(globalModelWithDatesSql, [pickupDt, dropoffDt]);
+  } else {
+    modelQueryPromise = pool.query(globalModelSql);
+  }
+
   const [locRows, modelRows, extraRows] = await Promise.all([
     pool.query(`SELECT id, name, city FROM location ORDER BY city, name`),
-    filterByLocation
-      ? pool.query(cityModelSql, [locationId])
-      : pool.query(globalModelSql),
+    modelQueryPromise,
     pool.query(`
       SELECT id, name, description, price, currency, pricing_type
       FROM extra
