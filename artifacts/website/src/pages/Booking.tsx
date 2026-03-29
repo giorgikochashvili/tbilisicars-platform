@@ -72,7 +72,6 @@ const INSURANCE_VISUAL = {
   basic: {
     activeBorder: "border-muted-foreground/50",
     activeBg: "bg-muted/10",
-    activeShadow: "shadow-muted/10",
     iconWrapper: "bg-muted/20 border-muted-foreground/20",
     iconColor: "text-muted-foreground",
     tierLabel: "Basic Cover",
@@ -82,7 +81,6 @@ const INSURANCE_VISUAL = {
   full: {
     activeBorder: "border-blue-400",
     activeBg: "bg-blue-500/10",
-    activeShadow: "shadow-blue-500/15",
     iconWrapper: "bg-blue-500/15 border-blue-400/30",
     iconColor: "text-blue-400",
     tierLabel: "Good Cover",
@@ -92,7 +90,6 @@ const INSURANCE_VISUAL = {
   premium: {
     activeBorder: "border-primary",
     activeBg: "bg-primary/10",
-    activeShadow: "shadow-primary/20",
     iconWrapper: "bg-primary/15 border-primary/30",
     iconColor: "text-primary",
     tierLabel: "Best Coverage",
@@ -601,7 +598,6 @@ function Step1({ form, setForm, models, locations, onNext }: {
                       <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
                     </div>
                   )}
-                  {isOnRequest && !m.image_url && null}
                   {/* Contact for pricing overlay */}
                   {!isOnRequest && price === null && (
                     <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
