@@ -371,7 +371,7 @@ function MobilePricingBar({ form, models, extras, quote, quoteLoading }: {
 
 // ─── Step bar ─────────────────────────────────────────────────────────────────
 
-function StepBar({ step }: { step: number }) {
+function StepBar({ step, onGoTo }: { step: number; onGoTo?: (n: number) => void }) {
   const pct = Math.round(((step - 1) / (STEP_LABELS.length - 1)) * 100);
   return (
     <div className="mb-8">
@@ -397,14 +397,27 @@ function StepBar({ step }: { step: number }) {
           return (
             <Fragment key={i}>
               <div className="flex flex-col items-center">
-                <div className={cn(
-                  "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 shrink-0",
-                  done  && "bg-primary border-primary text-white",
-                  active && "bg-primary border-primary text-white shadow-lg shadow-primary/40 ring-4 ring-primary/20",
-                  !done && !active && "border-border text-muted-foreground bg-card",
-                )}>
-                  {done ? <Check className="w-4 h-4" /> : num}
-                </div>
+                {done ? (
+                  <button
+                    type="button"
+                    onClick={() => onGoTo?.(num)}
+                    title={`Back to ${label}`}
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 shrink-0 cursor-pointer",
+                      "bg-primary border-primary text-white hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    )}
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 shrink-0",
+                    active && "bg-primary border-primary text-white shadow-lg shadow-primary/40 ring-4 ring-primary/20",
+                    !active && "border-border text-muted-foreground bg-card",
+                  )}>
+                    {num}
+                  </div>
+                )}
                 <span className={cn(
                   "text-[10px] mt-1.5 text-center whitespace-nowrap font-medium leading-none",
                   active ? "text-primary" : done ? "text-muted-foreground" : "text-muted-foreground/50"
@@ -746,7 +759,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       )}
 
       {extrasRunningTotal > 0 && (
-        <div className="mb-4 p-3.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+        <div className="sticky bottom-0 -mx-6 sm:-mx-8 -mb-2 px-6 sm:px-8 py-3 bg-card/95 backdrop-blur border-t border-primary/20 z-10 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Package className="w-4 h-4 text-primary" />
             Add-ons total{days > 0 ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
@@ -1103,9 +1116,9 @@ function Step5({ form, setForm, onNext, onBack }: {
 
 // ─── Step 6: Confirmation ─────────────────────────────────────────────────────
 
-function Step6({ form, models, locations, extras, onBack, onDone }: {
+function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
   form: FormData; models: VehicleModel[]; locations: Location[]; extras: Extra[];
-  onBack: () => void; onDone: (result: BookingResult) => void;
+  onBack: () => void; onDone: (result: BookingResult) => void; goToStep: (n: number) => void;
 }) {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quotePending, setQuotePending] = useState(true);
@@ -1230,18 +1243,43 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           </div>
         </div>
 
-        {/* Trip summary */}
-        <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+        {/* Trip timeline */}
+        <div className="bg-card border border-border rounded-xl p-5 mb-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-1.5">
             <Car className="w-3.5 h-3.5 text-primary" />
             Trip Summary
           </div>
-          <SummaryRow label="Vehicle" value={result.vehicle} />
-          <SummaryRow label="Pickup" value={formatDT(result.pickupDatetime)} />
-          <SummaryRow label="Return" value={formatDT(result.dropoffDatetime)} />
-          <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
-          {pickupLoc && <SummaryRow label="Pickup Location" value={`${pickupLoc.name}, ${pickupLoc.city}`} />}
-          {dropoffLoc && dropoffLoc.id !== pickupLoc?.id && <SummaryRow label="Return Location" value={`${dropoffLoc.name}, ${dropoffLoc.city}`} />}
+          <div className="relative pl-7">
+            {/* Vertical line */}
+            <div className="absolute left-3 top-3 bottom-3 w-px bg-border" />
+            {/* Milestone: Booking received */}
+            <div className="relative mb-5">
+              <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-green-400 border-2 border-card" />
+              <div className="text-xs font-semibold text-green-400 uppercase tracking-wide">Booking Received</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Reference: <span className="text-white font-mono">{result.reference}</span></div>
+            </div>
+            {/* Milestone: Vehicle */}
+            <div className="relative mb-5">
+              <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-primary/70 border-2 border-card" />
+              <div className="text-xs font-semibold text-primary uppercase tracking-wide">Vehicle</div>
+              <div className="text-sm text-white mt-0.5">{result.vehicle}</div>
+            </div>
+            {/* Milestone: Pickup */}
+            <div className="relative mb-5">
+              <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-primary border-2 border-card" />
+              <div className="text-xs font-semibold text-primary uppercase tracking-wide">Pickup</div>
+              <div className="text-sm text-white mt-0.5">{formatDT(result.pickupDatetime)}</div>
+              {pickupLoc && <div className="text-xs text-muted-foreground">{pickupLoc.name}, {pickupLoc.city}</div>}
+            </div>
+            {/* Milestone: Return */}
+            <div className="relative">
+              <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-border border-2 border-card" />
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Return</div>
+              <div className="text-sm text-white mt-0.5">{formatDT(result.dropoffDatetime)}</div>
+              {dropoffLoc && <div className="text-xs text-muted-foreground">{dropoffLoc.name}, {dropoffLoc.city}</div>}
+              {days > 0 && <div className="text-xs text-primary font-medium mt-0.5">{days} {days === 1 ? "day" : "days"} total</div>}
+            </div>
+          </div>
         </div>
 
         {/* Extras */}
@@ -1359,9 +1397,9 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           <div className="space-y-4">
             {/* Trip */}
             <div className="bg-card border border-border rounded-xl p-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-primary" />
-                Trip Details
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" />Trip Details</span>
+                <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
               </div>
               <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
               <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
@@ -1373,9 +1411,9 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
             {/* Vehicle */}
             {model && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                  <Car className="w-3.5 h-3.5 text-primary" />
-                  Vehicle
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-primary" />Vehicle</span>
+                  <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
                 </div>
                 {model.image_url && (
                   <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
@@ -1429,9 +1467,9 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
             {/* Insurance */}
             {insurance && (
               <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-primary" />
-                  Insurance
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-primary" />Insurance</span>
+                  <button type="button" onClick={() => goToStep(3)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
                 </div>
                 <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
                 <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
@@ -1443,9 +1481,9 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
 
         {/* Customer details — full width */}
         <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-primary" />
-            Your Details
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+            <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary" />Your Details</span>
+            <button type="button" onClick={() => goToStep(4)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
           </div>
           <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
           <SummaryRow label="Email" value={form.email} />
@@ -1579,7 +1617,7 @@ export default function Booking() {
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>
           {/* Main step card */}
           <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 min-w-0">
-            <StepBar step={step} />
+            <StepBar step={step} onGoTo={(n) => setStep(n)} />
 
             {/* Mobile collapsible summary (steps 1–5 only) */}
             {showSidebar && (
@@ -1601,6 +1639,7 @@ export default function Booking() {
                   extras={extras}
                   onBack={back}
                   onDone={reset}
+                  goToStep={setStep}
                 />
               )}
             </div>
