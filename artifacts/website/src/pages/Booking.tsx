@@ -175,9 +175,9 @@ function Btn({ children, variant = "primary", className, loading, ...p }:
   React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary"|"outline"; loading?: boolean }) {
   return (
     <button className={cn(
-      "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed",
-      variant === "primary" && "bg-primary text-white hover:bg-accent shadow-sm",
-      variant === "outline" && "border border-border text-foreground hover:bg-secondary/50",
+      "inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed",
+      variant === "primary" && "bg-primary text-white hover:bg-accent active:scale-95 shadow-sm hover:shadow-md hover:shadow-primary/25",
+      variant === "outline" && "border border-border/60 text-foreground hover:bg-secondary/50 hover:border-border active:scale-95",
       className,
     )} disabled={p.disabled || loading} {...p}>
       {loading && <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
@@ -519,7 +519,7 @@ function Step1({ form, setForm, models, locations, onNext }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Choose Your Vehicle</h2>
-      <p className="text-muted-foreground text-sm mb-5">Select from our available fleet for your journey</p>
+      <p className="text-muted-foreground text-sm mb-6">Select from our available fleet for your journey</p>
 
       {needTrip && <TripDetailsBanner form={form} setForm={setForm} locations={locations} />}
 
@@ -672,7 +672,7 @@ function Step1({ form, setForm, models, locations, onNext }: {
           })}
         </div>
       )}
-      <div className="flex justify-end">
+      <div className="pt-6 border-t border-border/30 mt-2 flex justify-end">
         <Btn onClick={validate} disabled={!form.vehicleModelId}>Continue →</Btn>
       </div>
     </div>
@@ -717,10 +717,15 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Add-ons & Extras</h2>
-      <p className="text-muted-foreground text-sm mb-5">Enhance your trip with optional add-ons</p>
+      <p className="text-muted-foreground text-sm mb-6">Enhance your trip with optional add-ons</p>
 
       {extras.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <>
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+            <Package className="w-3.5 h-3.5 text-primary" />
+            Available Add-ons
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           {extras.map((e) => {
             const selected = form.extras.some((x) => x.extraId === e.id);
             const pricePerUnit = Number(e.price);
@@ -731,7 +736,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
                   "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
                   selected
                     ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
-                    : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10"
+                    : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10 hover:shadow-md hover:shadow-black/20"
                 )}>
                 <div className="flex items-start gap-3">
                   {/* Icon */}
@@ -771,9 +776,14 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
               </button>
             );
           })}
-        </div>
+          </div>
+        </>
       ) : (
-        <div className="text-sm text-muted-foreground mb-4 p-4 bg-card border border-border rounded-xl">No add-ons are currently available.</div>
+        <div className="text-center py-10 rounded-xl border border-border bg-card mb-4">
+          <Package className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">No add-ons available</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Continue to the next step to proceed with your booking.</p>
+        </div>
       )}
 
       {extrasRunningTotal > 0 && (
@@ -787,7 +797,10 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       )}
 
       <div className="mb-6">
-        <FieldLabel>Promo Code</FieldLabel>
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+          <Copy className="w-3.5 h-3.5 text-primary" />
+          Promo Code
+        </div>
         <div className="flex gap-2">
           <Inp placeholder="Enter promo code" value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && applyPromo()} disabled={promoState?.valid} className="uppercase" />
           {promoState?.valid ? (
@@ -799,7 +812,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
         {promoState && <p className={cn("text-xs mt-1.5", promoState.valid ? "text-green-400" : "text-destructive")}>{promoState.valid ? "Promo code applied!" : promoState.msg}</p>}
       </div>
 
-      <div className="flex justify-between">
+      <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={onNext}>Continue →</Btn>
       </div>
@@ -820,7 +833,12 @@ function Step3({ form, setForm, onNext, onBack }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Insurance Plan</h2>
-      <p className="text-muted-foreground text-sm mb-5">Choose the level of coverage that suits you. Selecting a plan updates your price summary.</p>
+      <p className="text-muted-foreground text-sm mb-6">Choose the level of coverage that suits you. Selecting a plan updates your price summary.</p>
+
+      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+        <Shield className="w-3.5 h-3.5 text-primary" />
+        Choose Your Coverage Level
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {INSURANCE_PLANS.map((plan) => {
@@ -832,7 +850,7 @@ function Step3({ form, setForm, onNext, onBack }: {
                 "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200",
                 selected
                   ? cn("shadow-lg", visual.activeBorder, visual.activeBg)
-                  : "border-border bg-card hover:border-primary/40"
+                  : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
               )}>
               {plan.recommended && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap shadow-md">
@@ -876,12 +894,12 @@ function Step3({ form, setForm, onNext, onBack }: {
         })}
       </div>
 
-      <div className="p-3 rounded-lg bg-secondary/30 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
+      <div className="p-4 rounded-xl bg-secondary/20 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
         <Shield className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
         <span>Deposit is pre-authorised at pickup and fully refunded upon return of the vehicle in good condition.</span>
       </div>
 
-      <div className="flex justify-between">
+      <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={validate}>Continue →</Btn>
       </div>
@@ -965,7 +983,7 @@ function Step4({ form, setForm, onNext, onBack }: {
 
         {/* WhatsApp opt-in checkbox */}
         <div className="mb-5">
-          <label className="flex items-start gap-3 cursor-pointer p-3.5 rounded-xl border border-border bg-secondary/20 hover:border-green-500/30 transition-colors">
+          <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border border-border bg-secondary/20 hover:border-green-500/30 transition-colors">
             <Checkbox
               checked={form.whatsAppOptIn}
               onChange={() => setForm((f) => ({ ...f, whatsAppOptIn: !f.whatsAppOptIn }))}
@@ -1003,7 +1021,7 @@ function Step4({ form, setForm, onNext, onBack }: {
         </label>
       </div>
 
-      <div className="flex justify-between">
+      <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={validate}>Continue →</Btn>
       </div>
@@ -1210,7 +1228,7 @@ function Step5({ form, setForm, onNext, onBack }: {
         </div>
       </div>
 
-      <div className="flex justify-between">
+      <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={validate}>Review & Confirm →</Btn>
       </div>
@@ -1482,8 +1500,19 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         </div>
 
         <p className="text-xs text-muted-foreground text-center mb-5">{result.message}</p>
-        <div className="flex justify-center">
-          <Btn variant="outline" onClick={() => onDone(result)}>Make Another Booking</Btn>
+
+        {/* Bottom CTAs */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Link href="/"
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-card border border-border hover:border-primary/40 active:scale-95 text-white font-semibold px-4 py-3 rounded-xl transition-all duration-150 text-sm">
+            Return to Home
+          </Link>
+          <button
+            type="button"
+            onClick={() => onDone(result)}
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-primary hover:bg-accent active:scale-95 text-white font-semibold px-4 py-3 rounded-xl transition-all duration-150 text-sm shadow-sm hover:shadow-md hover:shadow-primary/25">
+            Make Another Booking
+          </button>
         </div>
       </div>
     );
@@ -1783,11 +1812,12 @@ export default function Booking() {
   function reset() { setStep(1); setForm(getInitialForm()); }
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3">
       <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
+      <p className="text-sm text-muted-foreground">Loading your booking…</p>
     </div>
   );
 
