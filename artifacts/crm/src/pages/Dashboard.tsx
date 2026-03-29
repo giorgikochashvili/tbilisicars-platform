@@ -658,9 +658,10 @@ function RegionSelector({ value, onChange }: { value: Region; onChange: (r: Regi
 
 // ─── Dashboard customization popover ─────────────────────────────────────────
 
-function CustomizePopover({ config, onChange }: {
+function CustomizePopover({ config, onChange, region }: {
   config: WidgetConfig;
   onChange: (cfg: WidgetConfig) => void;
+  region: Region;
 }) {
   const setSection = (key: keyof WidgetConfig["sections"], val: boolean) =>
     onChange({ ...config, sections: { ...config.sections, [key]: val } });
@@ -706,7 +707,7 @@ function CustomizePopover({ config, onChange }: {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Sections</p>
             <SectionRow label="Booking Overview" k="bookingOverview" />
             <SectionRow label="Fleet Live Status" k="fleetLiveStatus" />
-            <SectionRow label="TBS Air Parking" k="parkingOverview" />
+            {region === "Tbilisi" && <SectionRow label="TBS Air Parking" k="parkingOverview" />}
             <SectionRow label="Today's Operations" k="todaysOperations" />
             <SectionRow label="Fleet Timeline" k="fleetTimeline" />
             <SectionRow label="Operational Alerts" k="operationalAlerts" />
@@ -811,7 +812,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <CustomizePopover config={widgetConfig} onChange={handleWidgetChange} />
+          <CustomizePopover config={widgetConfig} onChange={handleWidgetChange} region={region} />
           <RegionSelector value={region} onChange={setRegion} />
         </div>
       </div>
@@ -872,8 +873,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* TBS Air Parking Overview */}
-      {sc.parkingOverview && (
+      {/* TBS Air Parking Overview — Tbilisi only */}
+      {sc.parkingOverview && region === "Tbilisi" && (
         <div>
           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
             <ParkingSquare className="w-4 h-4 text-primary" /> TBS Air Parking

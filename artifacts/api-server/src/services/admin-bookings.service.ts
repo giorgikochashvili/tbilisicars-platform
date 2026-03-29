@@ -173,6 +173,7 @@ export interface ListBookingsFilters {
   bookingId?: number;
   vehicleSearch?: string;
   locationId?: number;
+  city?: string;
   page?: number;
   limit?: number;
 }
@@ -245,7 +246,7 @@ async function validateVehicleBelongsToModel(
 // ─── Service: list bookings ────────────────────────────────────────────────────
 
 export async function listAdminBookings(filters: ListBookingsFilters = {}) {
-  const { status, paymentStatus, search, dateFrom, dateTo, bookingId, vehicleSearch, locationId } = filters;
+  const { status, paymentStatus, search, dateFrom, dateTo, bookingId, vehicleSearch, locationId, city } = filters;
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
   const offset = (page - 1) * limit;
@@ -270,6 +271,18 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
       or(
         eq(bookingTable.pickupLocationId, locationId),
         eq(bookingTable.dropoffLocationId, locationId),
+      )!,
+    );
+  }
+  if (city) {
+    const cityLocIds = db
+      .select({ id: locationTable.id })
+      .from(locationTable)
+      .where(eq(locationTable.city, city));
+    conditions.push(
+      or(
+        inArray(bookingTable.pickupLocationId, cityLocIds),
+        inArray(bookingTable.dropoffLocationId, cityLocIds),
       )!,
     );
   }

@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -162,8 +162,12 @@ const EMPTY_BOOKING = {
   status: "PENDING" as const,
 };
 
+type Region = "ALL" | "Tbilisi" | "Kutaisi" | "Batumi";
+const REGIONS: Region[] = ["ALL", "Tbilisi", "Kutaisi", "Batumi"];
+
 export default function BookingsPage() {
   const [search, setSearch] = useState("");
+  const [regionFilter, setRegionFilter] = useState<Region>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [paymentFilter, setPaymentFilter] = useState<string>("ALL");
   const [vehicleSearch, setVehicleSearch] = useState("");
@@ -184,6 +188,7 @@ export default function BookingsPage() {
 
   const queryParams: any = { page, limit: 15 };
   if (search) queryParams.search = search;
+  if (regionFilter !== "ALL") queryParams.city = regionFilter;
   if (statusFilter !== "ALL") queryParams.status = statusFilter;
   if (paymentFilter !== "ALL") queryParams.paymentStatus = paymentFilter;
   if (vehicleSearch) queryParams.vehicleSearch = vehicleSearch;
@@ -192,10 +197,11 @@ export default function BookingsPage() {
   if (locationFilter !== "ALL") queryParams.locationId = parseInt(locationFilter);
   if (bookingIdSearch && !isNaN(parseInt(bookingIdSearch))) queryParams.bookingId = parseInt(bookingIdSearch);
 
-  const hasActiveFilters = search || statusFilter !== "ALL" || paymentFilter !== "ALL" || vehicleSearch || dateFrom || dateTo || locationFilter !== "ALL" || bookingIdSearch;
+  const hasActiveFilters = search || regionFilter !== "ALL" || statusFilter !== "ALL" || paymentFilter !== "ALL" || vehicleSearch || dateFrom || dateTo || locationFilter !== "ALL" || bookingIdSearch;
 
   const clearAllFilters = () => {
     setSearch("");
+    setRegionFilter("ALL");
     setStatusFilter("ALL");
     setPaymentFilter("ALL");
     setVehicleSearch("");
@@ -391,6 +397,23 @@ export default function BookingsPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
+            {/* Region */}
+            <div className="flex items-center gap-1 bg-background/60 border border-border/40 rounded-lg px-2 h-9">
+              <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+              {REGIONS.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => { setRegionFilter(r); setPage(1); }}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
+                    regionFilter === r
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r === "ALL" ? "All" : r}
+                </button>
+              ))}
+            </div>
             {/* Status */}
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[148px] bg-background h-9 text-sm">

@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info, Search, Filter, X } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info, Search, Filter, X, MapPin } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
@@ -97,7 +97,11 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     return (VALID_STATUSES as readonly string[]).includes(s) ? (s as VehicleStatus) : "";
   })();
 
+  type Region = "All" | "Tbilisi" | "Kutaisi" | "Batumi";
+  const FLEET_REGIONS: Region[] = ["All", "Tbilisi", "Kutaisi", "Batumi"];
+
   // Filter state
+  const [filterRegion, setFilterRegion] = useState<Region>("All");
   const [plateSearch, setPlateSearch] = useState("");
   const [filterLocationId, setFilterLocationId] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -148,9 +152,15 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     ? allModels.filter((m: any) => m.brandId?.toString() === filterBrandId)
     : allModels;
 
+  // Build a set of location IDs for the selected region (for client-side region filter)
+  const regionLocationIds = filterRegion !== "All"
+    ? new Set(allLocations.filter((loc: any) => loc.city === filterRegion).map((loc: any) => loc.id))
+    : null;
+
   // Filtered vehicles (client-side)
-  const hasActiveFilters = !!(plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId || filterStatus);
+  const hasActiveFilters = !!(filterRegion !== "All" || plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId || filterStatus);
   const filteredVehicles = vehicles.filter((v: any) => {
+    if (regionLocationIds && !regionLocationIds.has(v.locationId)) return false;
     if (plateSearch && !v.licensePlate?.toUpperCase().includes(plateSearch.toUpperCase())) return false;
     if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
     if (filterCategory) {
@@ -164,6 +174,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   });
 
   const clearFilters = () => {
+    setFilterRegion("All");
     setPlateSearch("");
     setFilterLocationId("");
     setFilterCategory("");
@@ -277,6 +288,23 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 <X className="w-3 h-3 mr-1" /> Clear
               </Button>
             )}
+          </div>
+          {/* Region selector */}
+          <div className="flex items-center gap-1 bg-background/60 border border-border/40 rounded-lg px-2 h-9 w-fit">
+            <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            {FLEET_REGIONS.map((r) => (
+              <button
+                key={r}
+                onClick={() => setFilterRegion(r)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
+                  filterRegion === r
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             {/* Plate search — primary */}

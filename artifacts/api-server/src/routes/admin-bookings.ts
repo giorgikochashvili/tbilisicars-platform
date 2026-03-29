@@ -34,6 +34,7 @@ const router = Router();
 
 router.get("/admin/bookings", requireAdmin, async (req, res) => {
   const query = ListAdminBookingsQueryParams.parse(req.query);
+  const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
   const result = await listAdminBookings({
     page: query.page,
     limit: query.limit,
@@ -45,6 +46,7 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
     bookingId: query.bookingId,
     vehicleSearch: query.vehicleSearch,
     locationId: query.locationId,
+    city,
   });
   res.json(ListAdminBookingsResponse.parse(result));
 });
