@@ -2,10 +2,11 @@
  * Custom premium date/time picker for the dark luxury design.
  * Uses react-datepicker with a fully styled dark calendar UI.
  * Supports min date/time, 15-minute intervals, and all existing validation logic.
+ * Logic (strToDate, dateToStr, filterTime, all DatePicker props) is unchanged.
  */
 import { forwardRef, useCallback } from "react";
 import DatePicker from "react-datepicker";
-import { Calendar } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 
 interface DateTimePickerProps {
   value: string;
@@ -35,15 +36,21 @@ const CustomInput = forwardRef<HTMLButtonElement, {
     ref={ref}
     onClick={onClick}
     disabled={disabled}
-    className={`w-full flex items-center gap-2.5 rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ""}`}
+    className={`w-full flex items-center gap-2.5 rounded-lg border border-input bg-secondary/40 px-3.5 py-3 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all hover:border-primary/40 hover:bg-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed group ${className ?? ""}`}
   >
     <Calendar className="w-4 h-4 text-primary shrink-0" />
-    <span className={value ? "text-foreground" : "text-muted-foreground flex-1 truncate"}>
+    <span className={`flex-1 truncate ${value ? "text-foreground" : "text-muted-foreground"}`}>
       {value || placeholder || "Select date & time"}
     </span>
+    <Clock className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 group-hover:text-primary/50 transition-colors" />
   </button>
 ));
 CustomInput.displayName = "DateTimePickerInput";
+
+const POPPER_MODIFIERS = [
+  { name: "flip",       enabled: true,  options: { fallbackPlacements: ["top-start", "bottom-start"] } },
+  { name: "preventOverflow", enabled: true, options: { padding: 12 } },
+] as any;
 
 export function DateTimePicker({ value, onChange, min, placeholder, disabled, className }: DateTimePickerProps) {
   const selected = strToDate(value);
@@ -74,9 +81,10 @@ export function DateTimePicker({ value, onChange, min, placeholder, disabled, cl
         placeholderText={placeholder ?? "Select date & time"}
         customInput={<CustomInput placeholder={placeholder} disabled={disabled} />}
         popperPlacement="bottom-start"
+        popperModifiers={POPPER_MODIFIERS}
         showPopperArrow={false}
         disabled={disabled}
-        popperClassName="tc-datepicker"
+        popperClassName="tc-datepicker-popper"
       />
     </div>
   );
