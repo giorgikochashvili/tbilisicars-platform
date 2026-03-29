@@ -47,11 +47,6 @@ const CustomInput = forwardRef<HTMLButtonElement, {
 ));
 CustomInput.displayName = "DateTimePickerInput";
 
-const POPPER_MODIFIERS = [
-  { name: "flip",       enabled: true,  options: { fallbackPlacements: ["top-start", "bottom-start"] } },
-  { name: "preventOverflow", enabled: true, options: { padding: 12 } },
-] as any;
-
 export function DateTimePicker({ value, onChange, min, placeholder, disabled, className }: DateTimePickerProps) {
   const selected = strToDate(value);
   const minDate = min ? strToDate(min) : null;
@@ -81,7 +76,6 @@ export function DateTimePicker({ value, onChange, min, placeholder, disabled, cl
         placeholderText={placeholder ?? "Select date & time"}
         customInput={<CustomInput placeholder={placeholder} disabled={disabled} />}
         popperPlacement="bottom-start"
-        popperModifiers={POPPER_MODIFIERS}
         showPopperArrow={false}
         disabled={disabled}
         popperClassName="tc-datepicker-popper"
