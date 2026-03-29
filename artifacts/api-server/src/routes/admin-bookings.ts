@@ -32,9 +32,13 @@ import { logAudit, bookingRef } from "../services/audit.service.js";
 
 const router = Router();
 
+const VALID_BOOKING_CITIES = ["Tbilisi", "Kutaisi", "Batumi"] as const;
+
 router.get("/admin/bookings", requireAdmin, async (req, res) => {
+  // Extract city before Zod parse (generated schema does not include it)
+  const rawCity = typeof req.query.city === "string" ? req.query.city : undefined;
+  const city = rawCity && (VALID_BOOKING_CITIES as readonly string[]).includes(rawCity) ? rawCity : undefined;
   const query = ListAdminBookingsQueryParams.parse(req.query);
-  const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
   const result = await listAdminBookings({
     page: query.page,
     limit: query.limit,
