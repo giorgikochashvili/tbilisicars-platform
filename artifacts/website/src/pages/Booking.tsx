@@ -1007,28 +1007,101 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           </p>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-5 mb-5">
+        {/* Reference block */}
+        <div className="bg-card border border-border rounded-xl p-5 mb-4">
           <div className="text-center mb-4 pb-4 border-b border-border">
             <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Booking Reference</div>
             <div className="text-3xl font-bold text-primary tracking-wider">{result.reference}</div>
             <div className="text-xs text-muted-foreground mt-1">Keep this reference for your records</div>
           </div>
           <div className="space-y-0">
-            <SummaryRow label="Vehicle" value={result.vehicle} />
-            <SummaryRow label="Pickup" value={formatDT(result.pickupDatetime)} />
-            <SummaryRow label="Return" value={formatDT(result.dropoffDatetime)} />
-            {pickupLoc && <SummaryRow label="Pickup Location" value={`${pickupLoc.name}, ${pickupLoc.city}`} />}
-            {dropoffLoc && dropoffLoc.id !== pickupLoc?.id && <SummaryRow label="Return Location" value={`${dropoffLoc.name}, ${dropoffLoc.city}`} />}
-            {insurance && <SummaryRow label="Insurance" value={`${insurance.label} (${insurance.excess}€ excess)`} />}
-            {form.paymentMethod && <SummaryRow label="Payment" value={form.paymentMethod} />}
-            <div className="flex justify-between pt-2 mt-1">
+            <div className="flex justify-between pt-1 pb-2 border-b border-border">
               <span className="text-sm text-muted-foreground">Status</span>
               <span className="text-yellow-400 font-medium text-sm">Pending Confirmation</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-5">
+        {/* Trip details */}
+        <div className="bg-card border border-border rounded-xl p-4 mb-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Trip Details</div>
+          <SummaryRow label="Vehicle" value={result.vehicle} />
+          <SummaryRow label="Pickup" value={formatDT(result.pickupDatetime)} />
+          <SummaryRow label="Return" value={formatDT(result.dropoffDatetime)} />
+          <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+          {pickupLoc && <SummaryRow label="Pickup Location" value={`${pickupLoc.name}, ${pickupLoc.city}`} />}
+          {dropoffLoc && dropoffLoc.id !== pickupLoc?.id && <SummaryRow label="Return Location" value={`${dropoffLoc.name}, ${dropoffLoc.city}`} />}
+        </div>
+
+        {/* Extras */}
+        {selectedExtras.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Add-ons & Extras</div>
+            {selectedExtras.map(({ extra, qty }) => {
+              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+              const cost = Number(extra!.price) * qty * multiplier;
+              const perLabel = extra!.pricing_type === "per_booking" ? "per booking" : "per day";
+              return (
+                <SummaryRow
+                  key={extra!.id}
+                  label={`${extra!.name}${qty > 1 ? ` ×${qty}` : ""} (${Number(extra!.price).toLocaleString()} ${cur} ${perLabel})`}
+                  value={fmt(cost)}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Insurance */}
+        {insurance && (
+          <div className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Insurance</div>
+            <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
+            <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
+            <SummaryRow label="Excess" value={`${insurance.excess}€`} />
+          </div>
+        )}
+
+        {/* Pricing total */}
+        {quote?.quotable ? (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3">Pricing Estimate</div>
+            <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+            {selectedExtras.map(({ extra, qty }) => {
+              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+              return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
+            })}
+            {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+              <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
+            )}
+            <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
+              <span className="text-sm font-semibold text-white">Estimated Total</span>
+              <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Final pricing confirmed before any charge.</p>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
+            <p className="text-xs text-muted-foreground">Our team will contact you with pricing details shortly.</p>
+          </div>
+        )}
+
+        {/* Customer details */}
+        <div className="bg-card border border-border rounded-xl p-4 mb-4">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Your Details</div>
+          <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
+          <SummaryRow label="Email" value={form.email} />
+          <SummaryRow label="Phone" value={form.phone} />
+          {form.whatsAppOptIn && <SummaryRow label="WhatsApp" value="Yes (at phone number above)" />}
+          {form.age && <SummaryRow label="Age" value={form.age} />}
+          {form.nationality && <SummaryRow label="Nationality" value={form.nationality} />}
+          {form.flightNumber && <SummaryRow label="Flight Number" value={form.flightNumber} />}
+          {form.paymentMethod && <SummaryRow label="Payment Method" value={form.paymentMethod} />}
+          {form.notes && <SummaryRow label="Notes" value={form.notes} />}
+        </div>
+
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-3">
             <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div>
