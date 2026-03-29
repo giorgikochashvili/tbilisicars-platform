@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Clock, Plane } from "lucide-react";
+import { Menu, X, Car } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -20,21 +20,6 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50">
-      {/* Trust bar */}
-      <div className="bg-primary/10 border-b border-primary/20 py-1.5 px-4 hidden sm:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-8 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-primary" />
-            <span>10+ Years Experience</span>
-          </div>
-          <div className="w-px h-3 bg-border" />
-          <div className="flex items-center gap-1.5">
-            <Plane className="w-3 h-3 text-primary" />
-            <span>24/7 Airport Services &amp; Customer Support</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main nav */}
       <div className="bg-[hsl(211,55%,8%)] border-b border-border shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -91,17 +76,6 @@ export default function Header() {
         {open && (
           <div className="lg:hidden border-t border-border bg-[hsl(211,55%,8%)]">
             <nav className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
-              {/* Mobile trust */}
-              <div className="flex flex-col gap-1 pb-3 mb-1 border-b border-border">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                  <Clock className="w-3 h-3 text-primary" />
-                  <span>10+ Years Experience</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                  <Plane className="w-3 h-3 text-primary" />
-                  <span>24/7 Airport Services &amp; Customer Support</span>
-                </div>
-              </div>
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
