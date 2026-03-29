@@ -500,9 +500,10 @@ function TripDetailsBanner({ form, setForm, locations }: {
 
 // ─── Step 1: Vehicle ──────────────────────────────────────────────────────────
 
-function Step1({ form, setForm, models, locations, onNext }: {
+function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>;
   models: VehicleModel[]; locations: Location[]; onNext: () => void;
+  isRefetching?: boolean;
 }) {
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
@@ -548,7 +549,15 @@ function Step1({ form, setForm, models, locations, onNext }: {
         </div>
       )}
 
-      {models.length === 0 ? (
+      {isRefetching ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <svg className="animate-spin h-7 w-7 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          <p className="text-sm text-muted-foreground">Checking availability…</p>
+        </div>
+      ) : models.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
             <Car className="w-7 h-7 text-primary/50" />
@@ -1802,9 +1811,14 @@ export default function Booking() {
   }, [form.vehicleModelId, form.pickupDatetime, form.dropoffDatetime, form.extras, form.promoCode]);
   // ───────────────────────────────────────────────────────────────────────────
 
-  const { data: config, isLoading, error } = useQuery<BookingConfig>({
-    queryKey: ["booking-config"],
-    queryFn: () => apiFetch("/api/public/booking-config"),
+  const { data: config, isLoading, isFetching: configFetching, error } = useQuery<BookingConfig>({
+    queryKey: ["booking-config", form.pickupLocationId ?? null],
+    queryFn: () => {
+      const url = form.pickupLocationId
+        ? `/api/public/booking-config?location_id=${form.pickupLocationId}`
+        : "/api/public/booking-config";
+      return apiFetch(url);
+    },
   });
 
   function next() { setStep((s) => s + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -1855,7 +1869,7 @@ export default function Booking() {
 
             {/* Step content with fade-in animation on step change */}
             <div key={step} className="booking-step-enter">
-              {step === 1 && <Step1 form={form} setForm={setForm} models={models} locations={locations} onNext={next} />}
+              {step === 1 && <Step1 form={form} setForm={setForm} models={models} locations={locations} onNext={next} isRefetching={configFetching && !isLoading} />}
               {step === 2 && <Step2 form={form} setForm={setForm} extras={extras} onNext={next} onBack={back} />}
               {step === 3 && <Step3 form={form} setForm={setForm} onNext={next} onBack={back} />}
               {step === 4 && <Step4 form={form} setForm={setForm} onNext={next} onBack={back} />}

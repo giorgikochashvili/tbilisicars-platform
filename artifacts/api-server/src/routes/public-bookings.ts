@@ -14,40 +14,95 @@ const router: IRouter = Router();
 // Returns data needed to render the website booking form:
 // locations, vehicle models available for website (with min price), extras
 
-router.get("/public/booking-config", async (_req, res) => {
+router.get("/public/booking-config", async (req, res) => {
+  // Optional: filter vehicle models by pickup location's city.
+  // Read before any Zod parsing so the raw query param is accessible.
+  const locationIdRaw = req.query.location_id;
+  const locationId =
+    locationIdRaw && !Array.isArray(locationIdRaw)
+      ? parseInt(String(locationIdRaw), 10)
+      : NaN;
+  const filterByLocation = !isNaN(locationId) && locationId > 0;
+
+  // Base vehicle model query — global counts (no location filter).
+  const globalModelSql = `
+    SELECT
+      vm.id,
+      br.name AS brand,
+      vm.name AS model,
+      vm.category,
+      vm.seats,
+      vm.transmission,
+      vm.fuel_type,
+      vm.description,
+      vm.image_url,
+      vm.deposit,
+      COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
+      price_info.min_price_per_day,
+      price_info.price_currency
+    FROM vehicle_model vm
+    JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
+    LEFT JOIN LATERAL (
+      SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
+      FROM ratetier rt
+      JOIN rate r ON r.id = rt.rate_id
+      WHERE rt.vehicle_model_id = vm.id
+        AND r.is_active = true
+      ORDER BY rt.price_per_day ASC
+      LIMIT 1
+    ) price_info ON true
+    WHERE vm.available_for_external_systems = true AND vm.active = true
+    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+    ORDER BY br.name, vm.name
+  `;
+
+  // City-scoped vehicle model query — only models with available vehicles in
+  // the same city as the requested location. Uses a subquery to resolve city
+  // from the location id so no extra round-trip is needed.
+  const cityModelSql = `
+    SELECT
+      vm.id,
+      br.name AS brand,
+      vm.name AS model,
+      vm.category,
+      vm.seats,
+      vm.transmission,
+      vm.fuel_type,
+      vm.description,
+      vm.image_url,
+      vm.deposit,
+      COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
+      price_info.min_price_per_day,
+      price_info.price_currency
+    FROM vehicle_model vm
+    JOIN brand br ON br.id = vm.brand_id
+    LEFT JOIN vehicle v
+      ON v.vehicle_model_id = vm.id
+      AND v.location_id IN (
+        SELECT id FROM location
+        WHERE city = (SELECT city FROM location WHERE id = $1)
+      )
+    LEFT JOIN LATERAL (
+      SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
+      FROM ratetier rt
+      JOIN rate r ON r.id = rt.rate_id
+      WHERE rt.vehicle_model_id = vm.id
+        AND r.is_active = true
+      ORDER BY rt.price_per_day ASC
+      LIMIT 1
+    ) price_info ON true
+    WHERE vm.available_for_external_systems = true AND vm.active = true
+    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+    HAVING COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') > 0
+    ORDER BY br.name, vm.name
+  `;
+
   const [locRows, modelRows, extraRows] = await Promise.all([
     pool.query(`SELECT id, name, city FROM location ORDER BY city, name`),
-    pool.query(`
-      SELECT
-        vm.id,
-        br.name AS brand,
-        vm.name AS model,
-        vm.category,
-        vm.seats,
-        vm.transmission,
-        vm.fuel_type,
-        vm.description,
-        vm.image_url,
-        vm.deposit,
-        COUNT(v.id) FILTER (WHERE v.status != 'INACTIVE') AS vehicle_count,
-        price_info.min_price_per_day,
-        price_info.price_currency
-      FROM vehicle_model vm
-      JOIN brand br ON br.id = vm.brand_id
-      LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-      LEFT JOIN LATERAL (
-        SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
-        FROM ratetier rt
-        JOIN rate r ON r.id = rt.rate_id
-        WHERE rt.vehicle_model_id = vm.id
-          AND r.is_active = true
-        ORDER BY rt.price_per_day ASC
-        LIMIT 1
-      ) price_info ON true
-      WHERE vm.available_for_external_systems = true AND vm.active = true
-      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-      ORDER BY br.name, vm.name
-    `),
+    filterByLocation
+      ? pool.query(cityModelSql, [locationId])
+      : pool.query(globalModelSql),
     pool.query(`
       SELECT id, name, description, price, currency, pricing_type
       FROM extra
