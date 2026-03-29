@@ -549,9 +549,31 @@ function Step1({ form, setForm, models, locations, onNext }: {
       )}
 
       {models.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground">
-          <Car className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          No vehicles available for online booking.
+        <div className="text-center py-12">
+          <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+            <Car className="w-7 h-7 text-primary/50" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">No vehicles found</h3>
+          <p className="text-sm text-muted-foreground mb-2 max-w-xs mx-auto leading-relaxed">
+            No vehicles are currently listed for online booking.
+          </p>
+          <p className="text-xs text-amber-400/80 mb-6">
+            Some vehicles may still be available on request — contact us directly.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              Edit Search
+            </Link>
+            <a
+              href="tel:+995557376363"
+              className="inline-flex items-center gap-2 border border-border text-foreground hover:bg-secondary/50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              <Phone className="w-4 h-4" /> Contact Support
+            </a>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 mb-6">
@@ -622,8 +644,8 @@ function Step1({ form, setForm, models, locations, onNext }: {
                         Est. {totalEst.toLocaleString()} {cur} for {days} {days === 1 ? "day" : "days"}
                       </div>
                     )}
-                    {isOnRequest && selected && (
-                      <p className="text-xs text-amber-400/80 mt-0.5">Available on request — we'll confirm by phone</p>
+                    {isOnRequest && (
+                      <p className="text-xs text-amber-400/80 mt-0.5">Not instantly available — we'll confirm availability before your booking is finalised</p>
                     )}
                   </div>
                   {/* Spec chips */}

@@ -104,8 +104,11 @@ export default function Fleet() {
               <Car className="w-8 h-8 text-primary/60" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">No vehicles listed yet</h3>
-            <p className="text-muted-foreground mb-8 leading-relaxed">
-              Our fleet is being updated. In the meantime, you can start a search from the homepage or contact us directly — we have over 250 vehicles available.
+            <p className="text-muted-foreground mb-3 leading-relaxed">
+              Our fleet is being updated. You can start a search from the homepage or contact us directly — we have over 250 vehicles available.
+            </p>
+            <p className="text-xs text-amber-400/80 mb-8">
+              Some vehicles may still be available on request — call us and we can check availability for your dates.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link
@@ -139,10 +142,10 @@ export default function Fleet() {
               return (
                 <div
                   key={m.id}
-                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/10 group flex flex-col"
+                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 group flex flex-col"
                 >
                   {/* Vehicle image */}
-                  <div className="relative h-48 bg-muted overflow-hidden shrink-0">
+                  <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
                     {m.image_url ? (
                       <img
                         src={m.image_url}
@@ -151,74 +154,91 @@ export default function Fleet() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-16 h-16 text-muted-foreground/30" />
+                        <Car className="w-16 h-16 text-muted-foreground/15" />
                       </div>
                     )}
+                    {/* Category pill — top left */}
                     {m.category && (
-                      <span className="absolute top-3 left-3 bg-primary/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
                         {m.category}
                       </span>
                     )}
+                    {/* On Request badge — top right */}
                     {isOnRequest && (
-                      <span className="absolute top-3 right-3 bg-amber-500/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                      <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
                         On Request
                       </span>
                     )}
+                    {/* Price badge — bottom right */}
                     {!isOnRequest && price !== null && (
-                      <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm border border-border text-white text-sm font-bold px-3 py-1 rounded-full">
-                        From {price.toLocaleString()} {currency}/day
+                      <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
+                        <div className="text-sm font-bold leading-none">{price.toLocaleString()} {currency}</div>
+                        <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
+                      </div>
+                    )}
+                    {!isOnRequest && price === null && (
+                      <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
+                        <div className="text-xs leading-none">Contact for pricing</div>
                       </div>
                     )}
                   </div>
 
                   {/* Card body */}
                   <div className="p-5 flex flex-col flex-1">
-                    <h3 className="text-lg font-bold text-white mb-1">
+                    <h3 className="text-base font-bold text-white mb-0.5">
                       {m.brand} {m.model}
                     </h3>
 
-                    <div className="flex flex-wrap gap-3 mb-3">
+                    {/* Spec chips */}
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {m.seats && (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Users className="w-3.5 h-3.5" />{m.seats} seats
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                          <Users className="w-3 h-3" /> {m.seats} seats
                         </span>
                       )}
                       {transmission && (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Settings className="w-3.5 h-3.5" />{transmission}
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                          <Settings className="w-3 h-3" /> {transmission}
                         </span>
                       )}
                       {fuel && (
-                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Fuel className="w-3.5 h-3.5" />{fuel}
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                          <Fuel className="w-3 h-3" /> {fuel}
                         </span>
                       )}
                     </div>
 
                     {m.description && (
-                      <p className="text-xs text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
                         {m.description}
                       </p>
                     )}
 
-                    <div className="mb-4 mt-auto">
-                      {isOnRequest ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-1.5">
-                          <Phone className="w-3 h-3" />
-                          Available on request — contact us for pricing
-                        </span>
-                      ) : price !== null ? (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Starting from</span>
-                          <div className="text-xl font-bold text-primary">
-                            {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
-                            <span className="text-sm font-normal text-muted-foreground">/day</span>
+                    {/* On-request explanation — always visible */}
+                    {isOnRequest && (
+                      <div className="mb-3 mt-auto p-3 rounded-xl bg-amber-400/10 border border-amber-400/20">
+                        <p className="text-xs text-amber-400/90 leading-relaxed">
+                          This vehicle is not instantly available but can be requested — we'll confirm availability for your dates.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Price line for instantly-available vehicles */}
+                    {!isOnRequest && (
+                      <div className="mb-3 mt-auto">
+                        {price !== null ? (
+                          <div>
+                            <span className="text-xs text-muted-foreground">Starting from</span>
+                            <div className="text-xl font-bold text-primary">
+                              {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
+                              <span className="text-sm font-normal text-muted-foreground">/day</span>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Contact us for pricing</span>
-                      )}
-                    </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Contact us for pricing</span>
+                        )}
+                      </div>
+                    )}
 
                     {isOnRequest ? (
                       <a
