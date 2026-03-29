@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -88,26 +88,34 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
 
-  // Read initial status filter from URL query param (e.g. ?status=AVAILABLE)
+  // Read initial status + city filter from URL query params
   const [location] = useLocation();
-  const initialStatus = (() => {
-    const search = location.includes("?") ? location.split("?")[1] : "";
-    const params = new URLSearchParams(search);
-    const s = params.get("status")?.toUpperCase() ?? "";
-    return (VALID_STATUSES as readonly string[]).includes(s) ? (s as VehicleStatus) : "";
-  })();
 
   type Region = "All" | "Tbilisi" | "Kutaisi" | "Batumi";
   const FLEET_REGIONS: Region[] = ["All", "Tbilisi", "Kutaisi", "Batumi"];
+  const VALID_REGIONS = FLEET_REGIONS.slice(1) as string[];
+
+  const parseUrlParams = (loc: string): { status: VehicleStatus | ""; region: Region } => {
+    const search = loc.includes("?") ? loc.split("?")[1] : "";
+    const params = new URLSearchParams(search);
+    const s = params.get("status")?.toUpperCase() ?? "";
+    const c = params.get("city") ?? "";
+    return {
+      status: (VALID_STATUSES as readonly string[]).includes(s) ? (s as VehicleStatus) : "",
+      region: VALID_REGIONS.includes(c) ? (c as Region) : "All",
+    };
+  };
+
+  const initial = parseUrlParams(location);
 
   // Filter state
-  const [filterRegion, setFilterRegion] = useState<Region>("All");
+  const [filterRegion, setFilterRegion] = useState<Region>(initial.region);
   const [plateSearch, setPlateSearch] = useState("");
   const [filterLocationId, setFilterLocationId] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterBrandId, setFilterBrandId] = useState("");
   const [filterModelId, setFilterModelId] = useState("");
-  const [filterStatus, setFilterStatus] = useState<VehicleStatus | "">(initialStatus);
+  const [filterStatus, setFilterStatus] = useState<VehicleStatus | "">(initial.status);
 
   const [formData, setFormData] = useState<{
     vehicleModelId: string;
@@ -135,6 +143,13 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const allModels: any[] = (models as any) || [];
   const allBrands: any[] = (brands as any) || [];
   const allLocations: any[] = (locations as any) || [];
+
+  // Re-apply filters when location (URL) changes, e.g. navigating from Dashboard
+  useEffect(() => {
+    const { status, region } = parseUrlParams(location);
+    setFilterStatus(status);
+    setFilterRegion(region);
+  }, [location]);
 
   // Map modelId -> category for category filtering (vehicles may not carry category inline)
   const modelCategoryMap: Record<string, string> = {};
@@ -381,8 +396,8 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border/40 hover:bg-transparent">
-                <TableHead>Plate</TableHead>
                 <TableHead>Brand / Model</TableHead>
+                <TableHead>Plate</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Specs</TableHead>
                 <TableHead>Mileage</TableHead>
@@ -416,22 +431,34 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                     onClick={() => setDetailVehicleId(v.id)}
                   >
                     <TableCell>
-                      <div className="font-mono font-bold tracking-wider text-sm bg-muted px-2 py-1 rounded border border-border/50 inline-block">
-                        {v.licensePlate || "—"}
+                      <div className="flex items-center gap-2">
+                        {v.vehicleModel?.brand?.logoUrl && (
+                          <img
+                            src={`/api/storage${v.vehicleModel.brand.logoUrl}`}
+                            alt=""
+                            className="w-5 h-5 rounded object-contain flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium text-foreground">
+                            {v.vehicleModel?.brand?.name} {v.vehicleModel?.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            {v.color && (
+                              <>
+                                <div className="w-2 h-2 rounded-full border border-border" style={{ backgroundColor: v.color.toLowerCase() }} />
+                                {v.color}
+                              </>
+                            )}
+                            {v.year && <span>{v.year}</span>}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-foreground">
-                        {v.vehicleModel?.brand?.name} {v.vehicleModel?.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        {v.color && (
-                          <>
-                            <div className="w-2 h-2 rounded-full border border-border" style={{ backgroundColor: v.color.toLowerCase() }} />
-                            {v.color}
-                          </>
-                        )}
-                        {v.year && <span>{v.year}</span>}
+                      <div className="font-mono font-bold tracking-wider text-sm bg-muted px-2 py-1 rounded border border-border/50 inline-block">
+                        {v.licensePlate || "—"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -712,8 +739,20 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               (models as any)?.map((m: any) => (
                 <TableRow key={m.id} className="border-border/20 hover:bg-muted/30">
                   <TableCell>
-                    <div className="font-medium">{m.brand?.name}</div>
-                    <div className="text-sm text-muted-foreground">{m.name}</div>
+                    <div className="flex items-center gap-2">
+                      {m.brand?.logoUrl && (
+                        <img
+                          src={`/api/storage${m.brand.logoUrl}`}
+                          alt=""
+                          className="w-5 h-5 rounded object-contain flex-shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">{m.brand?.name}</div>
+                        <div className="text-sm text-muted-foreground">{m.name}</div>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="capitalize text-sm">{m.category || "—"}</TableCell>
                   <TableCell className="capitalize text-sm">{m.transmission || "—"}</TableCell>
@@ -820,9 +859,37 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", countryOfOrigin: "", logoUrl: "" });
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleLogoUpload = async (file: File) => {
+    setLogoUploading(true);
+    try {
+      const metaRes = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/png" }),
+      });
+      if (!metaRes.ok) throw new Error("Failed to get upload URL");
+      const { uploadURL, objectPath } = await metaRes.json();
+      const putRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "image/png" },
+      });
+      if (!putRes.ok) throw new Error("Failed to upload file");
+      setFormData(prev => ({ ...prev, logoUrl: objectPath }));
+      toast({ title: "Logo uploaded", description: "Logo ready — save the brand to apply." });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
   const { data: brands, isLoading } = useListAdminBrands(reqOpts);
   
   const createMutation = useCreateAdminBrand(reqOpts);
@@ -907,8 +974,48 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
               <Input value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} placeholder="e.g. Japan" />
             </div>
             <div className="grid gap-2">
-              <Label>Logo URL (optional)</Label>
-              <Input value={formData.logoUrl} onChange={e => setFormData({...formData, logoUrl: e.target.value})} placeholder="https://..." />
+              <Label>Brand Logo (optional)</Label>
+              <div className="flex items-center gap-3">
+                {formData.logoUrl && (
+                  <img
+                    src={`/api/storage${formData.logoUrl}`}
+                    alt="Logo preview"
+                    className="w-10 h-10 rounded object-contain border border-border/50 bg-muted/30 p-1 flex-shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={logoInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={logoUploading}
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    {logoUploading ? "Uploading…" : formData.logoUrl ? "Replace Logo" : "Upload Logo"}
+                  </Button>
+                  {formData.logoUrl && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-destructive mt-1 block"
+                      onClick={() => setFormData(prev => ({ ...prev, logoUrl: "" }))}
+                    >
+                      Remove logo
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

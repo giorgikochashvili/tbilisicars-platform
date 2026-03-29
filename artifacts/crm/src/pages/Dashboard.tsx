@@ -864,11 +864,18 @@ export default function Dashboard() {
             <Car className="w-4 h-4 text-primary" /> Fleet Live Status
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=AVAILABLE")} />
-            <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=RENTED")} />
-            <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=MAINTENANCE")} />
-            <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=RESERVED")} />
-            <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} onClick={() => navigate("/fleet?status=INACTIVE")} />
+            {(() => {
+              const fleetUrl = (status: string) => city ? `/fleet?status=${status}&city=${city}` : `/fleet?status=${status}`;
+              return (
+                <>
+                  <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("AVAILABLE"))} />
+                  <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RENTED"))} />
+                  <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("MAINTENANCE"))} />
+                  <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RESERVED"))} />
+                  <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("INACTIVE"))} />
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
