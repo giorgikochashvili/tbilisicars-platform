@@ -106,20 +106,19 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
-  // Build per-extra HTML row — cost always uses days to match the /public/quote behavior.
-  // pricingType is used for display label only.
+  // Build per-extra HTML row.
+  // Cost always uses days (matches /public/quote math) — label omits "per day/per booking"
+  // to avoid misleading display when pricingType and the actual math disagree.
   function extraHtmlRow(ex: EmailExtra): string {
     const lineTotal = ex.pricePerUnit * ex.quantity * days;
-    const perLabel = ex.pricingType === "per_booking" ? "per booking" : "per day";
-    const label = `${esc(ex.name)}${ex.quantity > 1 ? ` &times;${ex.quantity}` : ""} <span style="font-size:12px;color:#64748b;">(${fmt(ex.pricePerUnit)} ${perLabel})</span>`;
+    const label = `${esc(ex.name)}${ex.quantity > 1 ? ` &times;${ex.quantity}` : ""}`;
     return `<div class="row"><span class="label">${label}</span><span class="value">${fmt(lineTotal)}</span></div>`;
   }
 
   // Build per-extra text line
   function extraTextLine(ex: EmailExtra): string {
     const lineTotal = ex.pricePerUnit * ex.quantity * days;
-    const perLabel = ex.pricingType === "per_booking" ? "per booking" : "per day";
-    return `  • ${ex.name}${ex.quantity > 1 ? ` ×${ex.quantity}` : ""} (${fmt(ex.pricePerUnit)} ${perLabel}) → ${fmt(lineTotal)}`;
+    return `  • ${ex.name}${ex.quantity > 1 ? ` ×${ex.quantity}` : ""}: ${fmt(lineTotal)}`;
   }
 
   // ── HTML sections ──────────────────────────────────────────────────────────

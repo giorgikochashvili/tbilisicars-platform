@@ -382,47 +382,21 @@ router.post("/public/bookings", async (req, res) => {
   const reference = `TC-${String(booking.id).padStart(5, "0")}`;
   const vehicleName = `${modelRows[0]!.brand} ${modelRows[0]!.model}`;
 
-  // Send confirmation email (non-blocking — fire and forget)
-  const { rows: locationRows } = await pool.query(
-    `SELECT id, name, city FROM location WHERE id = ANY($1)`,
-    [[body.pickupLocationId, body.dropoffLocationId]],
-  );
-  const locMap = new Map<number, { label: string; city: string }>(
-    locationRows.map((l: any) => [l.id as number, { label: `${l.name}, ${l.city}`, city: String(l.city) }]),
-  );
-  const pickupLocData = locMap.get(Number(body.pickupLocationId));
-  const pickupLocation = pickupLocData?.label ?? String(body.pickupLocationId);
-  const pickupCity = pickupLocData?.city;
-  const dropoffLocation = locMap.get(Number(body.dropoffLocationId))?.label ?? String(body.dropoffLocationId);
-
-  // Base rate × days for email display (pre-discount, pre-extras)
-  const baseTotal: number | null = body.resolvedBaseRate != null && rentalDays > 0
-    ? body.resolvedBaseRate * rentalDays
-    : null;
-
-  // Compute discount amount for email display
-  const emailDiscountAmount: number | null = (() => {
-    if (!promoDiscountType || promoDiscountValue == null || baseTotal == null) return null;
-    if (promoDiscountType === "percentage") {
-      return Math.round(baseTotal * (promoDiscountValue / 100) * 100) / 100;
-    }
-    return Math.min(promoDiscountValue, baseTotal);
-  })();
-
-  sendBookingConfirmationEmail({
+  // Send confirmation email — entire prep is non-blocking; a failure here
+  // cannot affect the already-sent 201 response.
+  const emailParams = {
     toEmail: body.email!.trim(),
     toName: contactFullName,
     reference,
     vehicle: vehicleName,
-    pickupLocation,
-    dropoffLocation,
     pickupDatetime: body.pickupDatetime!,
     dropoffDatetime: body.dropoffDatetime!,
-    pickupCity,
-    extras: validatedExtras.map((e) => ({
+    estimatedExtras: validatedExtras.map((e) => ({
       name: e.name,
       quantity: e.quantity,
       pricePerUnit: e.price,
+      // pricingType kept for label display only; cost is always price × qty × days
+      // to match the /public/quote behavior and avoid total mismatch
       pricingType: e.pricingType,
     })),
     insurancePlan: body.insurancePlan?.trim() || undefined,
@@ -431,11 +405,70 @@ router.post("/public/bookings", async (req, res) => {
     nationality: body.nationality?.trim() || undefined,
     age: body.age?.trim() || undefined,
     estimatedTotal: body.resolvedTotal ?? null,
-    baseTotal,
+    resolvedBaseRate: body.resolvedBaseRate ?? null,
     promoCode: body.promoCode?.trim() || undefined,
-    discountAmount: emailDiscountAmount,
+    promoDiscountType,
+    promoDiscountValue,
     currency: body.currency ?? "GEL",
-  }).catch((err) => console.error("[email] Unexpected error:", err));
+    pickupLocationId: Number(body.pickupLocationId),
+    dropoffLocationId: Number(body.dropoffLocationId),
+    rentalDays,
+  };
+
+  setImmediate(() => {
+    (async () => {
+      try {
+        const { rows: locationRows } = await pool.query(
+          `SELECT id, name, city FROM location WHERE id = ANY($1)`,
+          [[emailParams.pickupLocationId, emailParams.dropoffLocationId]],
+        );
+        const locMap = new Map<number, { label: string; city: string }>(
+          locationRows.map((l: any) => [l.id as number, { label: `${l.name}, ${l.city}`, city: String(l.city) }]),
+        );
+        const pickupLocData = locMap.get(emailParams.pickupLocationId);
+        const pickupLocation = pickupLocData?.label ?? String(emailParams.pickupLocationId);
+        const pickupCity = pickupLocData?.city;
+        const dropoffLocation = locMap.get(emailParams.dropoffLocationId)?.label ?? String(emailParams.dropoffLocationId);
+
+        const baseTotal: number | null = emailParams.resolvedBaseRate != null && emailParams.rentalDays > 0
+          ? emailParams.resolvedBaseRate * emailParams.rentalDays
+          : null;
+
+        const emailDiscountAmount: number | null = (() => {
+          if (!emailParams.promoDiscountType || emailParams.promoDiscountValue == null || baseTotal == null) return null;
+          if (emailParams.promoDiscountType === "percentage") {
+            return Math.round(baseTotal * (emailParams.promoDiscountValue / 100) * 100) / 100;
+          }
+          return Math.min(emailParams.promoDiscountValue, baseTotal);
+        })();
+
+        await sendBookingConfirmationEmail({
+          toEmail: emailParams.toEmail,
+          toName: emailParams.toName,
+          reference: emailParams.reference,
+          vehicle: emailParams.vehicle,
+          pickupLocation,
+          dropoffLocation,
+          pickupDatetime: emailParams.pickupDatetime,
+          dropoffDatetime: emailParams.dropoffDatetime,
+          pickupCity,
+          extras: emailParams.estimatedExtras,
+          insurancePlan: emailParams.insurancePlan,
+          paymentMethod: emailParams.paymentMethod,
+          flightNumber: emailParams.flightNumber,
+          nationality: emailParams.nationality,
+          age: emailParams.age,
+          estimatedTotal: emailParams.estimatedTotal,
+          baseTotal,
+          promoCode: emailParams.promoCode,
+          discountAmount: emailDiscountAmount,
+          currency: emailParams.currency,
+        });
+      } catch (err) {
+        console.error("[email] Failed to prepare/send confirmation:", err);
+      }
+    })();
+  });
 
   return res.status(201).json({
     success: true,
