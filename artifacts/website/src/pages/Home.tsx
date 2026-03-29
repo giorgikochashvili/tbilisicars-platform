@@ -114,7 +114,7 @@ export default function Home() {
     <div className="min-h-screen">
       {/* ── Hero ── */}
       <section
-        className="relative flex flex-col items-center justify-center px-4 py-6"
+        className="relative min-h-[90vh] lg:min-h-0 flex flex-col items-center justify-center px-4 py-16 lg:py-6"
         style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
       >
         {/* Subtle background radial accents */}
@@ -137,32 +137,32 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
           {/* Trust badge */}
-          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 text-sm text-primary mb-2">
+          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 text-sm text-primary mb-4 lg:mb-2">
             <span className="badge-dot w-2 h-2 rounded-full bg-primary" />
             10+ Years Experience
           </div>
 
-          <div className="text-xs text-muted-foreground mb-2">
+          <div className="text-xs text-muted-foreground mb-6 lg:mb-2">
             24/7 Airport Services &amp; Customer Support
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight mb-3 leading-[1.1]">
+          <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.1]">
             Premium Car Rental<br />
             <span className="text-primary">in Georgia</span>
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-5">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
             Reliable vehicles, transparent pricing, airport delivery, and customer-focused service across Tbilisi, Kutaisi, and Batumi.
           </p>
 
           {/* Booking Widget */}
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-2xl text-left max-w-3xl mx-auto">
-            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <div className="bg-card border border-border rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
+            <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
               Find Your Car
             </h2>
 
             {/* Location row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 lg:mb-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Location
@@ -207,7 +207,7 @@ export default function Home() {
             </div>
 
             {/* Same location checkbox */}
-            <label className="flex items-center gap-2 mb-3 cursor-pointer w-fit">
+            <label className="flex items-center gap-2 mb-4 lg:mb-3 cursor-pointer w-fit">
               <input
                 type="checkbox"
                 checked={sameLocation}
@@ -218,7 +218,7 @@ export default function Home() {
             </label>
 
             {/* Date row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 lg:mb-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Date &amp; Time
@@ -257,7 +257,7 @@ export default function Home() {
           </div>
 
           {/* Stats strip */}
-          <div className="flex flex-wrap justify-center gap-6 mt-5">
+          <div className="flex flex-wrap justify-center gap-6 mt-8 lg:mt-5">
             {STATS.map((s) => (
               <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
                 <span className="text-2xl font-bold text-white">{s.value}</span>
