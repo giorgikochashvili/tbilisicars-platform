@@ -2,17 +2,18 @@
  * Booking page — 6-step flow:
  * Step 1 Vehicle → Step 2 Extras → Step 3 Insurance → Step 4 Customer Info → Step 5 Payment Method → Step 6 Confirmation
  *
- * - Sticky desktop sidebar + collapsible mobile bar on steps 1–3 (live price summary)
+ * - Sticky desktop sidebar + collapsible mobile bar on steps 1–5 (live price summary)
  * - Quote state lifted to main component and passed down; insurance updates summary immediately
  * - Premium DateTimePicker replaces native datetime-local inputs
  * - WhatsApp as opt-in checkbox; separate Terms and Privacy checkboxes in Step 4
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import {
-  Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown,
+  Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, CreditCard, Banknote, Info, Shield,
+  Lock, Copy, Package, Baby, Wifi,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -67,6 +68,39 @@ const INSURANCE_PLANS: Array<{
   { id: "premium", label: "Premium", deposit: 100, excess: 100, desc: "Maximum cover, minimum liability", recommended: true },
 ];
 
+const INSURANCE_VISUAL = {
+  basic: {
+    activeBorder: "border-muted-foreground/50",
+    activeBg: "bg-muted/10",
+    activeShadow: "shadow-muted/10",
+    iconWrapper: "bg-muted/20 border-muted-foreground/20",
+    iconColor: "text-muted-foreground",
+    tierLabel: "Basic Cover",
+    tierColor: "text-muted-foreground",
+    checkBg: "bg-muted-foreground",
+  },
+  full: {
+    activeBorder: "border-blue-400",
+    activeBg: "bg-blue-500/10",
+    activeShadow: "shadow-blue-500/15",
+    iconWrapper: "bg-blue-500/15 border-blue-400/30",
+    iconColor: "text-blue-400",
+    tierLabel: "Good Cover",
+    tierColor: "text-blue-400",
+    checkBg: "bg-blue-400",
+  },
+  premium: {
+    activeBorder: "border-primary",
+    activeBg: "bg-primary/10",
+    activeShadow: "shadow-primary/20",
+    iconWrapper: "bg-primary/15 border-primary/30",
+    iconColor: "text-primary",
+    tierLabel: "Best Coverage",
+    tierColor: "text-primary",
+    checkBg: "bg-primary",
+  },
+};
+
 const STEP_LABELS = ["Vehicle", "Extras", "Insurance", "Your Info", "Payment", "Confirm"];
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
@@ -110,6 +144,21 @@ function minDT() {
   return `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}T${p(now.getHours())}:${p(now.getMinutes())}`;
 }
 
+function extraIcon(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes("child") || n.includes("baby") || n.includes("booster") || n.includes("infant") || n.includes("seat"))
+    return <Baby className="w-5 h-5" />;
+  if (n.includes("wifi") || n.includes("internet") || n.includes("hotspot") || n.includes("sim") || n.includes("data"))
+    return <Wifi className="w-5 h-5" />;
+  if (n.includes("gps") || n.includes("navigation") || n.includes("nav") || n.includes("map"))
+    return <MapPin className="w-5 h-5" />;
+  if (n.includes("driver") || n.includes("chauffeur"))
+    return <Users className="w-5 h-5" />;
+  if (n.includes("insur") || n.includes("protect") || n.includes("cover"))
+    return <Shield className="w-5 h-5" />;
+  return <Package className="w-5 h-5" />;
+}
+
 // ─── Primitive components ─────────────────────────────────────────────────────
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -151,8 +200,8 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
       onClick={onChange}
       onKeyDown={(e) => (e.key === " " || e.key === "Enter") && onChange()}
       className={cn(
-        "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40",
-        checked ? "bg-primary border-primary" : "border-border hover:border-primary/50",
+        "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40",
+        checked ? "bg-primary border-primary scale-105" : "border-border hover:border-primary/50",
       )}
     >
       {checked && <Check className="w-3 h-3 text-white" />}
@@ -180,7 +229,6 @@ function PricingSummaryContent({
 
   return (
     <div className="space-y-4 text-sm">
-      {/* Vehicle */}
       {model ? (
         <div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Vehicle</div>
@@ -191,7 +239,6 @@ function PricingSummaryContent({
         <div className="text-xs text-muted-foreground italic">No vehicle selected yet</div>
       )}
 
-      {/* Dates */}
       {form.pickupDatetime && form.dropoffDatetime && (
         <div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trip</div>
@@ -203,7 +250,6 @@ function PricingSummaryContent({
         </div>
       )}
 
-      {/* Extras */}
       {selectedExtras.length > 0 && (
         <div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Extras</div>
@@ -221,7 +267,6 @@ function PricingSummaryContent({
         </div>
       )}
 
-      {/* Insurance */}
       {insurance && (
         <div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Insurance</div>
@@ -230,10 +275,8 @@ function PricingSummaryContent({
         </div>
       )}
 
-      {/* Divider */}
       {model && <div className="border-t border-border" />}
 
-      {/* Pricing */}
       {model && (
         <div>
           {quoteLoading ? (
@@ -329,30 +372,56 @@ function MobilePricingBar({ form, models, extras, quote, quoteLoading }: {
 // ─── Step bar ─────────────────────────────────────────────────────────────────
 
 function StepBar({ step }: { step: number }) {
+  const pct = Math.round(((step - 1) / (STEP_LABELS.length - 1)) * 100);
   return (
-    <div className="flex items-start justify-center gap-0 mb-8 overflow-x-auto pb-1">
-      {STEP_LABELS.map((label, i) => {
-        const num = i + 1; const active = num === step; const done = num < step;
-        return (
-          <div key={i} className="flex items-center shrink-0">
-            <div className="flex flex-col items-center">
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all",
-                done  && "bg-primary border-primary text-white",
-                active && "bg-primary border-primary text-white shadow-lg shadow-primary/30",
-                !done && !active && "border-border text-muted-foreground bg-muted",
-              )}>
-                {done ? <Check className="w-4 h-4" /> : num}
+    <div className="mb-8">
+      {/* Mobile: compact progress indicator */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Step {step} of {STEP_LABELS.length}</span>
+          <span className="text-sm font-semibold text-white">{STEP_LABELS[step - 1]}</span>
+        </div>
+        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: numbered step circles with connecting lines */}
+      <div className="hidden sm:flex items-start gap-0">
+        {STEP_LABELS.map((label, i) => {
+          const num = i + 1; const active = num === step; const done = num < step;
+          const isLast = i === STEP_LABELS.length - 1;
+          return (
+            <Fragment key={i}>
+              <div className="flex flex-col items-center">
+                <div className={cn(
+                  "w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 shrink-0",
+                  done  && "bg-primary border-primary text-white",
+                  active && "bg-primary border-primary text-white shadow-lg shadow-primary/40 ring-4 ring-primary/20",
+                  !done && !active && "border-border text-muted-foreground bg-card",
+                )}>
+                  {done ? <Check className="w-4 h-4" /> : num}
+                </div>
+                <span className={cn(
+                  "text-[10px] mt-1.5 text-center whitespace-nowrap font-medium leading-none",
+                  active ? "text-primary" : done ? "text-muted-foreground" : "text-muted-foreground/50"
+                )}>
+                  {label}
+                </span>
               </div>
-              <span className={cn("text-[10px] mt-1 hidden sm:block whitespace-nowrap font-medium", active ? "text-primary" : "text-muted-foreground")}>
-                {label}
-              </span>
-            </div>
-            {i < STEP_LABELS.length - 1 && (
-              <div className={cn("h-0.5 w-6 sm:w-10 mx-0.5 -mt-3 sm:-mt-5 transition-colors", done ? "bg-primary" : "bg-border")} />
-            )}
-          </div>
-        );
-      })}
+              {!isLast && (
+                <div className={cn(
+                  "flex-1 h-0.5 mt-[18px] mx-1 transition-colors duration-300",
+                  done ? "bg-primary" : "bg-border"
+                )} />
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -445,19 +514,27 @@ function Step1({ form, setForm, models, locations, onNext }: {
       {needTrip && <TripDetailsBanner form={form} setForm={setForm} locations={locations} />}
 
       {!needTrip && (
-        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-5 flex flex-wrap gap-4 text-xs">
-          <div className="flex items-center gap-1.5 text-primary font-medium">
-            <MapPin className="w-3.5 h-3.5" />
-            {locations.find(l => String(l.id) === form.pickupLocationId)?.name ?? ""}
-            {form.dropoffLocationId !== form.pickupLocationId && (
-              <> → {locations.find(l => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
+              <MapPin className="w-3.5 h-3.5" />
+              {locations.find(l => String(l.id) === form.pickupLocationId)?.name ?? ""}
+              {form.dropoffLocationId !== form.pickupLocationId && (
+                <><ArrowRight className="w-3.5 h-3.5 text-primary/60 mx-0.5" />{locations.find(l => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-primary/80">
+              <Calendar className="w-3.5 h-3.5" />
+              {formatDT(form.pickupDatetime)}
+              <span className="text-primary/50 mx-0.5">→</span>
+              {formatDT(form.dropoffDatetime)}
+            </div>
+            {days > 0 && (
+              <span className="bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                {days} {days === 1 ? "day" : "days"}
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-primary font-medium">
-            <Calendar className="w-3.5 h-3.5" />
-            {formatDT(form.pickupDatetime)} → {formatDT(form.dropoffDatetime)}
-          </div>
-          {days > 0 && <div className="text-primary font-medium">{days} {days === 1 ? "day" : "days"}</div>}
         </div>
       )}
 
@@ -467,7 +544,7 @@ function Step1({ form, setForm, models, locations, onNext }: {
           No vehicles available for online booking.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 mb-6">
+        <div className="grid grid-cols-1 gap-4 mb-6">
           {models.map((m) => {
             const selected = String(form.vehicleModelId) === String(m.id);
             const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
@@ -476,42 +553,86 @@ function Step1({ form, setForm, models, locations, onNext }: {
             const isOnRequest = Number(m.vehicle_count) === 0;
             return (
               <button key={m.id} type="button" onClick={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
-                className={cn("w-full text-left rounded-xl border-2 p-4 transition-all",
-                  selected ? "border-primary bg-primary/10 shadow-md shadow-primary/20" : "border-border bg-card hover:border-primary/40")}>
-                <div className="flex gap-4 items-start">
-                  <div className="w-24 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                    {m.image_url ? <img src={m.image_url} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" /> : <Car className="w-8 h-8 text-muted-foreground/40" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="font-semibold text-white flex items-center gap-2 flex-wrap">
-                          {m.brand} {m.model}
-                          {isOnRequest && (
-                            <span className="text-[10px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded-full">On Request</span>
-                          )}
-                        </div>
-                        {m.category && <div className="text-xs text-muted-foreground">{m.category}</div>}
+                className={cn(
+                  "w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200",
+                  selected
+                    ? "border-primary shadow-lg shadow-primary/20 ring-1 ring-primary/30"
+                    : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
+                )}>
+                {/* Image banner */}
+                <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
+                  {m.image_url
+                    ? <img src={m.image_url} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
+                    : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Car className="w-16 h-16 text-muted-foreground/15" />
                       </div>
-                      <div className="text-right shrink-0">
-                        {isOnRequest ? (
-                          <div className="text-xs text-amber-400">Contact for pricing</div>
-                        ) : price !== null ? (
-                          <>
-                            <div className="text-sm font-bold text-primary">{price.toLocaleString()} {cur}/day</div>
-                            {totalEst && <div className="text-xs text-muted-foreground">Est. {totalEst.toLocaleString()} {cur}</div>}
-                          </>
-                        ) : <div className="text-xs text-muted-foreground">Contact for pricing</div>}
-                        {selected && <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center ml-auto mt-1"><Check className="w-3 h-3 text-white" /></div>}
+                    )
+                  }
+                  {/* Category pill */}
+                  {m.category && (
+                    <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                      {m.category}
+                    </span>
+                  )}
+                  {/* On Request badge */}
+                  {isOnRequest && (
+                    <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                      On Request
+                    </span>
+                  )}
+                  {/* Price badge */}
+                  {!isOnRequest && price !== null && (
+                    <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
+                      <div className="text-sm font-bold leading-none">{price.toLocaleString()} {cur}</div>
+                      <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
+                    </div>
+                  )}
+                  {isOnRequest && !m.image_url && null}
+                  {/* Contact for pricing overlay */}
+                  {!isOnRequest && price === null && (
+                    <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
+                      <div className="text-xs leading-none">Contact for pricing</div>
+                    </div>
+                  )}
+                  {/* Selected checkmark overlay */}
+                  {selected && (
+                    <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  )}
+                  {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+                </div>
+
+                {/* Info panel */}
+                <div className="p-4">
+                  <div className="mb-2">
+                    <div className="font-bold text-white text-base leading-tight">{m.brand} {m.model}</div>
+                    {totalEst && days > 0 && !isOnRequest && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Est. {totalEst.toLocaleString()} {cur} for {days} {days === 1 ? "day" : "days"}
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                      {m.seats && <span className="text-xs text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" /> {m.seats} seats</span>}
-                      {m.transmission && <span className="text-xs text-muted-foreground flex items-center gap-1"><Settings className="w-3 h-3" /> {transLabel(m.transmission)}</span>}
-                      {m.fuel_type && <span className="text-xs text-muted-foreground flex items-center gap-1"><Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}</span>}
-                    </div>
+                    )}
                     {isOnRequest && selected && (
-                      <p className="text-xs text-amber-400/80 mt-1.5">This vehicle is available on request. Our team will contact you to confirm availability.</p>
+                      <p className="text-xs text-amber-400/80 mt-0.5">Available on request — we'll confirm by phone</p>
+                    )}
+                  </div>
+                  {/* Spec chips */}
+                  <div className="flex flex-wrap gap-2">
+                    {m.seats && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                        <Users className="w-3 h-3" /> {m.seats} seats
+                      </span>
+                    )}
+                    {m.transmission && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                        <Settings className="w-3 h-3" /> {transLabel(m.transmission)}
+                      </span>
+                    )}
+                    {m.fuel_type && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                        <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -575,26 +696,45 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
             const totalImpact = pricePerUnit * (e.pricing_type === "per_day" ? days : 1);
             return (
               <button key={e.id} type="button" onClick={() => toggleExtra(e.id)}
-                className={cn("w-full text-left rounded-xl border-2 p-4 transition-all",
-                  selected ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/30")}>
-                <div className="flex items-start justify-between gap-2">
+                className={cn(
+                  "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
+                  selected
+                    ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
+                    : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10"
+                )}>
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200",
+                    selected ? "bg-primary/20 text-primary" : "bg-secondary/50 text-muted-foreground"
+                  )}>
+                    {extraIcon(e.name)}
+                  </div>
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-white">{e.name}</div>
-                    {e.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{e.description}</div>}
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-semibold text-sm text-white leading-snug">{e.name}</div>
+                      <div className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200",
+                        selected ? "bg-primary border-primary scale-110" : "border-border"
+                      )}>
+                        {selected && <Check className="w-3 h-3 text-white" />}
+                      </div>
+                    </div>
+                    {e.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{e.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <span className="text-xs font-semibold text-primary">
                         {pricePerUnit.toLocaleString()} {e.currency}
                         <span className="font-normal text-muted-foreground"> /{e.pricing_type === "per_day" ? "day" : "booking"}</span>
                       </span>
                       {selected && days > 0 && (
-                        <span className="text-xs text-green-400 font-medium">
+                        <span className="text-xs text-green-400 font-medium bg-green-400/10 border border-green-400/20 rounded-full px-2 py-0.5">
                           +{totalImpact.toLocaleString()} {e.currency} total
                         </span>
                       )}
                     </div>
-                  </div>
-                  <div className={cn("w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors", selected ? "bg-primary border-primary" : "border-border")}>
-                    {selected && <Check className="w-3 h-3 text-white" />}
                   </div>
                 </div>
               </button>
@@ -606,9 +746,12 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       )}
 
       {extrasRunningTotal > 0 && (
-        <div className="mb-4 p-3 rounded-lg bg-secondary/50 border border-border text-sm">
-          Selected add-ons total: <span className="font-semibold text-white">{extrasRunningTotal.toLocaleString()} GEL</span>
-          {days > 0 && <span className="text-muted-foreground"> for {days} {days === 1 ? "day" : "days"}</span>}
+        <div className="mb-4 p-3.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Package className="w-4 h-4 text-primary" />
+            Add-ons total{days > 0 ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
+          </div>
+          <span className="text-sm font-bold text-white">+{extrasRunningTotal.toLocaleString()} GEL</span>
         </div>
       )}
 
@@ -651,33 +794,52 @@ function Step3({ form, setForm, onNext, onBack }: {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {INSURANCE_PLANS.map((plan) => {
           const selected = form.insurancePlan === plan.id;
+          const visual = INSURANCE_VISUAL[plan.id as keyof typeof INSURANCE_VISUAL];
           return (
             <button key={plan.id} type="button" onClick={() => setForm((f) => ({ ...f, insurancePlan: plan.id }))}
-              className={cn("relative w-full text-left rounded-xl border-2 p-5 transition-all",
-                selected ? "border-primary bg-primary/10 shadow-md shadow-primary/20" : "border-border bg-card hover:border-primary/40")}>
-              {plan.recommended && <span className="absolute -top-2.5 left-4 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Recommended</span>}
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div>
-                  <div className="font-bold text-white text-base">{plan.label}</div>
-                  <div className={cn("text-[10px] font-semibold mt-0.5 uppercase tracking-wide",
-                    plan.id === "premium" ? "text-primary" : plan.id === "full" ? "text-blue-400" : "text-muted-foreground"
-                  )}>
-                    {plan.id === "premium" ? "Best Coverage" : plan.id === "full" ? "Good Cover" : "Basic Cover"}
-                  </div>
-                </div>
-                {selected && <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3 text-white" /></div>}
+              className={cn(
+                "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200",
+                selected
+                  ? cn("shadow-lg", visual.activeBorder, visual.activeBg)
+                  : "border-border bg-card hover:border-primary/40"
+              )}>
+              {plan.recommended && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap shadow-md">
+                  ★ Recommended
+                </span>
+              )}
+              {/* Shield icon */}
+              <div className={cn(
+                "w-12 h-12 rounded-xl border flex items-center justify-center mb-4 transition-colors duration-200",
+                selected ? visual.iconWrapper : "bg-secondary/30 border-border"
+              )}>
+                <Shield className={cn("w-6 h-6 transition-colors duration-200", selected ? visual.iconColor : "text-muted-foreground")} />
               </div>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{plan.desc}</p>
-              <div className="space-y-1.5 pt-3 border-t border-border">
+              {/* Tier badge */}
+              <div className="mb-1">
+                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors duration-200", selected ? visual.tierColor : "text-muted-foreground/60")}>
+                  {visual.tierLabel}
+                </span>
+              </div>
+              <div className="font-bold text-white text-lg mb-2">{plan.label}</div>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed min-h-[32px]">{plan.desc}</p>
+              {/* Stats */}
+              <div className="space-y-2 pt-3 border-t border-border">
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Deposit</span>
-                  <span className={cn("font-semibold", selected ? "text-primary" : "text-white")}>{plan.deposit}€</span>
+                  <span className={cn("font-bold transition-colors", selected ? visual.iconColor : "text-white")}>{plan.deposit}€</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Excess</span>
-                  <span className={cn("font-semibold", selected ? "text-primary" : "text-white")}>{plan.excess}€</span>
+                  <span className={cn("font-bold transition-colors", selected ? visual.iconColor : "text-white")}>{plan.excess}€</span>
                 </div>
               </div>
+              {/* Selected check */}
+              {selected && (
+                <div className={cn("absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-sm", visual.checkBg)}>
+                  <Check className="w-3.5 h-3.5 text-white" />
+                </div>
+              )}
             </button>
           );
         })}
@@ -713,60 +875,84 @@ function Step4({ form, setForm, onNext, onBack }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Your Information</h2>
-      <p className="text-muted-foreground text-sm mb-5">We need your details to confirm the booking</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div><FieldLabel required>First Name</FieldLabel><Inp placeholder="e.g. Giorgi" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} /></div>
-        <div><FieldLabel required>Last Name</FieldLabel><Inp placeholder="e.g. Beridze" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div><FieldLabel required>Email Address</FieldLabel><Inp type="email" placeholder="your@email.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
-        <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" placeholder="+995 555 000 000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div>
-          <FieldLabel>Nationality</FieldLabel>
-          <Inp placeholder="e.g. Georgian" value={form.nationality} onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))} />
-        </div>
-        <div>
-          <FieldLabel>Age</FieldLabel>
-          <Inp type="number" placeholder="e.g. 28" min="18" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-          <p className="text-xs text-muted-foreground mt-1">Minimum age: 18 years</p>
-        </div>
-      </div>
-      <div className="mb-4">
-        <FieldLabel>Flight Number</FieldLabel>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Inp placeholder="e.g. W6 1234" value={form.flightNumber} onChange={(e) => setForm((f) => ({ ...f, flightNumber: e.target.value }))} className="pl-9" />
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for smooth pickup</p>
-      </div>
-      <div className="mb-4">
-        <FieldLabel>Special Requests / Notes</FieldLabel>
-        <textarea placeholder="Any special requirements or requests…" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
-          className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors" />
-      </div>
+      <p className="text-muted-foreground text-sm mb-6">We need your details to confirm the booking</p>
 
-      {/* WhatsApp opt-in checkbox */}
+      {/* Section: Personal Details */}
       <div className="mb-6">
-        <label className="flex items-start gap-3 cursor-pointer p-3.5 rounded-xl border border-border bg-secondary/20 hover:border-green-500/30 transition-colors">
-          <Checkbox
-            checked={form.whatsAppOptIn}
-            onChange={() => setForm((f) => ({ ...f, whatsAppOptIn: !f.whatsAppOptIn }))}
-          />
-          <div>
-            <div className="text-sm font-medium text-white flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-green-400" />
-              I can be reached via WhatsApp at my phone number
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Check this if our team can send you booking updates over WhatsApp. We'll use the phone number you provided above.
-            </p>
-          </div>
-        </label>
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+          <Users className="w-3.5 h-3.5 text-primary" />
+          Personal Details
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div><FieldLabel required>First Name</FieldLabel><Inp placeholder="e.g. Giorgi" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} /></div>
+          <div><FieldLabel required>Last Name</FieldLabel><Inp placeholder="e.g. Beridze" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><FieldLabel required>Email Address</FieldLabel><Inp type="email" placeholder="your@email.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
+          <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" placeholder="+995 555 000 000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+        </div>
       </div>
 
-      {/* Terms & Privacy — separate checkboxes */}
+      {/* Section: Trip Details */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+          <Car className="w-3.5 h-3.5 text-primary" />
+          Trip Details
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <FieldLabel>Nationality</FieldLabel>
+            <Inp placeholder="e.g. Georgian" value={form.nationality} onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))} />
+          </div>
+          <div>
+            <FieldLabel>Age</FieldLabel>
+            <Inp type="number" placeholder="e.g. 28" min="18" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
+            <p className="text-xs text-muted-foreground mt-1">Minimum age: 18 years</p>
+          </div>
+        </div>
+        <div>
+          <FieldLabel>Flight Number</FieldLabel>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Inp placeholder="e.g. W6 1234" value={form.flightNumber} onChange={(e) => setForm((f) => ({ ...f, flightNumber: e.target.value }))} className="pl-9" />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for smooth pickup</p>
+        </div>
+      </div>
+
+      {/* Section: Preferences */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+          <MessageCircle className="w-3.5 h-3.5 text-primary" />
+          Preferences
+        </div>
+        <div className="mb-4">
+          <FieldLabel>Special Requests / Notes</FieldLabel>
+          <textarea placeholder="Any special requirements or requests…" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
+            className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors" />
+        </div>
+
+        {/* WhatsApp opt-in checkbox */}
+        <div className="mb-5">
+          <label className="flex items-start gap-3 cursor-pointer p-3.5 rounded-xl border border-border bg-secondary/20 hover:border-green-500/30 transition-colors">
+            <Checkbox
+              checked={form.whatsAppOptIn}
+              onChange={() => setForm((f) => ({ ...f, whatsAppOptIn: !f.whatsAppOptIn }))}
+            />
+            <div>
+              <div className="text-sm font-medium text-white flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-green-400" />
+                I can be reached via WhatsApp at my phone number
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Check this if our team can send you booking updates over WhatsApp. We'll use the phone number you provided above.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Terms & Privacy */}
       <div className="mb-6 space-y-3">
         <label className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors">
           <Checkbox checked={form.agreeToTerms} onChange={() => setForm((f) => ({ ...f, agreeToTerms: !f.agreeToTerms }))} />
@@ -841,19 +1027,32 @@ function Step5({ form, setForm, onNext, onBack }: {
           const selected = form.paymentMethod === opt.id;
           return (
             <button key={opt.id} type="button" onClick={() => { setForm((f) => ({ ...f, paymentMethod: opt.id })); setShowOther(false); }}
-              className={cn("relative w-full text-left rounded-xl border-2 p-5 transition-all",
-                selected ? "border-primary bg-primary/10 shadow-md shadow-primary/20" : "border-border bg-card hover:border-primary/40")}>
+              className={cn(
+                "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200 min-h-[152px] flex flex-col",
+                selected
+                  ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+                  : "border-border bg-card hover:border-primary/40"
+              )}>
               {opt.recommended && (
                 <span className="absolute -top-2.5 left-4 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Most Popular</span>
               )}
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className={cn(
+                  "w-14 h-14 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-200",
+                  selected ? "bg-primary/20 border-primary/30" : "bg-primary/10 border-primary/15"
+                )}>
                   {opt.icon}
                 </div>
-                {selected && <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5"><Check className="w-3 h-3 text-white" /></div>}
+                {selected && (
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
               </div>
-              <div className="font-bold text-white text-base mb-1">{opt.label}</div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
+              <div className="flex-1">
+                <div className="font-bold text-white text-base mb-1">{opt.label}</div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
+              </div>
               {opt.id === "Card (Online)" && (
                 <div className="mt-3 text-[10px] text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2.5 py-1.5">
                   Our team will send you a secure payment link. No charge at this step.
@@ -876,8 +1075,12 @@ function Step5({ form, setForm, onNext, onBack }: {
             const selected = form.paymentMethod === method;
             return (
               <button key={method} type="button" onClick={() => setForm((f) => ({ ...f, paymentMethod: method }))}
-                className={cn("w-full text-center rounded-lg border px-3 py-2.5 text-xs font-medium transition-all",
-                  selected ? "border-primary bg-primary/10 text-white shadow-sm shadow-primary/20" : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white")}>
+                className={cn(
+                  "w-full text-center rounded-lg border px-3 py-2.5 text-xs font-medium transition-all duration-200",
+                  selected
+                    ? "border-primary bg-primary/10 text-white shadow-sm shadow-primary/20"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white"
+                )}>
                 {selected && <Check className="w-3 h-3 inline mr-1 text-primary" />}
                 {method}
               </button>
@@ -887,7 +1090,7 @@ function Step5({ form, setForm, onNext, onBack }: {
       )}
 
       <div className="p-4 rounded-xl bg-muted/50 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
-        <Info className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+        <Lock className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
         <span>No payment is charged to submit your booking request. You will only be charged upon vehicle pickup or as separately agreed.</span>
       </div>
       <div className="flex justify-between">
@@ -996,35 +1199,43 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
     const pickupInstructions = CITY_PICKUP_INSTRUCTIONS[pickupCity] ?? "Our team will contact you shortly to confirm pickup details.";
 
     return (
-      <div className="py-4">
+      <div className="py-2">
+        {/* Success header */}
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Booking Request Received!</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">
+          <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed">
             We've received your booking and will confirm via email shortly.
           </p>
         </div>
 
-        {/* Reference block */}
-        <div className="bg-card border border-border rounded-xl p-5 mb-4">
-          <div className="text-center mb-4 pb-4 border-b border-border">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Booking Reference</div>
-            <div className="text-3xl font-bold text-primary tracking-wider">{result.reference}</div>
-            <div className="text-xs text-muted-foreground mt-1">Keep this reference for your records</div>
-          </div>
-          <div className="space-y-0">
-            <div className="flex justify-between pt-1 pb-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Status</span>
-              <span className="text-yellow-400 font-medium text-sm">Pending Confirmation</span>
-            </div>
+        {/* Reference hero */}
+        <div className="bg-gradient-to-b from-primary/20 to-primary/5 border border-primary/30 rounded-2xl p-6 mb-5 text-center">
+          <div className="text-xs font-semibold text-primary/70 uppercase tracking-wider mb-2">Your Booking Reference</div>
+          <div className="text-4xl font-black text-white tracking-widest mb-3">{result.reference}</div>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(result.reference).catch(() => {})}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mb-4"
+          >
+            <Copy className="w-3 h-3" /> Copy reference number
+          </button>
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-full px-4 py-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
+              <span className="text-amber-400 text-xs font-semibold">Pending Confirmation</span>
+            </span>
           </div>
         </div>
 
-        {/* Trip details */}
+        {/* Trip summary */}
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Trip Details</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+            <Car className="w-3.5 h-3.5 text-primary" />
+            Trip Summary
+          </div>
           <SummaryRow label="Vehicle" value={result.vehicle} />
           <SummaryRow label="Pickup" value={formatDT(result.pickupDatetime)} />
           <SummaryRow label="Return" value={formatDT(result.dropoffDatetime)} />
@@ -1101,6 +1312,7 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           {form.notes && <SummaryRow label="Notes" value={form.notes} />}
         </div>
 
+        {/* Pickup instructions */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-3">
             <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -1111,6 +1323,7 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
           </div>
         </div>
 
+        {/* Contact */}
         <div className="bg-secondary/20 border border-border rounded-xl p-4 mb-5">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Need Help?</div>
           <div className="flex flex-wrap gap-3">
@@ -1133,78 +1346,107 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
     );
   }
 
+  // ── Review state ──
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Booking Confirmation</h2>
       <p className="text-muted-foreground text-sm mb-5">Review everything before confirming your request</p>
 
-      <div className="space-y-4 mb-5">
-        {/* Trip */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Trip Details</div>
-          <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
-          <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
-          <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
-          <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
-          <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+      <div className="mb-5">
+        {/* Two-column on desktop: left = Trip + Vehicle, right = Pricing + Insurance */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {/* Left column */}
+          <div className="space-y-4">
+            {/* Trip */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-primary" />
+                Trip Details
+              </div>
+              <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
+              <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
+              <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
+              <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
+              <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+            </div>
+
+            {/* Vehicle */}
+            {model && (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <Car className="w-3.5 h-3.5 text-primary" />
+                  Vehicle
+                </div>
+                {model.image_url && (
+                  <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
+                    <img src={model.image_url} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
+                {model.category && <SummaryRow label="Category" value={model.category} />}
+                {model.transmission && <SummaryRow label="Transmission" value={transLabel(model.transmission) ?? ""} />}
+              </div>
+            )}
+          </div>
+
+          {/* Right column */}
+          <div className="space-y-4">
+            {/* Pricing */}
+            {quotePending ? (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
+                <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-5 bg-muted/50 rounded animate-pulse" />)}</div>
+              </div>
+            ) : quote?.quotable ? (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3 flex items-center gap-1.5">
+                  Pricing Estimate
+                </div>
+                <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+                {selectedExtras.map(({ extra, qty }) => {
+                  const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+                  return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
+                })}
+                {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+                  <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
+                )}
+                <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
+                  <span className="text-sm font-semibold text-white">Estimated Total</span>
+                  <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
+                {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => {
+                  const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+                  return <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * multiplier).toLocaleString()} GEL`} />;
+                })}
+                <p className="text-xs text-muted-foreground mt-2">Base rate will be confirmed by our team.</p>
+              </div>
+            )}
+
+            {/* Insurance */}
+            {insurance && (
+              <div className="bg-card border border-border rounded-xl p-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  Insurance
+                </div>
+                <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
+                <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
+                <SummaryRow label="Excess" value={`${insurance.excess}€`} />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Vehicle */}
-        {model && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Vehicle</div>
-            <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
-            {model.category && <SummaryRow label="Category" value={model.category} />}
-            {model.transmission && <SummaryRow label="Transmission" value={transLabel(model.transmission) ?? ""} />}
-          </div>
-        )}
-
-        {/* Pricing */}
-        {quotePending ? (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
-            <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-5 bg-muted/50 rounded animate-pulse" />)}</div>
-          </div>
-        ) : quote?.quotable ? (
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3">Pricing Estimate</div>
-            <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
-            {selectedExtras.map(({ extra, qty }) => {
-              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
-              return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
-            })}
-            {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
-              <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
-            )}
-            <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
-              <span className="text-sm font-semibold text-white">Estimated Total</span>
-              <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
-            {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => {
-              const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
-              return <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * multiplier).toLocaleString()} GEL`} />;
-            })}
-            <p className="text-xs text-muted-foreground mt-2">Base rate will be confirmed by our team.</p>
-          </div>
-        )}
-
-        {/* Insurance */}
-        {insurance && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Insurance</div>
-            <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
-            <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
-            <SummaryRow label="Excess" value={`${insurance.excess}€`} />
-          </div>
-        )}
-
-        {/* Contact + payment */}
+        {/* Customer details — full width */}
         <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Your Details</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-primary" />
+            Your Details
+          </div>
           <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
           <SummaryRow label="Email" value={form.email} />
           <SummaryRow label="Phone" value={form.phone} />
@@ -1217,16 +1459,20 @@ function Step6({ form, models, locations, extras, onBack, onDone }: {
         </div>
       </div>
 
-      <div className="p-4 rounded-xl bg-muted/40 border border-border mb-5 text-sm text-muted-foreground">
+      <div className="p-4 rounded-xl bg-muted/40 border border-border mb-6 text-sm text-muted-foreground">
         <span className="font-semibold text-white">Note: </span>
         {quote?.quotable
           ? "Prices shown are estimates. Final pricing is confirmed before any charge is made."
           : "This is a booking request. Our team will contact you to confirm availability and pricing."}
       </div>
 
-      <div className="flex justify-between">
-        <Btn variant="outline" onClick={onBack} disabled={submitting}><ChevronLeft className="w-4 h-4" /> Back</Btn>
-        <Btn onClick={submit} loading={submitting}>Confirm Booking Request</Btn>
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <Btn variant="outline" onClick={onBack} disabled={submitting} className="justify-center">
+          <ChevronLeft className="w-4 h-4" /> Back
+        </Btn>
+        <Btn onClick={submit} loading={submitting} className="justify-center sm:px-8 sm:py-3 sm:text-base">
+          Confirm Booking Request →
+        </Btn>
       </div>
     </div>
   );
@@ -1255,7 +1501,7 @@ export default function Booking() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(getInitialForm);
 
-  // ── Lifted quote state (used by sidebar on steps 1–3) ──────────────────────
+  // ── Lifted quote state (used by sidebar on steps 1–5) ──────────────────────
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const quoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1318,46 +1564,49 @@ export default function Booking() {
   const locations = config?.locations ?? [];
   const extras = config?.extras ?? [];
 
-  // Steps 1–3 show the pricing sidebar
-  const showSidebar = step >= 1 && step <= 3;
+  // Sidebar visible on steps 1–5; step 6 is full review/success (no sidebar needed)
+  const showSidebar = step >= 1 && step <= 5;
 
   return (
     <div className="min-h-screen py-10 px-4">
       <div className={cn("mx-auto", showSidebar ? "max-w-5xl" : "max-w-2xl")}>
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Book Your Car</h1>
-          <p className="text-sm text-muted-foreground">Complete the steps below to submit your reservation</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Book Your Car</h1>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">Complete the steps below to submit your reservation request.</p>
         </div>
 
-        {/* Two-column layout for steps 1–3, single column for 4–6 */}
+        {/* Two-column layout for steps 1–5, single column for step 6 */}
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>
           {/* Main step card */}
           <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 min-w-0">
             <StepBar step={step} />
 
-            {/* Mobile collapsible summary (steps 1–3 only) */}
+            {/* Mobile collapsible summary (steps 1–5 only) */}
             {showSidebar && (
               <MobilePricingBar form={form} models={models} extras={extras} quote={quote} quoteLoading={quoteLoading} />
             )}
 
-            {step === 1 && <Step1 form={form} setForm={setForm} models={models} locations={locations} onNext={next} />}
-            {step === 2 && <Step2 form={form} setForm={setForm} extras={extras} onNext={next} onBack={back} />}
-            {step === 3 && <Step3 form={form} setForm={setForm} onNext={next} onBack={back} />}
-            {step === 4 && <Step4 form={form} setForm={setForm} onNext={next} onBack={back} />}
-            {step === 5 && <Step5 form={form} setForm={setForm} onNext={next} onBack={back} />}
-            {step === 6 && (
-              <Step6
-                form={form}
-                models={models}
-                locations={locations}
-                extras={extras}
-                onBack={back}
-                onDone={reset}
-              />
-            )}
+            {/* Step content with fade-in animation on step change */}
+            <div key={step} className="booking-step-enter">
+              {step === 1 && <Step1 form={form} setForm={setForm} models={models} locations={locations} onNext={next} />}
+              {step === 2 && <Step2 form={form} setForm={setForm} extras={extras} onNext={next} onBack={back} />}
+              {step === 3 && <Step3 form={form} setForm={setForm} onNext={next} onBack={back} />}
+              {step === 4 && <Step4 form={form} setForm={setForm} onNext={next} onBack={back} />}
+              {step === 5 && <Step5 form={form} setForm={setForm} onNext={next} onBack={back} />}
+              {step === 6 && (
+                <Step6
+                  form={form}
+                  models={models}
+                  locations={locations}
+                  extras={extras}
+                  onBack={back}
+                  onDone={reset}
+                />
+              )}
+            </div>
           </div>
 
-          {/* Desktop sticky sidebar (steps 1–3 only) */}
+          {/* Desktop sticky sidebar (steps 1–5 only) */}
           {showSidebar && (
             <div className="hidden lg:block">
               <div className="sticky top-6">

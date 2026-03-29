@@ -339,3 +339,12 @@
   padding: 12px 8px 10px;
 }
 .tc-datepicker .react-datepicker__input-container { width: 100%; }
+
+/* ─── Booking step content fade-in animation ─── */
+@keyframes booking-step-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.booking-step-enter {
+  animation: booking-step-enter 0.22s ease-out;
+}
