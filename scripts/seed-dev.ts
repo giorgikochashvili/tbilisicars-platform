@@ -7,8 +7,11 @@ import {
   userTable,
   bookingTable,
   maintenanceServicesTable,
+  adminsTable,
+  rateTable,
+  ratetierTable,
 } from "@workspace/db";
-import { eq, count } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
 import { seedServiceTypes } from "../artifacts/api-server/src/services/admin-service.service.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -348,6 +351,109 @@ async function seedServiceRecords() {
   console.log(`  service records: ${records.length} inserted`);
 }
 
+// ─── 9. Admin User ────────────────────────────────────────────────────────────
+// Pre-computed bcryptjs hash (10 rounds) for the dev password "123456".
+// Only used in local development — never commit production credentials.
+// Run `tsx -e "import b from 'bcryptjs'; console.log(await b.hash('NEW_PW',10))"` to regenerate.
+
+async function seedAdmin() {
+  const existing = await db
+    .select({ id: adminsTable.id })
+    .from(adminsTable)
+    .where(eq(adminsTable.email, "admin@tbilisicars.com"))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.log("  admin: skipped (already exists)");
+    return;
+  }
+
+  await db.insert(adminsTable).values({
+    username:          "admin",
+    email:             "admin@tbilisicars.com",
+    fullName:          "Admin User",
+    // bcryptjs hash of "123456" with cost 10 — dev only
+    hashedPassword:    "$2b$10$1LzIiD0MEIJ/Y/tEs3XLCe3YGkZkZ9IoouTL7R8/RWbcuOIqSUi16",
+    isActive:          true,
+    adminRole:         "admin",
+    isSuperAdmin:      true,
+    canManageVehicles:   true,
+    canManageBookings:   true,
+    canManageUsers:      true,
+    canViewReports:      true,
+    canManageSettings:   true,
+    canManageRates:      true,
+    canManageExtras:     true,
+    canManagePromotions: true,
+    canManageLocations:  true,
+    canViewReviews:      true,
+    canManageDamages:    true,
+    canManageTasks:      true,
+    canViewCalendar:     true,
+    canManageCases:      true,
+  });
+  console.log("  admin: inserted admin@tbilisicars.com (password: 123456)");
+}
+
+// ─── 10. Base Rates ───────────────────────────────────────────────────────────
+// Creates one active "Standard Rate" with per-model price tiers so the
+// public /booking-config endpoint returns vehicleModels with min_price_per_day.
+// Also enables available_for_external_systems on all active vehicle models.
+
+async function seedRates() {
+  // Ensure vehicle models are visible on the public website
+  await db
+    .update(vehicleModelTable)
+    .set({ availableForExternalSystems: true })
+    .where(sql`${vehicleModelTable.active} = true`);
+
+  const existingRates = await db.select({ id: rateTable.id }).from(rateTable).limit(1);
+  if (existingRates.length > 0) {
+    console.log("  rates: skipped (already exist)");
+    return;
+  }
+
+  const [{ rateId }] = await db
+    .insert(rateTable)
+    .values({
+      name:        "Standard Rate",
+      description: "Default development seed rate",
+      validFrom:   new Date("2024-01-01"),
+      validUntil:  new Date("2030-12-31"),
+      minDays:     1,
+      maxDays:     365,
+      unlimitedKm: true,
+      isActive:    true,
+    })
+    .returning({ rateId: rateTable.id });
+
+  const models = await db
+    .select({ id: vehicleModelTable.id, name: vehicleModelTable.name })
+    .from(vehicleModelTable);
+
+  const priceMap: Record<string, number> = {
+    Corolla:  90,
+    RAV4:    130,
+    Tucson:  120,
+    i20:      80,
+    X5:      250,
+    "E-Class": 220,
+  };
+
+  for (const model of models) {
+    const price = priceMap[model.name] ?? 100;
+    await db.insert(ratetierTable).values({
+      rateId,
+      vehicleModelId: model.id,
+      fromDays:       1,
+      toDays:         365,
+      pricePerDay:    String(price),
+      currency:       "GEL",
+    });
+  }
+  console.log(`  rates: 1 rate + ${models.length} tiers inserted`);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -361,6 +467,8 @@ async function main() {
   await seedVehicles();
   await seedBookings();
   await seedServiceRecords();
+  await seedAdmin();
+  await seedRates();
 
   console.log("Done.");
   process.exit(0);
