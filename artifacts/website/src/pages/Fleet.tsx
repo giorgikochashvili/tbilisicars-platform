@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Car, Users, Fuel, Settings, ChevronRight, Phone } from "lucide-react";
+import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search } from "lucide-react";
+import { Link } from "wouter";
 
 interface VehicleModel {
   id: number;
@@ -89,15 +90,39 @@ export default function Fleet() {
         {error && (
           <div className="text-center py-16 text-muted-foreground">
             <Car className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>Unable to load vehicles. Please try again later.</p>
+            <p className="mb-4">Unable to load vehicles. Please try again later.</p>
+            <a href="tel:+995557376363" className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm">
+              <Phone className="w-4 h-4" /> Call Us to Book
+            </a>
           </div>
         )}
 
-        {/* Empty */}
+        {/* Empty state — professional with actions */}
         {!isLoading && !error && models.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
-            <Car className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p>No vehicles are currently available for online booking.</p>
+          <div className="max-w-lg mx-auto text-center py-16">
+            <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-5">
+              <Car className="w-8 h-8 text-primary/60" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">No vehicles listed yet</h3>
+            <p className="text-muted-foreground mb-8 leading-relaxed">
+              Our fleet is being updated. In the meantime, you can start a search from the homepage or contact us directly — we have over 250 vehicles available.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+              >
+                <Search className="w-4 h-4" />
+                Edit Search
+              </Link>
+              <a
+                href="tel:+995557376363"
+                className="inline-flex items-center gap-2 border border-border text-foreground hover:bg-secondary/50 font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+              >
+                <Phone className="w-4 h-4" />
+                Contact Support
+              </a>
+            </div>
           </div>
         )}
 
@@ -129,19 +154,16 @@ export default function Fleet() {
                         <Car className="w-16 h-16 text-muted-foreground/30" />
                       </div>
                     )}
-                    {/* Category badge */}
                     {m.category && (
                       <span className="absolute top-3 left-3 bg-primary/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                         {m.category}
                       </span>
                     )}
-                    {/* On Request badge */}
                     {isOnRequest && (
                       <span className="absolute top-3 right-3 bg-amber-500/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                         On Request
                       </span>
                     )}
-                    {/* Price badge (only when vehicle is available) */}
                     {!isOnRequest && price !== null && (
                       <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm border border-border text-white text-sm font-bold px-3 py-1 rounded-full">
                         From {price.toLocaleString()} {currency}/day
@@ -155,24 +177,20 @@ export default function Fleet() {
                       {m.brand} {m.model}
                     </h3>
 
-                    {/* Specs */}
                     <div className="flex flex-wrap gap-3 mb-3">
                       {m.seats && (
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Users className="w-3.5 h-3.5" />
-                          {m.seats} seats
+                          <Users className="w-3.5 h-3.5" />{m.seats} seats
                         </span>
                       )}
                       {transmission && (
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Settings className="w-3.5 h-3.5" />
-                          {transmission}
+                          <Settings className="w-3.5 h-3.5" />{transmission}
                         </span>
                       )}
                       {fuel && (
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Fuel className="w-3.5 h-3.5" />
-                          {fuel}
+                          <Fuel className="w-3.5 h-3.5" />{fuel}
                         </span>
                       )}
                     </div>
@@ -183,15 +201,12 @@ export default function Fleet() {
                       </p>
                     )}
 
-                    {/* Price row */}
                     <div className="mb-4 mt-auto">
                       {isOnRequest ? (
-                        <div>
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-1.5">
-                            <Phone className="w-3 h-3" />
-                            Available on request — contact us for pricing
-                          </span>
-                        </div>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-1.5">
+                          <Phone className="w-3 h-3" />
+                          Available on request — contact us for pricing
+                        </span>
                       ) : price !== null ? (
                         <div>
                           <span className="text-xs text-muted-foreground">Starting from</span>
@@ -201,9 +216,7 @@ export default function Fleet() {
                           </div>
                         </div>
                       ) : (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Contact us for pricing</span>
-                        </div>
+                        <span className="text-xs text-muted-foreground">Contact us for pricing</span>
                       )}
                     </div>
 

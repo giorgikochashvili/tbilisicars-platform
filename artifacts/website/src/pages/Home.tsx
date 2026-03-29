@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  MapPin, Calendar, Shield, Star, Clock, ChevronRight,
+  MapPin, Calendar, Shield, ChevronRight,
   Users, CheckCircle, Phone, Infinity, Car, HeartHandshake,
 } from "lucide-react";
 import { Link } from "wouter";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 interface Location {
   id: number;
@@ -214,24 +215,22 @@ export default function Home() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Date &amp; Time
                 </label>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={pickupDatetime}
                   min={minDt}
-                  onChange={(e) => setPickupDatetime(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  onChange={setPickupDatetime}
+                  placeholder="Select pickup date & time"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Return Date &amp; Time
                 </label>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={dropoffDatetime}
                   min={pickupDatetime || minDt}
-                  onChange={(e) => setDropoffDatetime(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  onChange={setDropoffDatetime}
+                  placeholder="Select return date & time"
                 />
               </div>
             </div>

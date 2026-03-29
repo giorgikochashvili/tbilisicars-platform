@@ -234,7 +234,7 @@ router.post("/public/bookings", async (req, res) => {
     nationality?: string;
     paymentMethod?: string;
     insurancePlan?: string;
-    whatsApp?: string;
+    whatsAppOptIn?: boolean;
     age?: string;
     flightNumber?: string;
   };
@@ -324,7 +324,7 @@ router.post("/public/bookings", async (req, res) => {
   const websiteDataLines: string[] = [];
   if (body.nationality?.trim()) websiteDataLines.push(`Nationality: ${body.nationality.trim()}`);
   if (body.age?.trim()) websiteDataLines.push(`Age: ${body.age.trim()}`);
-  if (body.whatsApp?.trim()) websiteDataLines.push(`WhatsApp: ${body.whatsApp.trim()}`);
+  if (body.whatsAppOptIn) websiteDataLines.push(`WhatsApp: Yes (phone number above)`);
   if (body.flightNumber?.trim()) websiteDataLines.push(`Flight Number: ${body.flightNumber.trim()}`);
   if (body.paymentMethod?.trim()) websiteDataLines.push(`Payment Method: ${body.paymentMethod.trim()}`);
   if (body.insurancePlan?.trim()) websiteDataLines.push(`Insurance: ${body.insurancePlan.trim()}`);
