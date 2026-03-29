@@ -281,6 +281,8 @@ router.post("/public/bookings", async (req, res) => {
   }
 
   let discount: string | null = null;
+  let promoDiscountType: string | null = null;
+  let promoDiscountValue: number | null = null;
   if (body.promoCode) {
     const { rows: promoRows } = await pool.query(
       `SELECT id, discount_type, discount_value FROM promo WHERE code = $1 AND active = true LIMIT 1`,
@@ -288,24 +290,29 @@ router.post("/public/bookings", async (req, res) => {
     );
     if (promoRows[0]) {
       discount = String(promoRows[0].discount_value);
+      promoDiscountType = String(promoRows[0].discount_type);
+      promoDiscountValue = Number(promoRows[0].discount_value);
     }
   }
 
+  const rentalDays = Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
   let extrasTotal = 0;
-  const validatedExtras: Array<{ extraId: number; quantity: number; price: number }> = [];
+  const validatedExtras: Array<{ extraId: number; quantity: number; price: number; name: string; pricingType: string }> = [];
   if (body.extras && body.extras.length > 0) {
     const extraIds = body.extras.map((e) => e.extraId);
     const { rows: extraRows } = await pool.query(
-      `SELECT id, price FROM extra WHERE id = ANY($1) AND is_active = true`,
+      `SELECT id, name, price, pricing_type FROM extra WHERE id = ANY($1) AND is_active = true`,
       [extraIds],
     );
-    const extraPriceMap = new Map(extraRows.map((r: any) => [r.id, Number(r.price)]));
-    const days = Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
+    const extraMap = new Map<number, { price: number; name: string; pricingType: string }>(
+      extraRows.map((r: any) => [r.id as number, { price: Number(r.price), name: String(r.name), pricingType: String(r.pricing_type) }]),
+    );
     for (const item of body.extras) {
-      const price = extraPriceMap.get(item.extraId);
-      if (price != null) {
-        extrasTotal += price * item.quantity * days;
-        validatedExtras.push({ extraId: item.extraId, quantity: item.quantity, price });
+      const ex = extraMap.get(item.extraId);
+      if (ex != null) {
+        const multiplier = ex.pricingType === "per_booking" ? 1 : rentalDays;
+        extrasTotal += ex.price * item.quantity * multiplier;
+        validatedExtras.push({ extraId: item.extraId, quantity: item.quantity, price: ex.price, name: ex.name, pricingType: ex.pricingType });
       }
     }
   }
@@ -380,9 +387,27 @@ router.post("/public/bookings", async (req, res) => {
     `SELECT id, name, city FROM location WHERE id = ANY($1)`,
     [[body.pickupLocationId, body.dropoffLocationId]],
   );
-  const locMap = new Map(locationRows.map((l: any) => [l.id, `${l.name}, ${l.city}`]));
-  const pickupLocation = locMap.get(Number(body.pickupLocationId)) ?? String(body.pickupLocationId);
-  const dropoffLocation = locMap.get(Number(body.dropoffLocationId)) ?? String(body.dropoffLocationId);
+  const locMap = new Map<number, { label: string; city: string }>(
+    locationRows.map((l: any) => [l.id as number, { label: `${l.name}, ${l.city}`, city: String(l.city) }]),
+  );
+  const pickupLocData = locMap.get(Number(body.pickupLocationId));
+  const pickupLocation = pickupLocData?.label ?? String(body.pickupLocationId);
+  const pickupCity = pickupLocData?.city;
+  const dropoffLocation = locMap.get(Number(body.dropoffLocationId))?.label ?? String(body.dropoffLocationId);
+
+  // Base rate × days for email display (pre-discount, pre-extras)
+  const baseTotal: number | null = body.resolvedBaseRate != null && rentalDays > 0
+    ? body.resolvedBaseRate * rentalDays
+    : null;
+
+  // Compute discount amount for email display
+  const emailDiscountAmount: number | null = (() => {
+    if (!promoDiscountType || promoDiscountValue == null || baseTotal == null) return null;
+    if (promoDiscountType === "percentage") {
+      return Math.round(baseTotal * (promoDiscountValue / 100) * 100) / 100;
+    }
+    return Math.min(promoDiscountValue, baseTotal);
+  })();
 
   sendBookingConfirmationEmail({
     toEmail: body.email!.trim(),
@@ -393,10 +418,22 @@ router.post("/public/bookings", async (req, res) => {
     dropoffLocation,
     pickupDatetime: body.pickupDatetime!,
     dropoffDatetime: body.dropoffDatetime!,
+    pickupCity,
+    extras: validatedExtras.map((e) => ({
+      name: e.name,
+      quantity: e.quantity,
+      pricePerUnit: e.price,
+      pricingType: e.pricingType,
+    })),
     insurancePlan: body.insurancePlan?.trim() || undefined,
     paymentMethod: body.paymentMethod?.trim() || undefined,
     flightNumber: body.flightNumber?.trim() || undefined,
+    nationality: body.nationality?.trim() || undefined,
+    age: body.age?.trim() || undefined,
     estimatedTotal: body.resolvedTotal ?? null,
+    baseTotal,
+    promoCode: body.promoCode?.trim() || undefined,
+    discountAmount: emailDiscountAmount,
     currency: body.currency ?? "GEL",
   }).catch((err) => console.error("[email] Unexpected error:", err));
 
