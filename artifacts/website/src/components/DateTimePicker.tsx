@@ -1,22 +1,16 @@
 /**
- * Premium DateTimePicker — dark luxury theme.
+ * DateTimePicker — portal-based dark luxury component.
  *
- * Architecture:
- *  - Custom trigger button
- *  - Popup rendered via ReactDOM.createPortal into document.body
- *    (fixed viewport position — never clipped by overflow:hidden ancestors)
- *  - react-datepicker in `inline` mode (calendar days only, no scrollable time list)
- *  - Two <select> dropdowns for Hour (00–23) and Minutes (00 / 15 / 30 / 45)
- *  - min date/time constraint respected: disables past hours/minutes on the same day
+ * Popup is portalled into document.body with fixed positioning so it never
+ * clips inside overflow:hidden ancestors. react-datepicker runs in inline
+ * mode for the calendar; time is chosen via two compact <select> dropdowns.
  *
- * External API unchanged: value, onChange, min, placeholder, disabled, className
+ * External API: value, onChange, min, placeholder, disabled, className  (unchanged)
  */
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import ReactDOM from "react-dom";
 import DatePicker from "react-datepicker";
 import { Calendar, Clock } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DateTimePickerProps {
   value: string;
@@ -26,8 +20,6 @@ interface DateTimePickerProps {
   disabled?: boolean;
   className?: string;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function strToDate(str: string): Date | null {
   if (!str) return null;
@@ -53,7 +45,23 @@ function formatDisplay(d: Date, h: number, m: number): string {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
 }
 
-// ─── CSS injected once ────────────────────────────────────────────────────────
+/**
+ * Clamp (hour, minute) so the resulting datetime is not before minDate
+ * when `day` is the same calendar day as minDate.
+ * Returns { h, m } already snapped to 15-min grid.
+ */
+function clampTime(day: Date, h: number, m: number, minDate: Date | null): { h: number; m: number } {
+  if (!minDate || !isSameDay(day, minDate)) return { h, m };
+  const minH = minDate.getHours();
+  const minM = Math.ceil(minDate.getMinutes() / 15) * 15;
+  if (h > minH) return { h, m };
+  if (h < minH || (h === minH && m < minM)) {
+    const snappedM = minM >= 60 ? 0 : minM;
+    const snappedH = minM >= 60 ? minH + 1 : minH;
+    return { h: Math.min(snappedH, 23), m: snappedM };
+  }
+  return { h, m };
+}
 
 const CALENDAR_STYLES = `
 .tc-dp-popup {
@@ -64,8 +72,6 @@ const CALENDAR_STYLES = `
   overflow: hidden;
   user-select: none;
 }
-
-/* ── calendar wrapper ── */
 .tc-dp-popup .react-datepicker {
   background: transparent;
   border: none;
@@ -76,8 +82,6 @@ const CALENDAR_STYLES = `
   width: 100%;
   float: none;
 }
-
-/* ── header ── */
 .tc-dp-popup .react-datepicker__header {
   background: hsl(211,55%,10%);
   border-bottom: 1px solid hsl(214,35%,20%);
@@ -107,8 +111,6 @@ const CALENDAR_STYLES = `
   line-height: 2;
   text-align: center;
 }
-
-/* ── navigation arrows ── */
 .tc-dp-popup .react-datepicker__navigation {
   top: 14px;
   background: hsl(214,35%,18%);
@@ -133,8 +135,6 @@ const CALENDAR_STYLES = `
   width: 7px;
   height: 7px;
 }
-
-/* ── month grid ── */
 .tc-dp-popup .react-datepicker__month {
   margin: 6px 8px 8px;
 }
@@ -142,8 +142,6 @@ const CALENDAR_STYLES = `
   display: flex;
   justify-content: space-around;
 }
-
-/* ── day cells ── */
 .tc-dp-popup .react-datepicker__day {
   color: hsl(214,10%,82%);
   width: 2.4rem;
@@ -183,12 +181,6 @@ const CALENDAR_STYLES = `
   cursor: not-allowed;
   background: transparent !important;
 }
-.tc-dp-popup .react-datepicker__day--in-range,
-.tc-dp-popup .react-datepicker__day--in-selecting-range {
-  background: hsl(350,68%,38%,0.18);
-}
-
-/* ── time row ── */
 .tc-dp-time-row {
   display: flex;
   align-items: center;
@@ -207,6 +199,7 @@ const CALENDAR_STYLES = `
   letter-spacing: 0.06em;
   color: hsl(214,20%,52%);
   margin-right: 2px;
+  white-space: nowrap;
 }
 .tc-dp-time-sep {
   font-size: 1rem;
@@ -222,7 +215,7 @@ const CALENDAR_STYLES = `
   color: #fff;
   font-size: 0.9rem;
   font-weight: 600;
-  padding: 6px 8px;
+  padding: 6px 4px;
   cursor: pointer;
   outline: none;
   text-align: center;
@@ -230,14 +223,19 @@ const CALENDAR_STYLES = `
   -webkit-appearance: none;
   transition: border-color 0.15s, background 0.15s;
   font-family: inherit;
+  min-width: 0;
 }
-.tc-dp-time-select:hover {
+.tc-dp-time-select:hover:not(:disabled) {
   border-color: hsl(350,68%,38%);
   background: hsl(214,35%,18%);
 }
 .tc-dp-time-select:focus {
   border-color: hsl(350,68%,38%);
   box-shadow: 0 0 0 2px hsl(350,68%,38%,0.25);
+}
+.tc-dp-time-select:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 .tc-dp-time-select option {
   background: hsl(211,55%,10%);
@@ -258,8 +256,6 @@ function injectStyles() {
   stylesInjected = true;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function DateTimePicker({
   value, onChange, min, placeholder, disabled, className,
 }: DateTimePickerProps) {
@@ -271,14 +267,11 @@ export function DateTimePicker({
   const selected = strToDate(value);
   const minDate = min ? strToDate(min) : null;
 
-  // Derive hour/minute — always snapped to 15-min intervals
   const hour = selected ? selected.getHours() : 9;
   const minute = selected ? Math.floor(selected.getMinutes() / 15) * 15 : 0;
 
-  // Inject global calendar styles once
   useEffect(() => { injectStyles(); }, []);
 
-  // Calculate popup position relative to trigger
   const openPopup = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
@@ -287,12 +280,11 @@ export function DateTimePicker({
     const top = spaceBelow >= approxH
       ? rect.bottom + 6
       : Math.max(8, rect.top - approxH - 6);
-    const left = Math.min(rect.left, window.innerWidth - 316);
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 316));
     setPopupStyle({ position: "fixed", top, left, zIndex: 9999, width: 308 });
     setOpen(true);
   }, []);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -310,28 +302,24 @@ export function DateTimePicker({
     };
   }, [open]);
 
-  // ── Date changes ──────────────────────────────────────────────────────────
-
   function handleDateChange(d: Date | null) {
     if (!d) return;
-    const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, 0, 0);
+    const { h, m } = clampTime(d, hour, minute, minDate);
+    const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0);
     onChange(dateToStr(nd));
-    // Keep popup open so user can adjust time
   }
 
   function handleHourChange(h: number) {
-    const base = selected ?? new Date();
-    const nd = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, minute, 0, 0);
+    if (!selected) return;
+    const nd = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, minute, 0, 0);
     onChange(dateToStr(nd));
   }
 
   function handleMinuteChange(m: number) {
-    const base = selected ?? new Date();
-    const nd = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour, m, 0, 0);
+    if (!selected) return;
+    const nd = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), hour, m, 0, 0);
     onChange(dateToStr(nd));
   }
-
-  // ── Disabled time logic ───────────────────────────────────────────────────
 
   function isHourDisabled(h: number): boolean {
     if (!minDate || !selected) return false;
@@ -344,14 +332,10 @@ export function DateTimePicker({
     if (!isSameDay(selected, minDate)) return false;
     if (hour > minDate.getHours()) return false;
     if (hour < minDate.getHours()) return true;
-    return m < minDate.getMinutes();
+    return m < Math.ceil(minDate.getMinutes() / 15) * 15;
   }
 
-  // ── Display ───────────────────────────────────────────────────────────────
-
   const displayText = selected ? formatDisplay(selected, hour, minute) : "";
-
-  // ── Popup content (portalled) ─────────────────────────────────────────────
 
   const popup =
     open && !disabled && typeof document !== "undefined"
@@ -362,9 +346,7 @@ export function DateTimePicker({
               onChange={handleDateChange}
               inline
               minDate={minDate ?? undefined}
-              showPopperArrow={false}
             />
-            {/* Time row */}
             <div className="tc-dp-time-row">
               <div className="tc-dp-time-label">
                 <Clock className="w-3 h-3" />
@@ -373,6 +355,7 @@ export function DateTimePicker({
               <select
                 className="tc-dp-time-select"
                 value={hour}
+                disabled={!selected}
                 onChange={(e) => handleHourChange(Number(e.target.value))}
                 aria-label="Hour"
               >
@@ -386,6 +369,7 @@ export function DateTimePicker({
               <select
                 className="tc-dp-time-select"
                 value={minute}
+                disabled={!selected}
                 onChange={(e) => handleMinuteChange(Number(e.target.value))}
                 aria-label="Minutes"
               >
@@ -410,8 +394,6 @@ export function DateTimePicker({
           document.body,
         )
       : null;
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className={`tc-datepicker${className ? ` ${className}` : ""}`}>
