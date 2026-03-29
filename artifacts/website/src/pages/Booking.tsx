@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, CreditCard, Banknote, Info, Shield,
-  Lock, Copy, Package, Baby, Wifi,
+  Lock, Copy, Package, Baby, Wifi, Clock,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -1224,10 +1224,11 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
     );
   }
 
+  const pickupCity = pickupLoc?.city ?? "";
+  const pickupInstructions = CITY_PICKUP_INSTRUCTIONS[pickupCity] ?? "Our team will contact you shortly to confirm pickup details.";
+
   // ── Success state ──
   if (result) {
-    const pickupCity = pickupLoc?.city ?? "";
-    const pickupInstructions = CITY_PICKUP_INSTRUCTIONS[pickupCity] ?? "Our team will contact you shortly to confirm pickup details.";
 
     return (
       <div className="py-2">
@@ -1405,130 +1406,224 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
   // ── Review state ──
   return (
     <div>
-      <h2 className="text-xl font-bold text-white mb-1">Booking Confirmation</h2>
-      <p className="text-muted-foreground text-sm mb-5">Review everything before confirming your request</p>
+      <h2 className="text-xl font-bold text-white mb-1">Review Your Booking</h2>
+      <p className="text-muted-foreground text-sm mb-5">Check every detail before confirming your request</p>
 
-      <div className="mb-5">
-        {/* Two-column on desktop: left = Trip + Vehicle, right = Pricing + Insurance */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          {/* Left column */}
-          <div className="space-y-4">
-            {/* Trip */}
+      {/* Trust strip */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {[
+          { icon: <Check className="w-3 h-3" />, label: "No hidden fees" },
+          { icon: <Check className="w-3 h-3" />, label: "Free cancellation*" },
+          { icon: <Check className="w-3 h-3" />, label: "24/7 support" },
+        ].map(({ icon, label }) => (
+          <span key={label} className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1.5">
+            {icon} {label}
+          </span>
+        ))}
+      </div>
+
+      {/* Two-column sticky layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] lg:gap-6 lg:items-start mb-4">
+
+        {/* ── LEFT: scrollable content ── */}
+        <div className="space-y-4 mb-4 lg:mb-0">
+
+          {/* Trip Details */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" />Trip Details</span>
+              <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+            </div>
+            <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
+            <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
+            <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
+            <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
+            <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+          </div>
+
+          {/* Vehicle */}
+          {model && (
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" />Trip Details</span>
+                <span className="flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-primary" />Vehicle</span>
                 <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
               </div>
-              <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
-              <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
-              <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
-              <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
-              <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+              {model.image_url && (
+                <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
+                  <img src={model.image_url} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
+              {model.category && <SummaryRow label="Category" value={model.category} />}
+              {model.transmission && <SummaryRow label="Transmission" value={transLabel(model.transmission) ?? ""} />}
             </div>
+          )}
 
-            {/* Vehicle */}
-            {model && (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-primary" />Vehicle</span>
-                  <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+          {/* Customer details */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary" />Your Details</span>
+              <button type="button" onClick={() => goToStep(4)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+            </div>
+            <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
+            <SummaryRow label="Email" value={form.email} />
+            <SummaryRow label="Phone" value={form.phone} />
+            {form.whatsAppOptIn && <SummaryRow label="WhatsApp" value="Yes (at phone number above)" />}
+            {form.age && <SummaryRow label="Age" value={form.age} />}
+            {form.nationality && <SummaryRow label="Nationality" value={form.nationality} />}
+            {form.flightNumber && <SummaryRow label="Flight Number" value={form.flightNumber} />}
+            {form.paymentMethod && <SummaryRow label="Payment" value={form.paymentMethod} />}
+            {form.notes && <SummaryRow label="Notes" value={form.notes} />}
+          </div>
+
+          {/* Important Information */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-primary" />Important Information
+            </div>
+            <div className="space-y-3">
+              {/* Pickup instructions */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white mb-0.5">Pickup Instructions</div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{pickupInstructions}</p>
                 </div>
-                {model.image_url && (
-                  <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
-                    <img src={model.image_url} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
+              </div>
+              {/* Deposit */}
+              {insurance && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                  <Shield className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-semibold text-white mb-0.5">Security Deposit</div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      A deposit of <span className="text-white font-medium">{insurance.deposit}€</span> will be authorised on your card at vehicle pickup and released upon return in good condition.
+                    </p>
                   </div>
-                )}
-                <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
-                {model.category && <SummaryRow label="Category" value={model.category} />}
-                {model.transmission && <SummaryRow label="Transmission" value={transLabel(model.transmission) ?? ""} />}
+                </div>
+              )}
+              {/* What happens next */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                <Phone className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white mb-0.5">What Happens Next</div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    We'll send a confirmation to <span className="text-white">{form.email}</span>. Our team will call you before your pickup date to confirm all details.
+                  </p>
+                </div>
               </div>
-            )}
+              {/* Cancellation */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-white mb-0.5">Cancellation Policy</div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Free cancellation when notified at least 24 hours before your scheduled pickup. Contact us via phone or email.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Right column */}
-          <div className="space-y-4">
-            {/* Pricing */}
-            {quotePending ? (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
-                <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-5 bg-muted/50 rounded animate-pulse" />)}</div>
-              </div>
-            ) : quote?.quotable ? (
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3 flex items-center gap-1.5">
-                  Pricing Estimate
-                </div>
-                <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
-                {selectedExtras.map(({ extra, qty }) => {
-                  const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
-                  return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
-                })}
-                {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
-                  <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
-                )}
-                <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
-                  <span className="text-sm font-semibold text-white">Estimated Total</span>
-                  <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
-                {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => {
-                  const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
-                  return <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * multiplier).toLocaleString()} GEL`} />;
-                })}
-                <p className="text-xs text-muted-foreground mt-2">Base rate will be confirmed by our team.</p>
-              </div>
-            )}
-
-            {/* Insurance */}
-            {insurance && (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-primary" />Insurance</span>
-                  <button type="button" onClick={() => goToStep(3)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
-                </div>
-                <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
-                <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
-                <SummaryRow label="Excess" value={`${insurance.excess}€`} />
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed px-1">
+            * Free cancellation subject to 24-hour notice before pickup. Final pricing confirmed before any charge is made.
+          </p>
         </div>
 
-        {/* Customer details — full width */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-            <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary" />Your Details</span>
-            <button type="button" onClick={() => goToStep(4)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+        {/* ── RIGHT: sticky summary + CTA ── */}
+        <div className="lg:sticky lg:top-6 space-y-4">
+
+          {/* Pricing breakdown */}
+          {quotePending ? (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Price Breakdown</div>
+              <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-5 bg-muted/50 rounded animate-pulse" />)}</div>
+            </div>
+          ) : quote?.quotable ? (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3 flex items-center gap-1.5">
+                Price Breakdown
+              </div>
+              <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+              {selectedExtras.map(({ extra, qty }) => {
+                const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+                return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
+              })}
+              {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+                <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
+              )}
+              <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
+                <span className="text-sm font-semibold text-white">Estimated Total</span>
+                <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Pricing</div>
+              {selectedExtras.length > 0 && selectedExtras.map(({ extra, qty }) => {
+                const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
+                return <SummaryRow key={extra!.id} label={extra!.name} value={`${(Number(extra!.price) * qty * multiplier).toLocaleString()} ${cur}`} />;
+              })}
+              <p className="text-xs text-muted-foreground mt-2">Base rate confirmed by our team.</p>
+            </div>
+          )}
+
+          {/* Insurance summary */}
+          {insurance && (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-primary" />Insurance</span>
+                <button type="button" onClick={() => goToStep(3)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+              </div>
+              <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
+              <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
+              <SummaryRow label="Excess" value={`${insurance.excess}€`} />
+            </div>
+          )}
+
+          {/* Urgency text */}
+          <p className="text-xs text-amber-400/80 italic text-center px-1">
+            Availability may change — secure your booking now
+          </p>
+
+          {/* CTA panel */}
+          <div className="bg-gradient-to-b from-primary/15 to-primary/5 border border-primary/30 rounded-xl p-5">
+            {quote?.quotable && (
+              <div className="text-center mb-4 pb-4 border-b border-primary/20">
+                <div className="text-xs text-muted-foreground mb-1">Estimated Total</div>
+                <div className="text-3xl font-black text-white leading-none">
+                  {quote.estimatedTotal?.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-base font-semibold text-primary ml-2">{cur}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1.5">No payment required now — pay on arrival</div>
+              </div>
+            )}
+            <Btn onClick={submit} loading={submitting} className="w-full justify-center py-3 text-base">
+              Confirm Booking Request →
+            </Btn>
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={submitting}
+              className="w-full text-xs text-muted-foreground hover:text-white text-center mt-3 transition-colors disabled:opacity-40"
+            >
+              <ChevronLeft className="w-3 h-3 inline mr-0.5" /> Back to Payment
+            </button>
           </div>
-          <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
-          <SummaryRow label="Email" value={form.email} />
-          <SummaryRow label="Phone" value={form.phone} />
-          {form.whatsAppOptIn && <SummaryRow label="WhatsApp" value="Yes (at phone number above)" />}
-          {form.age && <SummaryRow label="Age" value={form.age} />}
-          {form.nationality && <SummaryRow label="Nationality" value={form.nationality} />}
-          {form.flightNumber && <SummaryRow label="Flight Number" value={form.flightNumber} />}
-          {form.paymentMethod && <SummaryRow label="Payment" value={form.paymentMethod} />}
-          {form.notes && <SummaryRow label="Notes" value={form.notes} />}
+
+          {/* Need help */}
+          <div className="bg-secondary/20 border border-border rounded-xl p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Need Help?</div>
+            <div className="space-y-2">
+              <a href="tel:+995557376363" className="flex items-center gap-2 text-sm text-white hover:text-primary transition-colors">
+                <Phone className="w-4 h-4 text-primary shrink-0" /> +995 557 37 63 63
+              </a>
+              <a href="mailto:reservations@tbilisicars.com" className="flex items-center gap-2 text-sm text-white hover:text-primary transition-colors">
+                <MessageCircle className="w-4 h-4 text-primary shrink-0" /> reservations@tbilisicars.com
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="p-4 rounded-xl bg-muted/40 border border-border mb-6 text-sm text-muted-foreground">
-        <span className="font-semibold text-white">Note: </span>
-        {quote?.quotable
-          ? "Prices shown are estimates. Final pricing is confirmed before any charge is made."
-          : "This is a booking request. Our team will contact you to confirm availability and pricing."}
-      </div>
-
-      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <Btn variant="outline" onClick={onBack} disabled={submitting} className="justify-center">
-          <ChevronLeft className="w-4 h-4" /> Back
-        </Btn>
-        <Btn onClick={submit} loading={submitting} className="justify-center sm:px-8 sm:py-3 sm:text-base">
-          Confirm Booking Request →
-        </Btn>
       </div>
     </div>
   );
@@ -1625,7 +1720,7 @@ export default function Booking() {
 
   return (
     <div className="min-h-screen py-10 px-4">
-      <div className={cn("mx-auto", showSidebar ? "max-w-5xl" : "max-w-2xl")}>
+      <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Book Your Car</h1>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">Complete the steps below to submit your reservation request.</p>
