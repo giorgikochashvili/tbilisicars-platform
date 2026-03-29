@@ -46,21 +46,18 @@ function formatDisplay(d: Date, h: number, m: number): string {
 }
 
 /**
- * Clamp (hour, minute) so the resulting datetime is not before minDate
- * when `day` is the same calendar day as minDate.
- * Returns { h, m } already snapped to 15-min grid.
+ * Build a valid Date from (day, h, m) that is always >= minDate.
+ * Uses timestamp arithmetic to avoid hour/minute overflow bugs.
+ * If the candidate datetime is before minDate, it snaps to the next
+ * 15-minute slot that is >= minDate.
  */
-function clampTime(day: Date, h: number, m: number, minDate: Date | null): { h: number; m: number } {
-  if (!minDate || !isSameDay(day, minDate)) return { h, m };
-  const minH = minDate.getHours();
-  const minM = Math.ceil(minDate.getMinutes() / 15) * 15;
-  if (h > minH) return { h, m };
-  if (h < minH || (h === minH && m < minM)) {
-    const snappedM = minM >= 60 ? 0 : minM;
-    const snappedH = minM >= 60 ? minH + 1 : minH;
-    return { h: Math.min(snappedH, 23), m: snappedM };
-  }
-  return { h, m };
+function buildDateTime(day: Date, h: number, m: number, minDate: Date | null): Date {
+  const candidate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, m, 0, 0);
+  if (!minDate || candidate >= minDate) return candidate;
+  // Snap to next 15-min slot >= minDate
+  const slotMs = 15 * 60 * 1000;
+  const snappedMs = Math.ceil(minDate.getTime() / slotMs) * slotMs;
+  return new Date(snappedMs);
 }
 
 const CALENDAR_STYLES = `
@@ -304,27 +301,27 @@ export function DateTimePicker({
 
   function handleDateChange(d: Date | null) {
     if (!d) return;
-    const { h, m } = clampTime(d, hour, minute, minDate);
-    const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0);
-    onChange(dateToStr(nd));
+    onChange(dateToStr(buildDateTime(d, hour, minute, minDate)));
   }
 
   function handleHourChange(h: number) {
     if (!selected) return;
-    const nd = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), h, minute, 0, 0);
-    onChange(dateToStr(nd));
+    onChange(dateToStr(buildDateTime(selected, h, minute, minDate)));
   }
 
   function handleMinuteChange(m: number) {
     if (!selected) return;
-    const nd = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), hour, m, 0, 0);
-    onChange(dateToStr(nd));
+    onChange(dateToStr(buildDateTime(selected, hour, m, minDate)));
   }
 
+  // An hour option is disabled when ALL its 15-min slots are before minDate.
   function isHourDisabled(h: number): boolean {
     if (!minDate || !selected) return false;
     if (!isSameDay(selected, minDate)) return false;
-    return h < minDate.getHours();
+    if (h < minDate.getHours()) return true;
+    if (h > minDate.getHours()) return false;
+    // h === minDate.getHours(): disabled if no 15-min slot in this hour is >= min
+    return ![0, 15, 30, 45].some((m) => m >= minDate.getMinutes());
   }
 
   function isMinuteDisabled(m: number): boolean {
@@ -332,7 +329,7 @@ export function DateTimePicker({
     if (!isSameDay(selected, minDate)) return false;
     if (hour > minDate.getHours()) return false;
     if (hour < minDate.getHours()) return true;
-    return m < Math.ceil(minDate.getMinutes() / 15) * 15;
+    return m < minDate.getMinutes();
   }
 
   const displayText = selected ? formatDisplay(selected, hour, minute) : "";
