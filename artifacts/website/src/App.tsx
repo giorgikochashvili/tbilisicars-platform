@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Fleet from "./pages/Fleet";
 import About from "./pages/About";
 import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import Locations from "./pages/Locations";
 import Services from "./pages/Services";
 import Booking from "./pages/Booking";
@@ -22,8 +23,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Derive the base path from the Vite `base` config (set to BASE_PATH env var).
-// import.meta.env.BASE_URL is "/website/" so we strip the trailing slash.
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "") || "/";
 
 function App() {
@@ -39,6 +38,7 @@ function App() {
                 <Route path="/fleet" component={Fleet} />
                 <Route path="/about" component={About} />
                 <Route path="/terms" component={Terms} />
+                <Route path="/privacy" component={Privacy} />
                 <Route path="/locations" component={Locations} />
                 <Route path="/services" component={Services} />
                 <Route path="/booking" component={Booking} />

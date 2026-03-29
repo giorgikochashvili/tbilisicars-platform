@@ -1,5 +1,50 @@
-import { Car, MapPin, Phone, Shield, Clock, Star } from "lucide-react";
+import { Car, MapPin, Phone, Shield, Users, Infinity, HeartHandshake } from "lucide-react";
 import { Link } from "wouter";
+
+const SERVICES = [
+  {
+    icon: <Car className="w-6 h-6 text-primary" />,
+    title: "Standard Car Rental",
+    desc: "Daily, weekly, and monthly rental options across all vehicle classes. Transparent CRM-driven pricing with no surprise fees at the counter.",
+    features: ["Flexible duration", "Multiple vehicle classes", "Online booking available"],
+  },
+  {
+    icon: <MapPin className="w-6 h-6 text-primary" />,
+    title: "Airport Delivery",
+    desc: "Seamless vehicle pickup and return at Georgia's major international airports. Our team is on-site to meet you the moment you land.",
+    features: ["Tbilisi International Airport", "Kutaisi International Airport", "Batumi International Airport"],
+  },
+  {
+    icon: <Shield className="w-6 h-6 text-primary" />,
+    title: "Full Insurance Options",
+    desc: "Choose from our three coverage tiers — Basic, Full, or Premium — with transparent deposits and excess amounts. No hidden clauses.",
+    features: ["Basic coverage", "Full coverage", "Premium coverage"],
+  },
+  {
+    icon: <Infinity className="w-6 h-6 text-primary" />,
+    title: "Unlimited Mileage",
+    desc: "Drive anywhere within Georgia without distance limitations. Explore Kazbegi, Svaneti, or the Black Sea coast — all included in your rate.",
+    features: ["No distance cap", "No overage charges", "Full Georgia coverage"],
+  },
+  {
+    icon: <Users className="w-6 h-6 text-primary" />,
+    title: "Unlimited Additional Drivers",
+    desc: "Add as many drivers as you need to share the driving experience — at no extra charge on any rental.",
+    features: ["No per-driver fee", "All drivers covered by insurance", "Listed on the rental agreement"],
+  },
+  {
+    icon: <Phone className="w-6 h-6 text-primary" />,
+    title: "24/7 Customer Support",
+    desc: "Our support team is available around the clock via phone, WhatsApp, Telegram, and other messaging platforms. We're always reachable.",
+    features: ["Phone & messaging", "Airport assistance", "Emergency escalation"],
+  },
+  {
+    icon: <HeartHandshake className="w-6 h-6 text-primary" />,
+    title: "Roadside Assistance",
+    desc: "In case of breakdown, flat tyre, or any mechanical issue during your rental, our team provides immediate assistance anywhere in Georgia.",
+    features: ["24/7 coverage", "Vehicle swap if needed", "Pan-Georgia reach"],
+  },
+];
 
 export default function Services() {
   return (
@@ -12,50 +57,13 @@ export default function Services() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Our Services</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            From short city trips to extended cross-country journeys, we offer a full range of car rental services tailored to your needs.
+            From short city trips to extended cross-country journeys, we offer a full range of car rental services built around your needs.
           </p>
         </div>
 
-        {/* Main services */}
+        {/* Services grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
-          {[
-            {
-              icon: <Car className="w-6 h-6 text-primary" />,
-              title: "Standard Car Rental",
-              desc: "Daily, weekly, and monthly rental options for all vehicle classes. Transparent pricing from the CRM rates module — no surprises.",
-              features: ["Flexible duration", "Multiple vehicle classes", "Online booking"],
-            },
-            {
-              icon: <MapPin className="w-6 h-6 text-primary" />,
-              title: "Airport Transfer",
-              desc: "Seamless car pickup and return at Georgia's major airports. Your car will be waiting when you land.",
-              features: ["Tbilisi Airport", "Batumi Airport", "Kutaisi Airport"],
-            },
-            {
-              icon: <Shield className="w-6 h-6 text-primary" />,
-              title: "Full Insurance Coverage",
-              desc: "Choose from our three insurance tiers — Basic, Full, or Premium — to match your level of coverage preference.",
-              features: ["Basic: 300€ deposit / 300€ excess", "Full: 300€ deposit / 100€ excess", "Premium: 100€ deposit / 100€ excess"],
-            },
-            {
-              icon: <Phone className="w-6 h-6 text-primary" />,
-              title: "24/7 Roadside Assistance",
-              desc: "Our support team is always available. Whether it's a flat tyre on a mountain road or a minor incident, we'll help you.",
-              features: ["Emergency support", "Vehicle swap if needed", "Local expertise"],
-            },
-            {
-              icon: <Clock className="w-6 h-6 text-primary" />,
-              title: "Long-Term Rental",
-              desc: "Discounted monthly rates for extended stays. Ideal for expats, business travelers, or long-term visitors to Georgia.",
-              features: ["Monthly pricing tiers", "Flexible extension", "Priority fleet access"],
-            },
-            {
-              icon: <Star className="w-6 h-6 text-primary" />,
-              title: "Premium Add-Ons",
-              desc: "Enhance your rental with additional services like GPS navigation, child seats, additional drivers, and more.",
-              features: ["GPS / navigation", "Child & infant seats", "Additional drivers"],
-            },
-          ].map((service) => (
+          {SERVICES.map((service) => (
             <div key={service.title} className="bg-card border border-border rounded-2xl p-6 hover:border-primary/40 transition-colors">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 {service.icon}

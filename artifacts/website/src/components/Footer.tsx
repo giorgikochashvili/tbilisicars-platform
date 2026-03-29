@@ -1,6 +1,12 @@
 import { Link } from "wouter";
 import { Car, Phone, Mail, MapPin } from "lucide-react";
 
+const OFFICES = [
+  { city: "Tbilisi Office", phone: "+995 557 37 63 63" },
+  { city: "Kutaisi Office", phone: "+995 595 28 66 00" },
+  { city: "Batumi Office", phone: "+995 557 37 63 63" },
+];
+
 export default function Footer() {
   return (
     <footer className="bg-[hsl(211,55%,8%)] border-t border-border mt-auto">
@@ -13,12 +19,12 @@ export default function Footer() {
                 <Car className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="font-bold text-white text-lg leading-none">Tbilisi Cars</div>
+                <div className="font-bold text-white text-lg leading-none">Tbilisicars</div>
                 <div className="text-xs text-muted-foreground mt-0.5">Car Rental Georgia</div>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Premium car rental services across Georgia. Reliable fleet, transparent pricing, exceptional service.
+              Premium car rental across Georgia. Reliable fleet, transparent pricing, and exceptional customer service since 2014.
             </p>
           </div>
 
@@ -48,11 +54,13 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">
-                  Terms & Conditions
+                  Terms &amp; Conditions
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground">Privacy Policy</span>
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
               </li>
             </ul>
           </div>
@@ -61,17 +69,22 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact</h3>
             <ul className="space-y-3">
-              <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm text-muted-foreground">Tbilisi, Georgia</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-sm text-muted-foreground">+995 555 000 000</span>
-              </li>
+              {OFFICES.map((o) => (
+                <li key={o.city} className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-muted-foreground/70 mb-0.5">{o.city}</div>
+                    <a href={`tel:${o.phone.replace(/\s/g, "")}`} className="text-sm text-muted-foreground hover:text-white transition-colors">
+                      {o.phone}
+                    </a>
+                  </div>
+                </li>
+              ))}
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-sm text-muted-foreground">info@tbilisicars.ge</span>
+                <a href="mailto:reservations@tbilisicars.com" className="text-sm text-muted-foreground hover:text-white transition-colors">
+                  reservations@tbilisicars.com
+                </a>
               </li>
             </ul>
           </div>
@@ -79,11 +92,17 @@ export default function Footer() {
 
         <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Tbilisi Cars. All rights reserved.
+            &copy; {new Date().getFullYear()} Tbilisicars. All rights reserved.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Premium Car Rental in Georgia
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="text-xs text-muted-foreground hover:text-white transition-colors">
+              Terms &amp; Conditions
+            </Link>
+            <span className="text-xs text-border">|</span>
+            <Link href="/privacy" className="text-xs text-muted-foreground hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

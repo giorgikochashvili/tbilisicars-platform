@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Calendar, Shield, Star, Clock, ChevronRight } from "lucide-react";
+import {
+  MapPin, Calendar, Shield, Star, Clock, ChevronRight,
+  Users, CheckCircle, Phone, Infinity, Car, HeartHandshake,
+} from "lucide-react";
 import { Link } from "wouter";
 
 interface Location {
@@ -20,16 +23,51 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-function cn(...classes: (string | undefined | false | null)[]) {
-  return classes.filter(Boolean).join(" ");
-}
-
 function getMinDatetime() {
   const now = new Date();
   now.setMinutes(now.getMinutes() + 30);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
+
+const STATS = [
+  { value: "10,000+", label: "Served Customers" },
+  { value: "250+", label: "Vehicles" },
+  { value: "4.6", label: "Overall Rating" },
+];
+
+const WHY_CARDS = [
+  {
+    icon: <Shield className="w-6 h-6 text-primary" />,
+    title: "Full Insurance Options",
+    desc: "Choose from Basic, Full, or Premium coverage. We offer transparent insurance plans with no hidden clauses.",
+  },
+  {
+    icon: <CheckCircle className="w-6 h-6 text-primary" />,
+    title: "Transparent Pricing",
+    desc: "The price you see is the price you pay. No surprise fees at the counter, ever.",
+  },
+  {
+    icon: <Infinity className="w-6 h-6 text-primary" />,
+    title: "Unlimited Mileage",
+    desc: "Drive anywhere within Georgia without distance limitations. Explore freely.",
+  },
+  {
+    icon: <Users className="w-6 h-6 text-primary" />,
+    title: "Unlimited Additional Drivers",
+    desc: "Add as many drivers as you need to your rental — no extra fees apply.",
+  },
+  {
+    icon: <Car className="w-6 h-6 text-primary" />,
+    title: "Airport Parking & Service Charges Included",
+    desc: "All airport service charges and parking fees are already included in your rental price.",
+  },
+  {
+    icon: <HeartHandshake className="w-6 h-6 text-primary" />,
+    title: "24/7 Roadside Assistance Across Georgia",
+    desc: "Our support team is available around the clock. Breakdown, flat tyre, or any emergency — we're here.",
+  },
+];
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -75,27 +113,36 @@ export default function Home() {
     <div className="min-h-screen">
       {/* ── Hero ── */}
       <section
-        className="relative min-h-[90vh] flex flex-col items-center justify-center bg-cover bg-center px-4 py-16"
+        className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 py-16 overflow-hidden"
         style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
       >
-        {/* Background texture overlay */}
-        <div className="absolute inset-0 opacity-5" style={{
+        {/* Subtle background radial accents */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 20% 50%, hsl(350,68%,38%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(214,45%,25%) 0%, transparent 50%)"
+        }} />
+        {/* Abstract city-lines decoration */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 60px, hsl(214,45%,70%) 60px, hsl(214,45%,70%) 61px),
+                            repeating-linear-gradient(90deg, transparent, transparent 80px, hsl(214,45%,70%) 80px, hsl(214,45%,70%) 81px)`
         }} />
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 text-sm text-primary mb-6">
+          {/* Trust badge */}
+          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 text-sm text-primary mb-4">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            Available 7 days a week across Georgia
+            10+ Years Experience
+          </div>
+
+          <div className="text-xs text-muted-foreground mb-6">
+            24/7 Airport Services &amp; Customer Support
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight mb-4 leading-[1.1]">
-            Drive Georgia<br />
-            <span className="text-primary">in Style</span>
+            Premium Car Rental<br />
+            <span className="text-primary">in Georgia</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-            Premium car rental in Tbilisi, Batumi, and Kutaisi. No hidden fees, no surprises — just exceptional cars and service.
+            Reliable vehicles, transparent pricing, airport delivery, and customer-focused service across Tbilisi, Kutaisi, and Batumi.
           </p>
 
           {/* Booking Widget */}
@@ -165,7 +212,7 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Pickup Date & Time
+                  Pickup Date &amp; Time
                 </label>
                 <input
                   type="datetime-local"
@@ -177,7 +224,7 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Return Date & Time
+                  Return Date &amp; Time
                 </label>
                 <input
                   type="datetime-local"
@@ -202,73 +249,30 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Trust badges */}
-          <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-muted-foreground">
-            {[
-              { icon: <Shield className="w-4 h-4 text-primary" />, label: "Fully insured fleet" },
-              { icon: <Star className="w-4 h-4 text-primary" />, label: "No hidden fees" },
-              { icon: <Clock className="w-4 h-4 text-primary" />, label: "24/7 support" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2">
-                {item.icon}
-                <span>{item.label}</span>
+          {/* Stats strip */}
+          <div className="flex flex-wrap justify-center gap-6 mt-8">
+            {STATS.map((s) => (
+              <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
+                <span className="text-2xl font-bold text-white">{s.value}</span>
+                <span className="text-xs text-muted-foreground mt-0.5">{s.label}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Why Choose Us ── */}
+      {/* ── Why Tbilisicars ── */}
       <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Tbilisi Cars?</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Tbilisicars?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               We combine premium vehicles with transparent pricing and outstanding service across Georgia.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <Shield className="w-6 h-6 text-primary" />,
-                title: "Fully Insured",
-                desc: "All our vehicles come with comprehensive insurance options to keep you protected on Georgian roads.",
-              },
-              {
-                icon: <Star className="w-6 h-6 text-primary" />,
-                title: "Premium Fleet",
-                desc: "Choose from a curated selection of well-maintained, modern vehicles for every need and budget.",
-              },
-              {
-                icon: <MapPin className="w-6 h-6 text-primary" />,
-                title: "Multiple Locations",
-                desc: "Pick up and return your car at convenient locations in Tbilisi, Batumi, Kutaisi, and more.",
-              },
-              {
-                icon: <Clock className="w-6 h-6 text-primary" />,
-                title: "Flexible Hours",
-                desc: "Available 7 days a week with early morning and late evening pickup slots to fit your schedule.",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ),
-                title: "Transparent Pricing",
-                desc: "No surprises at the counter. The price you see is the price you pay — always.",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                ),
-                title: "24/7 Roadside Support",
-                desc: "Our team is always reachable. Breakdown, flat tyre, or any emergency — we've got you covered.",
-              },
-            ].map((item) => (
+            {WHY_CARDS.map((item) => (
               <div key={item.title} className="bg-card border border-border rounded-xl p-6 hover:border-primary/40 transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   {item.icon}
@@ -281,25 +285,32 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA Banner ── */}
+      {/* ── CTA Section ── */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-2xl p-8 sm:p-12 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to Explore Georgia?</h2>
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Browse our full fleet of premium vehicles and find the perfect car for your adventure.
+            Browse our full fleet of premium vehicles and find the perfect car for your journey.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              href="/fleet"
+              href="/booking"
               className="bg-primary hover:bg-accent text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-md"
             >
-              View Our Fleet
+              Book Now
             </Link>
             <Link
-              href="/booking"
+              href="/fleet"
               className="border border-border text-foreground hover:bg-secondary/50 font-semibold px-6 py-3 rounded-xl transition-colors"
             >
-              Book Now
+              View Fleet
+            </Link>
+            <Link
+              href="/locations"
+              className="border border-border text-foreground hover:bg-secondary/50 font-semibold px-6 py-3 rounded-xl transition-colors flex items-center gap-2"
+            >
+              <Phone className="w-4 h-4" />
+              Contact Us
             </Link>
           </div>
         </div>
