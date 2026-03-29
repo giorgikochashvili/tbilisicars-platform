@@ -35,13 +35,13 @@ const SECTIONS = [
     content: [
       "Online Booking: Customers may book directly through our website. No prepayment required, no credit card details required, reservations are free of charge.",
       "Email Reservations: Customers may contact us via email and provide pick-up location, drop-off location, rental dates, and preferred vehicle category. Our team will recommend the most suitable vehicle.",
-      "Phone & Messaging Apps: Customers may contact us via +995 591 00 26 30, +995 557 88 87 84, or +995 598 43 44 30. Available through WhatsApp, Telegram, Viber, WeChat, Signal, and other messaging platforms.",
+      "Phone & Messaging Apps: Customers may contact us via +995 557 37 63 63 (Tbilisi / Batumi) or +995 595 28 66 00 (Kutaisi). Available through WhatsApp, Telegram, Viber, WeChat, Signal, and other messaging platforms.",
     ],
   },
   {
     title: "5. Emergencies & Technical Issues",
     content: [
-      "In case of emergency or technical issues during the rental period, customers must immediately contact our support team: +995 591 00 26 30, +995 557 88 87 84, or +995 598 43 44 30.",
+      "In case of emergency or technical issues during the rental period, customers must immediately contact our support team: +995 557 37 63 63 (Tbilisi / Batumi) or +995 595 28 66 00 (Kutaisi).",
       "Our team will provide immediate assistance and guidance.",
     ],
   },
