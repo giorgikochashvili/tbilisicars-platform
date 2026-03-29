@@ -310,8 +310,8 @@ router.post("/public/bookings", async (req, res) => {
     for (const item of body.extras) {
       const ex = extraMap.get(item.extraId);
       if (ex != null) {
-        const multiplier = ex.pricingType === "per_booking" ? 1 : rentalDays;
-        extrasTotal += ex.price * item.quantity * multiplier;
+        // NOTE: extrasTotal always uses rentalDays to match the /public/quote behavior
+        extrasTotal += ex.price * item.quantity * rentalDays;
         validatedExtras.push({ extraId: item.extraId, quantity: item.quantity, price: ex.price, name: ex.name, pricingType: ex.pricingType });
       }
     }
