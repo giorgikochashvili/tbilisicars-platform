@@ -1040,6 +1040,10 @@ function Step5({ form, setForm, onNext, onBack }: {
 }) {
   const [showOther, setShowOther] = useState(false);
 
+  useEffect(() => {
+    if (form.paymentMethod === "Pay on Arrival") setShowOther(true);
+  }, [form.paymentMethod]);
+
   function validate() {
     if (!form.paymentMethod) { toast({ title: "Please select a payment method", variant: "destructive" }); return; }
     onNext();
@@ -1048,82 +1052,164 @@ function Step5({ form, setForm, onNext, onBack }: {
   const isPrimary = PRIMARY_PAYMENT_OPTIONS.some((o) => o.id === form.paymentMethod);
   const isOther = form.paymentMethod && !isPrimary;
 
+  const selArrival = form.paymentMethod === "Pay on Arrival";
+  const selCard = form.paymentMethod === "Card (Online)";
+
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Payment Method</h2>
-      <p className="text-muted-foreground text-sm mb-5">How would you like to pay for your rental?</p>
+      <p className="text-muted-foreground text-sm mb-6">Choose how you'd like to handle payment for your rental</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        {PRIMARY_PAYMENT_OPTIONS.map((opt) => {
-          const selected = form.paymentMethod === opt.id;
-          return (
-            <button key={opt.id} type="button" onClick={() => { setForm((f) => ({ ...f, paymentMethod: opt.id })); setShowOther(false); }}
-              className={cn(
-                "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200 min-h-[152px] flex flex-col",
-                selected
-                  ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-                  : "border-border bg-card hover:border-primary/40"
-              )}>
-              {opt.recommended && (
-                <span className="absolute -top-2.5 left-4 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Most Popular</span>
-              )}
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className={cn(
-                  "w-14 h-14 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-200",
-                  selected ? "bg-primary/20 border-primary/30" : "bg-primary/10 border-primary/15"
-                )}>
-                  {opt.icon}
-                </div>
-                {selected && (
-                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+
+        {/* ── Pay on Arrival ── PRIMARY option */}
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, paymentMethod: "Pay on Arrival" }))}
+          className={cn(
+            "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200 flex flex-col",
+            selArrival
+              ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+              : "border-border bg-card hover:border-primary/40"
+          )}
+        >
+          {/* Recommended badge */}
+          <span className="absolute -top-3 left-4 inline-flex items-center gap-1 bg-green-500/20 border border-green-500/30 text-green-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+            <Check className="w-2.5 h-2.5" /> Recommended · No charge now
+          </span>
+
+          <div className="flex items-start justify-between gap-3 mb-3 mt-1">
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors duration-200",
+              selArrival ? "bg-primary/20 border-primary/30" : "bg-primary/10 border-primary/15"
+            )}>
+              <Banknote className="w-6 h-6 text-primary" />
+            </div>
+            {selArrival && (
+              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Check className="w-3 h-3 text-white" />
               </div>
-              <div className="flex-1">
-                <div className="font-bold text-white text-base mb-1">{opt.label}</div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{opt.desc}</p>
+            )}
+          </div>
+
+          <div className="font-bold text-white text-base mb-1">Pay on Arrival</div>
+          <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+            No payment required now. Settle in full at vehicle pickup using your preferred method.
+          </p>
+
+          {/* Accepted at pickup */}
+          <div className="flex flex-wrap gap-1.5 mt-auto">
+            {["Cash", "Card", "Bank Transfer"].map((m) => (
+              <span key={m} className="text-[10px] text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2 py-0.5">{m}</span>
+            ))}
+          </div>
+        </button>
+
+        {/* ── Pay by Card Now ── PREMIUM PLACEHOLDER */}
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, paymentMethod: "Card (Online)" }))}
+          className={cn(
+            "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200 flex flex-col",
+            selCard
+              ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
+              : "border-border bg-card hover:border-primary/40"
+          )}
+        >
+          {/* Coming Soon badge */}
+          <span className="absolute -top-3 right-4 inline-flex items-center gap-1 bg-blue-500/10 border border-blue-400/20 text-blue-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+            Coming Soon
+          </span>
+
+          <div className="flex items-start justify-between gap-3 mb-3 mt-1">
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors duration-200",
+              selCard ? "bg-primary/20 border-primary/30" : "bg-secondary/50 border-border"
+            )}>
+              <CreditCard className={cn("w-6 h-6 transition-colors", selCard ? "text-primary" : "text-muted-foreground")} />
+            </div>
+            {selCard && (
+              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Check className="w-3 h-3 text-white" />
               </div>
-              {opt.id === "Card (Online)" && (
-                <div className="mt-3 text-[10px] text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2.5 py-1.5">
-                  Our team will send you a secure payment link. No charge at this step.
-                </div>
-              )}
-            </button>
-          );
-        })}
+            )}
+          </div>
+
+          <div className="font-bold text-white text-base mb-1">Pay by Card Now</div>
+          <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+            Secure your reservation with an online card payment. Our team will send you a secure payment link after confirming your booking.
+          </p>
+
+          {/* Bank of Georgia placeholder */}
+          <div className="mt-auto p-2.5 rounded-lg bg-secondary/30 border border-border/50">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Lock className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Secure Online Payment</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Bank of Georgia integration — payment link sent after confirmation. No charge at this step.
+            </p>
+          </div>
+        </button>
       </div>
 
-      <button type="button" onClick={() => setShowOther((v) => !v)}
-        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition-colors mb-3">
-        <Info className="w-3.5 h-3.5" />
-        {showOther ? "Hide other payment options" : "Show other payment options"}
-      </button>
+      {/* At-pickup payment methods */}
+      <div className="mb-5">
+        <button
+          type="button"
+          onClick={() => setShowOther((v) => !v)}
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition-colors mb-3"
+        >
+          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", showOther && "rotate-180")} />
+          {showOther ? "Hide pickup payment options" : "At pickup you can also use:"}
+        </button>
 
-      {(showOther || isOther) && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          {OTHER_PAYMENT_METHODS.map((method) => {
-            const selected = form.paymentMethod === method;
-            return (
-              <button key={method} type="button" onClick={() => setForm((f) => ({ ...f, paymentMethod: method }))}
-                className={cn(
-                  "w-full text-center rounded-lg border px-3 py-2.5 text-xs font-medium transition-all duration-200",
-                  selected
-                    ? "border-primary bg-primary/10 text-white shadow-sm shadow-primary/20"
-                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white"
-                )}>
-                {selected && <Check className="w-3 h-3 inline mr-1 text-primary" />}
-                {method}
-              </button>
-            );
-          })}
+        {(showOther || isOther) && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {OTHER_PAYMENT_METHODS.map((method) => {
+              const selected = form.paymentMethod === method;
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, paymentMethod: method }))}
+                  className={cn(
+                    "w-full text-center rounded-lg border px-3 py-2.5 text-xs font-medium transition-all duration-200",
+                    selected
+                      ? "border-primary bg-primary/10 text-white shadow-sm shadow-primary/20"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-white"
+                  )}
+                >
+                  {selected && <Check className="w-3 h-3 inline mr-1 text-primary" />}
+                  {method}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Trust block */}
+      <div className="rounded-xl bg-secondary/20 border border-border mb-6 overflow-hidden">
+        <div className="p-4 flex gap-3">
+          <Lock className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+          <span className="text-xs text-muted-foreground leading-relaxed">
+            No payment is charged to submit your booking request. You will only be charged upon vehicle pickup or as separately agreed.
+          </span>
         </div>
-      )}
-
-      <div className="p-4 rounded-xl bg-muted/50 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
-        <Lock className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
-        <span>No payment is charged to submit your booking request. You will only be charged upon vehicle pickup or as separately agreed.</span>
+        <div className="border-t border-border/50 px-4 py-2.5 flex flex-wrap gap-3">
+          {[
+            { icon: <Lock className="w-3 h-3" />, label: "SSL Encrypted" },
+            { icon: <Check className="w-3 h-3" />, label: "No card required now" },
+            { icon: <Check className="w-3 h-3" />, label: "Cancel anytime*" },
+          ].map(({ icon, label }) => (
+            <span key={label} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="text-primary">{icon}</span> {label}
+            </span>
+          ))}
+        </div>
       </div>
+
       <div className="flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={validate}>Review & Confirm →</Btn>
