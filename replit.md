@@ -23,7 +23,7 @@ The user prefers a clean, consistent coding style across the monorepo, leveragin
 - `/api` → Express API server (port 8080)
 
 **Platform Notes:**
-- `.replit` cannot be edited directly — use workflow management callbacks only
+- `.replit` cannot be written to directly (all direct file writes are blocked by the platform); it can only be updated through platform callbacks (e.g. `configureWorkflow`)
 - 4 artifact-managed workflows (`artifacts/crm: web`, `artifacts/website: web`, `artifacts/api-server: API Server`, `artifacts/mockup-sandbox: Component Preview Server`) cannot be removed — platform blocks their deletion. They show as "failed" when named workflows occupy the same ports first.
 - `.replit [[artifacts]]` entries for crm/website cannot be added programmatically (no available callback)
 
