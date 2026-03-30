@@ -122,11 +122,15 @@ export default function Home() {
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 20% 50%, hsl(350,68%,38%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(214,45%,25%) 0%, transparent 50%)"
         }} />
-        {/* Abstract city-lines decoration */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
-          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 60px, hsl(214,45%,70%) 60px, hsl(214,45%,70%) 61px),
-                            repeating-linear-gradient(90deg, transparent, transparent 80px, hsl(214,45%,70%) 80px, hsl(214,45%,70%) 81px)`
-        }} />
+        {/* Tbilisi skyline line-art — screen blend dissolves the dark background away */}
+        <img
+          src="/website/tbilisi-skyline.png"
+          alt=""
+          aria-hidden="true"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none select-none"
+          style={{ opacity: 0.35, mixBlendMode: "screen" }}
+          draggable={false}
+        />
 
         <style>{`
           @keyframes badge-dot-pulse {
