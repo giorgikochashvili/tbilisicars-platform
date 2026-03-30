@@ -202,9 +202,19 @@ router.get("/public/booking-config", async (req, res) => {
     `),
   ]);
 
+  // node-postgres returns COUNT() as a string (bigint → string).
+  // Normalise vehicle_count to a number here so callers never need to coerce it.
+  // A vehicle_count of 0 means no physically available vehicles exist in the
+  // requested region (or globally), which the website interprets as "On Request".
+  const vehicleModels = (modelRows.rows as Array<Record<string, unknown>>).map((row) => ({
+    ...row,
+    vehicle_count: Number(row.vehicle_count ?? 0),
+    min_price_per_day: row.min_price_per_day != null ? Number(row.min_price_per_day) : null,
+  }));
+
   res.json({
     locations: locRows.rows,
-    vehicleModels: modelRows.rows,
+    vehicleModels,
     extras: extraRows.rows,
   });
 });
