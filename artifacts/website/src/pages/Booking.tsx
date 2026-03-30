@@ -533,6 +533,16 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
 
+  // Reset filters whenever the user submits new trip parameters (location or dates change)
+  const prevTripKeyRef = useRef("");
+  useEffect(() => {
+    const key = `${form.pickupLocationId}|${form.dropoffLocationId}|${form.pickupDatetime}|${form.dropoffDatetime}`;
+    if (prevTripKeyRef.current && prevTripKeyRef.current !== key) {
+      setFilters({ category: "", transmission: "", seats: "", fuelType: "" });
+    }
+    prevTripKeyRef.current = key;
+  }, [form.pickupLocationId, form.dropoffLocationId, form.pickupDatetime, form.dropoffDatetime]);
+
   // Derive filter option lists from loaded models (category, transmission, fuel from data; seats as fixed buckets)
   const categoryOptions = [...new Set(models.map((m) => m.category).filter((c): c is string => c != null))].sort();
   const transmissionOptions = [...new Set(models.map((m) => m.transmission).filter((t): t is string => t != null))].sort();
