@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  MapPin, Calendar, Shield, ChevronRight,
+  MapPin, Calendar, Shield, ChevronRight, ChevronDown,
   Users, CheckCircle, Phone, Infinity, Car, HeartHandshake,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -69,6 +69,78 @@ const WHY_CARDS = [
     desc: "Our support team is available around the clock. Breakdown, flat tyre, or any emergency — we're here.",
   },
 ];
+
+interface LocationOption { id: number; name: string; city: string; }
+function LocationSelect({
+  value, onChange, options, placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: LocationOption[];
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+  const selected = options.find((o) => String(o.id) === String(value));
+  const cities = Array.from(new Set(options.map((o) => o.city)));
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+        className={[
+          "w-full flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm text-left transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-primary/60",
+          open ? "border-primary/50" : "border-white/10 hover:border-primary/40",
+        ].join(" ")}
+      >
+        <span className={`flex-1 truncate ${selected ? "text-foreground" : "text-muted-foreground"}`}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div
+          className="absolute z-50 top-full mt-1.5 w-full rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+          style={{ background: "hsl(211,55%,7%)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
+        >
+          <div className="max-h-56 overflow-y-auto">
+            {cities.map((city) => (
+              <div key={city}>
+                <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                  {city}
+                </div>
+                {options.filter((o) => o.city === city).map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => { onChange(String(o.id)); setOpen(false); }}
+                    className={[
+                      "w-full text-left px-3 py-2.5 text-sm transition-colors",
+                      String(o.id) === String(value)
+                        ? "text-primary font-medium bg-primary/10"
+                        : "text-foreground hover:bg-primary/10 hover:text-white",
+                    ].join(" ")}
+                  >
+                    {o.name}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -178,21 +250,12 @@ export default function Home() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Location
                 </label>
-                <select
+                <LocationSelect
                   value={pickupLocationId}
-                  onChange={(e) => setPickupLocationId(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                  style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
-                >
-                  <option value="">Select location…</option>
-                  {cities.map((city) => (
-                    <optgroup key={city} label={city}>
-                      {locations.filter((l) => l.city === city).map((l) => (
-                        <option key={l.id} value={l.id}>{l.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  onChange={setPickupLocationId}
+                  options={locations}
+                  placeholder="Select location…"
+                />
               </div>
 
               {!sameLocation && (
@@ -200,21 +263,12 @@ export default function Home() {
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                     Return Location
                   </label>
-                  <select
+                  <LocationSelect
                     value={dropoffLocationId}
-                    onChange={(e) => setDropoffLocationId(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                    style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
-                  >
-                    <option value="">Select location…</option>
-                    {cities.map((city) => (
-                      <optgroup key={city} label={city}>
-                        {locations.filter((l) => l.city === city).map((l) => (
-                          <option key={l.id} value={l.id}>{l.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                    onChange={setDropoffLocationId}
+                    options={locations}
+                    placeholder="Select location…"
+                  />
                 </div>
               )}
             </div>
