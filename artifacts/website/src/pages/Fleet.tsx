@@ -148,7 +148,7 @@ export default function Fleet() {
                   <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
                     {m.image_url ? (
                       <img
-                        src={m.image_url}
+                        src={`/api/storage${m.image_url}`}
                         alt={`${m.brand} ${m.model}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

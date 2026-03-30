@@ -110,7 +110,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
   // Filter state
   const [filterRegion, setFilterRegion] = useState<Region>(initial.region);
-  const [plateSearch, setPlateSearch] = useState("");
+  const [vehicleSearch, setVehicleSearch] = useState("");
   const [filterLocationId, setFilterLocationId] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterBrandId, setFilterBrandId] = useState("");
@@ -180,10 +180,17 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     : null;
 
   // Filtered vehicles (client-side)
-  const hasActiveFilters = !!(filterRegion !== "All" || plateSearch || filterLocationId || filterCategory || filterBrandId || filterModelId || filterStatus);
+  const hasActiveFilters = !!(filterRegion !== "All" || vehicleSearch || filterLocationId || filterCategory || filterBrandId || filterModelId || filterStatus);
   const filteredVehicles = vehicles.filter((v: any) => {
     if (regionLocationIds && !regionLocationIds.has(v.locationId)) return false;
-    if (plateSearch && !v.licensePlate?.toUpperCase().includes(plateSearch.toUpperCase())) return false;
+    if (vehicleSearch) {
+      const q = vehicleSearch.trim().toUpperCase();
+      const plate = v.licensePlate?.toUpperCase() ?? "";
+      const brand = v.vehicleModel?.brand?.name?.toUpperCase() ?? "";
+      const model = v.vehicleModel?.name?.toUpperCase() ?? "";
+      const tech = v.techpassportNumber?.toUpperCase() ?? "";
+      if (!plate.includes(q) && !brand.includes(q) && !model.includes(q) && !tech.includes(q)) return false;
+    }
     if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
     if (filterCategory) {
       const cat = v.vehicleModel?.category ?? modelCategoryMap[v.vehicleModelId?.toString() ?? ""] ?? "";
@@ -197,7 +204,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
   const clearFilters = () => {
     setFilterRegion("All");
-    setPlateSearch("");
+    setVehicleSearch("");
     setFilterLocationId("");
     setFilterCategory("");
     setFilterBrandId("");
@@ -339,14 +346,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            {/* Plate search — primary */}
+            {/* Vehicle search — plate, brand, model, techpassport */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Plate number…"
-                value={plateSearch}
-                onChange={(e) => setPlateSearch(e.target.value.toUpperCase())}
-                className="pl-9 bg-background h-9 text-sm font-mono uppercase"
+                placeholder="Search plate, brand, model"
+                value={vehicleSearch}
+                onChange={(e) => setVehicleSearch(e.target.value)}
+                className="pl-9 bg-background h-9 text-sm"
               />
             </div>
             {/* Status */}
@@ -640,14 +647,43 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
     fuelType: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | "";
     luggageCapacity: number;
     active: boolean;
+    imageUrl: string | null;
   }>({ 
     brandId: "", name: "", category: "", 
     seats: 5, doors: 4, transmission: "AUTOMATIC", 
-    fuelType: "PETROL", luggageCapacity: 2, active: true
+    fuelType: "PETROL", luggageCapacity: 2, active: true, imageUrl: null
   });
-  
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleImageUpload = async (file: File) => {
+    setImageUploading(true);
+    try {
+      const metaRes = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
+      });
+      if (!metaRes.ok) throw new Error("Failed to get upload URL");
+      const { uploadURL, objectPath } = await metaRes.json();
+      const putRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "image/jpeg" },
+      });
+      if (!putRes.ok) throw new Error("Failed to upload file");
+      setFormData(prev => ({ ...prev, imageUrl: objectPath }));
+      toast({ title: "Image uploaded", description: "Image ready — save the model to apply." });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setImageUploading(false);
+    }
+  };
   
   const { data: models, isLoading } = useListAdminModels(reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
@@ -674,13 +710,14 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         fuelType: item.fuelType || "PETROL",
         luggageCapacity: item.luggageCapacity || 2,
         active: item.active ?? true,
+        imageUrl: item.imageUrl || null,
       });
     } else {
       setEditingItem(null);
       setFormData({ 
         brandId: "", name: "", category: "", 
         seats: 5, doors: 4, transmission: "AUTOMATIC", 
-        fuelType: "PETROL", luggageCapacity: 2, active: true 
+        fuelType: "PETROL", luggageCapacity: 2, active: true, imageUrl: null
       });
     }
     setIsModalOpen(true);
@@ -706,6 +743,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       fuelType: formData.fuelType as any || null,
       luggageCapacity: formData.luggageCapacity,
       active: formData.active,
+      imageUrl: formData.imageUrl || undefined,
     };
     
     if (editingItem) {
@@ -785,6 +823,18 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                          {m.imageUrl ? (
+                            <img
+                              src={`/api/storage${m.imageUrl}`}
+                              alt=""
+                              className="w-8 h-8 rounded object-cover flex-shrink-0 border border-border/40"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded bg-muted/40 border border-border/30 flex items-center justify-center flex-shrink-0">
+                              <Car className="w-4 h-4 text-muted-foreground/40" />
+                            </div>
+                          )}
                           {m.brand?.logoUrl && (
                             <img
                               src={`/api/storage${m.brand.logoUrl}`}
@@ -882,10 +932,58 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Camry, RAV4, Prius" />
             </div>
             <div className="grid gap-2">
+              <Label>Model Image (optional)</Label>
+              <div className="flex items-center gap-3">
+                {formData.imageUrl ? (
+                  <img
+                    src={`/api/storage${formData.imageUrl}`}
+                    alt="Model preview"
+                    className="w-16 h-12 rounded object-cover border border-border/50 bg-muted/30 flex-shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="w-16 h-12 rounded bg-muted/30 border border-border/40 flex items-center justify-center flex-shrink-0">
+                    <Car className="w-5 h-5 text-muted-foreground/30" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={imageInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={imageUploading}
+                    onClick={() => imageInputRef.current?.click()}
+                  >
+                    {imageUploading ? "Uploading…" : formData.imageUrl ? "Replace Image" : "Upload Image"}
+                  </Button>
+                  {formData.imageUrl && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-destructive mt-1 block"
+                      onClick={() => setFormData(prev => ({ ...prev, imageUrl: null }))}
+                    >
+                      Remove image
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
               <Label>Category</Label>
               <Select value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[240px] overflow-y-auto">
                   {MODEL_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
