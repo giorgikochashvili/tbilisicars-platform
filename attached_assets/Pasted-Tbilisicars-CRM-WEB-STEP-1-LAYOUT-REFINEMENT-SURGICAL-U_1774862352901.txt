@@ -1,0 +1,192 @@
+Tbilisicars CRM&WEB — STEP 1 LAYOUT REFINEMENT (SURGICAL UI UPDATE ONLY)
+
+You are continuing from the CURRENT WORKING STATE after the last successful build.
+
+IMPORTANT:
+- Do NOT re-architect anything
+- Do NOT touch backend logic
+- Do NOT change booking availability logic
+- Do NOT change API contracts
+- Do NOT modify booking status logic
+- Do NOT touch unrelated steps
+- Do NOT break current filters
+- Do NOT break current summary calculations
+- Minimal, surgical UI/layout changes only
+- Reuse the existing Step 1 state and handlers exactly as they already work
+
+CURRENT ISSUE TO FIX:
+Right now, on Step 1:
+- the Booking Summary is on the left but not yet behaving like a proper fixed left sidebar
+- filters are visually inside the vehicle content area instead of feeling like one dedicated left rail
+- the step progress row (1-2-3-4-5-6) is still inside the main booking content box
+- Edit Search is not positioned as a top control inside the left rail
+- after selecting a vehicle, the user should explicitly confirm it with a CTA button inside the selected card
+
+TARGET UX:
+
+DESKTOP / LARGE SCREENS:
+Create a true LEFT SIDEBAR / LEFT RAIL layout for Step 1 only.
+
+LEFT SIDEBAR ORDER (top to bottom):
+1. Edit Search
+2. Booking Summary
+3. Filters
+
+This left sidebar should:
+- stay on the far left of the Step 1 content area
+- look like one high-quality vertical side panel / rail
+- be sticky while scrolling (smooth, premium, no jitter)
+- follow the page on scroll with proper top offset
+- remain visually separate from the vehicle results area
+
+MAIN CONTENT AREA (to the right):
+- the progress steps row (1,2,3,4,5,6) must be OUTSIDE the vehicle list card/container
+- the vehicle results/grid should be in the main content area only
+- the vehicle cards/list should no longer visually share the same box as the left sidebar content
+
+MOBILE / TABLET:
+- keep responsive stacking
+- sidebar content can stack above the vehicle list
+- no sticky behavior required on small screens if it hurts UX
+
+==================================================
+CHANGES REQUIRED
+==================================================
+
+1) STEP 1 STRUCTURE REFACTOR (UI ONLY)
+Refactor Step 1 layout so that:
+- the progress bar/stepper is outside the main vehicle list container
+- below that, create a two-column layout on desktop:
+  - left = sticky sidebar rail
+  - right = vehicle results area
+
+Suggested desktop grid idea:
+- outer content wrapper
+- first row: progress stepper full width
+- second row: lg:grid-cols-[320px_1fr] or similar
+- left column = sticky sidebar
+- right column = vehicle grid/list
+
+Do NOT rewrite Step 1 logic.
+Only move existing rendered sections into the correct structural places.
+
+2) LEFT SIDEBAR CONTENT ORDER
+Inside the left sidebar, render in this exact order:
+- Edit Search block (top)
+- Booking Summary block
+- Filters block
+
+Edit Search:
+- should be its own visible block/button/section at the top of the left rail
+- clicking it must reuse the existing editSearch behavior exactly as already implemented
+- do not rewrite the flow
+
+Booking Summary:
+- keep existing trip data and selected vehicle summary logic
+- keep totals and trip dates working exactly as now
+
+Filters:
+- keep current working filters
+- do not change their logic
+- just place them under the summary cleanly
+
+3) STICKY SIDEBAR BEHAVIOR
+Make the left sidebar sticky on desktop:
+- use a stable sticky top offset that works under the site header
+- no overlap with the header/nav
+- no jumping/flickering while scrolling
+- the sidebar should scroll naturally with the page and stay visible as long as Step 1 content is in view
+
+Keep this elegant and minimal.
+Do not add heavy JS if CSS sticky is enough.
+
+4) VEHICLE CARD CONFIRMATION CTA
+Current issue:
+- selecting a vehicle visually marks the card, but the user should have a stronger CTA
+
+Required behavior:
+- when the user selects a vehicle, inside that SAME selected card show a clear button:
+  "Choose this car"
+- button appears only on the selected card
+- clicking this button moves the flow to the next booking step
+- reuse the existing next-step logic / selected vehicle state
+- do NOT auto-advance immediately on simple card selection if current UX should remain explicit
+- the CTA button is the confirmation action to continue
+
+Important:
+- keep the selected state styling
+- keep On Request card behavior unchanged unless the card is actually selectable in the existing flow
+- do not break price display
+- do not break card click behavior if selection is already handled on card click
+
+5) KEEP THE CURRENT IMPROVEMENTS
+Preserve all currently working improvements from the last build:
+- left-side summary/filter concept
+- current filters logic
+- current summary calculations
+- current renamed step label “Extras & Services”
+- current pricing display hierarchy
+- current homepage auto-open dropoff behavior
+
+==================================================
+VISUAL EXPECTATION
+==================================================
+
+Desktop:
+[ Stepper full width outside ]
+[ Left sticky rail: Edit Search / Booking Summary / Filters ]   [ Vehicle cards/results ]
+
+Not this:
+- sidebar and vehicle list inside one shared card
+- stepper embedded inside the vehicle list frame
+
+==================================================
+FILES TO CHANGE
+==================================================
+
+Likely:
+- artifacts/website/src/pages/Booking.tsx
+
+Do not spread this across many files unless absolutely necessary.
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+After implementation, return:
+1. Exact file(s) changed
+2. Short summary of structural changes
+3. Confirmation that:
+   - stepper is outside results container
+   - left sidebar order is Edit Search → Booking Summary → Filters
+   - sidebar is sticky on desktop
+   - selected vehicle shows “Choose this car” button
+   - clicking that button moves to next step
+4. Short manual test checklist
+
+==================================================
+MANUAL TESTS THAT MUST PASS
+==================================================
+
+- Step 1 desktop:
+  - progress row is outside the results container
+  - left sidebar sits on the far left
+  - left sidebar order is correct
+  - left sidebar remains visible while scrolling
+  - vehicle list stays separate on the right
+
+- Edit Search:
+  - click Edit Search from left sidebar
+  - existing edit flow works exactly as before
+
+- Filters:
+  - filters still work exactly as before
+  - no broken empty states
+
+- Vehicle selection:
+  - select a vehicle
+  - selected card shows “Choose this car”
+  - click “Choose this car”
+  - proceeds to next step correctly
+
+Implement this as a surgical Step 1 UI refinement only.
