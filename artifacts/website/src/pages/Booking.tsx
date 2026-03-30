@@ -2052,9 +2052,12 @@ export default function Booking() {
     return (
       <div className="min-h-screen py-10 px-4">
         <div className="mx-auto max-w-6xl">
-          {pageHeader}
-          {/* StepBar lives outside the vehicle container */}
-          <div className="bg-card border border-border rounded-2xl px-6 py-4 mb-6">
+          {/* Unified header card: title + subtitle + step progress row */}
+          <div className="bg-card border border-border rounded-2xl px-6 pt-6 pb-4 mb-6">
+            <div className="text-center mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Book Your Car</h1>
+              <p className="text-sm text-muted-foreground">Complete the steps below to submit your reservation request.</p>
+            </div>
             <StepBar step={step} onGoTo={(n) => setStep(n)} />
           </div>
           {/* Mobile collapsible pricing summary */}
