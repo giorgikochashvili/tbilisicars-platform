@@ -112,7 +112,7 @@ function LocationSelect({
           className="absolute z-50 top-full mt-1.5 w-full rounded-xl border border-white/10 shadow-2xl overflow-hidden"
           style={{ background: "hsl(211,55%,7%)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
         >
-          <div className="max-h-56 overflow-y-auto">
+          <div className="max-h-56 overflow-y-auto premium-scroll">
             {cities.map((city) => (
               <div key={city}>
                 <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
