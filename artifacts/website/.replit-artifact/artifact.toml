@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/website/"
+previewPath = "/"
 title = "Tbilisi Cars – Public Booking"
 version = "1.0.0"
 id = "artifacts/website"
@@ -12,14 +12,14 @@ version = "1.0.0"
 [[services]]
 localPort = 19161
 name = "web"
-paths = ["/website/"]
+paths = ["/"]
 
 [services.development]
 run = "pnpm --filter @workspace/website run dev"
 
 [services.env]
 PORT = "19161"
-BASE_PATH = "/website/"
+BASE_PATH = "/"
 
 [services.production]
 build = ["pnpm", "--filter", "@workspace/website", "run", "build"]

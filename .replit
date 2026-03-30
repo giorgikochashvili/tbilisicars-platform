@@ -50,13 +50,13 @@ outputType = "webview"
 name = "Website"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=19161 BASE_PATH=/website/ pnpm --filter @workspace/website run dev"
-waitForPort = 19161
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=19161 BASE_PATH=/ pnpm --filter @workspace/website run dev"
+waitForPort = 19161
 
 [[workflows.workflow]]
 name = "API Server"

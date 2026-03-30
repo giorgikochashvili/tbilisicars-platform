@@ -10,6 +10,23 @@ The business vision is to provide a seamless digital experience for both custome
 
 The user prefers a clean, consistent coding style across the monorepo, leveraging TypeScript for strong typing and maintainability. Iterative development is preferred, with a focus on well-defined architectural patterns. The user expects clear and concise communication regarding any proposed changes or architectural decisions.
 
+## Dev Workflow & Routing
+
+**Named Workflows (run via "Project" button):**
+- `API Server` — `PORT=8080 pnpm --filter @workspace/api-server run dev` (port 8080, console output)
+- `CRM` — `PORT=22444 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev` (port 22444, /crm/ path)
+- `Website` — `PORT=19161 BASE_PATH=/ pnpm --filter @workspace/website run dev` (port 19161, serves at root /)
+
+**Preview Routing:**
+- `/` → Public booking website (port 19161)
+- `/crm/` → CRM admin panel (port 22444)
+- `/api` → Express API server (port 8080)
+
+**Platform Notes:**
+- `.replit` cannot be edited directly — use workflow management callbacks only
+- 4 artifact-managed workflows (`artifacts/crm: web`, `artifacts/website: web`, `artifacts/api-server: API Server`, `artifacts/mockup-sandbox: Component Preview Server`) cannot be removed — platform blocks their deletion. They show as "failed" when named workflows occupy the same ports first.
+- `.replit [[artifacts]]` entries for crm/website cannot be added programmatically (no available callback)
+
 ## System Architecture
 
 The monorepo is structured with `artifacts/` for deployable applications and `lib/` for shared libraries. Each package manages its own dependencies within the monorepo.
