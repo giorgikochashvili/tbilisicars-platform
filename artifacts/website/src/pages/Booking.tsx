@@ -483,7 +483,7 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      <div className="flex flex-col gap-3 mb-3">
         <div>
           <FieldLabel required>Pickup Location</FieldLabel>
           <LocOpts value={form.pickupLocationId} onChange={(v) => setForm((f) => ({ ...f, pickupLocationId: v, dropoffLocationId: f.dropoffLocationId || v }))} />
