@@ -70,6 +70,22 @@ All packages extend `tsconfig.base.json` with `composite: true`, enabling effici
     - **Public Booking Endpoints**: `/api/public/booking-config`, `/api/public/validate-promo`, `/api/public/quote`, `/api/public/bookings`.
     - **Admin Endpoints**: `/api/admin/*` for full CRUD operations on all entities (fleet, locations, rates, promos, customers, bookings, team, etc.), dashboard summaries, and accounting.
 
+## Development Database Seed
+
+Run `pnpm --filter @workspace/scripts run seed:dev` to populate the dev database. The seed is fully idempotent (safe to re-run). It inserts:
+
+- **4 locations**: Tbilisi Airport, Tbilisi City Center, Kutaisi Airport, Batumi Sea Port
+- **4 brands**: Toyota, Hyundai, BMW, Mercedes-Benz — with logos from `artifacts/api-server/local-uploads/`
+- **6 vehicle models**: Corolla, RAV4, Tucson, i20, X5, E-Class — with car photos from `artifacts/api-server/local-uploads/`
+- **6 vehicles** assigned to locations
+- **5 customers** + **6 sample bookings**
+- **1 admin** account: `admin@tbilisicars.com` / `123456` (dev only)
+- **1 rate plan** with per-model price tiers (enables public booking-config)
+- **7 extras**: GPS, Child Seat, Baby Seat, Additional Driver, Full Damage Waiver, Roadside Assistance, Airport Meet & Greet
+- **14 company settings** (general, booking, social categories)
+
+**Image storage**: Car images and brand logos are committed to git under `artifacts/api-server/local-uploads/` and served via `/api/storage/local-uploads/{filename}`. DB stores path as `/local-uploads/{filename}`; frontend prepends `/api/storage`.
+
 **Shared Libraries:**
 - **`lib/db` (`@workspace/db`)**: Drizzle ORM with PostgreSQL. Exports a Drizzle client and a comprehensive schema across 40 tables and 15 enums, with domain-split table definitions and `drizzle-zod` insert schemas.
 - **`lib/api-spec` (`@workspace/api-spec`)**: Manages the OpenAPI 3.1 specification (`openapi.yaml`) and Orval configuration (`orval.config.ts`) for generating API clients and schemas.

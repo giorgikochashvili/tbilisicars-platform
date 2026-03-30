@@ -3,6 +3,7 @@ import {
   locationTable,
   brandTable,
   vehicleModelTable,
+  vehicleModelPhotoTable,
   vehicleTable,
   userTable,
   bookingTable,
@@ -10,6 +11,8 @@ import {
   adminsTable,
   rateTable,
   ratetierTable,
+  extraTable,
+  companySettingsTable,
 } from "@workspace/db";
 import { eq, count, sql } from "drizzle-orm";
 import { seedServiceTypes } from "../artifacts/api-server/src/services/admin-service.service.js";
@@ -395,7 +398,135 @@ async function seedAdmin() {
   console.log("  admin: inserted admin@tbilisicars.com (password: 123456)");
 }
 
-// ─── 10. Base Rates ───────────────────────────────────────────────────────────
+// ─── 10. Extras ───────────────────────────────────────────────────────────────
+
+async function seedExtras() {
+  const existing = await db.select({ id: extraTable.id }).from(extraTable).limit(1);
+  if (existing.length > 0) {
+    console.log("  extras: skipped (already exist)");
+    return;
+  }
+
+  const rows = [
+    { name: "GPS Navigation",       description: "Portable GPS navigation device with up-to-date maps",                 price: "15.00", pricingType: "per_day"  as const, isActive: true },
+    { name: "Child Seat",           description: "Child safety seat for ages 3-12 (15-36 kg)",                          price: "15.00", pricingType: "per_day"  as const, isActive: true },
+    { name: "Baby Seat",            description: "Infant rear-facing safety seat for up to 13 kg",                      price: "15.00", pricingType: "per_day"  as const, isActive: true },
+    { name: "Additional Driver",    description: "Add a second authorised driver to the rental agreement",               price: "20.00", pricingType: "per_day"  as const, isActive: true },
+    { name: "Full Damage Waiver",   description: "Reduces excess to zero — full coverage with no deductible",           price: "30.00", pricingType: "per_day"  as const, isActive: true },
+    { name: "Roadside Assistance",  description: "24/7 emergency roadside assistance throughout Georgia",                price: "25.00", pricingType: "per_trip" as const, isActive: true },
+    { name: "Airport Meet & Greet", description: "Personal meet and greet service at the airport terminal",              price: "40.00", pricingType: "per_trip" as const, isActive: true },
+  ];
+
+  await db.insert(extraTable).values(rows.map((r) => ({ ...r, currency: "GEL" })));
+  console.log(`  extras: ${rows.length} inserted`);
+}
+
+// ─── 11. Company Settings ─────────────────────────────────────────────────────
+
+async function seedCompanySettings() {
+  const existing = await db.select({ id: companySettingsTable.id }).from(companySettingsTable).limit(1);
+  if (existing.length > 0) {
+    console.log("  company settings: skipped (already exist)");
+    return;
+  }
+
+  const rows = [
+    { category: "general", key: "company_name",               value: "Tbilisi Cars"                          },
+    { category: "general", key: "tagline",                     value: "Car Rental Georgia"                    },
+    { category: "general", key: "phone",                       value: "+995 555 000 000"                      },
+    { category: "general", key: "email",                       value: "info@tbilisicars.com"                  },
+    { category: "general", key: "address",                     value: "Rustaveli Avenue 1, Tbilisi"           },
+    { category: "general", key: "city",                        value: "Tbilisi"                               },
+    { category: "general", key: "country",                     value: "Georgia"                               },
+    { category: "general", key: "currency",                    value: "GEL"                                   },
+    { category: "booking", key: "deposit_percentage",          value: "30"                                    },
+    { category: "booking", key: "min_booking_hours",           value: "24"                                    },
+    { category: "booking", key: "cancellation_notice_hours",   value: "24"                                    },
+    { category: "social",  key: "whatsapp",                    value: "+995555000000"                         },
+    { category: "social",  key: "facebook",                    value: "https://facebook.com/tbilisicars"      },
+    { category: "social",  key: "instagram",                   value: "https://instagram.com/tbilisicars"     },
+  ];
+
+  await db.insert(companySettingsTable).values(rows);
+  console.log(`  company settings: ${rows.length} inserted`);
+}
+
+// ─── 12. Brand Logos ──────────────────────────────────────────────────────────
+// Image files must exist in artifacts/api-server/local-uploads/ (committed to git).
+
+async function seedBrandLogos() {
+  const logos: Record<string, string> = {
+    "Toyota":        "/local-uploads/logo-toyota.png",
+    "Hyundai":       "/local-uploads/logo-hyundai.png",
+    "BMW":           "/local-uploads/logo-bmw.png",
+    "Mercedes-Benz": "/local-uploads/logo-mercedes.png",
+  };
+
+  let updated = 0;
+  for (const [name, logoUrl] of Object.entries(logos)) {
+    const rows = await db
+      .select({ id: brandTable.id, logo: brandTable.logoUrl })
+      .from(brandTable)
+      .where(eq(brandTable.name, name));
+    if (rows.length > 0 && !rows[0]!.logo) {
+      await db.update(brandTable).set({ logoUrl }).where(eq(brandTable.name, name));
+      updated++;
+    }
+  }
+  console.log(`  brand logos: ${updated} updated`);
+}
+
+// ─── 13. Vehicle Model Images ─────────────────────────────────────────────────
+// Sets image_url on vehicle_model (used by public booking-config) and inserts
+// a primary photo into vehicle_model_photo (used by CRM model detail view).
+// Image files must exist in artifacts/api-server/local-uploads/ (committed to git).
+
+async function seedModelImages() {
+  const imageMap: Record<string, string> = {
+    Corolla:   "/local-uploads/car-toyota-corolla.png",
+    RAV4:      "/local-uploads/car-toyota-rav4.png",
+    Tucson:    "/local-uploads/car-hyundai-tucson.png",
+    i20:       "/local-uploads/car-hyundai-i20.png",
+    X5:        "/local-uploads/car-bmw-x5.png",
+    "E-Class": "/local-uploads/car-mercedes-eclass.png",
+  };
+
+  const models = await db
+    .select({ id: vehicleModelTable.id, name: vehicleModelTable.name, imageUrl: vehicleModelTable.imageUrl })
+    .from(vehicleModelTable);
+
+  let updatedModels = 0;
+  let insertedPhotos = 0;
+
+  for (const model of models) {
+    const imageUrl = imageMap[model.name];
+    if (!imageUrl) continue;
+
+    if (!model.imageUrl) {
+      await db.update(vehicleModelTable).set({ imageUrl }).where(eq(vehicleModelTable.id, model.id));
+      updatedModels++;
+    }
+
+    const existingPhoto = await db
+      .select({ id: vehicleModelPhotoTable.id })
+      .from(vehicleModelPhotoTable)
+      .where(eq(vehicleModelPhotoTable.vehicleModelId, model.id))
+      .limit(1);
+
+    if (existingPhoto.length === 0) {
+      await db.insert(vehicleModelPhotoTable).values({
+        vehicleModelId: model.id,
+        photoUrl: imageUrl,
+        isPrimary: true,
+        displayOrder: 1,
+      });
+      insertedPhotos++;
+    }
+  }
+  console.log(`  model images: ${updatedModels} model image_url set, ${insertedPhotos} photos inserted`);
+}
+
+// ─── 14. Base Rates ───────────────────────────────────────────────────────────
 // Creates one active "Standard Rate" with per-model price tiers so the
 // public /booking-config endpoint returns vehicleModels with min_price_per_day.
 // Also enables available_for_external_systems on all active vehicle models.
@@ -469,6 +600,10 @@ async function main() {
   await seedServiceRecords();
   await seedAdmin();
   await seedRates();
+  await seedExtras();
+  await seedCompanySettings();
+  await seedBrandLogos();
+  await seedModelImages();
 
   console.log("Done.");
   process.exit(0);
