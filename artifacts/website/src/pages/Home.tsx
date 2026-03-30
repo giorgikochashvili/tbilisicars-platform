@@ -32,7 +32,7 @@ function getMinDatetime() {
 }
 
 const STATS = [
-  { value: "10,000+", label: "Served Customers" },
+  { value: "12K+", label: "Trusted By Customers" },
   { value: "250+", label: "Vehicles" },
   { value: "4.6", label: "Overall Rating" },
 ];
@@ -169,7 +169,7 @@ export default function Home() {
           <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
             <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              Find Your Car
+              Choose Your Trip Details
             </h2>
 
             {/* Location row */}
@@ -273,7 +273,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-6 mt-8 lg:mt-5">
             {STATS.map((s) => (
               <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-2xl font-bold text-white">{s.value}</span>
+                <span className="text-2xl font-bold text-primary">{s.value}</span>
                 <span className="text-xs text-muted-foreground mt-0.5">{s.label}</span>
               </div>
             ))}
