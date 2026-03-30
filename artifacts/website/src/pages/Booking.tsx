@@ -1,6 +1,6 @@
 /**
  * Booking page — 6-step flow:
- * Step 1 Vehicle → Step 2 Extras → Step 3 Insurance → Step 4 Customer Info → Step 5 Payment Method → Step 6 Confirmation
+ * Step 1 Vehicle → Step 2 Extras & Services → Step 3 Insurance → Step 4 Customer Info → Step 5 Payment Method → Step 6 Confirmation
  *
  * - Sticky desktop sidebar + collapsible mobile bar on steps 1–5 (live price summary)
  * - Quote state lifted to main component and passed down; insurance updates summary immediately
@@ -98,7 +98,7 @@ const INSURANCE_VISUAL = {
   },
 };
 
-const STEP_LABELS = ["Vehicle", "Extras", "Insurance", "Your Info", "Payment", "Confirm"];
+const STEP_LABELS = ["Vehicle", "Extras & Services", "Insurance", "Your Info", "Payment", "Confirm"];
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
   Tbilisi: "Our team will meet you at Tbilisi International Airport arrivals. Look for the Tbilisicars sign. Call +995 557 37 63 63 if you need assistance.",
@@ -134,6 +134,9 @@ function calcDays(pickup: string, dropoff: string) {
 
 function transLabel(t: string | null) { return t === "AUTOMATIC" ? "Automatic" : t === "MANUAL" ? "Manual" : t; }
 function fuelLabel(f: string | null) { const m: Record<string,string> = { PETROL:"Petrol", DIESEL:"Diesel", ELECTRIC:"Electric", HYBRID:"Hybrid" }; return f ? (m[f] ?? f) : null; }
+function formatPrice(amount: number, currency: string) {
+  return currency === "EUR" ? `€${amount.toLocaleString()}` : `${amount.toLocaleString()} ${currency}`;
+}
 
 function minDT() {
   const now = new Date(); now.setMinutes(now.getMinutes() + 30);
@@ -518,9 +521,30 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   isRefetching?: boolean;
 }) {
   const [editSearch, setEditSearch] = useState(false);
+  const [filters, setFilters] = useState({ category: "", transmission: "", seats: "", fuelType: "" });
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
+
+  // Derive filter option lists from the loaded model set — no hardcoded values
+  const categoryOptions = [...new Set(models.map((m) => m.category).filter((c): c is string => c != null))].sort();
+  const transmissionOptions = [...new Set(models.map((m) => m.transmission).filter((t): t is string => t != null))].sort();
+  const seatOptions = [...new Set(models.map((m) => m.seats).filter((s): s is number => s != null))].sort((a, b) => a - b);
+  const fuelOptions = [...new Set(models.map((m) => m.fuel_type).filter((f): f is string => f != null))].sort();
+  const hasFilters = !!(filters.category || filters.transmission || filters.seats || filters.fuelType);
+  const showFilters = !showBanner && models.length > 0 &&
+    (categoryOptions.length > 0 || transmissionOptions.length > 0 || seatOptions.length > 0 || fuelOptions.length > 0);
+
+  // Client-side filtering — models with null field values always pass any filter
+  const filteredModels = models.filter((m) => {
+    if (filters.category && m.category != null && m.category !== filters.category) return false;
+    if (filters.transmission && m.transmission != null && m.transmission !== filters.transmission) return false;
+    if (filters.seats && m.seats != null && String(m.seats) !== filters.seats) return false;
+    if (filters.fuelType && m.fuel_type != null && m.fuel_type !== filters.fuelType) return false;
+    return true;
+  });
+
+  function clearFilters() { setFilters({ category: "", transmission: "", seats: "", fuelType: "" }); }
 
   function validate() {
     if (!form.pickupLocationId) { toast({ title: "Please select a pickup location", variant: "destructive" }); return; }
@@ -534,184 +558,265 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Choose Your Vehicle</h2>
-      <p className="text-muted-foreground text-sm mb-3">Select from our available fleet for your journey</p>
+      <p className="text-muted-foreground text-sm mb-4">Select from our available fleet for your journey</p>
 
-      {showBanner && (
-        <TripDetailsBanner
-          form={form}
-          setForm={setForm}
-          locations={locations}
-          onClose={editSearch && !needTrip ? () => setEditSearch(false) : undefined}
-        />
-      )}
+      <div className="lg:grid lg:grid-cols-[280px_1fr] gap-6 items-start">
 
-      {!showBanner && (
-        <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
-              <MapPin className="w-3.5 h-3.5" />
-              {locations.find(l => String(l.id) === form.pickupLocationId)?.name ?? ""}
-              {form.dropoffLocationId !== form.pickupLocationId && (
-                <><ArrowRight className="w-3.5 h-3.5 text-primary/60 mx-0.5" />{locations.find(l => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-primary/80">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatDT(form.pickupDatetime)}
-              <span className="text-primary/50 mx-0.5">→</span>
-              {formatDT(form.dropoffDatetime)}
-            </div>
-            {days > 0 && (
-              <span className="bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
-                {days} {days === 1 ? "day" : "days"}
-              </span>
+        {/* ── Left sidebar ─────────────────────────────────────────────── */}
+        <div className="mb-4 lg:mb-0">
+          <div className="lg:sticky lg:top-4 space-y-3">
+
+            {/* Trip details: edit mode (banner) or compact summary */}
+            {showBanner ? (
+              <TripDetailsBanner
+                form={form}
+                setForm={setForm}
+                locations={locations}
+                onClose={editSearch && !needTrip ? () => setEditSearch(false) : undefined}
+              />
+            ) : (
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? ""}
+                    {form.dropoffLocationId !== form.pickupLocationId && (
+                      <><ArrowRight className="w-3.5 h-3.5 text-primary/60 mx-0.5" />{locations.find((l) => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-primary/80">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {formatDT(form.pickupDatetime)}
+                    <span className="text-primary/50 mx-0.5">→</span>
+                    {formatDT(form.dropoffDatetime)}
+                  </div>
+                  {days > 0 && (
+                    <span className="bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                      {days} {days === 1 ? "day" : "days"}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEditSearch(true)}
+                    className="ml-auto text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors focus:outline-none"
+                  >
+                    Edit Search
+                  </button>
+                </div>
+              </div>
             )}
-            <button
-              type="button"
-              onClick={() => setEditSearch(true)}
-              className="ml-auto text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors focus:outline-none"
-            >
-              Edit Search
-            </button>
-          </div>
-        </div>
-      )}
 
-      {isRefetching ? (
-        <div className="flex flex-col items-center justify-center py-8 gap-3">
-          <svg className="animate-spin h-7 w-7 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          <p className="text-sm text-muted-foreground">Checking availability…</p>
-        </div>
-      ) : models.length === 0 ? (
-        <div className="text-center py-6">
-          <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3">
-            <Car className="w-6 h-6 text-primary/50" />
-          </div>
-          <h3 className="text-base font-bold text-white mb-1">No vehicles found</h3>
-          <p className="text-sm text-muted-foreground mb-1 max-w-xs mx-auto leading-relaxed">
-            No vehicles are currently listed for online booking.
-          </p>
-          <p className="text-xs text-amber-400/80 mb-4">
-            Some vehicles may still be available on request — contact us directly.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setEditSearch(true)}
-              className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
-            >
-              Edit Search
-            </button>
-            <a
-              href="tel:+995557376363"
-              className="inline-flex items-center gap-2 border border-border text-foreground hover:bg-secondary/50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
-            >
-              <Phone className="w-4 h-4" /> Contact Support
-            </a>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 mb-6">
-          {models.map((m) => {
-            const selected = String(form.vehicleModelId) === String(m.id);
-            const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
-            const cur = m.price_currency ?? "GEL";
-            const totalEst = price && days > 0 ? price * days : null;
-            const isOnRequest = Number(m.vehicle_count) === 0;
-            return (
-              <button key={m.id} type="button" onClick={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
-                className={cn(
-                  "w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200",
-                  selected
-                    ? "border-primary shadow-lg shadow-primary/20 ring-1 ring-primary/30"
-                    : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
-                )}>
-                {/* Image banner */}
-                <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
-                  {m.image_url
-                    ? <img src={m.image_url} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
-                    : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-16 h-16 text-muted-foreground/15" />
-                      </div>
-                    )
-                  }
-                  {/* Category pill */}
-                  {m.category && (
-                    <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
-                      {m.category}
-                    </span>
+            {/* Filters — visible only when trip is confirmed and options exist */}
+            {showFilters && (
+              <div className="bg-secondary/20 border border-border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Settings className="w-3.5 h-3.5 text-primary" /> Filters
+                  </span>
+                  {hasFilters && (
+                    <button type="button" onClick={clearFilters} className="text-xs text-primary hover:underline focus:outline-none">
+                      Clear all
+                    </button>
                   )}
-                  {/* On Request badge */}
-                  {isOnRequest && (
-                    <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
-                      On Request
-                    </span>
-                  )}
-                  {/* Price badge */}
-                  {!isOnRequest && price !== null && (
-                    <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
-                      <div className="text-sm font-bold leading-none">{price.toLocaleString()} {cur}</div>
-                      <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
-                    </div>
-                  )}
-                  {/* Contact for pricing overlay */}
-                  {!isOnRequest && price === null && (
-                    <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
-                      <div className="text-xs leading-none">Contact for pricing</div>
-                    </div>
-                  )}
-                  {/* Selected checkmark overlay */}
-                  {selected && (
-                    <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  )}
-                  {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
                 </div>
+                <div className="space-y-3">
+                  {categoryOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Category</label>
+                      <Sel value={filters.category} onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}>
+                        <option value="">Any</option>
+                        {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                  {transmissionOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Transmission</label>
+                      <Sel value={filters.transmission} onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}>
+                        <option value="">Any</option>
+                        {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                  {seatOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Seats</label>
+                      <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
+                        <option value="">Any</option>
+                        {seatOptions.map((s) => <option key={s} value={String(s)}>{s} seats</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                  {fuelOptions.length > 0 && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
+                      <Sel value={filters.fuelType} onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}>
+                        <option value="">Any</option>
+                        {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-                {/* Info panel */}
-                <div className="p-4">
-                  <div className="mb-2">
-                    <div className="font-bold text-white text-base leading-tight">{m.brand} {m.model}</div>
-                    {totalEst && days > 0 && !isOnRequest && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        Est. {totalEst.toLocaleString()} {cur} for {days} {days === 1 ? "day" : "days"}
-                      </div>
-                    )}
-                    {isOnRequest && (
-                      <p className="text-xs text-amber-400/80 mt-0.5">Not instantly available — we'll confirm availability before your booking is finalised</p>
-                    )}
-                  </div>
-                  {/* Spec chips */}
-                  <div className="flex flex-wrap gap-2">
-                    {m.seats && (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                        <Users className="w-3 h-3" /> {m.seats} seats
-                      </span>
-                    )}
-                    {m.transmission && (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                        <Settings className="w-3 h-3" /> {transLabel(m.transmission)}
-                      </span>
-                    )}
-                    {m.fuel_type && (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                        <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
-                      </span>
-                    )}
-                  </div>
-                </div>
+        {/* ── Right side: vehicle list ──────────────────────────────────── */}
+        <div>
+          {isRefetching ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
+              <svg className="animate-spin h-7 w-7 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <p className="text-sm text-muted-foreground">Checking availability…</p>
+            </div>
+          ) : models.length === 0 ? (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3">
+                <Car className="w-6 h-6 text-primary/50" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">No vehicles found</h3>
+              <p className="text-sm text-muted-foreground mb-1 max-w-xs mx-auto leading-relaxed">
+                No vehicles are currently listed for online booking.
+              </p>
+              <p className="text-xs text-amber-400/80 mb-4">
+                Some vehicles may still be available on request — contact us directly.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditSearch(true)}
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+                >
+                  Edit Search
+                </button>
+                <a
+                  href="tel:+995557376363"
+                  className="inline-flex items-center gap-2 border border-border text-foreground hover:bg-secondary/50 font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
+                >
+                  <Phone className="w-4 h-4" /> Contact Support
+                </a>
+              </div>
+            </div>
+          ) : filteredModels.length === 0 ? (
+            <div className="text-center py-8 rounded-xl border border-border/40 bg-secondary/10">
+              <Settings className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm font-medium text-white mb-1">No vehicles match your filters</p>
+              <p className="text-xs text-muted-foreground mb-3">Try adjusting or clearing your filter selections.</p>
+              <button type="button" onClick={clearFilters} className="text-xs text-primary hover:underline focus:outline-none">
+                Clear all filters
               </button>
-            );
-          })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 mb-6">
+              {filteredModels.map((m) => {
+                const selected = String(form.vehicleModelId) === String(m.id);
+                const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+                const cur = m.price_currency ?? "EUR";
+                const totalEst = price && days > 0 ? price * days : null;
+                const isOnRequest = Number(m.vehicle_count) === 0;
+                return (
+                  <button key={m.id} type="button" onClick={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                    className={cn(
+                      "w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200",
+                      selected
+                        ? "border-primary shadow-lg shadow-primary/20 ring-1 ring-primary/30"
+                        : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
+                    )}>
+                    {/* Image banner */}
+                    <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
+                      {m.image_url
+                        ? <img src={m.image_url} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
+                        : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Car className="w-16 h-16 text-muted-foreground/15" />
+                          </div>
+                        )
+                      }
+                      {/* Category pill */}
+                      {m.category && (
+                        <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                          {m.category}
+                        </span>
+                      )}
+                      {/* On Request badge */}
+                      {isOnRequest && (
+                        <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                          On Request
+                        </span>
+                      )}
+                      {/* Price badge — total is primary, daily is secondary */}
+                      {!isOnRequest && price !== null && (
+                        <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
+                          {totalEst ? (
+                            <>
+                              <div className="text-sm font-bold leading-none">
+                                {formatPrice(totalEst, cur)} <span className="text-[10px] font-normal opacity-80">total</span>
+                              </div>
+                              <div className="text-[10px] opacity-70 leading-none mt-0.5">{formatPrice(price, cur)}/day</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-sm font-bold leading-none">{formatPrice(price, cur)}</div>
+                              <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {/* Contact for pricing overlay */}
+                      {!isOnRequest && price === null && (
+                        <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
+                          <div className="text-xs leading-none">Contact for pricing</div>
+                        </div>
+                      )}
+                      {/* Selected checkmark overlay */}
+                      {selected && (
+                        <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                      {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+                    </div>
+
+                    {/* Info panel */}
+                    <div className="p-4">
+                      <div className="mb-2">
+                        <div className="font-bold text-white text-base leading-tight">{m.brand} {m.model}</div>
+                        {isOnRequest && (
+                          <p className="text-xs text-amber-400/80 mt-0.5">Not instantly available — we'll confirm availability before your booking is finalised</p>
+                        )}
+                      </div>
+                      {/* Spec chips */}
+                      <div className="flex flex-wrap gap-2">
+                        {m.seats && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                            <Users className="w-3 h-3" /> {m.seats} seats
+                          </span>
+                        )}
+                        {m.transmission && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                            <Settings className="w-3 h-3" /> {transLabel(m.transmission)}
+                          </span>
+                        )}
+                        {m.fuel_type && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                            <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className="pt-6 border-t border-border/30 mt-2 flex justify-end">
+            <Btn onClick={validate} disabled={!form.vehicleModelId}>Continue →</Btn>
+          </div>
         </div>
-      )}
-      <div className="pt-6 border-t border-border/30 mt-2 flex justify-end">
-        <Btn onClick={validate} disabled={!form.vehicleModelId}>Continue →</Btn>
+
       </div>
     </div>
   );
@@ -751,17 +856,20 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
     if (!ex) return sum;
     return sum + Number(ex.price) * se.quantity * (ex.pricing_type === "per_day" ? days : 1);
   }, 0);
+  const extrasCurrency = form.extras.length > 0
+    ? (extras.find((e) => e.id === form.extras[0].extraId)?.currency ?? "EUR")
+    : "EUR";
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-white mb-1">Add-ons & Extras</h2>
-      <p className="text-muted-foreground text-sm mb-6">Enhance your trip with optional add-ons</p>
+      <h2 className="text-xl font-bold text-white mb-1">Additional Extras & Services</h2>
+      <p className="text-muted-foreground text-sm mb-6">Enhance your rental with additional services and add-ons</p>
 
       {extras.length > 0 ? (
         <>
           <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
             <Package className="w-3.5 h-3.5 text-primary" />
-            Available Add-ons
+            Available Services & Add-ons
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           {extras.map((e) => {
@@ -819,7 +927,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       ) : (
         <div className="text-center py-10 rounded-xl border border-border bg-card mb-4">
           <Package className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">No add-ons available</p>
+          <p className="text-sm font-medium text-muted-foreground">No extras or services available</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Continue to the next step to proceed with your booking.</p>
         </div>
       )}
@@ -830,7 +938,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
             <Package className="w-4 h-4 text-primary" />
             Add-ons total{days > 0 ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
           </div>
-          <span className="text-sm font-bold text-white">+{extrasRunningTotal.toLocaleString()} GEL</span>
+          <span className="text-sm font-bold text-white">+{extrasRunningTotal.toLocaleString()} {extrasCurrency}</span>
         </div>
       )}
 
