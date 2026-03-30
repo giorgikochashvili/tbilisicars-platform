@@ -743,7 +743,11 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       fuelType: formData.fuelType as any || null,
       luggageCapacity: formData.luggageCapacity,
       active: formData.active,
-      imageUrl: formData.imageUrl || undefined,
+      // In edit mode: send "" to explicitly clear an existing image when user removes it.
+      // In create mode: omit if no image was uploaded (undefined = skip field).
+      imageUrl: editingItem
+        ? (formData.imageUrl ?? "")
+        : (formData.imageUrl || undefined),
     };
     
     if (editingItem) {
