@@ -1,0 +1,95 @@
+Tbilisicars Website — Smooth Section Snap Scrolling (Hero → Next Section)
+
+Continue from current working state.
+
+IMPORTANT:
+- Do NOT change layout structure
+- Do NOT remove sections
+- Do NOT affect booking functionality
+- Add smooth scrolling behavior only
+
+==================================================
+GOAL
+==================================================
+
+Implement smooth “snap scrolling” behavior between sections.
+
+When the user scrolls down from the Hero section:
+- The page should smoothly scroll and align to the next section (stats / "Why Tbilisicars" section)
+- It should feel like full-screen section snapping
+
+==================================================
+BEHAVIOR REQUIREMENTS
+==================================================
+
+1. Each main section should behave like a screen block:
+   - Hero section = full viewport height (100vh)
+   - Next section aligns perfectly to top of screen
+
+2. When user scrolls:
+   - The page should smoothly snap to the next section
+   - Not jump instantly — use smooth animation
+
+3. Scrolling must feel natural:
+   - Do NOT lock scrolling
+   - User can still scroll normally
+   - Snap should assist, not force
+
+4. Works for:
+   - mouse wheel
+   - trackpad
+   - touch scrolling (mobile)
+
+==================================================
+TECHNICAL DIRECTION
+==================================================
+
+Preferred approach:
+
+Use CSS scroll snapping:
+
+- scroll-snap-type: y mandatory (or proximity for softer feel)
+- Each section:
+  scroll-snap-align: start
+
+Ensure:
+- No layout breaking
+- No overflow issues
+- Works with existing container structure
+
+Optional:
+- Use smooth scrolling behavior (scroll-behavior: smooth)
+
+==================================================
+IMPORTANT UX NOTES
+==================================================
+
+- Do NOT make scroll feel locked or rigid
+- Do NOT break mobile scroll
+- Do NOT interfere with form interactions
+- Keep experience fluid and premium
+
+==================================================
+DELIVERABLE
+==================================================
+
+Return:
+1. File(s) updated
+2. Confirmation snap scrolling implemented
+3. Confirmation Hero snaps to next section
+4. Confirmation mobile behavior is not broken
+5. Confirmation booking form still works
+
+==================================================
+MANUAL TEST
+==================================================
+
+- Open homepage
+- Scroll down slightly from Hero
+→ page smoothly aligns to next section
+
+- Scroll up
+→ returns smoothly to Hero
+
+- Form still usable
+- No scroll glitches
