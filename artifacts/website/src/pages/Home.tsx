@@ -196,7 +196,7 @@ export default function Home() {
         }} />
         {/* Tbilisi skyline — full hero background layer, screen blend dissolves the dark base away */}
         <img
-          src="/website/tbilisi-skyline.png"
+          src="/tbilisi-skyline.png"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full pointer-events-none select-none"

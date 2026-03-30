@@ -16,7 +16,7 @@ export default function Footer() {
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/website/tbilisi-logo.png"
+                src="/tbilisi-logo.png"
                 alt="Tbilisicars"
                 className="h-9 w-auto"
                 draggable={false}

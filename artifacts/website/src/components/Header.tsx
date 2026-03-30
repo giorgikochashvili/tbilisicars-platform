@@ -27,7 +27,7 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 shrink-0">
               <img
-                src="/website/tbilisi-logo.png"
+                src="/tbilisi-logo.png"
                 alt="Tbilisicars"
                 className="h-9 w-auto"
                 draggable={false}
