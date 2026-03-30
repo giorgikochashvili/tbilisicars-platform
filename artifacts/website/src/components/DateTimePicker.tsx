@@ -6,11 +6,26 @@
  * mode for the calendar; time is chosen via two compact <select> dropdowns.
  *
  * External API: value, onChange, min, placeholder, disabled, className  (unchanged)
+ * New additive API:
+ *   onDone?   — called after the "Done" button closes the popup
+ *   ref       — exposes { openPicker() } via useImperativeHandle
  */
-import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  type CSSProperties,
+} from "react";
 import ReactDOM from "react-dom";
 import DatePicker from "react-datepicker";
 import { Calendar, Clock } from "lucide-react";
+
+export interface DateTimePickerHandle {
+  openPicker(): void;
+}
 
 interface DateTimePickerProps {
   value: string;
@@ -19,6 +34,7 @@ interface DateTimePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  onDone?: () => void;
 }
 
 function strToDate(str: string): Date | null {
@@ -253,168 +269,176 @@ function injectStyles() {
   stylesInjected = true;
 }
 
-export function DateTimePicker({
-  value, onChange, min, placeholder, disabled, className,
-}: DateTimePickerProps) {
-  const [open, setOpen] = useState(false);
-  const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
+export const DateTimePicker = forwardRef<DateTimePickerHandle, DateTimePickerProps>(
+  function DateTimePicker(
+    { value, onChange, min, placeholder, disabled, className, onDone },
+    ref,
+  ) {
+    const [open, setOpen] = useState(false);
+    const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
 
-  const selected = strToDate(value);
-  const minDate = min ? strToDate(min) : null;
+    const selected = strToDate(value);
+    const minDate = min ? strToDate(min) : null;
 
-  const hour = selected ? selected.getHours() : 9;
-  const minute = selected ? Math.floor(selected.getMinutes() / 15) * 15 : 0;
+    const hour = selected ? selected.getHours() : 9;
+    const minute = selected ? Math.floor(selected.getMinutes() / 15) * 15 : 0;
 
-  useEffect(() => { injectStyles(); }, []);
+    useEffect(() => { injectStyles(); }, []);
 
-  const openPopup = useCallback(() => {
-    if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const approxH = 400;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const top = spaceBelow >= approxH
-      ? rect.bottom + 6
-      : Math.max(8, rect.top - approxH - 6);
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 316));
-    setPopupStyle({ position: "fixed", top, left, zIndex: 9999, width: 308 });
-    setOpen(true);
-  }, []);
+    const openPopup = useCallback(() => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const approxH = 400;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top = spaceBelow >= approxH
+        ? rect.bottom + 6
+        : Math.max(8, rect.top - approxH - 6);
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - 316));
+      setPopupStyle({ position: "fixed", top, left, zIndex: 9999, width: 308 });
+      setOpen(true);
+    }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node;
-      if (!triggerRef.current?.contains(target) && !popupRef.current?.contains(target)) {
-        setOpen(false);
+    useImperativeHandle(ref, () => ({ openPicker: openPopup }), [openPopup]);
+
+    useEffect(() => {
+      if (!open) return;
+      function handleClick(e: MouseEvent) {
+        const target = e.target as Node;
+        if (!triggerRef.current?.contains(target) && !popupRef.current?.contains(target)) {
+          setOpen(false);
+        }
       }
+      function handleScroll() { setOpen(false); }
+      document.addEventListener("mousedown", handleClick);
+      window.addEventListener("scroll", handleScroll, true);
+      return () => {
+        document.removeEventListener("mousedown", handleClick);
+        window.removeEventListener("scroll", handleScroll, true);
+      };
+    }, [open]);
+
+    function handleDateChange(d: Date | null) {
+      if (!d) return;
+      onChange(dateToStr(buildDateTime(d, hour, minute, minDate)));
     }
-    function handleScroll() { setOpen(false); }
-    document.addEventListener("mousedown", handleClick);
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
-  }, [open]);
 
-  function handleDateChange(d: Date | null) {
-    if (!d) return;
-    onChange(dateToStr(buildDateTime(d, hour, minute, minDate)));
-  }
+    function handleHourChange(h: number) {
+      if (!selected) return;
+      onChange(dateToStr(buildDateTime(selected, h, minute, minDate)));
+    }
 
-  function handleHourChange(h: number) {
-    if (!selected) return;
-    onChange(dateToStr(buildDateTime(selected, h, minute, minDate)));
-  }
+    function handleMinuteChange(m: number) {
+      if (!selected) return;
+      onChange(dateToStr(buildDateTime(selected, hour, m, minDate)));
+    }
 
-  function handleMinuteChange(m: number) {
-    if (!selected) return;
-    onChange(dateToStr(buildDateTime(selected, hour, m, minDate)));
-  }
+    // An hour option is disabled when ALL its 15-min slots are before minDate.
+    function isHourDisabled(h: number): boolean {
+      if (!minDate || !selected) return false;
+      if (!isSameDay(selected, minDate)) return false;
+      if (h < minDate.getHours()) return true;
+      if (h > minDate.getHours()) return false;
+      // h === minDate.getHours(): disabled if no 15-min slot in this hour is >= min
+      return ![0, 15, 30, 45].some((m) => m >= minDate.getMinutes());
+    }
 
-  // An hour option is disabled when ALL its 15-min slots are before minDate.
-  function isHourDisabled(h: number): boolean {
-    if (!minDate || !selected) return false;
-    if (!isSameDay(selected, minDate)) return false;
-    if (h < minDate.getHours()) return true;
-    if (h > minDate.getHours()) return false;
-    // h === minDate.getHours(): disabled if no 15-min slot in this hour is >= min
-    return ![0, 15, 30, 45].some((m) => m >= minDate.getMinutes());
-  }
+    function isMinuteDisabled(m: number): boolean {
+      if (!minDate || !selected) return false;
+      if (!isSameDay(selected, minDate)) return false;
+      if (hour > minDate.getHours()) return false;
+      if (hour < minDate.getHours()) return true;
+      return m < minDate.getMinutes();
+    }
 
-  function isMinuteDisabled(m: number): boolean {
-    if (!minDate || !selected) return false;
-    if (!isSameDay(selected, minDate)) return false;
-    if (hour > minDate.getHours()) return false;
-    if (hour < minDate.getHours()) return true;
-    return m < minDate.getMinutes();
-  }
+    const displayText = selected ? formatDisplay(selected, hour, minute) : "";
 
-  const displayText = selected ? formatDisplay(selected, hour, minute) : "";
-
-  const popup =
-    open && !disabled && typeof document !== "undefined"
-      ? ReactDOM.createPortal(
-          <div ref={popupRef} style={popupStyle} className="tc-dp-popup">
-            <DatePicker
-              selected={selected}
-              onChange={handleDateChange}
-              inline
-              minDate={minDate ?? undefined}
-            />
-            <div className="tc-dp-time-row">
-              <div className="tc-dp-time-label">
-                <Clock className="w-3 h-3" />
-                Time
-              </div>
-              <select
-                className="tc-dp-time-select"
-                value={hour}
-                disabled={!selected}
-                onChange={(e) => handleHourChange(Number(e.target.value))}
-                aria-label="Hour"
-              >
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i} value={i} disabled={isHourDisabled(i)}>
-                    {String(i).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-              <span className="tc-dp-time-sep">:</span>
-              <select
-                className="tc-dp-time-select"
-                value={minute}
-                disabled={!selected}
-                onChange={(e) => handleMinuteChange(Number(e.target.value))}
-                aria-label="Minutes"
-              >
-                {[0, 15, 30, 45].map((m) => (
-                  <option key={m} value={m} disabled={isMinuteDisabled(m)}>
-                    {String(m).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-              {selected && (
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                  style={{ background: "hsl(350,68%,38%)", color: "#fff" }}
+    const popup =
+      open && !disabled && typeof document !== "undefined"
+        ? ReactDOM.createPortal(
+            <div ref={popupRef} style={popupStyle} className="tc-dp-popup">
+              <DatePicker
+                selected={selected}
+                onChange={handleDateChange}
+                inline
+                minDate={minDate ?? undefined}
+              />
+              <div className="tc-dp-time-row">
+                <div className="tc-dp-time-label">
+                  <Clock className="w-3 h-3" />
+                  Time
+                </div>
+                <select
+                  className="tc-dp-time-select"
+                  value={hour}
+                  disabled={!selected}
+                  onChange={(e) => handleHourChange(Number(e.target.value))}
+                  aria-label="Hour"
                 >
-                  Done
-                </button>
-              )}
-            </div>
-          </div>,
-          document.body,
-        )
-      : null;
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i} disabled={isHourDisabled(i)}>
+                      {String(i).padStart(2, "0")}
+                    </option>
+                  ))}
+                </select>
+                <span className="tc-dp-time-sep">:</span>
+                <select
+                  className="tc-dp-time-select"
+                  value={minute}
+                  disabled={!selected}
+                  onChange={(e) => handleMinuteChange(Number(e.target.value))}
+                  aria-label="Minutes"
+                >
+                  {[0, 15, 30, 45].map((m) => (
+                    <option key={m} value={m} disabled={isMinuteDisabled(m)}>
+                      {String(m).padStart(2, "0")}
+                    </option>
+                  ))}
+                </select>
+                {selected && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      onDone?.();
+                    }}
+                    className="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ background: "hsl(350,68%,38%)", color: "#fff" }}
+                  >
+                    Done
+                  </button>
+                )}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null;
 
-  return (
-    <div className={`tc-datepicker${className ? ` ${className}` : ""}`}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => (open ? setOpen(false) : openPopup())}
-        disabled={disabled}
-        className={[
-          "w-full flex items-center gap-2.5 rounded-lg border border-input bg-secondary/40 px-3.5 py-3",
-          "text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all",
-          "hover:border-primary/40 hover:bg-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed group",
-          open ? "border-primary/50 bg-secondary/60" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        <Calendar className="w-4 h-4 text-primary shrink-0" />
-        <span className={`flex-1 truncate ${displayText ? "text-foreground" : "text-muted-foreground"}`}>
-          {displayText || placeholder || "Select date & time"}
-        </span>
-        <Clock className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 group-hover:text-primary/50 transition-colors" />
-      </button>
-      {popup}
-    </div>
-  );
-}
+    return (
+      <div className={`tc-datepicker${className ? ` ${className}` : ""}`}>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => (open ? setOpen(false) : openPopup())}
+          disabled={disabled}
+          className={[
+            "w-full flex items-center gap-2.5 rounded-lg border border-input bg-secondary/40 px-3.5 py-3",
+            "text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all",
+            "hover:border-primary/40 hover:bg-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed group",
+            open ? "border-primary/50 bg-secondary/60" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <Calendar className="w-4 h-4 text-primary shrink-0" />
+          <span className={`flex-1 truncate ${displayText ? "text-foreground" : "text-muted-foreground"}`}>
+            {displayText || placeholder || "Select date & time"}
+          </span>
+          <Clock className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 group-hover:text-primary/50 transition-colors" />
+        </button>
+        {popup}
+      </div>
+    );
+  },
+);

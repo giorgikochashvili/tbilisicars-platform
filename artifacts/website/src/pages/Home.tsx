@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -6,7 +6,7 @@ import {
   Users, CheckCircle, Phone, Infinity, Car, HeartHandshake,
 } from "lucide-react";
 import { Link } from "wouter";
-import { DateTimePicker } from "@/components/DateTimePicker";
+import { DateTimePicker, type DateTimePickerHandle } from "@/components/DateTimePicker";
 
 interface Location {
   id: number;
@@ -79,6 +79,7 @@ export default function Home() {
   const [dropoffDatetime, setDropoffDatetime] = useState("");
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
+  const dropoffPickerRef = useRef<DateTimePickerHandle>(null);
 
   const { data: config } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
@@ -228,6 +229,7 @@ export default function Home() {
                   min={minDt}
                   onChange={setPickupDatetime}
                   placeholder="Select pickup date & time"
+                  onDone={() => dropoffPickerRef.current?.openPicker()}
                 />
               </div>
               <div>
@@ -235,6 +237,7 @@ export default function Home() {
                   Return Date &amp; Time
                 </label>
                 <DateTimePicker
+                  ref={dropoffPickerRef}
                   value={dropoffDatetime}
                   min={pickupDatetime || minDt}
                   onChange={setDropoffDatetime}
