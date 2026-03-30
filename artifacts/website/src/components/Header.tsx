@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -26,9 +26,11 @@ export default function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-md">
-                <Car className="w-5 h-5 text-white" />
-              </div>
+              {/* Brand emblem — red square with diagonal fold + detached triangle */}
+              <svg width="34" height="38" viewBox="0 0 34 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <polygon points="0,0 30,0 30,22 20,30 0,30" fill="hsl(350,68%,38%)" />
+                <polygon points="22,33 30,23 30,33" fill="hsl(350,68%,38%)" />
+              </svg>
               <div className="leading-none">
                 <div className="font-bold text-white text-lg tracking-tight">Tbilisicars</div>
                 <div className="text-xs text-muted-foreground">Car Rental Georgia</div>

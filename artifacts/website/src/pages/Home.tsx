@@ -122,14 +122,19 @@ export default function Home() {
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 20% 50%, hsl(350,68%,38%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(214,45%,25%) 0%, transparent 50%)"
         }} />
-        {/* Tbilisi skyline line-art — screen blend dissolves the dark background away */}
+        {/* Tbilisi skyline — full hero background layer, screen blend dissolves the dark base away */}
         <img
           src="/website/tbilisi-skyline.png"
           alt=""
           aria-hidden="true"
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-5xl pointer-events-none select-none"
-          style={{ opacity: 0.35, mixBlendMode: "screen" }}
+          className="absolute inset-0 w-full h-full pointer-events-none select-none"
+          style={{ objectFit: "cover", objectPosition: "center 60%", opacity: 0.75, mixBlendMode: "screen" }}
           draggable={false}
+        />
+        {/* Readability vignette — dark edges keep text and booking card crisp */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, hsl(211,55%,8%) 0%, transparent 25%, transparent 65%, hsl(211,55%,8%) 100%)" }}
         />
 
         <style>{`

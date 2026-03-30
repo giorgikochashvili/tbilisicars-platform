@@ -1,0 +1,149 @@
+Tbilisicars Website — FULL FIRST-VIEW HERO BACKGROUND + HEADER LOGO REPLACEMENT (UI ONLY, SURGICAL)
+
+Continue from the current working state.
+
+IMPORTANT:
+- Do NOT change booking logic
+- Do NOT change layout flow of the booking form
+- Do NOT touch backend logic
+- Do NOT change navigation behavior
+- Do NOT re-architect the homepage
+- UI/background/logo refinement only
+
+CURRENT ISSUE:
+The skyline/background asset from the provided PDF/converted image was placed as a small decorative layer inside the hero content area.
+This is NOT the target.
+
+TARGET:
+On first page load, the user should immediately see the skyline artwork as the full visible homepage hero background, spanning the whole first screen area behind the hero content.
+
+==================================================
+TASK 1 — FULL FIRST-VIEW HERO BACKGROUND
+==================================================
+
+Use the provided skyline asset from the PDF as the main visual background of the FIRST VISIBLE HERO SECTION.
+
+REQUIREMENTS:
+- The skyline/background image must cover the entire first visible hero area on initial page load
+- It should feel like a full hero background, not a small inserted decoration
+- It must extend across the full available hero width
+- It must visually fill the hero height properly
+- Scale/crop the image as needed so it fits elegantly across the hero area
+- The user’s first impression should clearly show the skyline artwork behind the headline + booking card
+
+DESIGN GOAL:
+On first visit:
+- full-width
+- visually full-height hero background
+- skyline clearly present and centered well
+- content remains readable above it
+
+IMPLEMENTATION DIRECTION:
+- Apply the skyline image as the hero section background or as a full-size absolutely positioned background layer spanning the whole hero section
+- Use background-size: cover OR a carefully tuned contain/cover hybrid approach depending on the asset proportions
+- Use background-position tuned for best composition (likely center bottom or center center)
+- No repeating
+- Ensure the image spans the entire visible hero section width and height
+- Hero section should have a minimum height close to the first viewport impression (for example min-h-[calc(100vh-headerHeight)] or the current equivalent if already used)
+- Keep content centered and above the background with correct z-index layering
+
+VERY IMPORTANT:
+- The skyline should be visible immediately when landing on the homepage
+- It should not sit only inside the inner content box
+- It should not be clipped to a narrow container
+- It should visually occupy the whole initial hero background area
+
+READABILITY:
+- Preserve text readability with dark overlay / gradient if needed
+- Booking card must remain clearly readable
+- Keep the premium dark feel
+
+SCROLL BEHAVIOR:
+- This full background treatment is only important for the initial visible hero section
+- No need to force the same effect far below after scrolling
+- Just ensure the first-screen hero looks correct and premium
+
+RESPONSIVE:
+- Desktop: skyline should feel expansive and cinematic
+- Mobile/tablet: keep it elegant, reduce visual clutter if necessary, but still preserve the hero-background concept
+
+==================================================
+TASK 2 — HEADER LOGO REPLACEMENT
+==================================================
+
+Replace the current simple car icon in the top-left navbar/header with the real company emblem/logo from the provided PDF/asset.
+
+TARGET:
+- In the header, where the small car icon currently appears next to “Tbilisicars”, place the actual company logo/emblem instead
+- Keep the “Tbilisicars” text and subtext layout aligned properly
+- The logo should feel crisp, balanced, and premium
+
+REQUIREMENTS:
+- Use the provided logo/emblem asset extracted from the PDF/design file
+- Fit it into the existing header branding area
+- Preserve navbar height and alignment
+- Do not distort the logo
+- Use appropriate sizing so it sits naturally in the current header
+- If necessary, slightly adjust spacing between logo and text so the branding remains polished
+
+IMPORTANT:
+- Do NOT just add the logo in a random place
+- Replace the current icon slot cleanly
+- Keep the brand block visually balanced
+
+==================================================
+IMPLEMENTATION NOTES
+==================================================
+
+- Reuse the current homepage hero structure
+- Reuse the current navbar structure
+- Only refine asset placement, layering, sizing, and styling
+- Do not introduce a new homepage architecture
+- If necessary, add one dedicated asset file for:
+  - skyline background
+  - header logo/emblem
+- Optimize asset usage for clean rendering
+
+If the PDF currently contains the skyline artwork but the logo/emblem must be cropped/extracted separately, do that cleanly and use the extracted logo asset for the navbar.
+
+==================================================
+LIKELY FILES
+==================================================
+
+Likely homepage / navbar files only, for example:
+- artifacts/website/src/pages/Home.tsx
+- shared hero/header component file if one exists
+- asset import file(s)
+
+Avoid unrelated changes.
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+After implementation, return:
+1. Exact files changed
+2. Which asset is used for full hero background
+3. Which asset is used for header logo
+4. Short summary of hero background layout change
+5. Short summary of navbar logo replacement
+6. Confirmation that booking logic/layout behavior was not changed
+
+==================================================
+MANUAL TESTS
+==================================================
+
+Homepage first load:
+- skyline artwork is clearly visible across the whole first hero background
+- it is not trapped inside a narrow inner box
+- hero text remains readable
+- booking card remains readable
+
+Navbar:
+- old simple icon is replaced with the real logo/emblem
+- logo aligns correctly with Tbilisicars text
+- navbar height/layout remains clean
+
+Responsive:
+- homepage still looks good on smaller screens
+- no broken overlaps
