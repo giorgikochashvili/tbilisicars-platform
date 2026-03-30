@@ -156,15 +156,17 @@ export default function Home() {
             24/7 Airport Office Services &amp; Customer Support
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.15]">
-            Discover Georgia With Us
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-4 lg:mb-3 leading-[1.15]">
+            <span className="text-white">Discover </span>
+            <span className="text-primary">Georgia</span>
+            <span className="text-white"> With Us</span>
           </h1>
-          <p className="text-base sm:text-lg text-primary/80 max-w-2xl mx-auto mb-10 lg:mb-5">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
             Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance.
           </p>
 
           {/* Booking Widget */}
-          <div className="bg-[hsl(211,55%,8%)]/70 backdrop-blur-md border border-white/10 rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
             <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
               Find Your Car
@@ -179,7 +181,7 @@ export default function Home() {
                 <select
                   value={pickupLocationId}
                   onChange={(e) => setPickupLocationId(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                 >
                   <option value="">Select location…</option>
                   {cities.map((city) => (
@@ -200,7 +202,7 @@ export default function Home() {
                   <select
                     value={dropoffLocationId}
                     onChange={(e) => setDropoffLocationId(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                   >
                     <option value="">Select location…</option>
                     {cities.map((city) => (

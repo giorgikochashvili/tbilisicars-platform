@@ -1,0 +1,124 @@
+Tbilisicars Website — Hero Final Visual Polish (Color Balance + Heading Styling + True Transparency Fix)
+
+Continue from the current working state.
+
+IMPORTANT:
+- UI polishing ONLY
+- Do NOT change layout
+- Do NOT change booking logic
+- Do NOT touch backend
+- Do NOT move elements
+- Only fix styling issues described below
+
+==================================================
+TASK 1 — FIX SUPPORTING PARAGRAPH COLOR + SIZE
+==================================================
+
+Current issue:
+The supporting paragraph is now red and too visually strong.
+
+Fix:
+- Change the paragraph color to match the SAME color used in:
+  "24/7 Airport Office Services & Customer Support"
+
+- This means:
+  → soft light grey / muted tone (NOT red)
+
+Also:
+- Reduce font size by approximately 15%
+- Keep readability high
+- Keep same text and order (DO NOT CHANGE TEXT)
+
+Final text remains:
+"Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance."
+
+==================================================
+TASK 2 — SPLIT COLOR MAIN HEADING
+==================================================
+
+Update heading:
+
+"Discover Georgia With Us"
+
+Apply color styling EXACTLY like this:
+
+- "Discover" → white
+- "Georgia" → brand red (same red used in buttons)
+- "With Us" → white
+
+IMPORTANT:
+- Keep same font size (already reduced previously)
+- Do NOT change spacing
+- Do NOT break responsiveness
+- Ensure smooth inline styling (not broken into weird lines)
+
+==================================================
+TASK 3 — FIX REAL TRANSPARENCY OF SEARCH CARD
+==================================================
+
+Current issue:
+The booking card still looks mostly solid, not truly transparent.
+
+Fix the ENTIRE "Find Your Car" card:
+
+- Make background clearly semi-transparent
+- Background skyline MUST be slightly visible through it
+- Use proper rgba/opacity (not just darker color)
+- Optional: add subtle backdrop blur for glass effect
+
+==================================================
+TASK 4 — FIX INPUT FIELD TRANSPARENCY (IMPORTANT)
+==================================================
+
+Current issue:
+Date/time inputs still look solid.
+
+Apply same transparency style to:
+- Pickup date/time
+- Return date/time
+- Location select (if needed for consistency)
+
+Requirements:
+- Slight transparency (not full solid)
+- Maintain usability
+- Keep borders clean
+- Icons clearly visible
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+- Text content
+- Button text
+- Form structure
+- Layout
+- Navbar
+- Logic
+
+==================================================
+DELIVERABLE
+==================================================
+
+Return:
+1. File updated
+2. Confirmation paragraph color now matches top text (not red)
+3. Confirmation paragraph size reduced ~15%
+4. Confirmation heading colors:
+   - Discover = white
+   - Georgia = red
+   - With Us = white
+5. Confirmation card is now visibly transparent
+6. Confirmation inputs are also transparent
+7. Confirmation no logic was changed
+
+==================================================
+MANUAL CHECK
+==================================================
+
+Homepage:
+- Heading visually: white / red / white
+- Paragraph is NOT red anymore
+- Paragraph slightly smaller
+- Card shows background through it
+- Inputs also show subtle transparency
+- Everything still clean and readable
