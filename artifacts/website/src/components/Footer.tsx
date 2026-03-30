@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Car, Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
 
 const OFFICES = [
   { city: "Tbilisi Office", phone: "+995 557 37 63 63" },
@@ -15,9 +15,12 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                <Car className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src="/website/tbilisi-logo.png"
+                alt="Tbilisicars"
+                className="h-9 w-auto"
+                draggable={false}
+              />
               <div>
                 <div className="font-bold text-white text-lg leading-none">Tbilisicars</div>
                 <div className="text-xs text-muted-foreground mt-0.5">Car Rental Georgia</div>

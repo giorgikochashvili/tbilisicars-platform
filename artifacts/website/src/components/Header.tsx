@@ -26,11 +26,12 @@ export default function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 shrink-0">
-              {/* Brand emblem — red square with diagonal fold + detached triangle */}
-              <svg width="34" height="38" viewBox="0 0 34 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <polygon points="0,0 30,0 30,22 20,30 0,30" fill="hsl(350,68%,38%)" />
-                <polygon points="22,33 30,23 30,33" fill="hsl(350,68%,38%)" />
-              </svg>
+              <img
+                src="/website/tbilisi-logo.png"
+                alt="Tbilisicars"
+                className="h-9 w-auto"
+                draggable={false}
+              />
               <div className="leading-none">
                 <div className="font-bold text-white text-lg tracking-tight">Tbilisicars</div>
                 <div className="text-xs text-muted-foreground">Car Rental Georgia</div>
