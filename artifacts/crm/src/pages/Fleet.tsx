@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info, Search, Filter, X, MapPin } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Car, Settings2, ShieldCheck, Gauge, Info, Search, Filter, X, MapPin, ChevronDown, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
@@ -460,6 +460,9 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                       <div className="font-mono font-bold tracking-wider text-sm bg-muted px-2 py-1 rounded border border-border/50 inline-block">
                         {v.licensePlate || "—"}
                       </div>
+                      {v.techpassportNumber && (
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">TP: {v.techpassportNumber}</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={v.status || "INACTIVE"} />
@@ -518,7 +521,12 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 <SelectContent>
                   {(models as any)?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
-                      {m.brand?.name} {m.name}
+                      <span className="flex items-center gap-2">
+                        {m.brand?.logoUrl && (
+                          <img src={`/api/storage${m.brand.logoUrl}`} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        )}
+                        {m.brand?.name} {m.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -550,7 +558,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               <Select value={formData.locationId} onValueChange={(val) => setFormData({...formData, locationId: val})}>
                 <SelectTrigger><SelectValue placeholder="Select location..." /></SelectTrigger>
                 <SelectContent>
-                  {(locations as any)?.map((loc: any) => (
+                  {allLocations.filter((loc: any) => ["Tbilisi","Kutaisi","Batumi"].includes(loc.city)).map((loc: any) => (
                     <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -565,7 +573,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Year</Label>
-                <Input type="number" value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} />
+                <Input type="number" value={formData.year} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} />
               </div>
               <div className="grid gap-2">
                 <Label>Color</Label>
@@ -573,7 +581,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               </div>
               <div className="grid gap-2">
                 <Label>Mileage (km)</Label>
-                <Input type="number" value={formData.mileage} onChange={e => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} />
+                <Input type="number" value={formData.mileage} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, mileage: parseInt(e.target.value) || 0})} />
               </div>
             </div>
           </div>
@@ -595,9 +603,16 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   );
 }
 
+const MODEL_CATEGORIES = [
+  "Mini", "Economy", "Standard", "Intermediate", "Crossover",
+  "Intermediate Suv", "Full-Size Suv", "7 Seater Suv", "Van",
+  "Convertible", "Premium", "Luxury",
+] as const;
+
 function ModelsTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [expandedModelId, setExpandedModelId] = useState<number | null>(null);
   const [formData, setFormData] = useState<{
     brandId: string;
     name: string;
@@ -619,6 +634,11 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
   
   const { data: models, isLoading } = useListAdminModels(reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
+  const { data: vehiclesData } = useListAdminVehicles(undefined, reqOpts);
+  const { data: locationsData } = useListLocations(reqOpts);
+  const allVehicles: any[] = (vehiclesData as any)?.data || [];
+  const locationMap: Record<string, string> = {};
+  ((locationsData as any) || []).forEach((loc: any) => { if (loc.id != null) locationMap[loc.id.toString()] = loc.city || loc.name || ""; });
   
   const createMutation = useCreateAdminModel(reqOpts);
   const updateMutation = useUpdateAdminModel(reqOpts);
@@ -736,41 +756,80 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                 </TableCell>
               </TableRow>
             ) : (
-              (models as any)?.map((m: any) => (
-                <TableRow key={m.id} className="border-border/20 hover:bg-muted/30">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {m.brand?.logoUrl && (
-                        <img
-                          src={`/api/storage${m.brand.logoUrl}`}
-                          alt=""
-                          className="w-5 h-5 rounded object-contain flex-shrink-0"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      )}
-                      <div>
-                        <div className="font-medium">{m.brand?.name}</div>
-                        <div className="text-sm text-muted-foreground">{m.name}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize text-sm">{m.category || "—"}</TableCell>
-                  <TableCell className="capitalize text-sm">{m.transmission || "—"}</TableCell>
-                  <TableCell className="capitalize text-sm">{m.fuelType || "—"}</TableCell>
-                  <TableCell className="text-sm">{m.seats || "—"}</TableCell>
-                  <TableCell>
-                    {m.active ? (
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500">Active</Badge>
-                    ) : (
-                      <Badge variant="outline">Inactive</Badge>
+              (models as any)?.map((m: any) => {
+                const isExpanded = expandedModelId === m.id;
+                const modelVehicles = allVehicles.filter((v: any) => v.vehicleModelId === m.id);
+                return (
+                  <React.Fragment key={m.id}>
+                    <TableRow
+                      className="border-border/20 hover:bg-muted/30 cursor-pointer"
+                      onClick={() => setExpandedModelId(isExpanded ? null : m.id)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                          {m.brand?.logoUrl && (
+                            <img
+                              src={`/api/storage${m.brand.logoUrl}`}
+                              alt=""
+                              className="w-5 h-5 rounded object-contain flex-shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          )}
+                          <span className="font-medium">{m.brand?.name} {m.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="capitalize text-sm">{m.category || "—"}</TableCell>
+                      <TableCell className="capitalize text-sm">{m.transmission || "—"}</TableCell>
+                      <TableCell className="capitalize text-sm">{m.fuelType || "—"}</TableCell>
+                      <TableCell className="text-sm">{m.seats || "—"}</TableCell>
+                      <TableCell>
+                        {m.active ? (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500">Active</Badge>
+                        ) : (
+                          <Badge variant="outline">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(m)}><Edit className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(m.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${m.id}-expanded`} className="border-border/10 bg-muted/10">
+                        <TableCell colSpan={7} className="p-0">
+                          <div className="px-8 py-3">
+                            {modelVehicles.length === 0 ? (
+                              <p className="text-xs text-muted-foreground py-2">No physical vehicles linked to this model yet.</p>
+                            ) : (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-muted-foreground border-b border-border/20">
+                                    <th className="text-left font-medium py-1 pr-4">Plate</th>
+                                    <th className="text-left font-medium py-1 pr-4">Region</th>
+                                    <th className="text-left font-medium py-1 pr-4">Status</th>
+                                    <th className="text-left font-medium py-1">Mileage</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {modelVehicles.map((v: any) => (
+                                    <tr key={v.id} className="border-b border-border/10 last:border-0">
+                                      <td className="py-1 pr-4 font-mono font-bold tracking-wider">{v.licensePlate || "—"}</td>
+                                      <td className="py-1 pr-4 text-muted-foreground">{locationMap[v.locationId?.toString()] || "—"}</td>
+                                      <td className="py-1 pr-4"><StatusBadge status={v.status || "INACTIVE"} /></td>
+                                      <td className="py-1 text-muted-foreground">{v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenModal(m)}><Edit className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(m.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                  </React.Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -788,7 +847,16 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               <Select value={formData.brandId} onValueChange={(val) => setFormData({...formData, brandId: val})}>
                 <SelectTrigger><SelectValue placeholder="Select Brand" /></SelectTrigger>
                 <SelectContent>
-                  {(brands as any)?.map((b: any) => <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>)}
+                  {(brands as any)?.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id.toString()}>
+                      <span className="flex items-center gap-2">
+                        {b.logoUrl && (
+                          <img src={`/api/storage${b.logoUrl}`} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        )}
+                        {b.name}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -798,7 +866,15 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
             </div>
             <div className="grid gap-2">
               <Label>Category</Label>
-              <Input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="e.g. Economy, SUV, Luxury" />
+              <Select value={formData.category || "none"} onValueChange={(val) => setFormData({...formData, category: val === "none" ? "" : val})}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No category</SelectItem>
+                  {MODEL_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
@@ -827,15 +903,15 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Seats</Label>
-                <Input type="number" min="1" value={formData.seats} onChange={e => setFormData({...formData, seats: parseInt(e.target.value) || 5})} />
+                <Input type="number" min="1" value={formData.seats} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, seats: parseInt(e.target.value) || 5})} />
               </div>
               <div className="grid gap-2">
                 <Label>Doors</Label>
-                <Input type="number" min="2" value={formData.doors} onChange={e => setFormData({...formData, doors: parseInt(e.target.value) || 4})} />
+                <Input type="number" min="2" value={formData.doors} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, doors: parseInt(e.target.value) || 4})} />
               </div>
               <div className="grid gap-2">
                 <Label>Luggage</Label>
-                <Input type="number" min="0" value={formData.luggageCapacity} onChange={e => setFormData({...formData, luggageCapacity: parseInt(e.target.value) || 0})} />
+                <Input type="number" min="0" value={formData.luggageCapacity} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, luggageCapacity: parseInt(e.target.value) || 0})} />
               </div>
             </div>
             <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
@@ -859,6 +935,7 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", logoUrl: "" });
+  const [nameError, setNameError] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   
@@ -899,23 +976,32 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
   const openModal = (item: any = null) => {
     setEditingItem(item);
     setFormData(item ? {name: item.name, logoUrl: item.logoUrl||""} : {name: "", logoUrl: ""});
+    setNameError(null);
     setIsModalOpen(true);
   };
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      toast({ title: "Error", description: "Brand name is required", variant: "destructive" });
+      setNameError("Brand name is required");
       return;
     }
+    setNameError(null);
+    const handleError = (err: any) => {
+      if (err?.status === 409) {
+        setNameError(`A brand named "${formData.name.trim()}" already exists.`);
+      } else {
+        toast({ title: "Error", description: err?.message || "Failed to save brand", variant: "destructive" });
+      }
+    };
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: formData }, { 
         onSuccess: () => { toast({ title: "Success", description: "Brand updated" }); queryClient.invalidateQueries(); setIsModalOpen(false); },
-        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+        onError: handleError,
       });
     } else {
       createMutation.mutate({ data: formData }, { 
         onSuccess: () => { toast({ title: "Success", description: "Brand created" }); queryClient.invalidateQueries(); setIsModalOpen(false); },
-        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+        onError: handleError,
       });
     }
   };
@@ -979,7 +1065,13 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Brand Name <span className="text-destructive">*</span></Label>
-              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Toyota" />
+              <Input
+                value={formData.name}
+                onChange={e => { setFormData({...formData, name: e.target.value}); setNameError(null); }}
+                placeholder="e.g. Toyota"
+                className={nameError ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {nameError && <p className="text-xs text-destructive">{nameError}</p>}
             </div>
             <div className="grid gap-2">
               <Label>Brand Logo (optional)</Label>
