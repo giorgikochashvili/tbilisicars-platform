@@ -423,10 +423,10 @@ export const DateTimePicker = forwardRef<DateTimePickerHandle, DateTimePickerPro
           onClick={() => (open ? setOpen(false) : openPopup())}
           disabled={disabled}
           className={[
-            "w-full flex items-center gap-2.5 rounded-lg border border-input bg-secondary/40 px-3.5 py-3",
+            "w-full flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 px-3.5 py-3",
             "text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all",
-            "hover:border-primary/40 hover:bg-secondary/60 disabled:opacity-50 disabled:cursor-not-allowed group",
-            open ? "border-primary/50 bg-secondary/60" : "",
+            "hover:border-primary/40 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed group",
+            open ? "border-primary/50 bg-white/10" : "",
           ]
             .filter(Boolean)
             .join(" ")}

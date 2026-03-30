@@ -153,14 +153,14 @@ export default function Home() {
           </div>
 
           <div className="text-xs text-muted-foreground mb-6 lg:mb-2">
-            24/7 Airport office services &amp; Customer Support
+            24/7 Airport Office Services &amp; Customer Support
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.15]">
+          <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.15]">
             Discover Georgia With Us
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
-            Affordable car rental across Georgia, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside assistance, Full Comprehensive insurance options.
+            Affordable Car Rental Across Georgia, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance, Full Comprehensive Insurance.
           </p>
 
           {/* Booking Widget */}

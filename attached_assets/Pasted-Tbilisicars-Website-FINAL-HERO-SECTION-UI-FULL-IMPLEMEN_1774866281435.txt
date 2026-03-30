@@ -1,0 +1,126 @@
+Tbilisicars Website — FINAL HERO SECTION UI (FULL IMPLEMENTATION)
+
+Continue from the current working state.
+
+IMPORTANT:
+- UI changes only
+- Do NOT change booking logic
+- Do NOT change layout structure
+- Do NOT touch backend
+- Do NOT move elements
+- Only update text + visual styling exactly as described
+
+==================================================
+1) MAIN HERO HEADING
+==================================================
+
+Replace any existing hero heading with exactly:
+
+"Discover Georgia With Us"
+
+Requirements:
+- Reduce size by approximately 20% from current
+- Keep centered
+- Keep strong premium look
+- Do NOT change wording
+
+==================================================
+2) TOP SMALL TEXT (ABOVE HEADING)
+==================================================
+
+Set text exactly to:
+
+"24/7 Airport Office Services & Customer Support"
+
+Rules:
+- Use Title Case (each main word capitalized)
+- Replace any previous version completely
+
+==================================================
+3) SUPPORTING PARAGRAPH (GREY TEXT)
+==================================================
+
+Replace entire paragraph with exactly:
+
+"Affordable Car Rental Across Georgia, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance, Full Comprehensive Insurance."
+
+IMPORTANT:
+- Use Title Case exactly like above
+- Do NOT use "Options"
+- Sentence must end with a period
+- Keep clean spacing and line wrapping
+
+==================================================
+4) FIND YOUR CAR CARD — GLASS EFFECT
+==================================================
+
+Make the entire booking card semi-transparent:
+
+- Use dark translucent background
+- Background skyline should slightly show through
+- Keep text readable
+- Keep premium look
+- Optional subtle blur (do NOT overdo)
+
+==================================================
+5) DATE & TIME INPUT FIELDS — ALSO TRANSPARENT
+==================================================
+
+Apply same glass effect to:
+- Pickup Date & Time field
+- Return Date & Time field
+
+Requirements:
+- Not fully solid anymore
+- Slight transparency
+- Keep usability high
+- Icons and text must remain clear
+- Match card style visually
+
+==================================================
+6) CONSISTENT TITLE CASE TEXT
+==================================================
+
+Ensure all visible hero texts follow Title Case:
+- First letter of each important word uppercase
+
+Applies to:
+- Top text
+- Supporting paragraph
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+- Booking functionality
+- Field order
+- Button text
+- Navbar
+- Layout structure
+- Positioning
+- Dropdown behavior
+
+==================================================
+DELIVERABLE
+==================================================
+
+Return:
+1. Files modified
+2. Confirmation of heading update
+3. Confirmation of paragraph update
+4. Confirmation that "Full Comprehensive Insurance" is correct
+5. Confirmation that date/time fields are now semi-transparent
+6. Confirmation that heading size reduced ~20%
+7. Confirmation no logic was changed
+
+==================================================
+MANUAL TEST
+==================================================
+
+Homepage should show:
+- Heading: "Discover Georgia With Us" (smaller than before)
+- Top text: "24/7 Airport Office Services & Customer Support"
+- Paragraph ending with: "Full Comprehensive Insurance."
+- Booking card slightly transparent
+- Date/time inputs also transparent
+- Everything still fully functional
