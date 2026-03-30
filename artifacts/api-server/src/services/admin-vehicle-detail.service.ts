@@ -14,7 +14,7 @@ export async function getVehicleDetail(vehicleId: number) {
       v.mileage,
       v.color,
       v.year,
-      v.vin,
+      v.techpassport_number,
       vm.id AS model_id,
       vm.name AS model_name,
       vm.category,
@@ -249,7 +249,7 @@ export async function getVehicleDetail(vehicleId: number) {
       mileage: vehicle.mileage,
       color: vehicle.color,
       year: vehicle.year,
-      vin: vehicle.vin,
+      techpassportNumber: vehicle.techpassport_number,
       model: {
         id: vehicle.model_id,
         name: vehicle.model_name,

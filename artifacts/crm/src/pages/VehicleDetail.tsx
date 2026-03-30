@@ -188,7 +188,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                       {v.model?.seats && <span>{v.model.seats} seats</span>}
                       {v.model?.category && <span className="uppercase">{v.model.category}</span>}
                     </div>
-                    {v.vin && <div className="mt-1 text-xs text-muted-foreground font-mono">VIN: {v.vin}</div>}
+                    {v.techpassportNumber && <div className="mt-1 text-xs text-muted-foreground font-mono">Tech Passport: {v.techpassportNumber}</div>}
                   </div>
                   {/* Key Stats */}
                   <div className="flex flex-col gap-2 min-w-[160px]">

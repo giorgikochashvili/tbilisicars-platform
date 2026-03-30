@@ -134,7 +134,6 @@ export const ListFleetBrandsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
-  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -549,7 +548,7 @@ export const ListAdminBrandsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
-  countryOfOrigin: zod.string().nullish(),
+  vehicleCount: zod.number(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -561,7 +560,6 @@ export const ListAdminBrandsResponse = zod.array(ListAdminBrandsResponseItem);
 export const CreateAdminBrandBody = zod.object({
   name: zod.string(),
   logoUrl: zod.string().optional(),
-  countryOfOrigin: zod.string().optional(),
 });
 
 /**
@@ -575,7 +573,6 @@ export const GetAdminBrandResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
-  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -590,14 +587,12 @@ export const UpdateAdminBrandParams = zod.object({
 export const UpdateAdminBrandBody = zod.object({
   name: zod.string().optional(),
   logoUrl: zod.string().optional(),
-  countryOfOrigin: zod.string().optional(),
 });
 
 export const UpdateAdminBrandResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
-  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -700,7 +695,6 @@ export const GetAdminModelResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       logoUrl: zod.string().nullish(),
-      countryOfOrigin: zod.string().nullish(),
     })
     .nullish(),
   createdAt: zod.date(),
@@ -762,7 +756,6 @@ export const UpdateAdminModelResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       logoUrl: zod.string().nullish(),
-      countryOfOrigin: zod.string().nullish(),
     })
     .nullish(),
   createdAt: zod.date(),
@@ -877,12 +870,10 @@ export const ListAdminVehiclesResponse = zod.object({
       id: zod.number(),
       vehicleModelId: zod.number().nullish(),
       vehicleGroupId: zod.number().nullish(),
-      make: zod.string().nullish(),
-      model: zod.string().nullish(),
       year: zod.number().nullish(),
       color: zod.string().nullish(),
       licensePlate: zod.string().nullish(),
-      vin: zod.string().nullish(),
+      techpassportNumber: zod.string().nullish(),
       vehicleClass: zod
         .union([
           zod.literal("ECONOMY"),
@@ -930,6 +921,22 @@ export const ListAdminVehiclesResponse = zod.object({
       startingPrice: zod.string(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
+      vehicleModel: zod
+        .object({
+          id: zod.number(),
+          name: zod.string().nullish(),
+          transmission: zod.string().nullish(),
+          fuelType: zod.string().nullish(),
+          seats: zod.number().nullish(),
+          brand: zod
+            .object({
+              id: zod.number(),
+              name: zod.string().nullish(),
+              logoUrl: zod.string().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
     }),
   ),
   meta: zod.object({
@@ -946,7 +953,7 @@ export const CreateAdminVehicleBody = zod.object({
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   licensePlate: zod.string().optional(),
-  vin: zod.string().optional(),
+  techpassportNumber: zod.string().optional(),
   year: zod.number().optional(),
   color: zod.string().optional(),
   vehicleClass: zod
@@ -990,7 +997,7 @@ export const GetAdminVehicleResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  vin: zod.string().nullish(),
+  techpassportNumber: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),
@@ -1061,7 +1068,7 @@ export const UpdateAdminVehicleBody = zod.object({
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   licensePlate: zod.string().optional(),
-  vin: zod.string().optional(),
+  techpassportNumber: zod.string().optional(),
   year: zod.number().optional(),
   color: zod.string().optional(),
   vehicleClass: zod
@@ -1098,7 +1105,7 @@ export const UpdateAdminVehicleResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  vin: zod.string().nullish(),
+  techpassportNumber: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),
@@ -2179,7 +2186,7 @@ export const UpdateAdminVehicleStatusResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  vin: zod.string().nullish(),
+  techpassportNumber: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),

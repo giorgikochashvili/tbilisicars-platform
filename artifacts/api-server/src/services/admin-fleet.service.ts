@@ -6,16 +6,36 @@ import {
   vehicleTable,
   type Vehicle,
 } from "@workspace/db";
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 export async function listAdminBrands() {
-  return db.select().from(brandTable).orderBy(asc(brandTable.name));
+  const rows = await db
+    .select({
+      id: brandTable.id,
+      name: brandTable.name,
+      logoUrl: brandTable.logoUrl,
+      createdAt: brandTable.createdAt,
+      updatedAt: brandTable.updatedAt,
+      vehicleCount: sql<number>`CAST(COUNT(DISTINCT ${vehicleTable.id}) AS INTEGER)`,
+    })
+    .from(brandTable)
+    .leftJoin(vehicleModelTable, eq(vehicleModelTable.brandId, brandTable.id))
+    .leftJoin(vehicleTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+    .groupBy(brandTable.id)
+    .orderBy(asc(brandTable.name));
+  return rows;
 }
 
 export async function getAdminBrand(id: number) {
   const rows = await db
-    .select()
+    .select({
+      id: brandTable.id,
+      name: brandTable.name,
+      logoUrl: brandTable.logoUrl,
+      createdAt: brandTable.createdAt,
+      updatedAt: brandTable.updatedAt,
+    })
     .from(brandTable)
     .where(eq(brandTable.id, id));
   const row = rows[0];
@@ -26,16 +46,45 @@ export async function getAdminBrand(id: number) {
 export async function createAdminBrand(data: {
   name: string;
   logoUrl?: string | null;
-  countryOfOrigin?: string | null;
 }) {
-  const [row] = await db.insert(brandTable).values(data).returning();
+  // Case-insensitive duplicate check
+  const normalizedName = data.name.trim();
+  const existing = await db
+    .select({ id: brandTable.id })
+    .from(brandTable)
+    .where(ilike(brandTable.name, normalizedName));
+  if (existing.length > 0) {
+    const err = new Error(`A brand named "${normalizedName}" already exists.`);
+    (err as any).status = 409;
+    (err as any).code = "DUPLICATE_BRAND_NAME";
+    throw err;
+  }
+  const [row] = await db
+    .insert(brandTable)
+    .values({ name: normalizedName, logoUrl: data.logoUrl })
+    .returning();
   return row!;
 }
 
 export async function updateAdminBrand(
   id: number,
-  data: Partial<{ name: string; logoUrl: string | null; countryOfOrigin: string | null }>,
+  data: Partial<{ name: string; logoUrl: string | null }>,
 ) {
+  if (data.name != null) {
+    const normalizedName = data.name.trim();
+    // Case-insensitive duplicate check (exclude current brand)
+    const existing = await db
+      .select({ id: brandTable.id })
+      .from(brandTable)
+      .where(and(ilike(brandTable.name, normalizedName)));
+    if (existing.some((r) => r.id !== id)) {
+      const err = new Error(`A brand named "${normalizedName}" already exists.`);
+      (err as any).status = 409;
+      (err as any).code = "DUPLICATE_BRAND_NAME";
+      throw err;
+    }
+    data = { ...data, name: normalizedName };
+  }
   const [row] = await db
     .update(brandTable)
     .set({ ...data, updatedAt: new Date() })
@@ -106,7 +155,6 @@ export async function getAdminModel(id: number) {
         id: brandTable.id,
         name: brandTable.name,
         logoUrl: brandTable.logoUrl,
-        countryOfOrigin: brandTable.countryOfOrigin,
       },
       createdAt: vehicleModelTable.createdAt,
       updatedAt: vehicleModelTable.updatedAt,
@@ -230,7 +278,7 @@ export async function listAdminVehicles(
         vehicleModelId: vehicleTable.vehicleModelId,
         vehicleGroupId: vehicleTable.vehicleGroupId,
         licensePlate: vehicleTable.licensePlate,
-        vin: vehicleTable.vin,
+        techpassportNumber: vehicleTable.techpassportNumber,
         year: vehicleTable.year,
         color: vehicleTable.color,
         vehicleClass: vehicleTable.vehicleClass,
@@ -248,6 +296,7 @@ export async function listAdminVehicles(
         modelSeats: vehicleModelTable.seats,
         brandId: brandTable.id,
         brandName: brandTable.name,
+        brandLogoUrl: brandTable.logoUrl,
       })
       .from(vehicleTable)
       .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
@@ -259,7 +308,7 @@ export async function listAdminVehicles(
     db.select({ total: count() }).from(vehicleTable).where(where),
   ]);
 
-  const data = rows.map(({ modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, ...v }) => ({
+  const data = rows.map(({ modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, brandLogoUrl, ...v }) => ({
     ...v,
     vehicleModel: v.vehicleModelId != null ? {
       id: v.vehicleModelId,
@@ -267,7 +316,7 @@ export async function listAdminVehicles(
       transmission: modelTransmission ?? null,
       fuelType: modelFuelType ?? null,
       seats: modelSeats ?? null,
-      brand: brandId != null ? { id: brandId, name: brandName ?? null } : null,
+      brand: brandId != null ? { id: brandId, name: brandName ?? null, logoUrl: brandLogoUrl ?? null } : null,
     } : null,
   }));
 
@@ -292,7 +341,7 @@ export async function getAdminVehicle(id: number) {
       year: vehicleTable.year,
       color: vehicleTable.color,
       licensePlate: vehicleTable.licensePlate,
-      vin: vehicleTable.vin,
+      techpassportNumber: vehicleTable.techpassportNumber,
       vehicleClass: vehicleTable.vehicleClass,
       fuelType: vehicleTable.fuelType,
       transmission: vehicleTable.transmission,
@@ -348,7 +397,7 @@ export async function createAdminVehicle(data: {
   vehicleModelId?: number | null;
   vehicleGroupId?: number | null;
   licensePlate?: string | null;
-  vin?: string | null;
+  techpassportNumber?: string | null;
   year?: number | null;
   color?: string | null;
   vehicleClass?: string | null;
@@ -369,7 +418,7 @@ export async function updateAdminVehicle(
     vehicleModelId: number | null;
     vehicleGroupId: number | null;
     licensePlate: string | null;
-    vin: string | null;
+    techpassportNumber: string | null;
     year: number | null;
     color: string | null;
     vehicleClass: string | null;

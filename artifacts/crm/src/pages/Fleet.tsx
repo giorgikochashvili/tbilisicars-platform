@@ -120,14 +120,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [formData, setFormData] = useState<{
     vehicleModelId: string;
     licensePlate: string;
-    vin: string;
+    techpassportNumber: string;
     year: number;
     color: string;
     status: "AVAILABLE" | "RENTED" | "MAINTENANCE" | "RESERVED" | "INACTIVE";
     mileage: number;
     locationId: string;
   }>({ 
-    vehicleModelId: "", licensePlate: "", vin: "", 
+    vehicleModelId: "", licensePlate: "", techpassportNumber: "", 
     year: new Date().getFullYear(), color: "White", 
     status: "AVAILABLE", mileage: 0, locationId: ""
   });
@@ -208,7 +208,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
       setFormData({
         vehicleModelId: item.vehicleModelId?.toString() || "",
         licensePlate: item.licensePlate || "",
-        vin: item.vin || "",
+        techpassportNumber: item.techpassportNumber || "",
         year: item.year || new Date().getFullYear(),
         color: item.color || "White",
         status: item.status || "AVAILABLE",
@@ -218,7 +218,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     } else {
       setEditingItem(null);
       setFormData({ 
-        vehicleModelId: "", licensePlate: "", vin: "", 
+        vehicleModelId: "", licensePlate: "", techpassportNumber: "", 
         year: new Date().getFullYear(), color: "White", 
         status: "AVAILABLE", mileage: 0, locationId: ""
       });
@@ -558,8 +558,8 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             </div>
 
             <div className="grid gap-2">
-              <Label>VIN</Label>
-              <Input className="font-mono uppercase" value={formData.vin} onChange={e => setFormData({...formData, vin: e.target.value.toUpperCase()})} placeholder="Optional" />
+              <Label>Tech Passport No.</Label>
+              <Input className="font-mono uppercase" value={formData.techpassportNumber} onChange={e => setFormData({...formData, techpassportNumber: e.target.value.toUpperCase()})} placeholder="Optional" />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -858,7 +858,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
 function BrandsTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", countryOfOrigin: "", logoUrl: "" });
+  const [formData, setFormData] = useState({ name: "", logoUrl: "" });
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   
@@ -898,7 +898,7 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
 
   const openModal = (item: any = null) => {
     setEditingItem(item);
-    setFormData(item ? {name: item.name, countryOfOrigin: item.countryOfOrigin||"", logoUrl: item.logoUrl||""} : {name: "", countryOfOrigin: "", logoUrl: ""});
+    setFormData(item ? {name: item.name, logoUrl: item.logoUrl||""} : {name: "", logoUrl: ""});
     setIsModalOpen(true);
   };
 
@@ -932,7 +932,7 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
           <TableHeader className="bg-muted/30">
             <TableRow>
               <TableHead>Brand Name</TableHead>
-              <TableHead>Country of Origin</TableHead>
+              <TableHead>Vehicles</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -946,8 +946,20 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
             ) : (
               (brands as any)?.map((b: any) => (
                 <TableRow key={b.id} className="border-border/20 hover:bg-muted/30">
-                  <TableCell className="font-bold">{b.name}</TableCell>
-                  <TableCell>{b.countryOfOrigin || "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {b.logoUrl && (
+                        <img
+                          src={`/api/storage${b.logoUrl}`}
+                          alt=""
+                          className="w-6 h-6 rounded object-contain flex-shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                      <span className="font-bold">{b.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{b.vehicleCount ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openModal(b)}><Edit className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { if(confirm("Delete brand?")) deleteMutation.mutate({id: b.id}, {onSuccess: () => queryClient.invalidateQueries()}) }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
@@ -968,10 +980,6 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
             <div className="grid gap-2">
               <Label>Brand Name <span className="text-destructive">*</span></Label>
               <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Toyota" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Country of Origin</Label>
-              <Input value={formData.countryOfOrigin} onChange={e => setFormData({...formData, countryOfOrigin: e.target.value})} placeholder="e.g. Japan" />
             </div>
             <div className="grid gap-2">
               <Label>Brand Logo (optional)</Label>
