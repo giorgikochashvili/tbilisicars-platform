@@ -93,16 +93,6 @@ export default function Home() {
     if (sameLocation) setDropoffLocationId(pickupLocationId);
   }, [sameLocation, pickupLocationId]);
 
-  useEffect(() => {
-    const el = document.documentElement;
-    el.style.scrollSnapType = "y proximity";
-    el.style.scrollBehavior = "smooth";
-    return () => {
-      el.style.scrollSnapType = "";
-      el.style.scrollBehavior = "";
-    };
-  }, []);
-
   function handleSearch() {
     setError(null);
     if (!pickupLocationId) { setError("Please select a pickup location"); return; }
@@ -126,7 +116,7 @@ export default function Home() {
       {/* ── Hero ── */}
       <section
         className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16 lg:py-6"
-        style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)", scrollSnapAlign: "start" }}
+        style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
       >
         {/* Subtle background radial accents */}
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
@@ -292,7 +282,7 @@ export default function Home() {
       </section>
 
       {/* ── Why Tbilisicars ── */}
-      <section className="py-20 px-4" style={{ scrollSnapAlign: "start", scrollMarginTop: "4rem" }}>
+      <section className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Tbilisicars?</h2>
