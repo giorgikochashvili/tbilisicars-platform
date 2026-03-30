@@ -181,7 +181,8 @@ export default function Home() {
                 <select
                   value={pickupLocationId}
                   onChange={(e) => setPickupLocationId(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  className="w-full rounded-lg border border-white/10 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                  style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
                 >
                   <option value="">Select location…</option>
                   {cities.map((city) => (
@@ -202,7 +203,8 @@ export default function Home() {
                   <select
                     value={dropoffLocationId}
                     onChange={(e) => setDropoffLocationId(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                    className="w-full rounded-lg border border-white/10 px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                    style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
                   >
                     <option value="">Select location…</option>
                     {cities.map((city) => (
