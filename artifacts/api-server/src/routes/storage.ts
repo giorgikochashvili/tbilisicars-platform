@@ -1,21 +1,48 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
+import express, { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
+
+function getExtFromContentType(contentType: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "image/svg+xml": ".svg",
+  };
+  return map[contentType.toLowerCase()] || ".png";
+}
+
+function getMimeFromExt(ext: string): string {
+  const map: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+  };
+  return map[ext] || "application/octet-stream";
+}
 
 /**
  * POST /storage/uploads/request-url
  *
  * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
+ * Falls back to local file storage when PRIVATE_OBJECT_DIR is not configured.
  */
 router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
@@ -24,9 +51,29 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
     return;
   }
 
-  try {
-    const { name, size, contentType } = parsed.data;
+  const { name, size, contentType } = parsed.data;
 
+  if (!process.env.PRIVATE_OBJECT_DIR) {
+    const ext = getExtFromContentType(contentType);
+    const filename = randomUUID() + ext;
+    const devDomain = process.env.REPLIT_DEV_DOMAIN;
+    const baseUrl = devDomain
+      ? `https://${devDomain}`
+      : `http://localhost:${process.env.PORT ?? 8080}`;
+    const uploadURL = `${baseUrl}/api/storage/local-uploads/${filename}`;
+    const objectPath = `/local-uploads/${filename}`;
+
+    res.json(
+      RequestUploadUrlResponse.parse({
+        uploadURL,
+        objectPath,
+        metadata: { name, size, contentType },
+      }),
+    );
+    return;
+  }
+
+  try {
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
@@ -40,6 +87,58 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
   } catch (error) {
     console.error("Error generating upload URL", error);
     res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+/**
+ * PUT /storage/local-uploads/:filename
+ *
+ * Direct file upload to local disk (fallback when object storage is not configured).
+ * The browser PUT request carries the raw file body.
+ */
+router.put(
+  "/storage/local-uploads/:filename",
+  express.raw({ type: "*/*", limit: "20mb" }),
+  async (req: Request, res: Response) => {
+    const { filename } = req.params;
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.[a-z]{2,5}$/.test(filename)) {
+      res.status(400).json({ error: "Invalid filename" });
+      return;
+    }
+    try {
+      await fs.promises.mkdir(LOCAL_UPLOADS_DIR, { recursive: true });
+      await fs.promises.writeFile(
+        path.join(LOCAL_UPLOADS_DIR, filename),
+        req.body as Buffer,
+      );
+      res.status(200).end();
+    } catch (err) {
+      console.error("Error saving local upload", err);
+      res.status(500).json({ error: "Failed to save file" });
+    }
+  },
+);
+
+/**
+ * GET /storage/local-uploads/:filename
+ *
+ * Serve locally stored upload files.
+ */
+router.get("/storage/local-uploads/:filename", async (req: Request, res: Response) => {
+  const { filename } = req.params;
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.[a-z]{2,5}$/.test(filename)) {
+    res.status(400).json({ error: "Invalid filename" });
+    return;
+  }
+  const filePath = path.join(LOCAL_UPLOADS_DIR, filename);
+  try {
+    await fs.promises.access(filePath, fs.constants.R_OK);
+    const ext = path.extname(filename).toLowerCase();
+    res.setHeader("Content-Type", getMimeFromExt(ext));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    fs.createReadStream(filePath).pipe(res);
+  } catch {
+    res.status(404).json({ error: "File not found" });
   }
 });
 
@@ -90,21 +189,6 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
 
     const response = await objectStorageService.downloadObject(objectFile);
 

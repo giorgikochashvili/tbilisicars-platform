@@ -61,8 +61,14 @@ export async function createAdminBrand(data: {
   }
   const [row] = await db
     .insert(brandTable)
-    .values({ name: normalizedName, logoUrl: data.logoUrl })
-    .returning();
+    .values({ name: normalizedName, logoUrl: data.logoUrl || null })
+    .returning({
+      id: brandTable.id,
+      name: brandTable.name,
+      logoUrl: brandTable.logoUrl,
+      createdAt: brandTable.createdAt,
+      updatedAt: brandTable.updatedAt,
+    });
   return row!;
 }
 
@@ -70,26 +76,40 @@ export async function updateAdminBrand(
   id: number,
   data: Partial<{ name: string; logoUrl: string | null }>,
 ) {
+  const updates: Partial<{ name: string; logoUrl: string | null; updatedAt: Date }> = {
+    updatedAt: new Date(),
+  };
+
   if (data.name != null) {
     const normalizedName = data.name.trim();
-    // Case-insensitive duplicate check (exclude current brand)
     const existing = await db
       .select({ id: brandTable.id })
       .from(brandTable)
-      .where(and(ilike(brandTable.name, normalizedName)));
-    if (existing.some((r) => r.id !== id)) {
+      .where(and(ilike(brandTable.name, normalizedName), sql`${brandTable.id} != ${id}`));
+    if (existing.length > 0) {
       const err = new Error(`A brand named "${normalizedName}" already exists.`);
       (err as any).status = 409;
       (err as any).code = "DUPLICATE_BRAND_NAME";
       throw err;
     }
-    data = { ...data, name: normalizedName };
+    updates.name = normalizedName;
   }
+
+  if (data.logoUrl !== undefined) {
+    updates.logoUrl = data.logoUrl || null;
+  }
+
   const [row] = await db
     .update(brandTable)
-    .set({ ...data, updatedAt: new Date() })
+    .set(updates)
     .where(eq(brandTable.id, id))
-    .returning();
+    .returning({
+      id: brandTable.id,
+      name: brandTable.name,
+      logoUrl: brandTable.logoUrl,
+      createdAt: brandTable.createdAt,
+      updatedAt: brandTable.updatedAt,
+    });
   if (!row) throw new NotFoundError(`Brand ${id} not found`);
   return row;
 }
@@ -98,7 +118,7 @@ export async function deleteAdminBrand(id: number) {
   const [row] = await db
     .delete(brandTable)
     .where(eq(brandTable.id, id))
-    .returning();
+    .returning({ id: brandTable.id });
   if (!row) throw new NotFoundError(`Brand ${id} not found`);
   return { message: "Brand deleted" };
 }
