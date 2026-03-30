@@ -144,6 +144,13 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const allBrands: any[] = (brands as any) || [];
   const allLocations: any[] = (locations as any) || [];
 
+  // Build exactly 3 region options for the location dropdown (one representative per city)
+  const MAIN_REGION_CITIES = ["Tbilisi", "Kutaisi", "Batumi"];
+  const regionLocations = MAIN_REGION_CITIES.map(city => {
+    const match = allLocations.find((l: any) => l.city === city);
+    return match ? { id: match.id, city } : null;
+  }).filter(Boolean) as { id: number; city: string }[];
+
   // Re-apply filters when location (URL) changes, e.g. navigating from Dashboard
   useEffect(() => {
     const { status, region } = parseUrlParams(location);
@@ -556,10 +563,10 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             <div className="grid gap-2">
               <Label>Current Location</Label>
               <Select value={formData.locationId} onValueChange={(val) => setFormData({...formData, locationId: val})}>
-                <SelectTrigger><SelectValue placeholder="Select location..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select region..." /></SelectTrigger>
                 <SelectContent>
-                  {allLocations.filter((loc: any) => ["Tbilisi","Kutaisi","Batumi"].includes(loc.city)).map((loc: any) => (
-                    <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+                  {regionLocations.map((r) => (
+                    <SelectItem key={r.id} value={r.id.toString()}>{r.city}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
