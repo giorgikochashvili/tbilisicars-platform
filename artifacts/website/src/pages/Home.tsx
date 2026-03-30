@@ -153,19 +153,18 @@ export default function Home() {
           </div>
 
           <div className="text-xs text-muted-foreground mb-6 lg:mb-2">
-            24/7 Airport Services &amp; Customer Support
+            24/7 Airport office services &amp; Customer Support
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.1]">
-            Premium Car Rental<br />
-            <span className="text-primary">in Georgia</span>
+          <h1 className="text-3xl sm:text-5xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.15]">
+            Discover Georgia With Us
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
-            Reliable vehicles, transparent pricing, airport delivery, and customer-focused service across Tbilisi, Kutaisi, and Batumi.
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
+            Affordable car rental across Georgia, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside assistance, Full Comprehensive insurance options.
           </p>
 
           {/* Booking Widget */}
-          <div className="bg-card border border-border rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
+          <div className="bg-[hsl(211,55%,8%)]/70 backdrop-blur-md border border-white/10 rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
             <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
               Find Your Car
