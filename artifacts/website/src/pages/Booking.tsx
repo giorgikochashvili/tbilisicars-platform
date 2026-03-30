@@ -100,6 +100,13 @@ const INSURANCE_VISUAL = {
 
 const STEP_LABELS = ["Vehicle", "Extras & Services", "Insurance", "Your Info", "Payment", "Confirm"];
 
+const SEAT_BUCKETS: Array<{ label: string; value: string; match: (s: number) => boolean }> = [
+  { label: "2 seats",  value: "2",  match: (s) => s === 2 },
+  { label: "4 seats",  value: "4",  match: (s) => s === 4 },
+  { label: "5 seats",  value: "5",  match: (s) => s === 5 },
+  { label: "7+ seats", value: "7+", match: (s) => s >= 7 },
+];
+
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
   Tbilisi: "Our team will meet you at Tbilisi International Airport arrivals. Look for the Tbilisicars sign. Call +995 557 37 63 63 if you need assistance.",
   Kutaisi: "Our agent will meet you at Kutaisi International Airport arrivals. Call +995 595 28 66 00 on arrival.",
@@ -526,21 +533,29 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
 
-  // Derive filter option lists from the loaded model set — no hardcoded values
+  // Derive filter option lists from loaded models (category, transmission, fuel from data; seats as fixed buckets)
   const categoryOptions = [...new Set(models.map((m) => m.category).filter((c): c is string => c != null))].sort();
   const transmissionOptions = [...new Set(models.map((m) => m.transmission).filter((t): t is string => t != null))].sort();
-  const seatOptions = [...new Set(models.map((m) => m.seats).filter((s): s is number => s != null))].sort((a, b) => a - b);
   const fuelOptions = [...new Set(models.map((m) => m.fuel_type).filter((f): f is string => f != null))].sort();
   const hasFilters = !!(filters.category || filters.transmission || filters.seats || filters.fuelType);
   const showFilters = !showBanner && models.length > 0 &&
-    (categoryOptions.length > 0 || transmissionOptions.length > 0 || seatOptions.length > 0 || fuelOptions.length > 0);
+    (categoryOptions.length > 0 || transmissionOptions.length > 0 || SEAT_BUCKETS.length > 0 || fuelOptions.length > 0);
 
-  // Client-side filtering — models with null field values always pass any filter
+  // Client-side filtering — when a filter is active, vehicles with null values for that field are excluded
   const filteredModels = models.filter((m) => {
-    if (filters.category && m.category != null && m.category !== filters.category) return false;
-    if (filters.transmission && m.transmission != null && m.transmission !== filters.transmission) return false;
-    if (filters.seats && m.seats != null && String(m.seats) !== filters.seats) return false;
-    if (filters.fuelType && m.fuel_type != null && m.fuel_type !== filters.fuelType) return false;
+    if (filters.category) {
+      if (m.category == null || m.category !== filters.category) return false;
+    }
+    if (filters.transmission) {
+      if (m.transmission == null || m.transmission !== filters.transmission) return false;
+    }
+    if (filters.seats) {
+      const bucket = SEAT_BUCKETS.find((b) => b.value === filters.seats);
+      if (m.seats == null || !bucket || !bucket.match(m.seats)) return false;
+    }
+    if (filters.fuelType) {
+      if (m.fuel_type == null || m.fuel_type !== filters.fuelType) return false;
+    }
     return true;
   });
 
@@ -638,15 +653,13 @@ function Step1({ form, setForm, models, locations, onNext, isRefetching }: {
                       </Sel>
                     </div>
                   )}
-                  {seatOptions.length > 0 && (
-                    <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Seats</label>
-                      <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
-                        <option value="">Any</option>
-                        {seatOptions.map((s) => <option key={s} value={String(s)}>{s} seats</option>)}
-                      </Sel>
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Seats</label>
+                    <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
+                      <option value="">Any</option>
+                      {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    </Sel>
+                  </div>
                   {fuelOptions.length > 0 && (
                     <div>
                       <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
