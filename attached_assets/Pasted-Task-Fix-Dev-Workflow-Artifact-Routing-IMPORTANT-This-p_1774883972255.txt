@@ -1,0 +1,68 @@
+Task: Fix Dev Workflow & Artifact Routing
+
+IMPORTANT:
+This project was fully generated and structured by Replit AI.  
+Do NOT refactor, restructure, or modify any application logic, build scripts, or Vite configs.  
+Only fix Replit configuration and workflow behavior.
+
+CONTEXT:
+The "Project" run button already starts the system correctly (API Server, CRM, Website).
+
+However:
+- CRM and Website artifacts are not properly registered in the .replit [[artifacts]] section
+- Replit Preview routing for /crm/ and /website/ is not formally defined
+- Auto-generated duplicate workflows exist:
+  - artifacts/crm: web
+  - artifacts/website: web
+  - artifacts/api-server: API Server
+  - artifacts/mockup-sandbox: Component Preview Server
+- These duplicate workflows may fail due to missing environment variables and create confusion
+
+GOAL:
+Clean and stabilize Replit dev workflow and preview routing without breaking anything.
+
+TASKS:
+
+1. Update .replit file:
+   - Add proper [[artifacts]] entries for:
+     - artifacts/crm → route: /crm
+     - artifacts/website → route: /
+   - Ensure Preview routing works correctly for both
+
+2. Inspect existing workflows:
+   - Identify duplicate auto-generated workflows related to artifacts
+   - Either:
+     a) Safely remove unnecessary duplicate workflows
+     OR
+     b) Fix them by aligning environment variables with the working "Project" run setup
+
+3. Ensure consistency:
+   - All workflows should behave consistently with the main working run configuration
+   - No workflow should fail if started
+
+4. Validate result:
+   - "Project" run button starts everything without errors
+   - Replit Preview loads Website correctly
+   - /crm path works correctly in Preview
+   - No broken or misleading workflows remain
+
+RULES:
+
+- Do NOT modify:
+  - Application code (CRM / Website / API)
+  - Build scripts
+  - vite.config.ts
+  - Workspace structure
+
+- Only touch:
+  - .replit
+  - Workflow configuration
+
+- Keep changes minimal, safe, and reversible
+
+EXPECTED RESULT:
+
+- Clean Replit workflow panel (no confusing duplicates)
+- Working Preview for Website and /crm
+- Stable one-click development environment
+- No runtime or configuration errors
