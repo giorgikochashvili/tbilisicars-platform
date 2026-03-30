@@ -11,8 +11,6 @@ export interface AdminBrand {
   name: string;
   /** @nullable */
   logoUrl?: string | null;
-  /** @nullable */
-  countryOfOrigin?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

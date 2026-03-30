@@ -7,7 +7,7 @@ import {
   type Vehicle,
 } from "@workspace/db";
 import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
-import { NotFoundError } from "../lib/errors.js";
+import { ConflictError, NotFoundError } from "../lib/errors.js";
 
 export async function listAdminBrands() {
   const rows = await db
@@ -54,10 +54,7 @@ export async function createAdminBrand(data: {
     .from(brandTable)
     .where(ilike(brandTable.name, normalizedName));
   if (existing.length > 0) {
-    const err = new Error(`A brand named "${normalizedName}" already exists.`);
-    (err as any).status = 409;
-    (err as any).code = "DUPLICATE_BRAND_NAME";
-    throw err;
+    throw new ConflictError(`A brand named "${normalizedName}" already exists.`);
   }
   const [row] = await db
     .insert(brandTable)
@@ -87,10 +84,7 @@ export async function updateAdminBrand(
       .from(brandTable)
       .where(and(ilike(brandTable.name, normalizedName), sql`${brandTable.id} != ${id}`));
     if (existing.length > 0) {
-      const err = new Error(`A brand named "${normalizedName}" already exists.`);
-      (err as any).status = 409;
-      (err as any).code = "DUPLICATE_BRAND_NAME";
-      throw err;
+      throw new ConflictError(`A brand named "${normalizedName}" already exists.`);
     }
     updates.name = normalizedName;
   }

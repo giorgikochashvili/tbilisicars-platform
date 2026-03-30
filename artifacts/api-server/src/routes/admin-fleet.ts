@@ -68,16 +68,8 @@ router.get("/admin/fleet/brands", requireAdmin, async (_req, res) => {
 
 router.post("/admin/fleet/brands", requireAdmin, async (req, res) => {
   const body = CreateAdminBrandBody.parse(req.body);
-  try {
-    const brand = await createAdminBrand(body);
-    res.status(201).json(brand);
-  } catch (err: any) {
-    if (err.code === "DUPLICATE_BRAND_NAME") {
-      res.status(409).json({ error: err.message });
-      return;
-    }
-    throw err;
-  }
+  const brand = await createAdminBrand(body);
+  res.status(201).json(brand);
 });
 
 router.get("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
@@ -89,16 +81,8 @@ router.get("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
 router.patch("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminBrandParams.parse({ id: req.params.id });
   const body = UpdateAdminBrandBody.parse(req.body);
-  try {
-    const brand = await updateAdminBrand(id, body);
-    res.json(UpdateAdminBrandResponse.parse(brand));
-  } catch (err: any) {
-    if (err.code === "DUPLICATE_BRAND_NAME") {
-      res.status(409).json({ error: err.message });
-      return;
-    }
-    throw err;
-  }
+  const brand = await updateAdminBrand(id, body);
+  res.json(UpdateAdminBrandResponse.parse(brand));
 });
 
 router.delete("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {

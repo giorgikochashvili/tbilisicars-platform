@@ -8,6 +8,7 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -98,6 +99,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
  */
 router.put(
   "/storage/local-uploads/:filename",
+  requireAdmin,
   express.raw({ type: "*/*", limit: "20mb" }),
   async (req: Request, res: Response) => {
     const { filename } = req.params;

@@ -14,6 +14,4 @@ export type AdminVehicleModelDetailBrand = {
   name: string;
   /** @nullable */
   logoUrl?: string | null;
-  /** @nullable */
-  countryOfOrigin?: string | null;
 } | null;

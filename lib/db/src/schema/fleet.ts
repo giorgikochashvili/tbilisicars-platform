@@ -11,6 +11,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { locationTable } from "./locations";
@@ -81,7 +82,7 @@ export const brandTable = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("uq_brand_name").on(t.name),
+    uniqueIndex("uq_brand_name_ci").on(sql`lower(${t.name})`),
     index("idx_brand_name").on(t.name),
   ],
 );
