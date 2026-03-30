@@ -461,7 +461,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                         {v.licensePlate || "—"}
                       </div>
                       {v.techpassportNumber && (
-                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">TP: {v.techpassportNumber}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">Techpassport Number: {v.techpassportNumber}</div>
                       )}
                     </TableCell>
                     <TableCell>
@@ -566,7 +566,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             </div>
 
             <div className="grid gap-2">
-              <Label>Tech Passport No.</Label>
+              <Label>Techpassport Number</Label>
               <Input className="font-mono uppercase" value={formData.techpassportNumber} onChange={e => setFormData({...formData, techpassportNumber: e.target.value.toUpperCase()})} placeholder="Optional" />
             </div>
 
@@ -866,10 +866,9 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
             </div>
             <div className="grid gap-2">
               <Label>Category</Label>
-              <Select value={formData.category || "none"} onValueChange={(val) => setFormData({...formData, category: val === "none" ? "" : val})}>
+              <Select value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No category</SelectItem>
                   {MODEL_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
