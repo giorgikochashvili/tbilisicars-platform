@@ -212,6 +212,16 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const handleOpenModal = (item: any = null) => {
     if (item) {
       setEditingItem(item);
+      // Normalize locationId to a representative region ID (Tbilisi/Kutaisi/Batumi)
+      // so that vehicles with sub-location IDs still show the correct city in the dropdown.
+      let locationId = item.locationId?.toString() || "";
+      if (locationId) {
+        const loc = allLocations.find((l: any) => l.id?.toString() === locationId);
+        if (loc?.city) {
+          const rep = regionLocations.find((r) => r.city === loc.city);
+          if (rep) locationId = rep.id.toString();
+        }
+      }
       setFormData({
         vehicleModelId: item.vehicleModelId?.toString() || "",
         licensePlate: item.licensePlate || "",
@@ -220,7 +230,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
         color: item.color || "White",
         status: item.status || "AVAILABLE",
         mileage: item.mileage || 0,
-        locationId: item.locationId?.toString() || "",
+        locationId,
       });
     } else {
       setEditingItem(null);
