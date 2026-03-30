@@ -159,8 +159,8 @@ export default function Home() {
           <h1 className="text-2xl sm:text-4xl font-bold text-white tracking-tight mb-4 lg:mb-3 leading-[1.15]">
             Discover Georgia With Us
           </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
-            Affordable Car Rental Across Georgia, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance, Full Comprehensive Insurance.
+          <p className="text-base sm:text-lg text-primary/80 max-w-2xl mx-auto mb-10 lg:mb-5">
+            Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance.
           </p>
 
           {/* Booking Widget */}

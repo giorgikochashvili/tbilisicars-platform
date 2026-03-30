@@ -1,0 +1,78 @@
+Tbilisicars Website — Hero Supporting Text Order + Brand Red Color Update (UI ONLY)
+
+Continue from the current working state.
+
+IMPORTANT:
+- UI/text styling change only
+- Do NOT change booking logic
+- Do NOT change layout structure
+- Do NOT touch backend logic
+- Do NOT move elements
+- Only update the hero supporting paragraph text content and its color styling
+
+==================================================
+TASK 1 — UPDATE SUPPORTING PARAGRAPH TEXT ORDER
+==================================================
+
+Replace the current hero supporting paragraph with exactly this text and exactly this order:
+
+"Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance."
+
+IMPORTANT:
+- Use exactly this wording
+- Use exactly this order
+- End with a period
+- Keep Title Case
+- Remove the previous order completely
+
+==================================================
+TASK 2 — CHANGE SUPPORTING PARAGRAPH COLOR
+==================================================
+
+The supporting paragraph should no longer be grey.
+
+Update its styling so it uses the same reddish / brand red color family already used elsewhere in the homepage design.
+
+Requirements:
+- Use the existing brand red tone already present in the UI
+- Keep readability strong on the dark background
+- Do NOT make it neon or oversaturated
+- It should visually match the red accent family already used in:
+  - buttons
+  - badges
+  - highlighted text/accent elements
+
+If the full paragraph in solid red feels too aggressive, use a toned brand-red variant from the existing palette, but it must clearly read as the same red accent family rather than grey.
+
+==================================================
+DO NOT CHANGE
+==================================================
+
+- Do NOT change heading text
+- Do NOT change top support text
+- Do NOT change booking form
+- Do NOT change transparency work already done
+- Do NOT change hero layout
+- Do NOT modify any other section
+
+==================================================
+DELIVERABLE
+==================================================
+
+Return:
+1. Exact file changed
+2. Confirmation of the new exact paragraph text
+3. Confirmation that the paragraph color now uses the brand red family
+4. Confirmation that nothing else was modified
+
+==================================================
+MANUAL TEST
+==================================================
+
+Homepage should show this exact paragraph:
+"Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance."
+
+And:
+- paragraph is no longer grey
+- paragraph is now in the reddish brand accent family
+- all other hero elements remain unchanged
