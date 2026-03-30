@@ -12,19 +12,24 @@ The user prefers a clean, consistent coding style across the monorepo, leveragin
 
 ## Dev Workflow & Routing
 
-**Named Workflows (run via "Project" button):**
-- `API Server` — `PORT=8080 pnpm --filter @workspace/api-server run dev` (port 8080, console output)
-- `CRM` — `PORT=22444 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev` (port 22444, /crm/ path)
-- `Website` — `PORT=19161 BASE_PATH=/ pnpm --filter @workspace/website run dev` (port 19161, serves at root /)
+**Artifact-Managed Workflows (canonical — used by artifact preview dropdown):**
+- `artifacts/website: web` — PORT=19161, BASE_PATH=/ (serves at root `/`)
+- `artifacts/crm: web` — PORT=22444, BASE_PATH=/crm/ (serves at `/crm/`)
+- `artifacts/api-server: API Server` — PORT=8080 (serves `/api`)
 
-**Preview Routing:**
-- `/` → Public booking website (port 19161)
-- `/crm/` → CRM admin panel (port 22444)
+**Named Workflows (run via "Project" button — offset ports to avoid conflicts):**
+- `API Server` — `PORT=8080 pnpm --filter @workspace/api-server run dev`
+- `CRM` — `PORT=22445 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev` (offset port — proxy routes /crm/ to 22444)
+- `Website` — `PORT=19162 BASE_PATH=/ pnpm --filter @workspace/website run dev` (offset port — proxy routes / to 19161)
+
+**Preview Routing (artifact.toml localPort determines proxy target):**
+- `/` → Public booking website (port 19161, artifact workflow)
+- `/crm/` → CRM admin panel (port 22444, artifact workflow)
 - `/api` → Express API server (port 8080)
 
 **Platform Notes:**
 - `.replit` cannot be written to directly (all direct file writes are blocked by the platform); it can only be updated through platform callbacks (e.g. `configureWorkflow`)
-- 4 artifact-managed workflows (`artifacts/crm: web`, `artifacts/website: web`, `artifacts/api-server: API Server`, `artifacts/mockup-sandbox: Component Preview Server`) cannot be removed — platform blocks their deletion. They show as "failed" when named workflows occupy the same ports first.
+- Artifact-managed workflows (`artifacts/crm: web`, `artifacts/website: web`, `artifacts/api-server: API Server`, `artifacts/mockup-sandbox: Component Preview Server`) cannot be removed — platform blocks their deletion. The crm and website artifact workflows now run on their canonical ports (22444, 19161). The named CRM/Website workflows use offset ports (22445, 19162) to avoid conflicts and keep the Project button functional.
 - `.replit [[artifacts]]` entries for crm/website cannot be added programmatically (no available callback)
 
 ## System Architecture

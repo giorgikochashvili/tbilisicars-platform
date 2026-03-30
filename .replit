@@ -38,13 +38,13 @@ args = "API Server"
 name = "CRM"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=22444 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev"
-waitForPort = 22444
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=22445 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev"
+waitForPort = 22445
 
 [[workflows.workflow]]
 name = "Website"
@@ -55,8 +55,8 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=19161 BASE_PATH=/ pnpm --filter @workspace/website run dev"
-waitForPort = 19161
+args = "PORT=19162 BASE_PATH=/ pnpm --filter @workspace/website run dev"
+waitForPort = 19162
 
 [[workflows.workflow]]
 name = "API Server"
