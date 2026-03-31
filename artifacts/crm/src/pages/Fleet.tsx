@@ -675,17 +675,21 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
       });
-      if (!metaRes.ok) throw new Error("Failed to get upload URL");
+      if (!metaRes.ok) {
+        const errBody = await metaRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Upload URL request failed (${metaRes.status})`);
+      }
       const { uploadURL, objectPath } = await metaRes.json();
       const putRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type || "image/jpeg" },
       });
-      if (!putRes.ok) throw new Error("Failed to upload file");
+      if (!putRes.ok) throw new Error(`File upload to storage failed (${putRes.status})`);
       setFormData(prev => ({ ...prev, imageUrl: objectPath }));
       toast({ title: "Image uploaded", description: "Image ready — save the model to apply." });
     } catch (e: any) {
+      console.error("[handleImageUpload]", e);
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
     } finally {
       setImageUploading(false);
