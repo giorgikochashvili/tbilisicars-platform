@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, Pencil } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -193,6 +193,7 @@ export default function BookingsPage() {
   const [booking, setBooking] = useState(EMPTY_BOOKING);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [customerSnapshot, setCustomerSnapshot] = useState<{id: string; fullName: string; phone?: string; email?: string} | null>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   
@@ -278,6 +279,7 @@ export default function BookingsPage() {
   const openNewBooking = () => {
     setBooking(EMPTY_BOOKING);
     setCustomerSearch("");
+    setCustomerSnapshot(null);
     setEditBookingId(null);
     setIsNewBookingOpen(true);
   };
@@ -315,6 +317,12 @@ export default function BookingsPage() {
       paymentStatus: bookingRow.paymentStatus || "UNPAID",
     });
     setCustomerSearch(hasExistingCustomer ? customerName : "");
+    setCustomerSnapshot(hasExistingCustomer ? {
+      id: String(customerIdRaw),
+      fullName: customerName,
+      phone: bookingRow.customer?.phone || bookingRow.contactPhone || undefined,
+      email: bookingRow.customer?.email || bookingRow.contactEmail || undefined,
+    } : null);
     setEditBookingId(bookingRow.id);
     setIsNewBookingOpen(true);
   };
@@ -747,17 +755,24 @@ export default function BookingsPage() {
                 <TabsContent value="existing" className="mt-3 space-y-2">
                   <div className="grid gap-2 relative">
                     <Label>Search Customer</Label>
-                    {/* Selected customer chip */}
-                    {booking.customerId && selectedCustomer && (
+                    {/* Selected customer chip — use live query result or snapshot fallback */}
+                    {booking.customerId && (selectedCustomer || customerSnapshot) && (
                       <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-                        <span className="flex-1 font-medium">{selectedCustomer.fullName}</span>
-                        {selectedCustomer.phone && <span className="text-xs text-muted-foreground">{selectedCustomer.phone}</span>}
+                        <span className="flex-1 font-medium">
+                          {selectedCustomer?.fullName ?? customerSnapshot?.fullName}
+                        </span>
+                        {(selectedCustomer?.phone ?? customerSnapshot?.phone) && (
+                          <span className="text-xs text-muted-foreground">
+                            {selectedCustomer?.phone ?? customerSnapshot?.phone}
+                          </span>
+                        )}
                         <button
                           type="button"
                           className="ml-1 text-muted-foreground hover:text-foreground"
                           onClick={() => {
                             setBooking({...booking, customerId: ""});
                             setCustomerSearch("");
+                            setCustomerSnapshot(null);
                             customerSearchRef.current?.focus();
                           }}
                         >
