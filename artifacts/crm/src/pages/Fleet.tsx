@@ -143,11 +143,12 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  const { data, isLoading } = useListAdminVehicles(undefined, reqOpts);
+  const { data, isLoading } = useListAdminVehicles({ limit: 500 }, reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
   const { data: locations } = useListLocations(reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
   const vehicles = (data as any)?.data || [];
+  const vehiclesMeta = (data as any)?.meta;
   const allModels: any[] = (models as any) || [];
   const allBrands: any[] = (brands as any) || [];
   const allLocations: any[] = (locations as any) || [];
@@ -467,14 +468,6 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                   >
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {v.vehicleModel?.brand?.logoUrl && (
-                          <img
-                            src={toStorageSrc(v.vehicleModel.brand.logoUrl)}
-                            alt=""
-                            className="w-5 h-5 rounded object-contain flex-shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        )}
                         <div>
                           <div className="font-medium text-foreground">
                             {v.vehicleModel?.brand?.name} {v.vehicleModel?.name}
@@ -540,6 +533,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             </TableBody>
           </Table>
         </div>
+        {vehiclesMeta && (
+          <div className="px-4 py-2 border-t border-border/40 text-xs text-muted-foreground">
+            {filteredVehicles.length === vehicles.length
+              ? `${vehicles.length} vehicle${vehicles.length !== 1 ? "s" : ""}`
+              : `${filteredVehicles.length} of ${vehicles.length} vehicle${vehicles.length !== 1 ? "s" : ""} (filtered)`}
+            {vehiclesMeta.total > 500 && ` · ${vehiclesMeta.total} total in fleet`}
+          </div>
+        )}
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -699,7 +700,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
   
   const { data: models, isLoading } = useListAdminModels(reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
-  const { data: vehiclesData } = useListAdminVehicles(undefined, reqOpts);
+  const { data: vehiclesData } = useListAdminVehicles({ limit: 500 }, reqOpts);
   const { data: locationsData } = useListLocations(reqOpts);
   const allVehicles: any[] = (vehiclesData as any)?.data || [];
   const locationMap: Record<string, string> = {};
@@ -842,6 +843,18 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                          {m.imageUrl ? (
+                            <img
+                              src={toStorageSrc(m.imageUrl)}
+                              alt=""
+                              className="w-7 h-7 rounded object-contain flex-shrink-0 bg-muted/30"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          ) : (
+                            <span className="w-7 h-7 rounded bg-muted/30 flex items-center justify-center flex-shrink-0">
+                              <Car className="w-3.5 h-3.5 text-muted-foreground/30" />
+                            </span>
+                          )}
                           <span className="font-medium">{m.brand?.name} {m.name}</span>
                         </div>
                       </TableCell>
