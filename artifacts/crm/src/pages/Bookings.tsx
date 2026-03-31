@@ -285,12 +285,16 @@ export default function BookingsPage() {
   const openEditBooking = async (bookingRow: any) => {
     const pickupDt = bookingRow.pickupDatetime ? new Date(bookingRow.pickupDatetime) : null;
     const dropoffDt = bookingRow.dropoffDatetime ? new Date(bookingRow.dropoffDatetime) : null;
+    // Customer ID may be at customer.id, userId, or customerId depending on response shape
+    const customerIdRaw = bookingRow.customer?.id ?? bookingRow.userId ?? bookingRow.customerId ?? null;
+    const hasExistingCustomer = customerIdRaw !== null && customerIdRaw !== undefined;
+    const customerName = bookingRow.customer?.fullName || bookingRow.contactFullName || "";
     setBooking({
-      customerMode: bookingRow.customerId ? "existing" : "new",
-      customerId: bookingRow.customerId ? bookingRow.customerId.toString() : "",
-      newCustomerName: bookingRow.contactFullName || "",
-      newCustomerPhone: bookingRow.contactPhone || "",
-      newCustomerEmail: bookingRow.contactEmail || "",
+      customerMode: hasExistingCustomer ? "existing" : "new",
+      customerId: hasExistingCustomer ? String(customerIdRaw) : "",
+      newCustomerName: hasExistingCustomer ? "" : (bookingRow.contactFullName || ""),
+      newCustomerPhone: hasExistingCustomer ? "" : (bookingRow.contactPhone || ""),
+      newCustomerEmail: hasExistingCustomer ? "" : (bookingRow.contactEmail || ""),
       brandId: "",
       vehicleModelId: bookingRow.vehicleModelId ? bookingRow.vehicleModelId.toString() : "",
       vehicleId: bookingRow.vehicleId ? bookingRow.vehicleId.toString() : "",
@@ -310,9 +314,7 @@ export default function BookingsPage() {
       status: bookingRow.status || "PENDING",
       paymentStatus: bookingRow.paymentStatus || "UNPAID",
     });
-    setCustomerSearch(
-      bookingRow.customerId ? (bookingRow.customer?.fullName || bookingRow.contactFullName || "") : ""
-    );
+    setCustomerSearch(hasExistingCustomer ? customerName : "");
     setEditBookingId(bookingRow.id);
     setIsNewBookingOpen(true);
   };
