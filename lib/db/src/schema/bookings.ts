@@ -34,11 +34,11 @@ export const bookingStatusEnum = pgEnum("bookingstatusenum", [
   "NO_SHOW",
 ]);
 
-// Final enum after migration churn: PREPAID was added then removed
 export const paymentStatusEnum = pgEnum("paymentstatusenum", [
   "UNPAID",
   "HALF",
   "PAID",
+  "PREPAID",
   "REFUNDED",
 ]);
 

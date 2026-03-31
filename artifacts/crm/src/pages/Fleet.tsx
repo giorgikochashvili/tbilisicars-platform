@@ -95,14 +95,16 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const FLEET_REGIONS: Region[] = ["All", "Tbilisi", "Kutaisi", "Batumi"];
   const VALID_REGIONS = FLEET_REGIONS.slice(1) as string[];
 
-  const parseUrlParams = (loc: string): { status: VehicleStatus | ""; region: Region } => {
+  const parseUrlParams = (loc: string): { status: VehicleStatus | ""; region: Region; vehicleId: number | null } => {
     const search = loc.includes("?") ? loc.split("?")[1] : "";
     const params = new URLSearchParams(search);
     const s = params.get("status")?.toUpperCase() ?? "";
     const c = params.get("city") ?? "";
+    const vid = params.get("vehicleId");
     return {
       status: (VALID_STATUSES as readonly string[]).includes(s) ? (s as VehicleStatus) : "",
       region: VALID_REGIONS.includes(c) ? (c as Region) : "All",
+      vehicleId: vid && !isNaN(parseInt(vid)) ? parseInt(vid) : null,
     };
   };
 
@@ -153,9 +155,12 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
   // Re-apply filters when location (URL) changes, e.g. navigating from Dashboard
   useEffect(() => {
-    const { status, region } = parseUrlParams(location);
+    const { status, region, vehicleId } = parseUrlParams(location);
     setFilterStatus(status);
     setFilterRegion(region);
+    if (vehicleId !== null) {
+      setDetailVehicleId(vehicleId);
+    }
   }, [location]);
 
   // Map modelId -> category for category filtering (vehicles may not carry category inline)

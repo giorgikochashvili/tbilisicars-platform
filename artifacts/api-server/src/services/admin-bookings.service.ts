@@ -100,7 +100,7 @@ const bookingDetailSelect = {
 type BookingRowFlat = {
   id: number;
   status: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
-  paymentStatus: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+  paymentStatus: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   contactFullName: string;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -166,7 +166,7 @@ function mapToBookingRow(row: BookingRowFlat) {
 
 export interface ListBookingsFilters {
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
-  paymentStatus?: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+  paymentStatus?: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   search?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -470,7 +470,7 @@ export async function createAdminBooking(data: {
   dropoffType?: string | null;
   dropoffAddress?: string | null;
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
-  paymentStatus?: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+  paymentStatus?: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
 }) {
   const pickupDate = new Date(data.pickupDatetime);
   const dropoffDate = new Date(data.dropoffDatetime);
@@ -553,7 +553,7 @@ export async function updateAdminBooking(
     notes: string | null;
     source: string | null;
     broker: string | null;
-    paymentStatus: "UNPAID" | "HALF" | "PAID" | "REFUNDED";
+    paymentStatus: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   }>,
 ) {
   // If assigning or changing a specific vehicle, validate ownership + conflicts

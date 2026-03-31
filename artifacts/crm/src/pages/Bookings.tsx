@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListAdminBookings,
   useCreateAdminBooking,
+  useUpdateAdminBooking,
   useUpdateAdminBookingStatus,
   useListAdminCustomers,
   useListAdminBrands,
@@ -22,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, Pencil } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -45,16 +46,25 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  UNPAID: "Unpaid",
+  HALF: "PreHalf",
+  PAID: "Paid",
+  PREPAID: "PrePaid",
+  REFUNDED: "Refunded",
+};
+
 function PaymentBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     UNPAID: "bg-red-500/10 text-red-500 border-red-500/20",
     HALF: "bg-amber-500/10 text-amber-500 border-amber-500/20",
     PAID: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    PREPAID: "bg-blue-500/10 text-blue-500 border-blue-500/20",
     REFUNDED: "bg-slate-500/10 text-slate-500 border-slate-500/20",
   };
   return (
     <Badge variant="outline" className={`text-[10px] uppercase ${colors[status] || "bg-gray-500/10 text-gray-500"}`}>
-      {status}
+      {PAYMENT_STATUS_LABELS[status] ?? status}
     </Badge>
   );
 }
@@ -138,7 +148,7 @@ const DELIVERY_TYPES = [
 ];
 
 const EMPTY_BOOKING = {
-  customerMode: "existing" as "existing" | "new",
+  customerMode: "new" as "existing" | "new",
   customerId: "",
   newCustomerName: "",
   newCustomerPhone: "",
@@ -160,6 +170,7 @@ const EMPTY_BOOKING = {
   currency: "GEL",
   notes: "",
   status: "PENDING" as const,
+  paymentStatus: "UNPAID" as string,
 };
 
 type Region = "ALL" | "Tbilisi" | "Kutaisi" | "Batumi";
@@ -177,9 +188,13 @@ export default function BookingsPage() {
   const [bookingIdSearch, setBookingIdSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [booking, setBooking] = useState(EMPTY_BOOKING);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const customerSearchRef = useRef<HTMLInputElement>(null);
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -213,7 +228,11 @@ export default function BookingsPage() {
   };
   
   const { data, isLoading } = useListAdminBookings(queryParams, reqOpts);
-  const { data: customers } = useListAdminCustomers({ page: 1, limit: 50, search: customerSearch }, reqOpts);
+  const customerQueryParams = useMemo(
+    () => ({ page: 1, limit: 50, search: customerSearch }),
+    [customerSearch]
+  );
+  const { data: customers } = useListAdminCustomers(customerQueryParams, reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
   const vehicleQueryParams = useMemo(() => {
@@ -225,6 +244,7 @@ export default function BookingsPage() {
 
   const statusMutation = useUpdateAdminBookingStatus(reqOpts);
   const createMutation = useCreateAdminBooking(reqOpts);
+  const updateMutation = useUpdateAdminBooking(reqOpts);
 
   const bookings = (data as any)?.data || [];
   const meta = (data as any)?.meta;
@@ -237,6 +257,10 @@ export default function BookingsPage() {
   const filteredModels = booking.brandId && booking.brandId !== "any"
     ? allModels.filter((m: any) => (m.brandId?.toString() ?? m.brand?.id?.toString()) === booking.brandId)
     : allModels;
+
+  const selectedCustomer = booking.customerMode === "existing" && booking.customerId
+    ? allCustomers.find((c: any) => c.id.toString() === booking.customerId) ?? null
+    : null;
 
   const handleStatusChange = (id: number, newStatus: any) => {
     statusMutation.mutate(
@@ -254,46 +278,49 @@ export default function BookingsPage() {
   const openNewBooking = () => {
     setBooking(EMPTY_BOOKING);
     setCustomerSearch("");
+    setEditBookingId(null);
     setIsNewBookingOpen(true);
   };
 
-  const handleCreateBooking = () => {
-    if (booking.customerMode === "existing" && !booking.customerId) {
-      toast({ title: "Validation Error", description: "Please select a customer", variant: "destructive" });
-      return;
-    }
-    if (booking.customerMode === "new" && !booking.newCustomerName.trim()) {
-      toast({ title: "Validation Error", description: "Customer name is required", variant: "destructive" });
-      return;
-    }
-    const vehicleModelIdNum = parseInt(booking.vehicleModelId);
-    if (!booking.vehicleModelId || booking.vehicleModelId === "any" || isNaN(vehicleModelIdNum)) {
-      toast({ title: "Validation Error", description: "Please select a vehicle model", variant: "destructive" });
-      return;
-    }
-    if (!booking.pickupLocationId) {
-      toast({ title: "Validation Error", description: "Pickup location is required", variant: "destructive" });
-      return;
-    }
-    if (!booking.dropoffLocationId) {
-      toast({ title: "Validation Error", description: "Dropoff location is required", variant: "destructive" });
-      return;
-    }
-    if (!booking.pickupDate) {
-      toast({ title: "Validation Error", description: "Pickup date is required", variant: "destructive" });
-      return;
-    }
-    if (!booking.dropoffDate) {
-      toast({ title: "Validation Error", description: "Dropoff date is required", variant: "destructive" });
-      return;
-    }
+  const openEditBooking = async (bookingRow: any) => {
+    const pickupDt = bookingRow.pickupDatetime ? new Date(bookingRow.pickupDatetime) : null;
+    const dropoffDt = bookingRow.dropoffDatetime ? new Date(bookingRow.dropoffDatetime) : null;
+    setBooking({
+      customerMode: bookingRow.customerId ? "existing" : "new",
+      customerId: bookingRow.customerId ? bookingRow.customerId.toString() : "",
+      newCustomerName: bookingRow.contactFullName || "",
+      newCustomerPhone: bookingRow.contactPhone || "",
+      newCustomerEmail: bookingRow.contactEmail || "",
+      brandId: "",
+      vehicleModelId: bookingRow.vehicleModelId ? bookingRow.vehicleModelId.toString() : "",
+      vehicleId: bookingRow.vehicleId ? bookingRow.vehicleId.toString() : "",
+      pickupLocationId: bookingRow.pickupLocationId ? bookingRow.pickupLocationId.toString() : "",
+      pickupDate: pickupDt ? format(pickupDt, "yyyy-MM-dd") : "",
+      pickupTime: pickupDt ? format(pickupDt, "HH:mm") : "10:00",
+      pickupType: bookingRow.pickupType || "airport",
+      pickupAddress: bookingRow.pickupAddress || "",
+      dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
+      dropoffDate: dropoffDt ? format(dropoffDt, "yyyy-MM-dd") : "",
+      dropoffTime: dropoffDt ? format(dropoffDt, "HH:mm") : "10:00",
+      dropoffType: bookingRow.dropoffType || "airport",
+      dropoffAddress: bookingRow.dropoffAddress || "",
+      totalAmount: bookingRow.totalAmount ?? "",
+      currency: bookingRow.currency || "GEL",
+      notes: bookingRow.notes || "",
+      status: bookingRow.status || "PENDING",
+      paymentStatus: bookingRow.paymentStatus || "UNPAID",
+    });
+    setCustomerSearch(
+      bookingRow.customerId ? (bookingRow.customer?.fullName || bookingRow.contactFullName || "") : ""
+    );
+    setEditBookingId(bookingRow.id);
+    setIsNewBookingOpen(true);
+  };
 
+  const buildPayload = () => {
+    const vehicleModelIdNum = parseInt(booking.vehicleModelId);
     const pickupDatetime = new Date(`${booking.pickupDate}T${booking.pickupTime}:00`).toISOString();
     const dropoffDatetime = new Date(`${booking.dropoffDate}T${booking.dropoffTime}:00`).toISOString();
-
-    const selectedCustomer = booking.customerMode === "existing"
-      ? allCustomers.find((c: any) => c.id.toString() === booking.customerId)
-      : null;
 
     const contactFullName = booking.customerMode === "existing"
       ? (selectedCustomer?.fullName || "")
@@ -313,6 +340,7 @@ export default function BookingsPage() {
       dropoffAddress: ["hotel", "address"].includes(booking.dropoffType) ? booking.dropoffAddress : null,
       notes: booking.notes || null,
       status: booking.status,
+      paymentStatus: booking.paymentStatus,
       source: "admin",
     };
 
@@ -330,12 +358,52 @@ export default function BookingsPage() {
         email: booking.newCustomerEmail || undefined,
       };
     }
+    return payload;
+  };
+
+  const validateBooking = () => {
+    if (booking.customerMode === "existing" && !booking.customerId) {
+      toast({ title: "Validation Error", description: "Please select a customer", variant: "destructive" });
+      return false;
+    }
+    if (booking.customerMode === "new" && !booking.newCustomerName.trim()) {
+      toast({ title: "Validation Error", description: "Customer name is required", variant: "destructive" });
+      return false;
+    }
+    const vehicleModelIdNum = parseInt(booking.vehicleModelId);
+    if (!booking.vehicleModelId || booking.vehicleModelId === "any" || isNaN(vehicleModelIdNum)) {
+      toast({ title: "Validation Error", description: "Please select a vehicle model", variant: "destructive" });
+      return false;
+    }
+    if (!booking.pickupLocationId) {
+      toast({ title: "Validation Error", description: "Pickup location is required", variant: "destructive" });
+      return false;
+    }
+    if (!booking.dropoffLocationId) {
+      toast({ title: "Validation Error", description: "Dropoff location is required", variant: "destructive" });
+      return false;
+    }
+    if (!booking.pickupDate) {
+      toast({ title: "Validation Error", description: "Pickup date is required", variant: "destructive" });
+      return false;
+    }
+    if (!booking.dropoffDate) {
+      toast({ title: "Validation Error", description: "Dropoff date is required", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreateBooking = () => {
+    if (!validateBooking()) return;
+    const payload = buildPayload();
+    const contactName = payload.contactFullName;
 
     createMutation.mutate(
       { data: payload },
       {
         onSuccess: () => {
-          toast({ title: "Booking Created", description: `New booking for ${contactFullName} saved.` });
+          toast({ title: "Booking Created", description: `New booking for ${contactName} saved.` });
           queryClient.invalidateQueries();
           setIsNewBookingOpen(false);
         },
@@ -346,7 +414,45 @@ export default function BookingsPage() {
     );
   };
 
+  const handleUpdateBooking = () => {
+    if (!validateBooking() || !editBookingId) return;
+    const payload = buildPayload();
+    const contactName = payload.contactFullName;
+
+    updateMutation.mutate(
+      { id: editBookingId, data: payload },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking Updated", description: `Booking #${editBookingId} for ${contactName} updated.` });
+          queryClient.invalidateQueries();
+          setIsNewBookingOpen(false);
+          setEditBookingId(null);
+        },
+        onError: (err: any) => {
+          toast({ title: "Error", description: err.message || "Failed to update booking", variant: "destructive" });
+        }
+      }
+    );
+  };
+
   const needsAddress = (type: string) => ["hotel", "address"].includes(type);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        customerDropdownRef.current &&
+        !customerDropdownRef.current.contains(e.target as Node) &&
+        customerSearchRef.current &&
+        !customerSearchRef.current.contains(e.target as Node)
+      ) {
+        setCustomerDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const isEditMode = editBookingId !== null;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -437,8 +543,9 @@ export default function BookingsPage() {
               <SelectContent>
                 <SelectItem value="ALL">All Payments</SelectItem>
                 <SelectItem value="UNPAID">Unpaid</SelectItem>
-                <SelectItem value="HALF">Partially Paid</SelectItem>
+                <SelectItem value="HALF">PreHalf</SelectItem>
                 <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="PREPAID">PrePaid</SelectItem>
                 <SelectItem value="REFUNDED">Refunded</SelectItem>
               </SelectContent>
             </Select>
@@ -484,7 +591,7 @@ export default function BookingsPage() {
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border/40 hover:bg-transparent">
                 <TableHead className="w-[70px]">Ref</TableHead>
-                <TableHead>Customer & Vehicle</TableHead>
+                <TableHead>Vehicle & Customer</TableHead>
                 <TableHead>Pickup</TableHead>
                 <TableHead>Dropoff</TableHead>
                 <TableHead>Amount</TableHead>
@@ -517,21 +624,23 @@ export default function BookingsPage() {
                     <TableCell className="font-mono text-xs font-medium text-muted-foreground align-top pt-4">
                       #{b.id}
                     </TableCell>
-                    <TableCell className="align-top pt-4">
-                      <div className="font-semibold text-foreground mb-1">
+                    <TableCell className="align-top pt-3">
+                      {/* Vehicle — primary */}
+                      <div className="font-semibold text-foreground mb-0.5">
+                        {b.vehicle ? (
+                          <>{b.vehicle.modelName} <span className="font-mono text-xs text-muted-foreground">· {b.vehicle.licensePlate}</span></>
+                        ) : b.vehicleModelName ? (
+                          <span className="italic text-muted-foreground">{b.vehicleModelName} <span className="text-xs">(unassigned)</span></span>
+                        ) : (
+                          <span className="text-muted-foreground italic text-sm">No vehicle assigned</span>
+                        )}
+                      </div>
+                      {/* Customer — secondary */}
+                      <div className="text-xs text-muted-foreground">
                         {b.customer?.fullName || b.contactFullName || "Unknown"}
                       </div>
-                      {b.vehicle ? (
-                        <div className="text-xs text-muted-foreground">
-                          {b.vehicle.modelName} &middot; <span className="font-mono">{b.vehicle.licensePlate}</span>
-                        </div>
-                      ) : b.vehicleModelName ? (
-                        <div className="text-xs text-muted-foreground italic">{b.vehicleModelName} (unassigned)</div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">No vehicle assigned</span>
-                      )}
                       {b.source && b.source !== "admin" && (
-                        <span className={`inline-flex items-center mt-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        <span className={`inline-flex items-center mt-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                           b.source === "website" ? "bg-blue-500/15 text-blue-400 border border-blue-500/25" :
                           b.source === "api" ? "bg-violet-500/15 text-violet-400 border border-violet-500/25" :
                           "bg-muted text-muted-foreground border border-border"
@@ -597,14 +706,24 @@ export default function BookingsPage() {
         open={detailBookingId !== null}
         onClose={() => setDetailBookingId(null)}
         onPaymentChanged={() => queryClient.invalidateQueries()}
+        onEditBooking={(b) => {
+          setDetailBookingId(null);
+          setTimeout(() => openEditBooking(b), 100);
+        }}
       />
 
-      {/* ─── New Booking Modal ──────────────────────────────────────────── */}
-      <Dialog open={isNewBookingOpen} onOpenChange={setIsNewBookingOpen}>
+      {/* ─── New / Edit Booking Modal ────────────────────────────────────── */}
+      <Dialog open={isNewBookingOpen} onOpenChange={(open) => {
+        if (!open) { setIsNewBookingOpen(false); setEditBookingId(null); }
+      }}>
         <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">New Booking</DialogTitle>
-            <DialogDescription>Create a new car rental reservation.</DialogDescription>
+            <DialogTitle className="font-display text-xl">
+              {isEditMode ? `Edit Booking #${editBookingId}` : "New Booking"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode ? "Update the reservation details below." : "Create a new car rental reservation."}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5 py-2">
@@ -612,34 +731,85 @@ export default function BookingsPage() {
             {/* Customer Section */}
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Customer</h3>
-              <Tabs value={booking.customerMode} onValueChange={(v: any) => setBooking({...booking, customerMode: v})}>
+              <Tabs value={booking.customerMode} onValueChange={(v: any) => {
+                setBooking({...booking, customerMode: v, customerId: "", newCustomerName: "", newCustomerPhone: "", newCustomerEmail: ""});
+                setCustomerSearch("");
+                setCustomerDropdownOpen(false);
+              }}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="existing">Existing Customer</TabsTrigger>
                   <TabsTrigger value="new">New Customer</TabsTrigger>
+                  <TabsTrigger value="existing">Existing Customer</TabsTrigger>
                 </TabsList>
-                <TabsContent value="existing" className="mt-3 space-y-3">
-                  <div className="grid gap-2">
+
+                {/* Existing Customer — single typeahead search */}
+                <TabsContent value="existing" className="mt-3 space-y-2">
+                  <div className="grid gap-2 relative">
                     <Label>Search Customer</Label>
-                    <Input 
-                      placeholder="Type name, email or phone..." 
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Select Customer</Label>
-                    <Select value={booking.customerId} onValueChange={(v) => setBooking({...booking, customerId: v})}>
-                      <SelectTrigger><SelectValue placeholder="Choose customer..." /></SelectTrigger>
-                      <SelectContent>
-                        {allCustomers.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id.toString()}>
-                            {c.fullName} {c.phone ? `· ${c.phone}` : ""} {c.email ? `· ${c.email}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {/* Selected customer chip */}
+                    {booking.customerId && selectedCustomer && (
+                      <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                        <span className="flex-1 font-medium">{selectedCustomer.fullName}</span>
+                        {selectedCustomer.phone && <span className="text-xs text-muted-foreground">{selectedCustomer.phone}</span>}
+                        <button
+                          type="button"
+                          className="ml-1 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setBooking({...booking, customerId: ""});
+                            setCustomerSearch("");
+                            customerSearchRef.current?.focus();
+                          }}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    {!booking.customerId && (
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Input
+                          ref={customerSearchRef}
+                          placeholder="Type name, email or phone…"
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value);
+                            setCustomerDropdownOpen(true);
+                          }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                          className="pl-8"
+                        />
+                        {customerDropdownOpen && allCustomers.length > 0 && (
+                          <div
+                            ref={customerDropdownRef}
+                            className="absolute z-50 top-full mt-1 w-full rounded-md border border-border/50 bg-popover shadow-lg overflow-hidden"
+                          >
+                            {allCustomers.slice(0, 8).map((c: any) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-accent transition-colors text-left border-b border-border/20 last:border-0"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setBooking({...booking, customerId: c.id.toString()});
+                                  setCustomerSearch(c.fullName || "");
+                                  setCustomerDropdownOpen(false);
+                                }}
+                              >
+                                <span className="font-medium">{c.fullName}</span>
+                                {(c.phone || c.email) && (
+                                  <span className="text-xs text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(" · ")}</span>
+                                )}
+                              </button>
+                            ))}
+                            {allCustomers.length === 0 && (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No customers found</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
+
                 <TabsContent value="new" className="mt-3 space-y-3">
                   <div className="grid gap-2">
                     <Label>Full Name <span className="text-destructive">*</span></Label>
@@ -670,6 +840,25 @@ export default function BookingsPage() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </div>
+
+            {/* Reservation Status — moved here, above Vehicle */}
+            <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Reservation</h3>
+              <div className="grid gap-2">
+                <Label>Booking Status</Label>
+                <Select value={booking.status} onValueChange={(v: any) => setBooking({...booking, status: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                    <SelectItem value="DELIVERED">Delivered</SelectItem>
+                    <SelectItem value="RETURNED">Returned</SelectItem>
+                    <SelectItem value="CANCELED">Canceled</SelectItem>
+                    <SelectItem value="NO_SHOW">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Vehicle Section */}
@@ -837,12 +1026,14 @@ export default function BookingsPage() {
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Status</Label>
-                  <Select value={booking.status} onValueChange={(v: any) => setBooking({...booking, status: v})}>
+                  <Label>Payment Status</Label>
+                  <Select value={booking.paymentStatus} onValueChange={(v) => setBooking({...booking, paymentStatus: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                      <SelectItem value="UNPAID">Unpaid</SelectItem>
+                      <SelectItem value="HALF">PreHalf</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PREPAID">PrePaid</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -860,10 +1051,16 @@ export default function BookingsPage() {
           </div>
 
           <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => setIsNewBookingOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateBooking} disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create Booking"}
-            </Button>
+            <Button variant="outline" onClick={() => { setIsNewBookingOpen(false); setEditBookingId(null); }}>Cancel</Button>
+            {isEditMode ? (
+              <Button onClick={handleUpdateBooking} disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? "Saving…" : "Save Changes"}
+              </Button>
+            ) : (
+              <Button onClick={handleCreateBooking} disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Creating..." : "Create Booking"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

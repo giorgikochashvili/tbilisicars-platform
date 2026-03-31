@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, type ReactElement } from "react";
+import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,8 @@ import {
   User,
   Calendar,
   ImageIcon,
+  Pencil,
+  ExternalLink,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -453,10 +456,12 @@ interface BookingDetailProps {
   open: boolean;
   onClose: () => void;
   onPaymentChanged?: () => void;
+  onEditBooking?: (bookingData: any) => void;
 }
 
-export default function BookingDetail({ bookingId, open, onClose, onPaymentChanged }: BookingDetailProps) {
+export default function BookingDetail({ bookingId, open, onClose, onPaymentChanged, onEditBooking }: BookingDetailProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [booking, setBooking] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -667,6 +672,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           {/* Document generation + action buttons */}
           {!loadingBooking && booking && (
             <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30">
+              {onEditBooking && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => onEditBooking(booking)}
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit Booking
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -737,13 +753,24 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 </div>
                 <div>
                   <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
-                  <div className="font-medium">
-                    {booking.vehicle
-                      ? `${booking.vehicle.modelName} · ${booking.vehicle.licensePlate}`
-                      : booking.vehicleModelName
+                  {booking.vehicle ? (
+                    <button
+                      className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
+                      onClick={() => {
+                        onClose();
+                        setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
+                      }}
+                    >
+                      {booking.vehicle.modelName} · {booking.vehicle.licensePlate}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </button>
+                  ) : (
+                    <div className="font-medium">
+                      {booking.vehicleModelName
                         ? `${booking.vehicleModelName} (unassigned)`
                         : "—"}
-                  </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Booking Price</div>
