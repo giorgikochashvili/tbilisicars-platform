@@ -1,0 +1,110 @@
+Tbilisicars CRM&WEB — TARGETED UPLOAD/STORAGE FIX FOR REPLIT + LIVE DEPLOY
+
+IMPORTANT:
+This project was built in Replit and currently may work differently in Replit preview versus live droplet deployment.
+Do NOT refactor the whole project.
+Do NOT touch Rates, Booking flow, auth/session, dashboard logic, or unrelated UI.
+Fix only the shared upload/storage flow so it works BOTH:
+1) in Replit preview/dev
+2) in live production deployment behind Nginx on a droplet
+
+Problem summary:
+- CRM Brand logo upload and Model image upload are broken on live.
+- UI shows generic upload errors like “Failed to fetch”, “Failed to get upload URL”, or upload URL failures.
+- Both features share the same upload pipeline, so this is a shared storage/upload issue.
+- The current code path is in artifacts/api-server/src/routes/storage.ts and CRM Fleet page upload handlers.
+- Replit preview/dev may behave differently from live because of host/proxy/origin/path differences.
+- We need a minimal, production-safe, environment-aware fix.
+
+What is already known:
+- Frontend upload flow requests:
+  POST /api/storage/uploads/request-url
+- Backend storage router is mounted under /api
+- In the current fallback/local upload branch, the server generates uploadURL using localhost or dev-specific assumptions.
+- Returned objectPath / asset path is not consistently browser-safe for live deployment.
+- As a result, upload may appear to work in dev/preview but fail or render incorrectly on live.
+- Model image must be visible both in CRM and on the public website after upload/save.
+- Brand logos must also render correctly in CRM and on the website where used.
+
+Your task:
+Audit and minimally fix ONLY the upload/storage flow so it is robust across both Replit preview and live deployment.
+
+Files to inspect first:
+- artifacts/api-server/src/routes/storage.ts
+- artifacts/api-server/src/routes/index.ts
+- artifacts/api-server/src/lib/objectStorage.ts
+- artifacts/crm/src/pages/Fleet.tsx
+- any shared image URL rendering helpers used by CRM/public website
+
+Required fixes:
+
+1) Keep frontend request endpoint stable
+- CRM frontend should keep using:
+  /api/storage/uploads/request-url
+- Do not rename this endpoint unless absolutely necessary.
+
+2) Fix request-url response generation in storage route
+In artifacts/api-server/src/routes/storage.ts:
+For POST /storage/uploads/request-url:
+- make the returned uploadURL browser-usable in BOTH Replit preview and live
+- do NOT hardcode localhost for browser-facing uploadURL
+- build origin in a proxy-safe way:
+  prefer x-forwarded-proto + host
+  otherwise fall back to req.protocol + req.get("host")
+- in fallback/local-upload mode, return uploadURL as:
+  {origin}/api/storage/local-uploads/{filename}
+- in fallback/local-upload mode, return objectPath as:
+  /api/storage/local-uploads/{filename}
+  not /local-uploads/{filename}
+
+3) Fix object storage path normalization for live rendering
+- When object storage is used and a stored object path is returned,
+  the saved path must be directly usable by <img src="..."> in CRM and website.
+- If normalizeObjectEntityPath currently returns something like /objects/...,
+  convert the path that is returned to frontend/DB into a browser-safe mounted route:
+    /api/storage/objects/{...}
+- Do not return paths that require the browser to know internal mount details.
+
+4) Preserve existing route handlers
+Do not remove these handlers:
+- PUT /storage/local-uploads/:filename
+- GET /storage/local-uploads/:filename
+- GET /storage/public-objects/*
+- GET /storage/objects/*
+But ensure the returned JSON from request-url points the browser to the correct mounted URLs.
+
+5) Verify CRM upload handlers are consistent
+In Fleet.tsx:
+- both Brand logo upload and Model image upload must use the same correct endpoint
+- no mixed /storage vs /api/storage request-url usage
+- keep changes minimal
+
+6) Ensure website rendering works
+- A saved model image path must render on the public website without additional manual rewriting.
+- A saved brand logo path must also render correctly anywhere it is displayed.
+- If there is currently scattered logic rewriting image paths in multiple places, simplify only as much as needed so both local-upload and object-storage paths render correctly and consistently.
+
+7) Environment-aware compatibility
+The final behavior must work in both:
+- Replit preview/dev
+- live production behind Nginx reverse proxy
+Do not make a fix that only works in one environment.
+
+8) No broad refactor
+- no schema changes
+- no unrelated API changes
+- no style redesign
+- no rewriting unrelated modules
+- no breaking existing saved image data if possible
+
+Expected deliverable:
+- exact files changed
+- exact root cause found
+- concise explanation of how the fix now works in both Replit and live
+- confirm that after upload:
+  a) Brand logo upload works in CRM
+  b) Model image upload works in CRM
+  c) saved image paths are browser-safe
+  d) CRM + public website can render the uploaded images correctly
+
+If you need to make any path-normalization helper, keep it minimal and reuse it instead of scattering one-off fixes.
