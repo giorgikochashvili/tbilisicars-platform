@@ -127,6 +127,12 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
+}
+
 function cn(...cls: (string | undefined | false | null)[]) { return cls.filter(Boolean).join(" "); }
 
 function formatDT(iso: string) {
@@ -768,7 +774,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   {/* Image banner */}
                   <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
                     {m.image_url
-                      ? <img src={`/api/storage${m.image_url}`} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
+                      ? <img src={toStorageSrc(m.image_url)} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
                       : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Car className="w-16 h-16 text-muted-foreground/15" />
@@ -1762,7 +1768,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               </div>
               {model.image_url && (
                 <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
-                  <img src={`/api/storage${model.image_url}`} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
+                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
                 </div>
               )}
               <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />

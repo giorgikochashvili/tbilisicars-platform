@@ -29,6 +29,12 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
+}
+
 function transmissionLabel(t: string | null) {
   if (!t) return null;
   return t === "AUTOMATIC" ? "Automatic" : t === "MANUAL" ? "Manual" : t;
@@ -148,7 +154,7 @@ export default function Fleet() {
                   <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
                     {m.image_url ? (
                       <img
-                        src={`/api/storage${m.image_url}`}
+                        src={toStorageSrc(m.image_url)}
                         alt={`${m.brand} ${m.model}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />

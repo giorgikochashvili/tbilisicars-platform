@@ -47,6 +47,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
+}
+
 export default function FleetPage() {
   const reqOpts = { request: { credentials: "include" as const } };
   
@@ -463,7 +469,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                       <div className="flex items-center gap-2">
                         {v.vehicleModel?.brand?.logoUrl && (
                           <img
-                            src={`/api/storage${v.vehicleModel.brand.logoUrl}`}
+                            src={toStorageSrc(v.vehicleModel.brand.logoUrl)}
                             alt=""
                             className="w-5 h-5 rounded object-contain flex-shrink-0"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -552,7 +558,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                     <SelectItem key={m.id} value={m.id.toString()}>
                       <span className="flex items-center gap-2">
                         {m.brand?.logoUrl && (
-                          <img src={`/api/storage${m.brand.logoUrl}`} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          <img src={toStorageSrc(m.brand.logoUrl)} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         )}
                         {m.brand?.name} {m.name}
                       </span>
@@ -843,7 +849,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
                           {m.imageUrl ? (
                             <img
-                              src={`/api/storage${m.imageUrl}`}
+                              src={toStorageSrc(m.imageUrl)}
                               alt=""
                               className="w-8 h-8 rounded object-cover flex-shrink-0 border border-border/40"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -855,7 +861,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                           )}
                           {m.brand?.logoUrl && (
                             <img
-                              src={`/api/storage${m.brand.logoUrl}`}
+                              src={toStorageSrc(m.brand.logoUrl)}
                               alt=""
                               className="w-5 h-5 rounded object-contain flex-shrink-0"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -936,7 +942,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                     <SelectItem key={b.id} value={b.id.toString()}>
                       <span className="flex items-center gap-2">
                         {b.logoUrl && (
-                          <img src={`/api/storage${b.logoUrl}`} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          <img src={toStorageSrc(b.logoUrl)} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         )}
                         {b.name}
                       </span>
@@ -954,7 +960,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               <div className="flex items-center gap-3">
                 {formData.imageUrl ? (
                   <img
-                    src={`/api/storage${formData.imageUrl}`}
+                    src={toStorageSrc(formData.imageUrl)}
                     alt="Model preview"
                     className="w-16 h-12 rounded object-cover border border-border/50 bg-muted/30 flex-shrink-0"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

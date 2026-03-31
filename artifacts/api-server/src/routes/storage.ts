@@ -57,12 +57,11 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
   if (!process.env.PRIVATE_OBJECT_DIR) {
     const ext = getExtFromContentType(contentType);
     const filename = randomUUID() + ext;
-    const devDomain = process.env.REPLIT_DEV_DOMAIN;
-    const baseUrl = devDomain
-      ? `https://${devDomain}`
-      : `http://localhost:${process.env.PORT ?? 8080}`;
+    const proto = req.get("x-forwarded-proto") || req.protocol;
+    const host = req.get("x-forwarded-host") || req.get("host") || `localhost:${process.env.PORT ?? 8080}`;
+    const baseUrl = `${proto}://${host}`;
     const uploadURL = `${baseUrl}/api/storage/local-uploads/${filename}`;
-    const objectPath = `/local-uploads/${filename}`;
+    const objectPath = `/api/storage/local-uploads/${filename}`;
 
     res.json(
       RequestUploadUrlResponse.parse({
@@ -76,7 +75,10 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 
   try {
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    const internalPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    const objectPath = internalPath.startsWith("/objects/")
+      ? `/api/storage${internalPath}`
+      : internalPath;
 
     res.json(
       RequestUploadUrlResponse.parse({

@@ -103,6 +103,12 @@ const METHOD_ICONS: Record<string, ReactElement> = {
   OTHER: <HelpCircle className="w-3 h-3" />,
 };
 
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
+}
+
 function typeColor(type: string) {
   const map: Record<string, string> = {
     BOOKING_PAYMENT: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -267,13 +273,13 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
             {handover.photos.map((url: string, i: number) => (
               <a
                 key={i}
-                href={`/api/storage${url}`}
+                href={toStorageSrc(url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20"
               >
                 <img
-                  src={`/api/storage${url}`}
+                  src={toStorageSrc(url)}
                   alt={`${type} photo ${i + 1}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
