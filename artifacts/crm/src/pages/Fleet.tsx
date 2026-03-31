@@ -553,15 +553,10 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               <Label>Vehicle Model <span className="text-destructive">*</span></Label>
               <Select value={formData.vehicleModelId} onValueChange={(val) => setFormData({...formData, vehicleModelId: val})}>
                 <SelectTrigger><SelectValue placeholder="Select a model..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[280px] overflow-y-auto">
                   {(models as any)?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
-                      <span className="flex items-center gap-2">
-                        {m.brand?.logoUrl && (
-                          <img src={toStorageSrc(m.brand.logoUrl)} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                        )}
-                        {m.brand?.name} {m.name}
-                      </span>
+                      {m.brand?.name} {m.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -847,26 +842,6 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
-                          {m.imageUrl ? (
-                            <img
-                              src={toStorageSrc(m.imageUrl)}
-                              alt=""
-                              className="w-8 h-8 rounded object-cover flex-shrink-0 border border-border/40"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted/40 border border-border/30 flex items-center justify-center flex-shrink-0">
-                              <Car className="w-4 h-4 text-muted-foreground/40" />
-                            </div>
-                          )}
-                          {m.brand?.logoUrl && (
-                            <img
-                              src={toStorageSrc(m.brand.logoUrl)}
-                              alt=""
-                              className="w-5 h-5 rounded object-contain flex-shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                            />
-                          )}
                           <span className="font-medium">{m.brand?.name} {m.name}</span>
                         </div>
                       </TableCell>
@@ -940,12 +915,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                 <SelectContent>
                   {(brands as any)?.map((b: any) => (
                     <SelectItem key={b.id} value={b.id.toString()}>
-                      <span className="flex items-center gap-2">
-                        {b.logoUrl && (
-                          <img src={toStorageSrc(b.logoUrl)} alt="" className="w-4 h-4 rounded object-contain flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                        )}
-                        {b.name}
-                      </span>
+                      {b.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
