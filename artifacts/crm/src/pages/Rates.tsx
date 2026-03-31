@@ -266,8 +266,8 @@ export default function RatesPage() {
   const handleSave = () => {
     const payload = {
       ...formData,
-      validFrom: formData.validFrom || new Date().toISOString().split("T")[0],
-      validUntil: formData.validUntil || new Date().toISOString().split("T")[0],
+      validFrom: formData.validFrom || undefined,
+      validUntil: formData.validUntil || undefined,
     };
     
     if (editingRate) {
