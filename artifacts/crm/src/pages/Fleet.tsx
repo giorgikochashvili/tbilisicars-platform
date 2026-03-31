@@ -553,7 +553,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               <Label>Vehicle Model <span className="text-destructive">*</span></Label>
               <Select value={formData.vehicleModelId} onValueChange={(val) => setFormData({...formData, vehicleModelId: val})}>
                 <SelectTrigger><SelectValue placeholder="Select a model..." /></SelectTrigger>
-                <SelectContent className="max-h-[280px] overflow-y-auto">
+                <SelectContent>
                   {(models as any)?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
                       {m.brand?.name} {m.name}
