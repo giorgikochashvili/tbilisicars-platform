@@ -7,7 +7,13 @@ import {
   type Vehicle,
 } from "@workspace/db";
 import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
-import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
+
+/** Detects PostgreSQL foreign-key violation (code 23503) from Drizzle-wrapped or raw pg errors. */
+function isForeignKeyViolation(err: unknown): boolean {
+  const pgErr = (err as any)?.cause ?? err;
+  return (pgErr as any)?.code === "23503";
+}
 
 export async function listAdminBrands() {
   const rows = await db
@@ -422,7 +428,17 @@ export async function createAdminVehicle(data: {
   locationId?: number | null;
   startingPrice?: string | null;
 }) {
-  const [row] = await db.insert(vehicleTable).values(data as any).returning();
+  let row: { id: number } | undefined;
+  try {
+    [row] = await db.insert(vehicleTable).values(data as any).returning();
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      throw new ValidationError(
+        "Invalid vehicle model or location — the selected ID does not exist.",
+      );
+    }
+    throw err;
+  }
   return getAdminVehicle(row!.id);
 }
 
@@ -444,11 +460,21 @@ export async function updateAdminVehicle(
     startingPrice: string | null;
   }>,
 ) {
-  const [row] = await db
-    .update(vehicleTable)
-    .set({ ...(data as any), updatedAt: new Date() })
-    .where(eq(vehicleTable.id, id))
-    .returning();
+  let row: { id: number } | undefined;
+  try {
+    [row] = await db
+      .update(vehicleTable)
+      .set({ ...(data as any), updatedAt: new Date() })
+      .where(eq(vehicleTable.id, id))
+      .returning();
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      throw new ValidationError(
+        "Invalid vehicle model or location — the selected ID does not exist.",
+      );
+    }
+    throw err;
+  }
   if (!row) throw new NotFoundError(`Vehicle ${id} not found`);
   return getAdminVehicle(id);
 }

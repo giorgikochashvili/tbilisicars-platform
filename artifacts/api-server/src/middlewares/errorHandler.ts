@@ -30,6 +30,12 @@ export function errorHandler(
     return;
   }
 
-  console.error("[unhandled error]", safeStringify(err));
+  const cause = (err as any)?.cause;
+  console.error(
+    "[unhandled error]",
+    safeStringify(err),
+    err instanceof Error ? err.stack : "",
+    cause ? `cause: ${safeStringify(cause)}` : "",
+  );
   res.status(500).json({ error: "Internal server error" });
 }
