@@ -1768,7 +1768,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               </div>
               {model.image_url && (
                 <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
-                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-contain p-2" />
+                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-contain p-3" />
                 </div>
               )}
               <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
