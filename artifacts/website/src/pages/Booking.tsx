@@ -756,7 +756,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
             {filteredModels.map((m) => {
               const selected = String(form.vehicleModelId) === String(m.id);
               const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
@@ -772,7 +772,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                       : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
                   )}>
                   {/* Image banner */}
-                  <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
+                  <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden">
                     {m.image_url
                       ? <img src={toStorageSrc(m.image_url)} alt={`${m.brand} ${m.model}`} className="w-full h-full object-contain p-3" />
                       : (

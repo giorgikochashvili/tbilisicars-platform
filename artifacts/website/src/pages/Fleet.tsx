@@ -77,10 +77,10 @@ export default function Fleet() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse">
-                <div className="h-48 bg-muted" />
+                <div className="aspect-[16/10] bg-muted" />
                 <div className="p-5 space-y-3">
                   <div className="h-5 bg-muted rounded w-2/3" />
                   <div className="h-4 bg-muted rounded w-1/2" />
@@ -137,7 +137,7 @@ export default function Fleet() {
 
         {/* Vehicle Grid */}
         {!isLoading && models.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {models.map((m) => {
               const transmission = transmissionLabel(m.transmission);
               const fuel = fuelLabel(m.fuel_type);
@@ -151,7 +151,7 @@ export default function Fleet() {
                   className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 group flex flex-col"
                 >
                   {/* Vehicle image */}
-                  <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
+                  <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
                     {m.image_url ? (
                       <img
                         src={toStorageSrc(m.image_url)}
