@@ -1,0 +1,74 @@
+We already fixed this area before, so first audit whether a previous visibility/availability fix was lost, partially reverted, or is not being applied correctly in the current code. Do NOT refactor broadly. Do NOT redesign the booking flow. Make a minimal production-safe fix only.
+
+Bug
+Public website booking flow:
+After selecting trip details and going to the vehicle selection step, active/uploaded vehicle models that should be visible are not appearing on the site.
+
+Observed behavior
+- In CRM, vehicle models and vehicles are uploaded/active
+- On the website booking search, the results page shows “No vehicles found”
+- As I remember, this logic had already been fixed before, so check whether that fix was lost or broken
+
+Goal
+Ensure website booking search correctly shows all expected active models for the selected city/date range according to the intended logic:
+- available models should appear normally
+- models with zero currently free cars in that city/date range should still appear as “On Request” if that is the intended existing project logic
+- hidden/inactive/deleted items should still remain hidden
+
+Working style
+1. First audit the current implementation and compare it to the intended previous behavior.
+2. Identify the exact failure point.
+3. Apply the smallest safe fix only.
+4. Do not rewrite the booking flow.
+5. Do not change styling unless required for the fix.
+6. Do not break CRM, pricing, filters, or later booking steps.
+
+Trace and verify end-to-end
+Inspect the complete public booking results pipeline:
+- website Step 1 / search state
+- URL params passed to booking page
+- website query/hook calling the public booking API
+- backend public booking-config / availability / fleet endpoints used for search
+- city/location filtering
+- active/public visibility flags on brands/models/vehicles
+- availability overlap logic by booking status
+- maintenance/inactive vehicle exclusion
+- “On Request” fallback logic for zero-availability models
+- pricing/rate attachment logic that may accidentally filter models out
+- any requirement for images/logo/public flags that might wrongly exclude results
+
+Things to check carefully
+- selected pickup city/location id filtering is too strict
+- models are being excluded if vehicle count is zero instead of shown as On Request
+- only assigned physical vehicles are considered and models without a specific condition disappear
+- active/public flags mismatch between CRM and website query
+- date overlap logic is excluding too much
+- location join/filter mismatch
+- rates/pricing join causes rows to disappear
+- regression from previous fixes in booking availability logic
+- current code may already contain the intended fix in one place but another endpoint/hook still uses old logic
+
+Expected behavior
+For a valid booking search:
+- active/public models for the selected city should be shown
+- if a model has available units, show it normally with availability/pricing
+- if a model belongs to that city but currently has zero free units and project logic supports it, still show it as On Request instead of hiding it
+- if truly nothing is configured for that city, only then show “No vehicles found”
+
+Constraints
+- Do not refactor unrelated website pages
+- Do not modify CRM data model unless absolutely required
+- Do not change successful Add Vehicle / Fleet fixes
+- Keep existing architecture and project logic intact
+- Fix code only where the visibility/availability path is wrong
+
+Deliverables
+1. Exact root cause
+2. Exact files changed
+3. Minimal fix implemented
+4. Confirmation that these still work:
+   - vehicle results appear on booking search
+   - On Request behavior works correctly if intended
+   - pricing still shows correctly
+   - booking step navigation still works
+   - no TypeScript/build errors
