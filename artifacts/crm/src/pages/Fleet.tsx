@@ -652,11 +652,13 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
     fuelType: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | "";
     luggageCapacity: number;
     active: boolean;
+    availableForExternalSystems: boolean;
     imageUrl: string | null;
   }>({ 
     brandId: "", name: "", category: "", 
     seats: 5, doors: 4, transmission: "AUTOMATIC", 
-    fuelType: "PETROL", luggageCapacity: 2, active: true, imageUrl: null
+    fuelType: "PETROL", luggageCapacity: 2, active: true,
+    availableForExternalSystems: true, imageUrl: null
   });
   const [imageUploading, setImageUploading] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -715,6 +717,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         fuelType: item.fuelType || "PETROL",
         luggageCapacity: item.luggageCapacity || 2,
         active: item.active ?? true,
+        availableForExternalSystems: item.availableForExternalSystems ?? true,
         imageUrl: item.imageUrl || null,
       });
     } else {
@@ -722,7 +725,8 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       setFormData({ 
         brandId: "", name: "", category: "", 
         seats: 5, doors: 4, transmission: "AUTOMATIC", 
-        fuelType: "PETROL", luggageCapacity: 2, active: true, imageUrl: null
+        fuelType: "PETROL", luggageCapacity: 2, active: true,
+        availableForExternalSystems: true, imageUrl: null
       });
     }
     setIsModalOpen(true);
@@ -748,6 +752,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       fuelType: formData.fuelType as any || null,
       luggageCapacity: formData.luggageCapacity,
       active: formData.active,
+      availableForExternalSystems: formData.availableForExternalSystems,
       // In edit mode: send "" to explicitly clear an existing image when user removes it.
       // In create mode: omit if no image was uploaded (undefined = skip field).
       imageUrl: editingItem
@@ -1040,6 +1045,13 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
             <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
               <Label>Active</Label>
               <Switch checked={formData.active} onCheckedChange={val => setFormData({...formData, active: val})} />
+            </div>
+            <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
+              <div>
+                <Label>Show on website</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Display this model in the public booking search</p>
+              </div>
+              <Switch checked={formData.availableForExternalSystems} onCheckedChange={val => setFormData({...formData, availableForExternalSystems: val})} />
             </div>
           </div>
           <DialogFooter>
