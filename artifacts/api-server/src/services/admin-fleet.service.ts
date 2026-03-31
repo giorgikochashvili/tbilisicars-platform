@@ -434,7 +434,7 @@ export async function createAdminVehicle(data: {
   } catch (err) {
     if (isForeignKeyViolation(err)) {
       throw new ValidationError(
-        "Invalid vehicle model or location — the selected ID does not exist.",
+        "Invalid vehicle model, group, or location — the selected ID does not exist.",
       );
     }
     throw err;
@@ -470,7 +470,7 @@ export async function updateAdminVehicle(
   } catch (err) {
     if (isForeignKeyViolation(err)) {
       throw new ValidationError(
-        "Invalid vehicle model or location — the selected ID does not exist.",
+        "Invalid vehicle model, group, or location — the selected ID does not exist.",
       );
     }
     throw err;
