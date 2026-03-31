@@ -1,0 +1,53 @@
+Tbilisicars CRM&WEB CONTINUE
+
+Current state:
+- Fleet CRM cleanup was applied
+- Add Vehicle modal -> Vehicle Model dropdown is now scrollable
+- brand/emblem thumbnails were removed from several Fleet UI places
+- Models tab is cleaner now
+- Add Model modal -> Brand dropdown is text-only
+- this overall cleanup is good
+
+Refinement needed:
+In the Add Vehicle modal only, I want the Vehicle Model dropdown to show the MODEL IMAGE thumbnail again, because it helps visually identify the car model.
+However:
+- do NOT bring back brand logo/emblem thumbnails
+- keep the dropdown scrollable
+- keep Models tab text-only
+- keep Add Model modal Brand dropdown text-only
+
+Goal:
+Restore only the model image thumbnail in the Add Vehicle -> Vehicle Model dropdown, with a clean design that fits the CRM modal properly.
+
+Required behavior:
+1. In Add Vehicle modal -> Vehicle Model SelectContent:
+   - keep the current max-height / scroll behavior
+   - restore a small model image thumbnail for each model option if imageUrl exists
+   - do NOT render brand logos there
+   - show clean text next to it: brand name + model name
+   - keep the option rows visually balanced and aligned
+   - if a model has no image, show a subtle small placeholder/fallback icon instead of breaking layout
+
+2. Do NOT change:
+   - Models tab rows (keep them text-only)
+   - Add Model modal Brand dropdown (keep it text-only)
+   - CRUD logic
+   - save behavior
+   - API/backend/storage/upload/auth
+   - website
+
+Design direction:
+- thumbnail should be small and clean, not noisy
+- use object-contain for the model image
+- keep the dropdown dark, premium, and readable
+- preserve current scrollable behavior and modal fit
+
+Deliverables:
+1. First print a short audit summary:
+   - exact place in Fleet.tsx where the Vehicle Model dropdown option rendering currently exists
+   - how you will restore only the model image thumbnail there
+2. Then implement only that refinement
+3. At the end print:
+   - files changed
+   - exact UI behavior changed
+   - confirmation that brand logos remain removed and all backend/upload logic was untouched
