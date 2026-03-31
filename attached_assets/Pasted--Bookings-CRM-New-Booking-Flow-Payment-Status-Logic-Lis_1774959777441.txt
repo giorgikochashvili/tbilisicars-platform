@@ -1,0 +1,242 @@
+# Bookings CRM — New Booking Flow, Payment Status Logic, List Priority, and Booking Detail Navigation
+
+What & Why
+
+We are continuing a large existing Tbilisicars CRM&WEB project. The Bookings module is already built and working. Do not redesign or refactor broadly. Apply only the exact changes below.
+
+This task is about improving the CRM Bookings UX and aligning the form with correct business logic:
+
+1. New Booking should start from New Customer by default
+2. Existing Customer search should be simplified into one search-driven selection flow
+3. Booking status (Pending / Confirmed) must be removed from the Pricing & Notes section because it is not a pricing field
+4. Payment-related status must be added and wired into the actual booking/payment logic
+5. Bookings list must visually prioritize vehicle info over customer name in the Customer & Vehicle column
+6. Booking detail page must have an Edit Booking action
+7. Booking detail vehicle info must link to that exact vehicle’s CRM detail page
+
+Important:
+This is a production-grade CRM that is already assembled. Do not make speculative changes. Do not change unrelated layouts, APIs, schemas, workflows, routes, naming, theme, or existing working modules. Only implement the scope below.
+
+---
+
+Exact scope
+
+Touch only the Bookings CRM flow and only where needed:
+- Bookings list page
+- New Booking modal / form
+- Edit Booking modal / form if it exists, or create a safe edit flow reusing existing booking form patterns
+- Booking detail page / modal
+- Any booking-related backend/service/controller logic strictly required to support payment status and customer search UX
+- Any existing booking/payment summary logic strictly required so payment status is not just cosmetic
+
+Do not touch:
+- Fleet module logic except for linking from booking to existing vehicle detail page
+- Website booking flow
+- Dashboard
+- Accounting UI structure unless already directly coupled to booking payment status logic
+- Visual theme or global component library behavior
+
+---
+
+Changes to implement
+
+## 1) New Booking default tab must be New Customer
+
+Current state:
+The New Booking modal currently opens with Existing Customer selected or allows both tabs.
+
+Required change:
+- When user clicks “New Booking”, the default active tab must be “New Customer”
+- Existing Customer must still remain available as the second option
+- Do not change the rest of the modal structure unless required for this task
+
+Done looks like:
+- Opening New Booking always lands on New Customer first
+
+---
+
+## 2) Existing Customer flow must be search-first and single-step
+
+Current state:
+Existing Customer mode appears to have:
+- Search Customer input
+- Select Customer dropdown
+
+Required change:
+- Remove the separate “Select Customer” field from Existing Customer mode
+- Searching by name / phone / email must directly return matching customers from the system
+- User should be able to select the customer directly from the search results/autocomplete suggestions
+- Keep it fast and operator-friendly
+- Preserve existing customer creation logic in New Customer mode
+- Preserve existing customer linkage logic in booking creation
+
+Important:
+Do not create a new complex UI. Reuse existing search/select patterns already present in the CRM if available.
+
+Done looks like:
+- Existing Customer mode has one search field
+- Typing immediately shows matching existing customers
+- Clicking one result selects that customer for the booking
+- No second dropdown/select step
+
+---
+
+## 3) Booking status must be removed from Pricing & Notes section
+
+Current state:
+Pricing & Notes currently includes:
+- total amount
+- currency
+- status dropdown with Pending / Confirmed
+- notes
+
+Problem:
+Pending / Confirmed is booking status, not pricing/payment data.
+
+Required change:
+- Remove booking status dropdown from Pricing & Notes
+- Move booking status to a more correct place in the booking form
+- Keep it editable in the form
+- Reuse current status options only as already supported by the booking creation flow; do not invent new booking statuses here
+- The new placement should feel logically tied to the reservation itself, not the pricing block
+
+Constraint:
+Do not break existing create/edit booking payloads or booking status logic. Adjust form wiring safely.
+
+Done looks like:
+- Pricing & Notes is no longer mixing reservation status with payment/pricing
+- Booking status still exists in the form, just in the correct place
+
+---
+
+## 4) Add Payment Status to booking form and connect it to real logic
+
+Required new payment status options:
+- Paid
+- PrePaid
+- Unpaid
+- PreHalf
+
+This is NOT just a visual field.
+It must be connected to actual booking/payment logic so the selected payment state is meaningful in the system.
+
+Requirements:
+- Add a payment status field in the pricing/payment-related section of the booking form
+- Preserve total amount and currency fields
+- Notes stays as is
+- Payment status must be saved with the booking in a way that existing bookings list / payment summary / payment indicators can use consistently
+- Ensure current payment badges/filters/list logic continue to work or are updated consistently
+- If the system already has payment-state storage, reuse and normalize it instead of duplicating fields
+- If mapping is needed, do it carefully and explicitly
+
+Business meaning:
+- Paid = fully paid
+- PrePaid = prepaid/advance paid
+- Unpaid = nothing paid yet
+- PreHalf = partially paid, specifically half-prepaid style state
+
+Important:
+Do not fabricate accounting entries or fake payment history rows unless the current system already does this by design.
+If booking creation is not supposed to auto-create payment history entries, then do not auto-create them.
+But the selected payment status must still be stored and reflected consistently in booking-level payment state logic.
+
+Need to preserve:
+- payment summary/history UI
+- payment filters on bookings list
+- payment badges if already present
+- existing calculations wherever they depend on booking payment state
+
+Done looks like:
+- New booking and edit booking both support payment status
+- Payment status is visible and consistent across list/detail/filter logic
+- No contradictory states between booking form and booking list
+
+---
+
+## 5) Bookings list — prioritize vehicle above customer in “Customer & Vehicle” column
+
+Current state:
+The Bookings list column visually emphasizes customer name, with vehicle smaller underneath.
+
+Required change:
+Reverse this hierarchy:
+- Primary line: vehicle data (brand/model and/or assigned vehicle info as currently available)
+- Secondary line: customer full name
+
+Keep existing data sources and fallbacks:
+- If assigned vehicle exists, show the same best available vehicle text you already use
+- If only model exists, use the best existing fallback already in the system
+- Do not remove useful plate/model information already shown unless necessary
+
+Done looks like:
+- Vehicle info is bold/primary
+- Customer name is smaller/secondary
+- Row remains readable and compact
+
+---
+
+## 6) Booking detail page must include Edit Booking action
+
+Current state:
+Booking detail page shows document buttons and summary blocks, but needs an Edit Booking action.
+
+Required change:
+- Add a clear “Edit Booking” button/action on the booking detail page/modal
+- Reuse existing booking form/modal patterns as much as possible
+- Editing must allow updating the same safe booking fields already supported by the system
+- Do not break document buttons, payment sections, pickup/dropoff sections, or activity timeline
+
+Done looks like:
+- Opening a booking shows an Edit Booking action
+- Clicking it opens a reliable edit flow using existing CRM patterns
+
+---
+
+## 7) Vehicle info on booking detail must navigate to the linked vehicle page
+
+Current state:
+Booking detail page displays vehicle information in the summary area.
+
+Required change:
+- Make vehicle info clickable when the booking has a linked specific vehicle
+- Clicking must navigate to that exact vehicle’s CRM detail page
+- Use existing CRM routing conventions for Fleet vehicle detail pages
+- Add hover/cursor affordance so staff understand it is clickable
+- If booking has no assigned vehicle, do not show broken link behavior
+
+Done looks like:
+- Assigned vehicle in booking detail behaves like a navigable CRM entity
+- Clicking it opens that vehicle’s detail page
+
+---
+
+Guardrails
+
+- Do not redesign the whole Bookings module
+- Do not change the dark theme, spacing system, or unrelated components
+- Do not alter Fleet business logic
+- Do not change public website booking logic
+- Do not introduce fake payment records unless the existing architecture explicitly does that
+- Do not guess field names or DB structures carelessly; inspect the current booking + payment implementation first and reuse what already exists
+- Do not break filters, status dropdowns, payment badges, booking detail sections, or existing create-booking functionality
+
+---
+
+Implementation notes
+
+Before coding:
+1. Inspect current booking schema, create/update payloads, payment-related fields, and booking list filter logic
+2. Reuse existing enums/status storage wherever possible
+3. If payment state currently exists under a different internal name, normalize the UI onto the existing field instead of adding duplicate concepts
+4. Reuse existing CRM modal/form components and route patterns
+
+---
+
+Deliverable expectation
+
+Implement the changes cleanly and minimally.
+At the end, provide a short completion summary with:
+- files changed
+- whether payment status reused an existing field or required a safe extension
+- whether Edit Booking reused the create form
+- whether vehicle click-through uses an existing Fleet detail route
