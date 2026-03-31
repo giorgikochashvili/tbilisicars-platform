@@ -156,7 +156,7 @@ export default function Fleet() {
                       <img
                         src={toStorageSrc(m.image_url)}
                         alt={`${m.brand} ${m.model}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

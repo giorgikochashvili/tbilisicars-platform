@@ -774,7 +774,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   {/* Image banner */}
                   <div className="relative h-44 bg-gradient-to-br from-secondary to-card overflow-hidden">
                     {m.image_url
-                      ? <img src={toStorageSrc(m.image_url)} alt={`${m.brand} ${m.model}`} className="w-full h-full object-cover" />
+                      ? <img src={toStorageSrc(m.image_url)} alt={`${m.brand} ${m.model}`} className="w-full h-full object-contain p-3" />
                       : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Car className="w-16 h-16 text-muted-foreground/15" />
@@ -1768,7 +1768,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               </div>
               {model.image_url && (
                 <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
-                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-cover" />
+                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-contain p-2" />
                 </div>
               )}
               <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />
