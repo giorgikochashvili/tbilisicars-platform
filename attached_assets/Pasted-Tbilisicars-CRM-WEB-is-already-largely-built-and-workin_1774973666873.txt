@@ -1,0 +1,86 @@
+Tbilisicars CRM&WEB is already largely built and working, but there may now be multiple frontend/backend/database integration disconnects caused by iterative changes across CRM, website, DB schema, and deployment.
+
+Do NOT refactor broadly.
+Do NOT redesign UI.
+Do NOT rewrite architecture.
+Do NOT apply speculative fixes yet.
+
+Task: perform a full integration audit only, end-to-end, and report exact disconnect points where UI, API, DB, uploads, toggles, or saved values are not correctly wired together.
+
+Goal
+Identify all places where:
+- a UI control exists but does not call the API
+- frontend sends wrong/missing payload fields
+- backend expects fields not present in DB
+- DB has fields not surfaced in CRM
+- upload UI exists but is not wired to a working upload flow
+- toggles/flags save incorrectly or default incorrectly
+- public website visibility depends on fields not exposed in CRM
+- existing features appear built visually but are not truly connected end-to-end
+
+Audit scope
+Check these areas systematically:
+
+1. CRM Fleet
+- Brand create/edit
+- Brand logo upload
+- Model create/edit
+- Model image upload
+- Model “active” toggle
+- Model “show on website” / availableForExternalSystems
+- Vehicle create/edit
+- Vehicle fields including techpassportNumber
+- Filters/search/list rendering
+
+2. Public Website booking flow
+- booking-config fetch
+- model visibility
+- on-request behavior
+- pricing attachment
+- selected city/date filtering
+- booking submit flow
+
+3. CRM save flows
+- every modal/form in Fleet should be checked for:
+  - form state
+  - edit preload
+  - payload
+  - backend contract
+  - DB persistence
+  - UI update after save
+
+4. Upload flows
+- compare all upload fields against the working Brand upload pattern
+- identify any upload UI that exists but does not trigger a real network request
+- identify wrong endpoint/baseURL/FormData wiring
+
+5. DB schema alignment
+- identify fields used in code but missing in live schema expectations
+- identify fields present in DB/backend but missing in CRM forms
+- identify new boolean flags or fields that require backfill for old records
+
+Output format required
+Return a structured audit in sections:
+
+For each issue found:
+- Module
+- Feature
+- Status: Working / Partial / Broken
+- Exact root cause
+- Layer affected: Frontend / Backend / DB / Deployment
+- Exact files involved
+- Severity: Critical / Medium / Low
+- Recommended minimal fix
+
+Also provide:
+1. A shortlist of the top critical issues that block real usage
+2. Which issue groups can be fixed safely together in one batch
+3. Which working flows must not be touched
+
+Important constraints
+- Audit only first
+- No broad code changes yet
+- No redesign
+- No cleanup refactor
+- No speculative rewriting
+- Base findings only on actual traced code paths

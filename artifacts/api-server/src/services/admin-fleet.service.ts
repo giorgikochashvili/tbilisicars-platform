@@ -131,6 +131,7 @@ export async function listAdminModels() {
       name: vehicleModelTable.name,
       category: vehicleModelTable.category,
       active: vehicleModelTable.active,
+      availableForExternalSystems: vehicleModelTable.availableForExternalSystems,
       seats: vehicleModelTable.seats,
       doors: vehicleModelTable.doors,
       transmission: vehicleModelTable.transmission,

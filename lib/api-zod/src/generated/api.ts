@@ -616,6 +616,9 @@ export const ListAdminModelsResponseItem = zod.object({
   brandId: zod.number(),
   name: zod.string(),
   active: zod.boolean(),
+  availableForExternalSystems: zod.boolean(),
+  category: zod.string().nullish(),
+  luggageCapacity: zod.number().nullish(),
   seats: zod.number().nullish(),
   doors: zod.number().nullish(),
   transmission: zod
@@ -632,6 +635,13 @@ export const ListAdminModelsResponseItem = zod.object({
     .nullish(),
   imageUrl: zod.string().nullish(),
   deposit: zod.string().nullish(),
+  brand: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      logoUrl: zod.string().nullish(),
+    })
+    .nullable(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
