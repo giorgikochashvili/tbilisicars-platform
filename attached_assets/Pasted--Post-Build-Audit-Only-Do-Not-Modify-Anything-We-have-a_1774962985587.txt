@@ -1,0 +1,92 @@
+# Post-Build Audit Only — Do Not Modify Anything
+
+We have already completed the build for the current Bookings CRM changes.  
+Now perform a strict READ-ONLY audit of the implemented work.
+
+IMPORTANT:
+- Do NOT modify any files
+- Do NOT refactor
+- Do NOT auto-fix
+- Do NOT rewrite code
+- Do NOT run any destructive commands
+- Do NOT change schema, routes, UI, components, or logic
+- This is audit/verification only
+
+Your task is to inspect the current codebase and confirm whether the recently implemented Bookings CRM changes are correctly and consistently in place.
+
+Scope to audit only:
+- artifacts/crm/src/pages/Bookings.tsx
+- artifacts/crm/src/pages/BookingDetail.tsx
+- artifacts/crm/src/pages/Fleet.tsx
+- lib/db/src/schema/bookings.ts
+- lib/api-zod/src/generated/api.ts
+- lib/api-zod/src/generated/types/adminBookingPaymentStatus.ts
+- lib/api-zod/src/generated/types/adminBookingRowPaymentStatus.ts
+- artifacts/api-server/src/services/admin-booking-payments.service.ts
+- artifacts/api-server/src/routes/admin-bookings.ts
+
+Audit checklist:
+
+1) New Booking default tab
+- Confirm New Booking now opens with New Customer as the default active tab
+- Confirm Existing Customer is still available as an option
+
+2) Existing Customer search flow
+- Confirm the old two-step flow (search + separate Select Customer field) is removed
+- Confirm Existing Customer now uses a single search/typeahead/autocomplete selection flow
+- Confirm selecting a result properly binds the existing customer to the booking
+
+3) Booking status placement
+- Confirm booking status is no longer inside Pricing & Notes
+- Confirm booking status still exists in the form in a more correct reservation-related section
+- Confirm existing booking status logic/payload handling was not broken
+
+4) Payment status implementation
+- Confirm payment status options exist as:
+  - UNPAID → label "Unpaid"
+  - HALF → label "PreHalf"
+  - PAID → label "Paid"
+  - PREPAID → label "PrePaid"
+- Confirm PREPAID was added consistently to schema and Zod/API types
+- Confirm bookings list payment filter includes PREPAID
+- Confirm payment badge rendering includes PREPAID and correct labels
+- Confirm paymentStatus was audited everywhere it is used so the enum extension does not create runtime break risk
+- Confirm manual PREPAID does not incorrectly override real payment-record-based recalculation behavior
+
+5) Bookings list hierarchy
+- Confirm in the Customer & Vehicle column the vehicle info is now primary/bold
+- Confirm customer name is secondary/smaller
+- Confirm existing data fallbacks were preserved
+
+6) Edit Booking action
+- Confirm Booking Detail now has an Edit Booking action/button
+- Confirm Edit Booking reuses the existing booking form logic/components
+- Confirm it does NOT introduce a duplicate independent booking form
+- Confirm edit mode pre-populates fields correctly
+- Confirm edit mode submits through the correct update flow and supports paymentStatus
+
+7) Vehicle click-through
+- Confirm Booking Detail vehicle info becomes clickable only when an assigned vehicle exists
+- Confirm click navigates to /fleet?vehicleId=...
+- Confirm Fleet reads vehicleId from URL and opens the correct vehicle detail panel
+- Confirm there is no broken-link behavior when vehicle is unassigned
+
+8) Safety / regression audit
+- Confirm no unrelated Booking module sections were redesigned
+- Confirm Dashboard was not touched
+- Confirm Website booking flow was not touched
+- Confirm Fleet business logic was not altered beyond reading the vehicleId query param
+- Confirm Accounting/payment history generation behavior was not changed beyond intended payment-status support
+
+Output format:
+Return a concise audit report with exactly these sections:
+
+A) PASS / FAIL summary for each of the 8 checklist items  
+B) Files that were actually changed for this task  
+C) Any inconsistencies, risks, or partial implementations still remaining  
+D) Explicit deploy-readiness verdict:
+- READY FOR GITHUB SYNC
+or
+- NOT READY
+
+Again: audit only, no code changes.

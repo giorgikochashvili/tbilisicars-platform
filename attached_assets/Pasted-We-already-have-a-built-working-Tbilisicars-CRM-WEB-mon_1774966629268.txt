@@ -1,0 +1,76 @@
+We already have a built, working Tbilisicars CRM&WEB monorepo. Do NOT refactor broadly. Do NOT redesign working logic. Make a minimal, targeted production-safe fix only for this bug.
+
+Bug
+CRM → Fleet Management → Vehicles → Add Vehicle modal
+When filling the form and clicking “Save Vehicle”, the request fails and the UI shows:
+HTTP 500 Internal Server Error: Internal server error
+
+Task
+Find the exact root cause and fix only the Add Vehicle create flow so a new vehicle can be created successfully from the CRM.
+
+Important working style
+1. First inspect and identify the exact failure point.
+2. Then apply the smallest safe fix.
+3. Do not change unrelated fleet logic.
+4. Do not break vehicle edit, vehicle list, filters, search, models, brands, or other CRM modules.
+5. Keep current architecture and naming unless a mismatch is the direct cause of the bug.
+6. After fixing, verify the full create flow end-to-end.
+
+What to inspect
+Trace the full vehicle create path:
+- CRM Add Vehicle modal form state
+- submit handler
+- API request payload
+- shared API contract/zod schema if used
+- backend route/controller for create vehicle
+- service/db insert logic
+- vehicles table schema
+- enum/value mapping
+- required vs optional fields
+- response shaping after insert
+
+Likely causes to check carefully
+- frontend payload field names do not match backend expected names
+- old field names still used somewhere after previous schema updates
+- techpassportNumber mismatch
+- currentLocation vs locationId mismatch
+- vehicleModelId type mismatch
+- year/mileage being sent as strings and failing validation or DB insert
+- null/undefined issue on optional fields
+- invalid status enum value
+- backend insert includes a removed/nonexistent column
+- API succeeds in insert but crashes while formatting the response
+
+Required fix behavior
+- Add Vehicle must successfully save with the current modal fields:
+  - vehicleModelId
+  - licensePlate
+  - status
+  - location/current location
+  - techpassportNumber
+  - year
+  - color
+  - mileage
+- numeric values must be parsed safely
+- invalid input must return a clean 4xx error, not 500
+- frontend toast/error UI should display backend validation message if available, instead of only generic 500 text
+
+Constraints
+- Do not rewrite the fleet module
+- Do not touch unrelated files unless directly required
+- Do not change working edit/list/filter flows except if a shared bug fix is truly necessary
+- Do not introduce hacks; keep it clean and consistent with existing project patterns
+
+Deliverables
+1. Exact root cause
+2. Exact files changed
+3. Minimal fix implemented
+4. Confirmation that these still work:
+   - create vehicle
+   - edit vehicle
+   - vehicles list renders
+   - search/filter still works
+   - no TypeScript/build errors
+
+Definition of done
+Saving a vehicle from CRM no longer throws HTTP 500 and the record is created correctly in the database and visible in the vehicle list.
