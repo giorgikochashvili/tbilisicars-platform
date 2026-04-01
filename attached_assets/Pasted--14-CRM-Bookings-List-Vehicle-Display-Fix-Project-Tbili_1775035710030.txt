@@ -1,0 +1,106 @@
+#14 - CRM Bookings List Vehicle Display Fix
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make this as a minimal, safe fix only. Do not refactor unrelated logic, routes, APIs, or pages. Do not break booking creation, website bookings, CRM bookings, vehicle assignment, or booking detail flows.
+
+==================================================
+ISSUE
+==================================================
+
+In the Bookings page, the "Vehicle & Customer" column currently shows "No vehicle assigned" unless a specific vehicle is assigned.
+
+This is not correct for many valid bookings.
+
+Example:
+- A booking may already have a selected Brand + Model
+- But a specific physical vehicle may not yet be assigned
+- In that case, the Bookings list should still show the booked vehicle model
+
+Current incorrect behavior:
+- If no exact vehicle is assigned yet, the list shows "No vehicle assigned"
+
+Required correct behavior:
+- If booking has a selected vehicle model, show that model in the Bookings list
+- If a specific vehicle is later assigned, also show the plate number
+- Only show "No vehicle assigned" if neither a vehicle nor a vehicle model exists
+
+==================================================
+REQUIRED DISPLAY LOGIC
+==================================================
+
+For the "Vehicle & Customer" cell in Bookings list:
+
+Case 1:
+If booking has assigned specific vehicle:
+- Show: Vehicle Model Name · Plate Number
+Example:
+Cruze · BB505KK
+
+Case 2:
+If booking has no assigned specific vehicle, but has vehicle model:
+- Show: Vehicle Model Name
+Example:
+Toyota Camry XV50
+
+Case 3:
+If booking has neither specific vehicle nor vehicle model:
+- Show:
+No vehicle assigned
+
+Customer name should remain visible underneath as it already is.
+
+If booking source is website and model came from website booking flow, it must also display correctly using the same fallback logic.
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+- Inspect the current Bookings list row renderer and the data shape returned to it
+- Fix only the display/fallback logic needed
+- Reuse already available booking data fields if they are already present
+- If the API/list response is missing vehicleModel data that already exists elsewhere in the system, patch the minimum required backend/service mapping so the list can render correctly
+- Do not redesign the Bookings page
+- Do not change booking creation logic
+- Do not change booking assignment flow
+- Do not break filtering, search, status dropdowns, or payment badges
+
+==================================================
+SAFETY RULES
+==================================================
+
+- Minimal surface-area change only
+- Do not touch unrelated modules
+- Do not broad-refactor booking DTOs unless absolutely necessary
+- Preserve all existing working flows
+- Keep existing CRM styling
+- This is a correction/improvement, not a redesign
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. Exact fallback logic implemented
+3. Whether frontend-only fix was enough, or whether a small backend/service mapping adjustment was required
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- CRM-created booking with model selected but no specific vehicle assigned:
+  Bookings list shows model name, not "No vehicle assigned"
+
+- CRM-created booking with specific vehicle assigned:
+  Bookings list shows model name + plate
+
+- Website-created booking with model selected but no specific vehicle assigned:
+  Bookings list shows model name correctly
+
+- Booking with neither model nor specific vehicle:
+  still shows "No vehicle assigned"
+
+- Customer name still shows correctly underneath
+
+Implement carefully and do not disturb working areas.
