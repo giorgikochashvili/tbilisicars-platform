@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
@@ -28,6 +30,7 @@ import {
   RotateCcw,
   Upload,
   X,
+  Check,
   Fuel,
   Gauge,
   User,
@@ -196,12 +199,94 @@ const EMPTY_FORM = {
 
 // ─── Handover Form ────────────────────────────────────────────────────────────
 
+type FileItem = {
+  id: string;
+  file: File;
+  preview: string;
+  status: "pending" | "uploading" | "done" | "error";
+  path?: string;
+  error?: string;
+};
+
 const EMPTY_HANDOVER = {
-  actionAt: new Date().toISOString().slice(0, 16),
+  actionDate: new Date().toISOString().slice(0, 10),
+  actionTime: `${new Date().getHours().toString().padStart(2, "0")}:${(Math.floor(new Date().getMinutes() / 15) * 15).toString().padStart(2, "0")}`,
   mileage: "",
   fuelLevel: "",
   notes: "",
 };
+
+// ─── 15-minute time slots for HandoverDateTimePicker ─────────────────────────
+
+const HAND_TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
+  const h = Math.floor(i / 4).toString().padStart(2, "0");
+  const m = ((i % 4) * 15).toString().padStart(2, "0");
+  return `${h}:${m}`;
+});
+
+// ─── Handover Date/Time Picker ────────────────────────────────────────────────
+
+function HandoverDateTimePicker({
+  label,
+  dateValue,
+  timeValue,
+  onDateChange,
+  onTimeChange,
+  required,
+}: {
+  label: string;
+  dateValue: string;
+  timeValue: string;
+  onDateChange: (d: string) => void;
+  onTimeChange: (t: string) => void;
+  required?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = dateValue ? new Date(dateValue + "T12:00:00") : undefined;
+  return (
+    <div className="grid gap-1.5">
+      <Label className="text-xs">
+        {label}
+        {required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="flex-1 justify-start text-left font-normal h-8 text-xs">
+              <Calendar className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+              {dateValue
+                ? format(new Date(dateValue + "T12:00:00"), "MMM d, yyyy")
+                : <span className="text-muted-foreground">Pick date…</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={selected}
+              onSelect={(d) => {
+                if (d) {
+                  onDateChange(format(d, "yyyy-MM-dd"));
+                  setOpen(false);
+                }
+              }}
+              autoFocus
+            />
+          </PopoverContent>
+        </Popover>
+        <Select value={timeValue} onValueChange={onTimeChange}>
+          <SelectTrigger className="w-[100px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-60">
+            {HAND_TIME_SLOTS.map((t) => (
+              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
 
 // ─── Fuel level display ───────────────────────────────────────────────────────
 
@@ -303,30 +388,107 @@ interface HandoverModalProps {
   type: "pickup" | "dropoff";
   open: boolean;
   onClose: () => void;
-  handoverForm: { actionAt: string; mileage: string; fuelLevel: string; notes: string };
-  setHandoverForm: React.Dispatch<React.SetStateAction<{ actionAt: string; mileage: string; fuelLevel: string; notes: string }>>;
-  handoverFiles: File[];
-  setHandoverFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  handoverPreviews: string[];
-  setHandoverPreviews: React.Dispatch<React.SetStateAction<string[]>>;
+  handoverForm: { actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string };
+  setHandoverForm: React.Dispatch<React.SetStateAction<{ actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string }>>;
   savingHandover: boolean;
-  onSubmit: (type: "pickup" | "dropoff") => void;
+  onSubmit: (type: "pickup" | "dropoff", photoUrls: string[]) => Promise<void>;
 }
 
 function HandoverModal({
   type, open, onClose,
   handoverForm, setHandoverForm,
-  handoverFiles, setHandoverFiles,
-  handoverPreviews, setHandoverPreviews,
   savingHandover, onSubmit,
 }: HandoverModalProps) {
+  const { toast } = useToast();
+  const [fileItems, setFileItems] = useState<FileItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
   const Icon = type === "pickup" ? Car : RotateCcw;
   const accentClass = type === "pickup" ? "text-emerald-400" : "text-blue-400";
+  const MAX_MB = 20;
 
   const handleModalClose = () => {
-    handoverPreviews.forEach((url) => URL.revokeObjectURL(url));
+    fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
+    setFileItems([]);
     onClose();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const accepted: FileItem[] = [];
+    const skipped: string[] = [];
+    for (const f of Array.from(e.target.files ?? [])) {
+      const isDupe = fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
+      if (isDupe) {
+        skipped.push(`${f.name} (duplicate)`);
+      } else if (f.size > MAX_MB * 1024 * 1024) {
+        skipped.push(`${f.name} (too large)`);
+      } else if (!f.type.startsWith("image/")) {
+        skipped.push(`${f.name} (not an image)`);
+      } else {
+        accepted.push({ id: crypto.randomUUID(), file: f, preview: URL.createObjectURL(f), status: "pending" });
+      }
+    }
+    if (skipped.length) {
+      toast({ title: "Files skipped", description: skipped.join(", "), variant: "destructive" });
+    }
+    setFileItems((prev) => [...prev, ...accepted]);
+    e.target.value = "";
+  };
+
+  const handleRemove = (id: string) => {
+    setFileItems((prev) => {
+      const fi = prev.find((f) => f.id === id);
+      if (fi) URL.revokeObjectURL(fi.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const handleRecord = async () => {
+    const toUpload = fileItems.filter((fi) => fi.status === "pending" || fi.status === "error");
+
+    if (toUpload.length > 0) {
+      setUploading(true);
+      setFileItems((prev) =>
+        prev.map((fi) =>
+          fi.status === "pending" || fi.status === "error"
+            ? { ...fi, status: "uploading", error: undefined }
+            : fi
+        )
+      );
+
+      const results = await Promise.allSettled(
+        toUpload.map((fi) => uploadFile(fi.file).then((path) => ({ id: fi.id, path })))
+      );
+
+      let hasError = false;
+      setFileItems((prev) => {
+        const updated = [...prev];
+        results.forEach((r, i) => {
+          const idx = updated.findIndex((fi) => fi.id === toUpload[i].id);
+          if (r.status === "fulfilled") {
+            updated[idx] = { ...updated[idx], status: "done", path: r.value.path };
+          } else {
+            updated[idx] = { ...updated[idx], status: "error", error: (r.reason as Error)?.message ?? "Upload failed" };
+            hasError = true;
+          }
+        });
+        return updated;
+      });
+      setUploading(false);
+
+      if (hasError) {
+        toast({
+          title: "Some uploads failed",
+          description: "Retry failed files or remove them before recording.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
+    await onSubmit(type, photoUrls);
   };
 
   return (
@@ -344,13 +506,14 @@ function HandoverModal({
 
         <div className="space-y-4 mt-2">
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 grid gap-1.5">
-              <Label className="text-xs">Action Date & Time <span className="text-destructive">*</span></Label>
-              <Input
-                type="datetime-local"
-                value={handoverForm.actionAt}
-                onChange={(e) => setHandoverForm((prev) => ({ ...prev, actionAt: e.target.value }))}
-                className="h-8 text-xs"
+            <div className="col-span-2">
+              <HandoverDateTimePicker
+                label="Action Date & Time"
+                dateValue={handoverForm.actionDate}
+                timeValue={handoverForm.actionTime}
+                onDateChange={(d) => setHandoverForm((prev) => ({ ...prev, actionDate: d }))}
+                onTimeChange={(t) => setHandoverForm((prev) => ({ ...prev, actionTime: t }))}
+                required
               />
             </div>
             <div className="grid gap-1.5">
@@ -400,36 +563,59 @@ function HandoverModal({
                   multiple
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    const newPreviews = files.map((f) => URL.createObjectURL(f));
-                    setHandoverFiles((prev) => [...prev, ...files]);
-                    setHandoverPreviews((prev) => [...prev, ...newPreviews]);
-                    e.target.value = "";
-                  }}
+                  onChange={handleFileChange}
                 />
               </label>
             </div>
-            {handoverFiles.length > 0 && (
+            {fileItems.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1">
-                {handoverFiles.map((file, i) => (
-                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border/40 bg-muted/20">
-                    <img
-                      src={handoverPreviews[i]}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
-                      onClick={() => {
-                        URL.revokeObjectURL(handoverPreviews[i]);
-                        setHandoverFiles((prev) => prev.filter((_, j) => j !== i));
-                        setHandoverPreviews((prev) => prev.filter((_, j) => j !== i));
-                      }}
-                    >
-                      <X className="w-2.5 h-2.5 text-white" />
-                    </button>
+                {fileItems.map((fi) => (
+                  <div
+                    key={fi.id}
+                    className={`relative w-16 h-16 rounded-lg overflow-hidden border bg-muted/20 ${
+                      fi.status === "error"
+                        ? "border-red-500/60"
+                        : fi.status === "done"
+                        ? "border-emerald-500/40"
+                        : "border-border/40"
+                    }`}
+                  >
+                    <img src={fi.preview} alt={fi.file.name} className="w-full h-full object-cover" />
+                    {fi.status === "uploading" && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {fi.status === "done" && (
+                      <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                    {fi.status === "error" && (
+                      <button
+                        type="button"
+                        title={fi.error ?? "Upload failed — click to retry"}
+                        className="absolute bottom-0.5 left-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors"
+                        onClick={() =>
+                          setFileItems((prev) =>
+                            prev.map((f) =>
+                              f.id === fi.id ? { ...f, status: "pending", error: undefined } : f
+                            )
+                          )
+                        }
+                      >
+                        <RotateCcw className="w-2.5 h-2.5 text-white" />
+                      </button>
+                    )}
+                    {fi.status !== "uploading" && (
+                      <button
+                        type="button"
+                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                        onClick={() => handleRemove(fi.id)}
+                      >
+                        <X className="w-2.5 h-2.5 text-white" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -437,16 +623,16 @@ function HandoverModal({
           </div>
 
           <div className="flex gap-2 justify-end pt-1">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || uploading}>
               Cancel
             </Button>
             <Button
               size="sm"
               className="h-7 text-xs"
-              onClick={() => onSubmit(type)}
-              disabled={savingHandover}
+              onClick={handleRecord}
+              disabled={savingHandover || uploading || fileItems.some((fi) => fi.status === "uploading")}
             >
-              {savingHandover ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
+              {savingHandover || uploading ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
             </Button>
           </div>
         </div>
@@ -482,9 +668,13 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showDropoffModal, setShowDropoffModal] = useState(false);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
-  const [handoverFiles, setHandoverFiles] = useState<File[]>([]);
-  const [handoverPreviews, setHandoverPreviews] = useState<string[]>([]);
   const [savingHandover, setSavingHandover] = useState(false);
+
+  // Overview quick-edit state
+  const [isOverviewEditing, setIsOverviewEditing] = useState(false);
+  const [overviewDraft, setOverviewDraft] = useState({ totalAmount: "", currency: "GEL", notes: "", pickupLocationId: "", dropoffLocationId: "" });
+  const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
+  const [savingOverview, setSavingOverview] = useState(false);
 
   const fetchBooking = useCallback(async () => {
     if (!bookingId) return;
@@ -587,27 +777,21 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     }
   };
 
-  const handleHandoverSubmit = async (type: "pickup" | "dropoff") => {
+  const handleHandoverSubmit = async (type: "pickup" | "dropoff", photoUrls: string[]) => {
     if (!bookingId) return;
-    if (!handoverForm.actionAt) {
-      toast({ title: "Validation", description: "Action date/time is required.", variant: "destructive" });
+    if (!handoverForm.actionDate) {
+      toast({ title: "Validation", description: "Action date is required.", variant: "destructive" });
       return;
     }
 
     setSavingHandover(true);
     try {
-      // Upload photos first
-      const photoUrls: string[] = [];
-      for (const file of handoverFiles) {
-        const path = await uploadFile(file);
-        photoUrls.push(path);
-      }
-
+      const actionAt = new Date(`${handoverForm.actionDate}T${handoverForm.actionTime}:00`).toISOString();
       const endpoint = type === "pickup" ? "pickup" : "dropoff";
       await apiFetch(`/admin/bookings/${bookingId}/${endpoint}`, {
         method: "POST",
         body: JSON.stringify({
-          actionAt: handoverForm.actionAt,
+          actionAt,
           mileage: handoverForm.mileage ? parseInt(handoverForm.mileage, 10) : null,
           fuelLevel: handoverForm.fuelLevel ? parseInt(handoverForm.fuelLevel, 10) : null,
           notes: handoverForm.notes || null,
@@ -623,10 +807,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       if (type === "pickup") setShowPickupModal(false);
       else setShowDropoffModal(false);
 
-      handoverPreviews.forEach((url) => URL.revokeObjectURL(url));
       setHandoverForm(EMPTY_HANDOVER);
-      setHandoverFiles([]);
-      setHandoverPreviews([]);
       fetchBooking();
       fetchHandovers();
     } catch (e: any) {
@@ -637,16 +818,58 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   };
 
   const openHandoverModal = (type: "pickup" | "dropoff") => {
-    setHandoverForm({ ...EMPTY_HANDOVER, actionAt: new Date().toISOString().slice(0, 16) });
-    setHandoverFiles([]);
-    setHandoverPreviews([]);
+    const now = new Date();
+    setHandoverForm({
+      ...EMPTY_HANDOVER,
+      actionDate: now.toISOString().slice(0, 10),
+      actionTime: `${now.getHours().toString().padStart(2, "0")}:${(Math.floor(now.getMinutes() / 15) * 15).toString().padStart(2, "0")}`,
+    });
     if (type === "pickup") setShowPickupModal(true);
     else setShowDropoffModal(true);
   };
 
-  const fmt = (v: number) => `₾${v.toFixed(2)}`;
+  const enterOverviewEdit = () => {
+    setOverviewDraft({
+      totalAmount: booking?.totalAmount ?? "",
+      currency: booking?.currency ?? "GEL",
+      notes: booking?.notes ?? "",
+      pickupLocationId: booking?.pickupLocationId?.toString() ?? "",
+      dropoffLocationId: booking?.dropoffLocationId?.toString() ?? "",
+    });
+    if (overviewLocations.length === 0) {
+      apiFetch("/locations").then((data: any) => setOverviewLocations(data || [])).catch(() => {});
+    }
+    setIsOverviewEditing(true);
+  };
+
+  const saveOverview = async () => {
+    setSavingOverview(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...(overviewDraft.totalAmount !== "" ? { totalAmount: overviewDraft.totalAmount } : {}),
+          currency: overviewDraft.currency,
+          notes: overviewDraft.notes || null,
+          ...(overviewDraft.pickupLocationId ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) } : {}),
+          ...(overviewDraft.dropoffLocationId ? { dropoffLocationId: parseInt(overviewDraft.dropoffLocationId) } : {}),
+        }),
+      });
+      setIsOverviewEditing(false);
+      fetchBooking();
+      toast({ title: "Booking updated" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingOverview(false);
+    }
+  };
+
+  const fmt = (v: number) => `${currencySymbol(booking?.currency ?? "GEL")}${v.toFixed(2)}`;
   const totalPrice = booking?.totalAmount ? parseFloat(booking.totalAmount) : null;
-  const remaining = totalPrice != null && summary ? totalPrice - summary.totalPaid : null;
+  const remaining = totalPrice != null
+    ? (summary ? totalPrice - summary.totalPaid : totalPrice)
+    : null;
 
   const canPickUp = booking?.status === "CONFIRMED" && !handovers.pickup;
   const canDropOff = booking?.status === "DELIVERED" && !handovers.dropoff;
@@ -751,55 +974,159 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           {!loadingBooking && booking && (
             <div className="space-y-3 mt-1">
               {/* Booking Info Strip */}
-              <div className="rounded-lg border border-border/40 bg-muted/10 p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Customer</div>
-                  <div className="font-medium">{booking.customer?.fullName || booking.contactFullName || "—"}</div>
-                  {booking.customer?.phone && <div className="text-xs text-muted-foreground">{booking.customer.phone}</div>}
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
-                  {booking.vehicle ? (
+              <div className="rounded-lg border border-border/40 bg-muted/10 overflow-hidden">
+                {/* Header row with pencil toggle */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border/30 bg-muted/20">
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Overview</span>
+                  {!isOverviewEditing ? (
                     <button
-                      className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
-                      onClick={() => {
-                        onClose();
-                        setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
-                      }}
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      title="Quick edit"
+                      onClick={enterOverviewEdit}
                     >
-                      {booking.vehicle.modelName} · {booking.vehicle.licensePlate}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <div className="font-medium">
-                      {booking.vehicleModelName
-                        ? `${booking.vehicleModelName} (unassigned)`
-                        : "—"}
-                    </div>
+                    <span className="text-[11px] text-primary font-medium">Editing</span>
                   )}
                 </div>
-                <div>
-                  <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Booking Price</div>
-                  <div className="font-mono font-bold text-base">
-                    {booking.totalAmount
-                      ? `${currencySymbol(booking.currency ?? "GEL")}${parseFloat(booking.totalAmount).toFixed(2)}`
-                      : "—"}
+
+                {!isOverviewEditing ? (
+                  /* Read-only view */
+                  <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Customer</div>
+                      <div className="font-medium">{booking.customer?.fullName || booking.contactFullName || "—"}</div>
+                      {booking.customer?.phone && <div className="text-xs text-muted-foreground">{booking.customer.phone}</div>}
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
+                      {booking.vehicle ? (
+                        <button
+                          className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
+                          onClick={() => {
+                            onClose();
+                            setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
+                          }}
+                        >
+                          {booking.vehicle.modelName} · {booking.vehicle.licensePlate}
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                        </button>
+                      ) : (
+                        <div className="font-medium">
+                          {booking.vehicleModelName ? `${booking.vehicleModelName} (unassigned)` : "—"}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Booking Price</div>
+                      <div className="font-mono font-bold text-base">
+                        {booking.totalAmount
+                          ? `${currencySymbol(booking.currency ?? "GEL")}${parseFloat(booking.totalAmount).toFixed(2)}`
+                          : "—"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Pickup</div>
+                      <div>{booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="text-xs text-muted-foreground">{booking.pickupLocation?.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Dropoff</div>
+                      <div>{booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="text-xs text-muted-foreground">{booking.dropoffLocation?.name}</div>
+                    </div>
+                    {booking.notes && (
+                      <div className="col-span-2 sm:col-span-3">
+                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Notes</div>
+                        <div className="text-xs">{booking.notes}</div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Pickup</div>
-                  <div>{booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
-                  <div className="text-xs text-muted-foreground">{booking.pickupLocation?.name}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Dropoff</div>
-                  <div>{booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
-                  <div className="text-xs text-muted-foreground">{booking.dropoffLocation?.name}</div>
-                </div>
-                {booking.notes && (
-                  <div className="col-span-2 sm:col-span-3">
-                    <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Notes</div>
-                    <div className="text-xs">{booking.notes}</div>
+                ) : (
+                  /* Edit form */
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {/* Price + Currency */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Booking Price</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 350.00"
+                          value={overviewDraft.totalAmount}
+                          onChange={(e) => setOverviewDraft((p) => ({ ...p, totalAmount: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Currency</Label>
+                        <Select value={overviewDraft.currency} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, currency: v }))}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="GEL" className="text-xs">GEL (₾)</SelectItem>
+                            <SelectItem value="USD" className="text-xs">USD ($)</SelectItem>
+                            <SelectItem value="EUR" className="text-xs">EUR (€)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Pickup Location */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Pickup Location</Label>
+                        <Select value={overviewDraft.pickupLocationId} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, pickupLocationId: v }))}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Keep current" /></SelectTrigger>
+                          <SelectContent>
+                            {overviewLocations.map((loc: any) => (
+                              <SelectItem key={loc.id} value={loc.id.toString()} className="text-xs">{loc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Dropoff Location */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Dropoff Location</Label>
+                        <Select value={overviewDraft.dropoffLocationId} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, dropoffLocationId: v }))}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Keep current" /></SelectTrigger>
+                          <SelectContent>
+                            {overviewLocations.map((loc: any) => (
+                              <SelectItem key={loc.id} value={loc.id.toString()} className="text-xs">{loc.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Notes */}
+                      <div className="col-span-2 sm:col-span-3 grid gap-1.5">
+                        <Label className="text-xs">Notes</Label>
+                        <Textarea
+                          rows={2}
+                          placeholder="Optional notes…"
+                          value={overviewDraft.notes}
+                          onChange={(e) => setOverviewDraft((p) => ({ ...p, notes: e.target.value }))}
+                          className="text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={savingOverview}
+                        onClick={() => setIsOverviewEditing(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={savingOverview}
+                        onClick={saveOverview}
+                      >
+                        {savingOverview ? "Saving…" : "Save"}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1120,10 +1447,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         onClose={() => setShowPickupModal(false)}
         handoverForm={handoverForm}
         setHandoverForm={setHandoverForm}
-        handoverFiles={handoverFiles}
-        setHandoverFiles={setHandoverFiles}
-        handoverPreviews={handoverPreviews}
-        setHandoverPreviews={setHandoverPreviews}
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
       />
@@ -1135,10 +1458,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         onClose={() => setShowDropoffModal(false)}
         handoverForm={handoverForm}
         setHandoverForm={setHandoverForm}
-        handoverFiles={handoverFiles}
-        setHandoverFiles={setHandoverFiles}
-        handoverPreviews={handoverPreviews}
-        setHandoverPreviews={setHandoverPreviews}
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
       />

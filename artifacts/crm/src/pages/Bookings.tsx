@@ -291,13 +291,20 @@ export default function BookingsPage() {
     const customerIdRaw = bookingRow.customer?.id ?? bookingRow.userId ?? bookingRow.customerId ?? null;
     const hasExistingCustomer = customerIdRaw !== null && customerIdRaw !== undefined;
     const customerName = bookingRow.customer?.fullName || bookingRow.contactFullName || "";
+    // Derive brand from the loaded models list using the booking's vehicleModelId
+    const modelForBrand = allModels.find(
+      (m: any) => m.id?.toString() === (bookingRow.vehicleModelId?.toString() ?? "")
+    );
+    const derivedBrandId = modelForBrand
+      ? (modelForBrand.brandId?.toString() ?? modelForBrand.brand?.id?.toString() ?? "")
+      : "";
     setBooking({
       customerMode: hasExistingCustomer ? "existing" : "new",
       customerId: hasExistingCustomer ? String(customerIdRaw) : "",
       newCustomerName: hasExistingCustomer ? "" : (bookingRow.contactFullName || ""),
       newCustomerPhone: hasExistingCustomer ? "" : (bookingRow.contactPhone || ""),
       newCustomerEmail: hasExistingCustomer ? "" : (bookingRow.contactEmail || ""),
-      brandId: "",
+      brandId: derivedBrandId,
       vehicleModelId: bookingRow.vehicleModelId ? bookingRow.vehicleModelId.toString() : "",
       vehicleId: bookingRow.vehicleId ? bookingRow.vehicleId.toString() : "",
       pickupLocationId: bookingRow.pickupLocationId ? bookingRow.pickupLocationId.toString() : "",

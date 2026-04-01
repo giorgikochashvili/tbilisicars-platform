@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListAdminVehicles,
@@ -96,14 +96,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
   // Read initial status + city filter from URL query params
   const [location] = useLocation();
+  const search = useSearch();
 
   type Region = "All" | "Tbilisi" | "Kutaisi" | "Batumi";
   const FLEET_REGIONS: Region[] = ["All", "Tbilisi", "Kutaisi", "Batumi"];
   const VALID_REGIONS = FLEET_REGIONS.slice(1) as string[];
 
-  const parseUrlParams = (loc: string): { status: VehicleStatus | ""; region: Region; vehicleId: number | null } => {
-    const search = loc.includes("?") ? loc.split("?")[1] : "";
-    const params = new URLSearchParams(search);
+  const parseUrlParams = (searchStr: string): { status: VehicleStatus | ""; region: Region; vehicleId: number | null } => {
+    const params = new URLSearchParams(searchStr.startsWith("?") ? searchStr.slice(1) : searchStr);
     const s = params.get("status")?.toUpperCase() ?? "";
     const c = params.get("city") ?? "";
     const vid = params.get("vehicleId");
@@ -114,7 +114,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     };
   };
 
-  const initial = parseUrlParams(location);
+  const initial = parseUrlParams(search);
 
   // Filter state
   const [filterRegion, setFilterRegion] = useState<Region>(initial.region);
@@ -160,15 +160,15 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     return match ? { id: match.id, city } : null;
   }).filter(Boolean) as { id: number; city: string }[];
 
-  // Re-apply filters when location (URL) changes, e.g. navigating from Dashboard
+  // Re-apply filters when URL search params change, e.g. navigating from Dashboard or via plate link
   useEffect(() => {
-    const { status, region, vehicleId } = parseUrlParams(location);
+    const { status, region, vehicleId } = parseUrlParams(search);
     setFilterStatus(status);
     setFilterRegion(region);
     if (vehicleId !== null) {
       setDetailVehicleId(vehicleId);
     }
-  }, [location]);
+  }, [search]);
 
   // Map modelId -> category for category filtering (vehicles may not carry category inline)
   const modelCategoryMap: Record<string, string> = {};
