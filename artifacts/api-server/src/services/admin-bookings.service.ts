@@ -634,11 +634,23 @@ export async function updateAdminBooking(
 //
 // Effects only apply when the booking has a specific vehicle (vehicleId).
 
-export async function updateAdminBookingStatus(
+type BookingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "DELIVERED"
+  | "RETURNED"
+  | "CANCELED"
+  | "NO_SHOW";
+
+/**
+ * Applies booking status + vehicle side-effects without fetching the full
+ * booking detail. Use this when the caller does not need the return value
+ * (e.g. from inside `createHandover` where the result is discarded).
+ */
+export async function applyAdminBookingStatus(
   id: number,
-  status: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW",
-) {
-  // Load current booking to get vehicleId and dropoff location
+  status: BookingStatus,
+): Promise<void> {
   const currentRows = await db
     .select({
       vehicleId: bookingTable.vehicleId,
@@ -652,7 +664,6 @@ export async function updateAdminBookingStatus(
   const current = currentRows[0];
   if (!current) throw new NotFoundError(`Booking ${id} not found`);
 
-  // Update booking status
   const [row] = await db
     .update(bookingTable)
     .set({ status, updatedAt: new Date() })
@@ -660,18 +671,14 @@ export async function updateAdminBookingStatus(
     .returning();
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
 
-  // Apply vehicle effects only when a specific vehicle is assigned
   if (current.vehicleId) {
     if (status === "DELIVERED") {
-      // Vehicle is now in use → mark as RENTED
       await db
         .update(vehicleTable)
         .set({ status: "RENTED", updatedAt: new Date() })
         .where(eq(vehicleTable.id, current.vehicleId));
-      // Auto-remove from TBS AIR PARKING if the vehicle was parked there
       await removeFromParkingByVehicle(current.vehicleId);
     } else if (status === "RETURNED") {
-      // Vehicle returned → mark Available and update its current location
       await db
         .update(vehicleTable)
         .set({
@@ -681,8 +688,6 @@ export async function updateAdminBookingStatus(
         })
         .where(eq(vehicleTable.id, current.vehicleId));
     } else if (status === "CANCELED" || status === "NO_SHOW") {
-      // Release vehicle — only unblock if it was RENTED or RESERVED by this booking
-      // (avoid changing status if already in maintenance or another booking has it)
       const vehicleRows = await db
         .select({ vehicleStatus: vehicleTable.status })
         .from(vehicleTable)
@@ -698,7 +703,18 @@ export async function updateAdminBookingStatus(
       }
     }
   }
+}
 
+/**
+ * Updates booking status + vehicle side-effects and returns the refreshed
+ * full booking detail. Use this from the status-update API route where the
+ * updated booking object is sent back to the client.
+ */
+export async function updateAdminBookingStatus(
+  id: number,
+  status: BookingStatus,
+) {
+  await applyAdminBookingStatus(id, status);
   return getAdminBooking(id);
 }
 

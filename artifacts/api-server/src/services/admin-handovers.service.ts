@@ -8,7 +8,7 @@ import {
 } from "@workspace/db";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
-import { updateAdminBookingStatus } from "./admin-bookings.service.js";
+import { applyAdminBookingStatus } from "./admin-bookings.service.js";
 
 export async function createHandover(data: {
   bookingId: number;
@@ -72,7 +72,7 @@ export async function createHandover(data: {
   // Advance booking status
   const newStatus: "DELIVERED" | "RETURNED" =
     handoverType === "PICKUP" ? "DELIVERED" : "RETURNED";
-  await updateAdminBookingStatus(bookingId, newStatus);
+  await applyAdminBookingStatus(bookingId, newStatus);
 
   // Write booking history entry
   const parts: string[] = [];
