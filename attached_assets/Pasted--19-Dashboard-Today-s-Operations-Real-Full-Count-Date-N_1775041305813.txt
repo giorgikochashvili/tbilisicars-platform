@@ -1,0 +1,145 @@
+#19 - Dashboard Today's Operations: Real Full Count + Date Navigation
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make this as a minimal, safe improvement only. Do not refactor unrelated dashboard logic, booking logic, routes, or APIs. Do not redesign the dashboard. Only fix the Today's Pickups / Today's Dropoffs widgets so they show the true full operational data and allow day-by-day navigation.
+
+==================================================
+CURRENT PROBLEMS
+==================================================
+
+Problem 1 — Count/list is still not fully accurate
+In Dashboard > Today's Operations:
+- "Today's Pickups" badge still shows a smaller number than the real number of pickups for that day
+- the visible table also appears incomplete/truncated
+- the same behavior must be checked and fixed for "Today's Dropoffs"
+
+Current incorrect behavior:
+- there is still some hardcoded limit, hidden truncation, incorrect query limit, frontend slice, or mismatched count/list logic
+- the widget is not showing the true full operational dataset for the selected day
+
+Problem 2 — No date navigation
+The widgets currently show only the current day.
+Staff need to be able to move to:
+- previous day
+- next day
+
+So they can inspect operational pickups/dropoffs for nearby dates, not only today.
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+PART 1 — Real full count and full row list
+
+For both widgets:
+1. Today's Pickups
+2. Today's Dropoffs
+
+Required result:
+- badge count must match the real total number of matching bookings for the selected date
+- table rows must show all matching bookings for the selected date
+- no hidden truncation
+- no artificial limit
+- count and list must come from the same correct filtered date dataset
+
+If the widget currently uses a limited dataset for rows and a different dataset for count, fix that inconsistency.
+
+==================================================
+PART 2 — Date navigation controls
+
+Add compact date navigation controls to both widgets:
+- previous day button
+- next day button
+- current selected date label
+
+Behavior:
+- By default, widget opens on today
+- Clicking previous day shows pickups/dropoffs for the previous date
+- Clicking next day shows pickups/dropoffs for the next date
+- Badge count and table rows update together for the selected date
+- Keep the design compact and aligned with the CRM style
+- Navigation should feel operationally fast and clear
+
+Preferred UI:
+- small left arrow
+- date label
+- small right arrow
+
+This can be one shared selected date for both widgets, or two separate widget dates if the current architecture strongly prefers that.
+Preferred behavior: one shared date state for Today's Operations so both Pickups and Dropoffs move together when changing date.
+
+==================================================
+IMPLEMENTATION GUIDANCE
+==================================================
+
+1. Inspect the dashboard service/API and frontend widget logic powering:
+   - Today's Pickups
+   - Today's Dropoffs
+
+2. Identify the actual reason the count/list is still incomplete:
+   - SQL limit
+   - service-level default limit
+   - frontend array slice
+   - mismatched count vs row source
+   - date filter logic issue
+   - pagination unintentionally applied
+
+3. Fix both widgets so:
+   - they query the full dataset for the selected date
+   - they render the full dataset for the selected date
+   - count = rows length or otherwise guaranteed to match the same dataset
+
+4. Add selectedDate state in Dashboard Today's Operations area
+5. Wire previous/next day buttons to update selectedDate
+6. Fetch or derive pickups/dropoffs from the selected date, not only hardcoded "today"
+
+==================================================
+DATE FILTER RULE
+==================================================
+
+Use the selected operational date consistently:
+- Pickups = bookings whose pickup date falls on selectedDate
+- Dropoffs = bookings whose dropoff date falls on selectedDate
+
+Make sure timezone/date handling stays correct and consistent with the CRM/business timezone behavior already used elsewhere.
+
+==================================================
+SAFETY RULES
+==================================================
+
+- Do not redesign the widgets
+- Do not touch unrelated dashboard cards
+- Do not change booking business logic
+- Do not change status logic unless necessary for date accuracy
+- Keep changes minimal and additive
+- Preserve current columns and current layout as much as possible
+- Do not introduce unrelated pagination or new complexity
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. Root cause found for the incomplete count/list
+3. Exact fix applied for full count + full rows
+4. How date navigation was implemented
+5. Whether Pickups and Dropoffs now share one selected date state
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- Today's Pickups badge matches the true number of pickups for the selected date
+- Today's Pickups table shows all pickups for the selected date
+- Today's Dropoffs badge matches the true number of dropoffs for the selected date
+- Today's Dropoffs table shows all dropoffs for the selected date
+- Previous day button works
+- Next day button works
+- Date label updates correctly
+- Pickups and Dropoffs refresh together for the selected date
+- No truncation remains
+- Widget layout/styling still works correctly
+
+Implement carefully and do not disturb working areas.
