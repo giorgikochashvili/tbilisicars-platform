@@ -50,25 +50,25 @@ outputType = "console"
 name = "Website"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=19162 BASE_PATH=/ pnpm --filter @workspace/website run dev"
-waitForPort = 19162
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/website run dev"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "CRM"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=22445 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev"
-waitForPort = 22445
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=3000 BASE_PATH=/crm/ pnpm --filter @workspace/crm run dev"
+waitForPort = 3000
 
 [agent]
 stack = "PNPM_WORKSPACE"
