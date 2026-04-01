@@ -1,0 +1,157 @@
+#12 - CRM Vehicle Detail + Booking Edit UX Fixes
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make these changes carefully, with minimal surface area. Do not break existing working flows, routes, API contracts, styling language, or other modules. Do not refactor unrelated parts. Reuse existing components/helpers where possible.
+
+Scope:
+Only touch the minimum files needed for:
+1) Fleet vehicle detail page/modal improvements
+2) Booking detail quick edit improvements
+
+Do not touch unrelated modules.
+
+==================================================
+PART 1 — VEHICLE DETAIL: SHOW MODEL IMAGE IN HEADER
+==================================================
+
+Current issue:
+On the vehicle personal/detail page, the header card shows the plate block prominently, but the vehicle model image is missing.
+
+Required behavior:
+- Show the assigned vehicle model image in the vehicle detail header
+- Place it in the same visual area/importance level as the plate block
+- Size should feel similar to the plate block, balanced and premium
+- Keep dark CRM styling
+- If no model image exists, show a clean placeholder state, not broken image
+- Do not distort the image; preserve aspect ratio
+- Reuse the same image URL resolver/helper already used elsewhere in CRM/website if available
+
+Goal:
+The vehicle detail header should immediately show:
+- plate
+- status
+- model image
+- model/name/location info
+in one polished operational card
+
+==================================================
+PART 2 — VEHICLE DETAIL: ADD MEDIA SECTION
+==================================================
+
+Add a new "Media" section to the vehicle detail page/modal.
+
+Required behavior:
+- Staff can upload vehicle-specific images there
+- Display uploaded images in a clean grid
+- Each image should support selection via checkbox or visual select state
+- Add bulk actions for selected images:
+  1. Share via WhatsApp
+  2. Download selected images
+
+WhatsApp requirement:
+- Staff should be able to quickly mark one or more vehicle images and trigger sharing flow for WhatsApp
+- Use the safest practical implementation for the current web app architecture:
+  - if direct multi-image binary share is not realistically supported in-browser, generate/share the selected image URLs in a WhatsApp-friendly way
+  - do not fake unsupported native behavior
+  - explain in final notes what exact behavior was implemented
+
+Download requirement:
+- Allow download of selected images
+- If browser/platform limits true multi-file download, handle in the safest practical way for current architecture
+- Do not introduce backend changes unless absolutely necessary
+- Prefer additive frontend-only implementation if possible
+
+Constraints for Media section:
+- Keep it scoped to the vehicle detail UI
+- Do not break existing vehicle data flows
+- Reuse existing upload/storage mechanism if one already exists in CRM
+- Show upload progress/errors clearly
+- Accept only images
+- Avoid destructive refactors
+
+If a backend persistence layer for vehicle-specific media already exists, use it.
+If not, inspect current architecture first and implement the least risky supported solution, then clearly report what was done.
+
+==================================================
+PART 3 — BOOKING DETAIL QUICK EDIT: REPLACE "KEEP CURRENT"
+==================================================
+
+Current issue:
+In booking quick edit, Pickup Location and Dropoff Location show "Keep current" instead of showing the actual currently selected locations.
+
+Required fix:
+- The dropdown/value must display the real current pickup location
+- The dropdown/value must display the real current dropoff location
+- Do not show generic "Keep current" placeholder when current values already exist
+- Existing booking values must be visible immediately when entering edit mode
+
+Goal:
+When staff clicks edit in booking detail, they should see the actual current values already selected.
+
+==================================================
+PART 4 — BOOKING DETAIL QUICK EDIT: ALLOW DATE + TIME EDITING
+==================================================
+
+Current issue:
+Quick edit currently shows pickup and dropoff datetime in a way that is not properly editable for hour/time changes.
+
+Required fix:
+- Pickup Date & Time must be editable from the quick edit area
+- Dropoff Date & Time must be editable from the quick edit area
+- Staff must be able to change both date and hour/minute
+- Reuse the existing dark compact date/time picker pattern already used elsewhere in CRM if possible
+- Keep backend payload shape unchanged
+- Save must correctly persist updated datetime values
+
+Goal:
+Booking quick edit should allow practical operational edits for:
+- price
+- currency
+- pickup location
+- dropoff location
+- pickup datetime
+- dropoff datetime
+- notes
+
+==================================================
+CONSTRAINTS
+==================================================
+
+- Do not break working Booking edit flow
+- Do not break Fleet detail routing
+- Do not break existing upload/storage flows
+- Do not touch unrelated pages/modules
+- Keep dark premium CRM design
+- Prefer additive changes over refactors
+- Reuse existing helper functions/components wherever possible
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. First inspect current implementation and identify exact files involved
+2. Then implement the changes carefully
+3. At the end provide:
+   - changed files
+   - what was implemented
+   - any limitation for WhatsApp/download behavior if browser/platform support is limited
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- Vehicle detail header shows model image correctly
+- Missing model image shows clean placeholder
+- Media section exists in vehicle detail
+- Vehicle images can be uploaded and displayed
+- Images can be selected individually
+- Selected images support WhatsApp share flow
+- Selected images support download flow
+- Booking quick edit shows actual current pickup location
+- Booking quick edit shows actual current dropoff location
+- Pickup datetime can be edited including time
+- Dropoff datetime can be edited including time
+- Save persists all updated booking values correctly
+
+Implement step-by-step and verify each part before moving to the next.
