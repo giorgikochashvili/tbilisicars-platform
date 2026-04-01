@@ -1,0 +1,242 @@
+#13 - CRM Theme System Upgrade (Dark / Light Mode + Brand Design Polish)
+Project: Tbilisicars CRM&WEB
+
+Important:
+This CRM is already fully built and interconnected inside Replit. Implement this carefully with minimal architectural risk. Do not break existing pages, routes, logic, API contracts, tables, dialogs, forms, date pickers, badges, or status colors. Do not refactor unrelated business logic. This task is design-system and theme-layer focused.
+
+==================================================
+GOAL
+==================================================
+
+Upgrade the CRM visual system so it supports:
+1) Dark Mode
+2) Light Mode
+3) Tbilisicars brand-aligned color palette
+4) Cleaner, more premium, more readable UI overall
+
+Current issue:
+The CRM is too dark and too blue-heavy. It does not feel fully aligned with the Tbilisicars website brand. The dark theme should feel premium and branded, and the light theme should feel clean, airy, modern, and highly readable.
+
+The goal is NOT to redesign the whole CRM from scratch.
+The goal is to introduce a controlled, reusable theme system and polish the UI safely.
+
+==================================================
+BRAND DIRECTION
+==================================================
+
+Use the Tbilisicars website brand direction as the source of truth:
+- premium dark navy / charcoal base
+- burgundy / deep red as the main accent
+- white / soft neutral text
+- reduced dependency on bright blue as the dominant color
+
+Desired feeling:
+- premium
+- automotive
+- elegant
+- operational
+- modern
+- clear
+- not flashy
+- not generic SaaS blue
+
+Dark Mode should feel:
+- deep navy / charcoal background
+- layered cards with subtle separation
+- burgundy/red brand accents where appropriate
+- readable text hierarchy
+- restrained shadows and borders
+
+Light Mode should feel:
+- clean white / very light neutral surfaces
+- dark readable text
+- brand-colored accents
+- premium admin dashboard feel
+- no washed-out look
+- no harsh contrast
+
+==================================================
+IMPLEMENTATION STRATEGY
+==================================================
+
+Build this as a proper theme system, not as one-off page edits.
+
+Required approach:
+- Reuse existing design tokens, CSS variables, Tailwind theme setup, or shadcn token structure if already present
+- Introduce global semantic theme variables for:
+  - background
+  - foreground
+  - card
+  - card-foreground
+  - border
+  - muted
+  - muted-foreground
+  - primary
+  - primary-foreground
+  - accent
+  - accent-foreground
+  - input
+  - ring
+  - destructive
+  - success / warning / info if the system already supports them
+- Support both dark and light modes through global theme classes or variables
+- Keep status colors meaningful:
+  - success stays success
+  - warning stays warning
+  - destructive stays destructive
+  - but harmonize them visually with the brand palette
+
+Do NOT hardcode random colors page-by-page unless absolutely necessary for compatibility.
+
+==================================================
+REQUIRED FEATURES
+==================================================
+
+Part 1 — Add CRM Dark / Light Mode toggle
+- Add a visible theme toggle in the CRM UI
+- Toggle must support at minimum:
+  - Dark
+  - Light
+- Optional:
+  - System mode only if the codebase already has a clean pattern for it
+- Persist user choice locally so refresh/navigation does not reset it
+- Do not break SSR/build behavior if the app expects client-side theme initialization
+
+Part 2 — Brand-aligned dark theme
+- Replace the overly blue-heavy CRM look with a Tbilisicars-aligned premium dark palette
+- Reduce bright blue dominance
+- Use burgundy / deep red as the key brand accent for buttons, active states, focus states, selected nav states, and key highlights where appropriate
+- Keep readability strong
+- Avoid making the UI muddy or brown-heavy
+
+Part 3 — Light theme
+- Add a polished light theme across the CRM
+- Ensure readability for:
+  - sidebar
+  - page background
+  - cards
+  - tables
+  - modals
+  - popovers
+  - inputs
+  - dropdowns
+  - tabs
+  - badges
+  - date pickers
+- Light mode should not look like an unfinished inversion of dark mode
+
+Part 4 — Component polish
+Audit and visually polish the most-used CRM primitives so both themes look intentional:
+- sidebar
+- top navigation / page headers
+- cards
+- buttons
+- inputs
+- selects
+- textareas
+- tables
+- dropdown menus
+- dialogs / modals
+- popovers
+- tabs
+- badges
+- date/time pickers
+- scroll containers / visible scrollbars if currently ugly
+- hover / focus / active states
+- empty states
+
+Part 5 — Keep operational clarity
+Do not sacrifice usability for aesthetics.
+Important operational elements must stay clear:
+- booking statuses
+- payment statuses
+- fleet statuses
+- maintenance alerts
+- action buttons
+- destructive actions
+- clickable rows / selected states
+
+==================================================
+SAFETY CONSTRAINTS
+==================================================
+
+- Do not break existing CRM logic
+- Do not change API behavior
+- Do not touch backend unless absolutely required for theme preference persistence, and avoid that unless necessary
+- Do not rewrite all pages manually if a token/theme-layer approach can solve it
+- Do not remove important status color distinctions
+- Do not make tables less readable
+- Do not make forms lower-contrast
+- Do not break mobile or desktop layouts
+- Do not create inconsistent mixed-theme pages
+
+==================================================
+PREFERRED EXECUTION PLAN
+==================================================
+
+Implement in this order:
+
+Step 1:
+Inspect current theme/token/global CSS structure and identify the safest place to introduce theme variables/tokens.
+
+Step 2:
+Implement dark/light theme infrastructure and toggle with persisted preference.
+
+Step 3:
+Apply the new semantic palette globally to core shared UI primitives.
+
+Step 4:
+Audit and patch the most visible CRM screens/components for theme compatibility:
+- Dashboard
+- Bookings
+- Fleet
+- Vehicle Detail
+- Booking Detail
+- Service
+- Accounting
+- dialogs/popovers/dropdowns/date pickers
+
+Step 5:
+Do a final pass for contrast, hover states, borders, selected states, and readability.
+
+Do not do a chaotic broad refactor in one pass. Verify each stage before moving forward.
+
+==================================================
+DESIGN QUALITY TARGET
+==================================================
+
+The result should feel like:
+- one cohesive premium CRM
+- visually aligned with Tbilisicars public website branding
+- cleaner and more expensive-looking than the current CRM
+- easier to read in both dark and light mode
+- professional enough for daily operational use
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. What theme infrastructure was added/updated
+3. Where the toggle was added
+4. Any components that needed manual compatibility fixes
+5. Any remaining edge cases to polish later
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- Dark mode toggle works
+- Light mode toggle works
+- Theme choice persists after refresh
+- Sidebar looks polished in both modes
+- Cards and tables remain readable in both modes
+- Dialogs/popovers/dropdowns/date pickers are themed correctly
+- Booking statuses remain clear
+- Payment badges remain clear
+- Fleet statuses remain clear
+- Buttons/focus/hover/selected states feel branded and consistent
+- No page looks broken or half-themed
+
+Implement this carefully and prioritize consistency over flashy visuals.
