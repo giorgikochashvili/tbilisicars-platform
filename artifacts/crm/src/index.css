@@ -60,65 +60,67 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* ── LIGHT THEME (default / :root) ───────────────────────────────── */
 :root {
-  /* Enforce Dark Professional Admin Theme */
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  color-scheme: light;
 
-  /* Deep space black / dark slate */
-  --background: 222 47% 7%;
-  --foreground: 210 40% 98%;
+  --button-outline: rgba(0,0,0, .13);
+  --badge-outline: rgba(0,0,0, .09);
+  --opaque-button-border-intensity: -6;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .055);
 
-  /* High contrast borders */
-  --border: 215 28% 17%;
-  --input: 215 28% 17%;
-  --ring: 217 91% 60%;
+  /* Surfaces */
+  --background: 210 20% 97%;
+  --foreground: 222 47% 11%;
 
-  /* Slight elevation for cards */
-  --card: 222 47% 10%;
-  --card-foreground: 210 40% 98%;
-  --card-border: 215 28% 17%;
+  --border: 215 20% 86%;
+  --input: 215 20% 86%;
+  --ring: 350 68% 38%;
 
-  --popover: 222 47% 10%;
-  --popover-foreground: 210 40% 98%;
-  --popover-border: 215 28% 17%;
+  /* Cards */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --card-border: 215 20% 88%;
 
-  /* Vibrant electric blue primary */
-  --primary: 217 91% 60%;
+  /* Popovers / dropdowns */
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --popover-border: 215 20% 86%;
+
+  /* Burgundy brand primary */
+  --primary: 350 68% 38%;
   --primary-foreground: 0 0% 100%;
 
-  /* Neutral secondary */
-  --secondary: 215 28% 17%;
-  --secondary-foreground: 210 40% 98%;
+  /* Secondary / neutral */
+  --secondary: 215 18% 91%;
+  --secondary-foreground: 222 30% 22%;
 
-  /* Subtle muting */
-  --muted: 215 28% 15%;
-  --muted-foreground: 215 20% 65%;
+  /* Muted */
+  --muted: 215 15% 93%;
+  --muted-foreground: 215 18% 45%;
 
   /* Hover accent */
-  --accent: 215 28% 17%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 215 18% 91%;
+  --accent-foreground: 222 30% 22%;
 
-  /* Danger red */
-  --destructive: 0 84% 60%;
+  /* Danger — keep semantic hue unchanged */
+  --destructive: 0 84% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  /* Sidebar styling */
-  --sidebar: 222 47% 9%;
-  --sidebar-foreground: 215 20% 65%;
-  --sidebar-border: 215 28% 15%;
-  --sidebar-primary: 217 91% 60%;
+  /* Sidebar */
+  --sidebar: 215 22% 94%;
+  --sidebar-foreground: 222 30% 28%;
+  --sidebar-border: 215 20% 86%;
+  --sidebar-primary: 350 68% 38%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 28% 15%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-accent: 215 18% 90%;
+  --sidebar-accent-foreground: 222 30% 22%;
+  --sidebar-ring: 350 68% 38%;
 
-  --radius: 0.75rem; 
+  --radius: 0.75rem;
 
-  /* Computed Borders */
+  /* Computed borders */
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
@@ -127,11 +129,93 @@
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
 
-  /* Deep dark shadows */
+  /* Light shadows */
+  --shadow-sm: 0px 1px 3px rgba(0,0,0,0.08), 0px 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0px 4px 8px rgba(0,0,0,0.09), 0px 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0px 10px 20px rgba(0,0,0,0.1), 0px 4px 6px rgba(0,0,0,0.06);
+  --shadow-xl: 0px 20px 30px rgba(0,0,0,0.12), 0px 8px 10px rgba(0,0,0,0.07);
+
+  /* Scrollbar colors */
+  --scrollbar-thumb: hsl(215 20% 76%);
+  --scrollbar-track: hsl(210 20% 95%);
+}
+
+/* ── DARK THEME ── Tbilisicars brand: deep navy + burgundy ───────── */
+.dark {
+  color-scheme: dark;
+
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  /* Deep navy background */
+  --background: 211 53% 11%;
+  --foreground: 210 20% 95%;
+
+  --border: 214 28% 22%;
+  --input: 214 30% 18%;
+  --ring: 350 68% 42%;
+
+  /* Cards */
+  --card: 214 45% 15%;
+  --card-foreground: 210 20% 95%;
+  --card-border: 214 28% 22%;
+
+  /* Popovers */
+  --popover: 214 45% 15%;
+  --popover-foreground: 210 20% 95%;
+  --popover-border: 214 28% 22%;
+
+  /* Burgundy brand primary — replaces electric blue */
+  --primary: 350 68% 38%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary */
+  --secondary: 214 35% 20%;
+  --secondary-foreground: 210 20% 88%;
+
+  /* Muted */
+  --muted: 214 35% 18%;
+  --muted-foreground: 210 15% 58%;
+
+  /* Hover accent */
+  --accent: 214 35% 20%;
+  --accent-foreground: 210 20% 88%;
+
+  /* Danger */
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Sidebar */
+  --sidebar: 211 55% 9%;
+  --sidebar-foreground: 210 20% 88%;
+  --sidebar-border: 214 28% 20%;
+  --sidebar-primary: 350 68% 38%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 214 35% 18%;
+  --sidebar-accent-foreground: 210 20% 88%;
+  --sidebar-ring: 350 68% 38%;
+
+  /* Computed borders */
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / 1);
+
+  /* Dark shadows */
   --shadow-sm: 0px 2px 4px -1px rgba(0,0,0,0.5);
   --shadow-md: 0px 4px 8px -2px rgba(0,0,0,0.6);
   --shadow-lg: 0px 10px 15px -3px rgba(0,0,0,0.7);
   --shadow-xl: 0px 20px 25px -5px rgba(0,0,0,0.8);
+
+  /* Scrollbar colors */
+  --scrollbar-thumb: hsl(214 28% 24%);
+  --scrollbar-track: hsl(211 53% 9%);
 }
 
 @layer base {
@@ -144,6 +228,12 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
   }
+  /* Datetime inputs follow color-scheme */
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="time"] {
+    color-scheme: inherit;
+  }
 }
 
 @layer utilities {
@@ -152,10 +242,10 @@
   .active-elevate-2:active { @apply translate-y-0 shadow-sm scale-[0.98]; }
 }
 
-/* Dark scrollbar — matches the CRM dark theme */
+/* ── Scrollbars — theme-aware via CSS variables ─────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(215 28% 22%) hsl(222 47% 9%);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 *::-webkit-scrollbar {
@@ -164,20 +254,19 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: hsl(222 47% 9%);
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: hsl(215 28% 22%);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
-  border: 1px solid hsl(222 47% 12%);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: hsl(215 28% 30%);
+  filter: brightness(1.25);
 }
 
 *::-webkit-scrollbar-corner {
-  background: hsl(222 47% 9%);
+  background: var(--scrollbar-track);
 }

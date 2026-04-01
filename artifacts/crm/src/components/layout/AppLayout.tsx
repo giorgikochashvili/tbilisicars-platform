@@ -1,8 +1,13 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { ReactNode } from "react";
+import { Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use-theme";
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const { theme, toggleTheme } = useTheme();
+
   const style = {
     "--sidebar-width": "17rem",
     "--sidebar-width-icon": "4.5rem",
@@ -21,6 +26,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
               />
               <h1 className="font-display font-semibold text-lg">Operations Center</h1>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="w-9 h-9 border border-border/50 bg-background/50 text-muted-foreground hover:text-foreground hover:bg-background/80 transition-all rounded-md"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 relative">
             <div className="max-w-7xl mx-auto w-full">

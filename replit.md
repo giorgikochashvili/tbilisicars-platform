@@ -58,7 +58,7 @@ All packages extend `tsconfig.base.json` with `composite: true`, enabling effici
     - **Authentication**: None (public access).
 - **`artifacts/crm` (`@workspace/crm`)**:
     - **Purpose**: Internal CRM administration application.
-    - **UI/UX**: Dark-mode only.
+    - **UI/UX**: Dark/Light toggle (defaults dark). localStorage key `crm-theme`. Deep navy + burgundy brand palette. FOUC-prevention inline script in `index.html`.
     - **Tech Stack**: React, Vite, wouter for routing, TanStack Query, shadcn/ui.
     - **Features**: Comprehensive modules for Dashboard, Bookings, Fleet, Fleet Calendar, Service, Accounting, Customers, Locations, Extras, Rates, Promotions, and Team, each with CRUD capabilities. Dashboard includes region selectors, KPI cards, fleet status, and timeline views.
     - **Authentication**: Session-based (cookies); redirects to `/crm/login` if unauthenticated.
