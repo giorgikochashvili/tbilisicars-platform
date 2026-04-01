@@ -498,15 +498,24 @@ function HandoverModal({
         .filter((fi) => fi.status === "done" && !uploadedIds.has(fi.id))
         .map((fi) => fi.path!);
       const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
-      await onSubmit(type, photoUrls);
-      // Clear file state after successful submit
-      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+      try {
+        await onSubmit(type, photoUrls);
+        // Clear file state after successful submit
+        setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+      } catch {
+        // onSubmit (handleHandoverSubmit) already shows a toast and rethrows;
+        // catch here prevents unhandled-promise-rejection noise in the console.
+      }
     } else {
       // No pending files — submit with already-done file paths
       const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
-      await onSubmit(type, photoUrls);
-      // Clear file state after successful submit
-      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+      try {
+        await onSubmit(type, photoUrls);
+        // Clear file state after successful submit
+        setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+      } catch {
+        // onSubmit already toasts; catch to prevent unhandled rejection.
+      }
     }
   };
 
@@ -740,6 +749,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       fetchHandovers();
       setShowAddForm(false);
       setForm(EMPTY_FORM);
+      setIsOverviewEditing(false);
     }
   }, [open, bookingId]);
 
