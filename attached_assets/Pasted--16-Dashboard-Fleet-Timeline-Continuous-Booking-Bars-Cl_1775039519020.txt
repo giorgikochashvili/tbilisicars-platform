@@ -1,0 +1,148 @@
+#16 - Dashboard Fleet Timeline Continuous Booking Bars + Click Through + Light Mode Text Fix
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make this as a minimal, safe improvement only. Do not refactor unrelated dashboard logic, fleet logic, bookings logic, routes, or APIs. Do not redesign the dashboard. Only fix the Fleet Timeline rendering, click behavior, and the light-mode text contrast issue inside timeline booking bars.
+
+==================================================
+CURRENT PROBLEM
+==================================================
+
+In the Dashboard "Fleet Timeline — Next 7 Days", a booking that spans multiple dates is currently rendered as separate small cells/blocks for each day.
+
+Example:
+If a booking runs from Apr 1 to Apr 4, the timeline currently shows:
+- one small block on Apr 1
+- one small block on Apr 2
+- one small block on Apr 3
+- one small block on Apr 4
+
+This is visually incorrect.
+
+Also:
+- Clicking a booking segment in the Fleet Timeline should open that booking
+- In Light Mode, the text/name inside the booking bar/cell is too light/white and is hard to read; in Light Mode it must be dark/black or otherwise high-contrast and clearly readable
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+PART 1 — Continuous booking bar across the booked date range
+
+A booking spanning multiple days must render as one continuous horizontal bar across the timeline grid from start day to end day.
+
+Expected behavior:
+- If booking starts on Apr 1 and ends on Apr 4, show one connected bar spanning Apr 1 → Apr 4
+- Do not render 4 disconnected mini cells
+- The bar should visually occupy the correct grid span across the relevant day columns
+- Keep the row aligned to the booked vehicle
+- Preserve the current timeline layout and style language
+
+Important:
+- Respect the visible 7-day window only
+- If a booking starts before the visible window, clamp the bar to the first visible day
+- If a booking ends after the visible window, clamp the bar to the last visible day
+- If a booking is fully outside the visible window, do not render it
+
+==================================================
+PART 2 — Clicking a timeline booking bar must open that booking
+
+When the user clicks the rendered booking bar in the Fleet Timeline:
+- open the corresponding booking detail
+- reuse the existing booking detail route/modal/dialog pattern already used elsewhere in CRM
+- do not invent a new navigation pattern if booking detail already exists in a dialog/modal
+- if the dashboard currently uses modal-based booking detail, use that
+- if it uses route-based navigation, use the existing supported route
+
+Goal:
+A staff member can visually see the booked range and directly open the booking from the timeline.
+
+==================================================
+PART 3 — Light Mode text contrast fix inside Fleet Timeline booking bars
+
+Current issue:
+In Light Mode, the booking label/name inside the timeline bar/cell is too light/white and is difficult to read.
+
+Required fix:
+- In Light Mode, the text inside timeline booking bars must be dark and clearly readable
+- Use theme-aware styling, not hardcoded one-off hacks if possible
+- Do not break Dark Mode text contrast
+- Preserve the current visual identity of the booking bars while ensuring accessibility/readability
+
+Preferred result:
+- Dark mode: current light text can remain if contrast is good
+- Light mode: booking bar text becomes dark/black or equivalent high-contrast foreground
+
+==================================================
+IMPLEMENTATION GUIDANCE
+==================================================
+
+1. Inspect the current Fleet Timeline rendering logic in Dashboard.tsx
+2. Find where bookings are being mapped per day cell
+3. Replace the per-day repeated rendering with span-based rendering logic
+4. Compute for each booking:
+   - visibleStart = max(bookingStart, windowStart)
+   - visibleEnd = min(bookingEnd, windowEnd)
+   - startColumn offset inside the 7-day grid
+   - span length in days
+5. Render a single absolutely-positioned or CSS-grid-spanning bar for that booking within the vehicle row
+6. Make the bar clickable and wire it to the existing booking detail open behavior
+7. Patch the booking bar text styling so it adapts correctly in Light Mode
+
+Preferred implementation:
+- Use CSS grid column span or equivalent layout-safe method
+- Avoid fragile pixel math if grid-span logic can solve it cleanly
+- Use existing theme/token classes if possible for text contrast
+
+==================================================
+EDGE CASES
+==================================================
+
+Handle correctly:
+- one-day booking
+- multi-day booking
+- booking starting before the visible week
+- booking ending after the visible week
+- booking fully outside the visible week
+- multiple bookings on different vehicle rows
+- current status coloring or badge text if already present
+
+If the current UI already shows booking label text inside the bar, preserve it when possible.
+
+==================================================
+SAFETY RULES
+==================================================
+
+- Do not break other Dashboard widgets
+- Do not break Fleet or Booking modules
+- Do not change booking APIs unless absolutely unnecessary
+- Do not redesign the timeline, only fix rendering and click-through behavior
+- Reuse existing booking-detail opening behavior
+- Keep changes minimal and additive
+- Do not introduce hardcoded colors that break the dark/light theme system
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. Exact rendering logic used for continuous bars
+3. How click-through to booking was implemented
+4. What was changed for Light Mode text contrast
+5. Any clamping/edge-case logic added for the 7-day window
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- Booking from Apr 1 to Apr 4 renders as one continuous bar
+- One-day booking renders correctly
+- Booking partially outside the visible week is clamped correctly
+- Clicking a timeline booking bar opens the correct booking
+- In Light Mode, text inside the booking bar is clearly readable
+- In Dark Mode, text inside the booking bar still looks correct
+- Other dashboard widgets still work
+- Timeline layout remains aligned and readable
+
+Implement carefully and do not disturb working areas.
