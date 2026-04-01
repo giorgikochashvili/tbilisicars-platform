@@ -704,6 +704,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
 
+  // Assign vehicle dialog state
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [assignVehicles, setAssignVehicles] = useState<any[]>([]);
+  const [loadingAssignVehicles, setLoadingAssignVehicles] = useState(false);
+  const [savingAssign, setSavingAssign] = useState(false);
+
   const fetchBooking = useCallback(async () => {
     if (!bookingId) return;
     setLoadingBooking(true);
@@ -741,6 +747,38 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       // Non-critical
     }
   }, [bookingId]);
+
+  const openAssignDialog = useCallback(async () => {
+    if (!booking?.vehicleModelId) return;
+    setIsAssignOpen(true);
+    setLoadingAssignVehicles(true);
+    try {
+      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${booking.vehicleModelId}&limit=100`);
+      setAssignVehicles(data?.data ?? []);
+    } catch (e: any) {
+      toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingAssignVehicles(false);
+    }
+  }, [booking?.vehicleModelId]);
+
+  const handleAssignVehicle = useCallback(async (vehicleId: number) => {
+    if (!bookingId) return;
+    setSavingAssign(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ vehicleId }),
+      });
+      setIsAssignOpen(false);
+      await fetchBooking();
+      toast({ title: "Vehicle assigned" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingAssign(false);
+    }
+  }, [bookingId, fetchBooking]);
 
   useEffect(() => {
     if (open && bookingId) {
@@ -1061,13 +1099,24 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                             setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
                           }}
                         >
-                          {booking.vehicle.modelName} · {booking.vehicle.licensePlate}
+                          {booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}
                           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                         </button>
-                      ) : (
-                        <div className="font-medium">
-                          {booking.vehicleModelName ? `${booking.vehicleModelName} (unassigned)` : "—"}
+                      ) : booking.vehicleModelName ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="font-medium">
+                            {booking.vehicleModelBrandName ? `${booking.vehicleModelBrandName} ` : ""}{booking.vehicleModelName}
+                          </div>
+                          <button
+                            type="button"
+                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium"
+                            onClick={openAssignDialog}
+                          >
+                            Assign
+                          </button>
                         </div>
+                      ) : (
+                        <div className="font-medium">—</div>
                       )}
                     </div>
                     <div>
@@ -1528,6 +1577,38 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
       />
+
+      {/* Assign Vehicle Dialog */}
+      <Dialog open={isAssignOpen} onOpenChange={(v) => { if (!savingAssign) setIsAssignOpen(v); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Assign Vehicle</DialogTitle>
+            <DialogDescription>
+              Select an available vehicle for this booking.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 max-h-72 overflow-y-auto space-y-1">
+            {loadingAssignVehicles ? (
+              <div className="text-center py-6 text-sm text-muted-foreground">Loading vehicles…</div>
+            ) : assignVehicles.length === 0 ? (
+              <div className="text-center py-6 text-sm text-muted-foreground">No vehicles available for this model.</div>
+            ) : (
+              assignVehicles.map((v: any) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  disabled={savingAssign}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors border border-border/30 disabled:opacity-50"
+                  onClick={() => handleAssignVehicle(v.id)}
+                >
+                  <span className="font-medium text-sm">{v.licensePlate}</span>
+                  <span className="text-xs text-muted-foreground capitalize">{v.status?.toLowerCase() ?? ""}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

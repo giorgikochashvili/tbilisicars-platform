@@ -4,6 +4,7 @@ import {
   userTable,
   vehicleTable,
   vehicleModelTable,
+  brandTable,
   locationTable,
   partnerTable,
   bookingextraTable,
@@ -37,6 +38,9 @@ const pickupLoc = alias(locationTable, "pickup_loc");
 const dropoffLoc = alias(locationTable, "dropoff_loc");
 // Second alias to join vehicle_model via booking.vehicle_model_id (for model-only bookings)
 const bookingModelTable = alias(vehicleModelTable, "booking_model");
+// Brand aliases: vehicle-path brand and booking-model-path brand
+const vehicleBrandTable = alias(brandTable, "vehicle_brand");
+const bookingBrandTable = alias(brandTable, "booking_brand");
 
 // ─── Shared select fields for booking row (list + today activity) ─────────────
 
@@ -62,6 +66,10 @@ const bookingRowSelect = {
   vehicleModelName: vehicleModelTable.name,
   // Model name from booking.vehicle_model_id (used when no specific vehicle is assigned)
   bookingVehicleModelName: bookingModelTable.name,
+  // Brand name via vehicle's model (vehicle-path brand)
+  vehicleBrandName: vehicleBrandTable.name,
+  // Brand name via booking.vehicle_model_id (booking-path brand)
+  bookingVehicleBrandName: bookingBrandTable.name,
   pickupLocationId: pickupLoc.id,
   pickupLocationName: pickupLoc.name,
   dropoffLocationId: dropoffLoc.id,
@@ -118,6 +126,8 @@ type BookingRowFlat = {
   vehicleLicensePlate: string | null;
   vehicleModelName: string | null;
   bookingVehicleModelName: string | null;
+  vehicleBrandName: string | null;
+  bookingVehicleBrandName: string | null;
   pickupLocationId: number;
   pickupLocationName: string;
   dropoffLocationId: number;
@@ -151,11 +161,13 @@ function mapToBookingRow(row: BookingRowFlat) {
           id: row.vehicleId,
           licensePlate: row.vehicleLicensePlate,
           modelName: row.vehicleModelName,
+          brandName: row.vehicleBrandName ?? null,
         }
       : null,
     // Top-level vehicleModelName: resolved from booking.vehicle_model_id directly
     // Useful for model-only bookings (website) where no specific vehicle is assigned yet
     vehicleModelName: row.bookingVehicleModelName ?? null,
+    vehicleModelBrandName: row.bookingVehicleBrandName ?? null,
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
@@ -325,6 +337,8 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
         bookingModelTable,
         eq(bookingTable.vehicleModelId, bookingModelTable.id),
       )
+      .leftJoin(vehicleBrandTable, eq(vehicleModelTable.brandId, vehicleBrandTable.id))
+      .leftJoin(bookingBrandTable, eq(bookingModelTable.brandId, bookingBrandTable.id))
       .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
       .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
       .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id))
@@ -360,6 +374,8 @@ export async function getAdminBooking(id: number) {
       bookingModelTable,
       eq(bookingTable.vehicleModelId, bookingModelTable.id),
     )
+    .leftJoin(vehicleBrandTable, eq(vehicleModelTable.brandId, vehicleBrandTable.id))
+    .leftJoin(bookingBrandTable, eq(bookingModelTable.brandId, bookingBrandTable.id))
     .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
     .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
     .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id))

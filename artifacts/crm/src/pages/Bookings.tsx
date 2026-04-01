@@ -645,9 +645,9 @@ export default function BookingsPage() {
                       {/* Vehicle — primary */}
                       <div className="font-semibold text-foreground mb-0.5">
                         {b.vehicle ? (
-                          <>{b.vehicle.modelName} <span className="font-mono text-xs text-muted-foreground">· {b.vehicle.licensePlate}</span></>
+                          <>{(b.vehicle.brandName || "") && `${b.vehicle.brandName} `}{b.vehicle.modelName} <span className="font-mono text-xs text-muted-foreground">· {b.vehicle.licensePlate}</span></>
                         ) : b.vehicleModelName ? (
-                          <>{b.vehicleModelName}</>
+                          <>{(b.vehicleModelBrandName || "") && `${b.vehicleModelBrandName} `}{b.vehicleModelName}</>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">No vehicle assigned</span>
                         )}

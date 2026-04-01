@@ -45,7 +45,9 @@ interface BookingRow {
   totalAmount: string | null;
   currency: string | null;
   customer: { id: number; fullName: string | null; email: string | null; phone?: string | null };
-  vehicle: { id: number; licensePlate: string | null; modelName: string | null } | null;
+  vehicle: { id: number; licensePlate: string | null; modelName: string | null; brandName?: string | null } | null;
+  vehicleModelName?: string | null;
+  vehicleModelBrandName?: string | null;
   pickupLocation: { id: number; name: string };
   dropoffLocation: { id: number; name: string };
   partner: { id: number; name: string } | null;
@@ -443,11 +445,17 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                       <TableCell>
                         {b.vehicle ? (
                           <div className="flex flex-col">
-                            <span className="text-xs font-medium text-foreground">{b.vehicle.modelName}</span>
+                            <span className="text-xs font-medium text-foreground">
+                              {b.vehicle.brandName ? `${b.vehicle.brandName} ` : ""}{b.vehicle.modelName}
+                            </span>
                             <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded inline-flex w-fit mt-0.5">
                               {b.vehicle.licensePlate}
                             </span>
                           </div>
+                        ) : b.vehicleModelName ? (
+                          <span className="text-xs font-medium text-foreground">
+                            {b.vehicleModelBrandName ? `${b.vehicleModelBrandName} ` : ""}{b.vehicleModelName}
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Unassigned</span>
                         )}

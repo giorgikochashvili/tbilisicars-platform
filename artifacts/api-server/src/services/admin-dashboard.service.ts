@@ -28,6 +28,9 @@ import { alias } from "drizzle-orm/pg-core";
 const pickupLoc = alias(locationTable, "pickup_loc");
 const dropoffLoc = alias(locationTable, "dropoff_loc");
 const bookingModelTable = alias(vehicleModelTable, "booking_model");
+// Brand aliases: vehicle-path brand and booking-model-path brand
+const vehicleBrandTable = alias(brandTable, "vehicle_brand");
+const bookingBrandTable = alias(brandTable, "booking_brand");
 
 // ─── Shared select for booking row shape ─────────────────────────────────────
 
@@ -52,6 +55,10 @@ const bookingRowSelect = {
   vehicleLicensePlate: vehicleTable.licensePlate,
   vehicleModelName: vehicleModelTable.name,
   bookingVehicleModelName: bookingModelTable.name,
+  // Brand name via vehicle's model (vehicle-path brand)
+  vehicleBrandName: vehicleBrandTable.name,
+  // Brand name via booking.vehicle_model_id (booking-path brand)
+  bookingVehicleBrandName: bookingBrandTable.name,
   pickupLocationId: pickupLoc.id,
   pickupLocationName: pickupLoc.name,
   pickupLocationCity: pickupLoc.city,
@@ -83,6 +90,8 @@ type BookingRowFlat = {
   vehicleLicensePlate: string | null;
   vehicleModelName: string | null;
   bookingVehicleModelName: string | null;
+  vehicleBrandName: string | null;
+  bookingVehicleBrandName: string | null;
   pickupLocationId: number;
   pickupLocationName: string;
   pickupLocationCity: string | null;
@@ -118,9 +127,11 @@ function mapToBookingRow(row: BookingRowFlat) {
           id: row.vehicleId,
           licensePlate: row.vehicleLicensePlate,
           modelName: row.vehicleModelName,
+          brandName: row.vehicleBrandName ?? null,
         }
       : null,
     vehicleModelName: row.bookingVehicleModelName ?? null,
+    vehicleModelBrandName: row.bookingVehicleBrandName ?? null,
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
@@ -253,6 +264,8 @@ export async function getTodayActivity(city?: string) {
       .leftJoin(vehicleTable, eq(bookingTable.vehicleId, vehicleTable.id))
       .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
       .leftJoin(bookingModelTable, eq(bookingTable.vehicleModelId, bookingModelTable.id))
+      .leftJoin(vehicleBrandTable, eq(vehicleModelTable.brandId, vehicleBrandTable.id))
+      .leftJoin(bookingBrandTable, eq(bookingModelTable.brandId, bookingBrandTable.id))
       .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
       .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
       .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id));
