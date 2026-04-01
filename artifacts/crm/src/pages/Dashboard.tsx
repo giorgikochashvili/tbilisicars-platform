@@ -14,7 +14,7 @@ import {
   PlayCircle, CheckCircle2, Flag, RotateCcw,
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
-  Settings2, Info, RotateCw, ParkingSquare,
+  Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
@@ -770,10 +770,21 @@ function CustomizePopover({ config, onChange, region }: {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
+function todayDateStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
 export default function Dashboard() {
   const [region, setRegion] = useState<Region>("All");
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(loadWidgetConfig);
+  const [selectedOpsDate, setSelectedOpsDate] = useState<string>(todayDateStr);
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
 
@@ -800,8 +811,12 @@ export default function Dashboard() {
   });
 
   const todayQuery = useQuery<{ pickups: BookingRow[]; dropoffs: BookingRow[] }>({
-    queryKey: ["dashboard-today", city],
-    queryFn: () => fetchJson(buildUrl("/admin/dashboard/today", city)),
+    queryKey: ["dashboard-today", city, selectedOpsDate],
+    queryFn: () => {
+      const params = new URLSearchParams({ date: selectedOpsDate });
+      if (city) params.set("city", city);
+      return fetchJson(`${BASE}/admin/dashboard/today?${params.toString()}`);
+    },
     staleTime: 30_000,
   });
 
@@ -930,23 +945,58 @@ export default function Dashboard() {
       {/* Today's Operations */}
       {sc.todaysOperations && (
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <ArrowRightLeft className="w-4 h-4 text-primary" /> Today's Operations
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
+            </h2>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedOpsDate((d) => shiftDate(d, -1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-semibold text-foreground min-w-[130px] text-center">
+                {new Date(selectedOpsDate + "T00:00:00Z").toLocaleDateString("en-GB", {
+                  weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+                })}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setSelectedOpsDate((d) => shiftDate(d, 1))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              {selectedOpsDate !== todayDateStr() && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary hover:text-primary ml-1 px-2"
+                  onClick={() => setSelectedOpsDate(todayDateStr())}
+                >
+                  Today
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-[400px]">
             <ActivityTable
-              title="Today's Pickups"
+              title="Pickups"
               bookings={todayQuery.data?.pickups}
               isLoading={todayQuery.isLoading}
-              emptyMessage="No pickups scheduled for today."
+              emptyMessage="No pickups for this date."
               timeKey="pickup"
               onRowClick={(id) => setDetailBookingId(id)}
             />
             <ActivityTable
-              title="Today's Dropoffs"
+              title="Dropoffs"
               bookings={todayQuery.data?.dropoffs}
               isLoading={todayQuery.isLoading}
-              emptyMessage="No dropoffs expected today."
+              emptyMessage="No dropoffs for this date."
               timeKey="dropoff"
               onRowClick={(id) => setDetailBookingId(id)}
             />

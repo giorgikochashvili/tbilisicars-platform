@@ -38,7 +38,9 @@ router.get("/admin/dashboard/summary", requireAdmin, async (req, res) => {
 
 router.get("/admin/dashboard/today", requireAdmin, async (req, res) => {
   const city = parseCity(req.query.city);
-  const activity = await getTodayActivity(city);
+  const rawDate = req.query.date;
+  const date = typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : undefined;
+  const activity = await getTodayActivity(city, date);
   res.json(GetAdminDashboardTodayResponse.parse(activity));
 });
 

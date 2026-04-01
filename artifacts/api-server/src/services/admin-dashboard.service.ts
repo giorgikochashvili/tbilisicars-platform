@@ -232,13 +232,13 @@ export async function getDashboardSummary(city?: string) {
 //   - pickups filtered to bookings where pickupLocation.city = city
 //   - dropoffs filtered to bookings where dropoffLocation.city = city
 
-export async function getTodayActivity(city?: string) {
-  const now = new Date();
+export async function getTodayActivity(city?: string, date?: string) {
+  const base = date ? new Date(date + "T00:00:00Z") : new Date();
   const todayStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()),
   );
   const todayEnd = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + 1),
   );
 
   const notDeleted = isNull(bookingTable.deletedAt);
@@ -278,7 +278,7 @@ export async function getTodayActivity(city?: string) {
           notDeleted,
           gte(bookingTable.pickupDatetime, todayStart),
           lt(bookingTable.pickupDatetime, todayEnd),
-          inArray(bookingTable.status, ["PENDING", "CONFIRMED"]),
+          inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED", "RETURNED"]),
           ...(pickupCityCondition ? [pickupCityCondition] : []),
         ),
       )
@@ -289,7 +289,7 @@ export async function getTodayActivity(city?: string) {
           notDeleted,
           gte(bookingTable.dropoffDatetime, todayStart),
           lt(bookingTable.dropoffDatetime, todayEnd),
-          inArray(bookingTable.status, ["CONFIRMED", "DELIVERED"]),
+          inArray(bookingTable.status, ["CONFIRMED", "DELIVERED", "RETURNED"]),
           ...(dropoffCityCondition ? [dropoffCityCondition] : []),
         ),
       )
