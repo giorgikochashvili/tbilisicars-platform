@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import {
   Car, MapPin, Gauge, AlertTriangle, CalendarDays, Wrench,
   TrendingUp, ExternalLink, CheckCircle2, Clock, BarChart3, Activity,
-  Image, Upload, Download, MessageCircle, Trash2, Check, X
+  Image, Upload, Download, MessageCircle, Trash2, Check
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import { Button } from "@/components/ui/button";
@@ -312,12 +312,19 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                       <img
                         src={toStorageSrc(v.model.imageUrl)}
                         alt={displayName}
-                        className="w-28 h-18 object-contain rounded-lg bg-muted/30 border border-border/30 self-center"
+                        className="w-28 object-contain rounded-lg bg-muted/30 border border-border/30 self-center"
                         style={{ maxHeight: "72px" }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          const placeholder = document.createElement("div");
+                          placeholder.className = el.className;
+                          placeholder.style.cssText = "min-height:72px;min-width:112px;display:flex;align-items:center;justify-content:center;";
+                          placeholder.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(0,0,0,0.15)"><path d="M19 17H5a2 2 0 01-2-2V9a2 2 0 012-2h2l2-3h6l2 3h2a2 2 0 012 2v6a2 2 0 01-2 2z"/><circle cx="9" cy="17" r="1"/><circle cx="15" cy="17" r="1"/></svg>`;
+                          el.parentNode?.replaceChild(placeholder, el);
+                        }}
                       />
                     ) : (
-                      <div className="w-28 h-18 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center self-center" style={{ minHeight: "72px", minWidth: "112px" }}>
+                      <div className="rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center self-center" style={{ minHeight: "72px", minWidth: "112px" }}>
                         <Car className="w-8 h-8 text-muted-foreground/30" />
                       </div>
                     )}
