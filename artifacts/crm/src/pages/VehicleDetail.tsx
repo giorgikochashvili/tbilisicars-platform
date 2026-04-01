@@ -114,6 +114,25 @@ interface VehicleDetailProps {
   onClose: () => void;
 }
 
+function ModelImage({ src, alt }: { src: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const placeholder = (
+    <div className="rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center self-center" style={{ minHeight: "72px", minWidth: "112px" }}>
+      <Car className="w-8 h-8 text-muted-foreground/30" />
+    </div>
+  );
+  if (!src || failed) return placeholder;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-28 object-contain rounded-lg bg-muted/30 border border-border/30 self-center"
+      style={{ maxHeight: "72px" }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetailProps) {
   const { toast } = useToast();
   const [data, setData] = useState<any>(null);
@@ -308,26 +327,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                   {/* Key Stats + Model Image */}
                   <div className="flex flex-col gap-2 min-w-[160px] items-start">
                     {/* Model image */}
-                    {v.model?.imageUrl ? (
-                      <img
-                        src={toStorageSrc(v.model.imageUrl)}
-                        alt={displayName}
-                        className="w-28 object-contain rounded-lg bg-muted/30 border border-border/30 self-center"
-                        style={{ maxHeight: "72px" }}
-                        onError={(e) => {
-                          const el = e.target as HTMLImageElement;
-                          const placeholder = document.createElement("div");
-                          placeholder.className = el.className;
-                          placeholder.style.cssText = "min-height:72px;min-width:112px;display:flex;align-items:center;justify-content:center;";
-                          placeholder.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(0,0,0,0.15)"><path d="M19 17H5a2 2 0 01-2-2V9a2 2 0 012-2h2l2-3h6l2 3h2a2 2 0 012 2v6a2 2 0 01-2 2z"/><circle cx="9" cy="17" r="1"/><circle cx="15" cy="17" r="1"/></svg>`;
-                          el.parentNode?.replaceChild(placeholder, el);
-                        }}
-                      />
-                    ) : (
-                      <div className="rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center self-center" style={{ minHeight: "72px", minWidth: "112px" }}>
-                        <Car className="w-8 h-8 text-muted-foreground/30" />
-                      </div>
-                    )}
+                    <ModelImage src={v.model?.imageUrl ? (toStorageSrc(v.model.imageUrl) ?? null) : null} alt={displayName ?? ""} />
                     <div className="flex items-center gap-1.5 text-sm">
                       <Gauge className="w-4 h-4 text-muted-foreground" />
                       <span className="font-mono font-bold">{v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"}</span>
