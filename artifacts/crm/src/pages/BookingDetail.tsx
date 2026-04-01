@@ -829,6 +829,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       fetchHandovers();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+      throw e; // rethrow so HandoverModal does not clear files on API failure
     } finally {
       setSavingHandover(false);
     }
