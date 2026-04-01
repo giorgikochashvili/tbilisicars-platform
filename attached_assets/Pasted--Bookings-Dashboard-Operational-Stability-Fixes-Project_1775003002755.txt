@@ -1,0 +1,229 @@
+# Bookings + Dashboard Operational Stability Fixes
+Project: Tbilisicars CRM&WEB
+Important: This project is already fully built and interconnected inside Replit. Make these changes carefully, with minimal surface area, without breaking existing working flows. Do not refactor unrelated modules. Do not change business logic unless explicitly requested below. Preserve current styling language, route structure, API contracts, and existing working behaviors.
+
+You are fixing a tightly scoped set of CRM issues in Bookings and Dashboard.
+
+==================================================
+GOALS
+==================================================
+
+1) Make Pick Up / Drop Off photo upload operationally reliable
+2) Fix Remaining Balance display in Payment Summary
+3) Fix Edit Booking so existing values are prefilled correctly
+4) Make booking vehicle plate link open the exact vehicle detail page
+5) Add practical editability in booking detail overview section
+6) Simplify and restyle Record Pick Up calendar/date-time UX
+7) Make Dashboard Fleet Live Status cards navigate with correct status filters
+
+Do not guess. Inspect the current implementation first, then patch only the required areas.
+
+==================================================
+PART 1 — PICK UP / DROP OFF PHOTO UPLOAD MUST BE RESILIENT
+==================================================
+
+This is the highest priority.
+
+Current concern:
+When recording Pick Up or Drop Off, uploaded vehicle photos must not fail silently, must not disappear because of unstable internet, must not break on larger files or multiple files, and must not cause the whole process to be lost mid-operation.
+
+Required behavior:
+- Support multiple photos reliably for Pick Up and Drop Off
+- Prevent silent failure
+- Preserve already entered form data if one file upload fails
+- Show per-file upload state: pending / uploading / success / failed
+- Show user-visible error if any upload fails
+- Allow retry for failed files without resetting the whole form
+- Do not allow final submit to complete while required uploads are still actively uploading
+- If some files fail, staff must be able to retry or remove only failed ones
+- Do not lose the rest of the form state because of file upload issues
+- Enforce sane file validation before upload:
+  - accept image files only
+  - protect against overly large files with a clear validation message
+  - do not freeze the UI on many files
+- If internet is unstable, uploads should fail gracefully and visibly, never silently
+- If possible within current architecture, upload files first, then submit the record only after uploads are confirmed
+- Do not create half-broken pickup/dropoff records with missing photo references
+- Keep existing storage/backend integration if already working; strengthen the flow instead of replacing the architecture
+
+Implementation guidance:
+- Inspect current Pick Up / Drop Off modal/components and upload helpers
+- Reuse current upload route/storage mechanism
+- Add robust client-side upload queue/state management only where needed
+- Keep UI aligned with current CRM design
+- Add compact thumbnails / file chips with status and retry/remove actions
+- Make sure this works for both Pick Up and Drop Off flows
+
+==================================================
+PART 2 — PAYMENT SUMMARY: REMAINING BALANCE DISPLAY FIX
+==================================================
+
+In booking detail > Payment Summary:
+- Remaining Balance must display the booking price when a booking price exists
+- Never show a dash if the booking already has a valid price
+- Keep the rest of Payment Summary intact
+- Do not break existing paid/refunded/deposit calculations
+
+Expected logic:
+- If booking total exists and total paid is zero, Remaining Balance should show full booking price
+- If booking total exists and payments exist, Remaining Balance should be computed normally
+- Add a stable fallback so the UI never shows “–” for priced bookings
+
+Also ensure currency formatting remains correct and consistent with the booking currency.
+
+==================================================
+PART 3 — EDIT BOOKING MUST PREFILL EXISTING DATA
+==================================================
+
+Bug:
+When opening an already created booking and clicking Edit Booking, the form resets and behaves like a blank new booking.
+
+Required fix:
+- Edit Booking must open with the current booking values prefilled
+- Prefill all existing editable fields from the saved booking
+- At minimum include:
+  - customer fields
+  - pickup date/time
+  - dropoff date/time
+  - pickup location
+  - dropoff location
+  - assigned vehicle / vehicle model
+  - booking price
+  - currency
+  - notes
+  - source
+  - payment-related editable fields if they are part of the form
+  - any existing extras/options already supported by the current form
+- Reuse the same schema/form shape safely
+- Do not duplicate a second inconsistent edit-only form if avoidable
+- Ensure save updates the existing booking, not a new one
+
+Implementation guidance:
+- Find the booking-to-form mapping
+- Fix the edit initialization path
+- Preserve current create booking behavior
+
+==================================================
+PART 4 — VEHICLE PLATE LINK FROM BOOKING MUST OPEN EXACT VEHICLE DETAIL
+==================================================
+
+Current bug:
+From booking detail, clicking the assigned vehicle/plate navigates only to the general Fleet page.
+
+Required fix:
+- If the booking has an assigned vehicle, clicking the vehicle plate/name must open that exact vehicle’s detail page
+- It must not go to the generic fleet listing
+- Preserve current routing conventions already used in Fleet
+- If vehicle detail view requires route params or query params, use the existing supported pattern
+
+==================================================
+PART 5 — BOOKING DETAIL OVERVIEW SHOULD SUPPORT QUICK EDIT
+==================================================
+
+In the booking detail view, the top overview information block already shows:
+- Customer
+- Vehicle
+- Booking Price
+- Pickup
+- Dropoff
+- Notes
+
+Requirement:
+- Add a practical quick-edit capability for this section
+- Keep it simple and safe: either inline edit mode for this overview card, or a section-level quick edit action
+- It should allow staff to quickly adjust these top-level booking details without awkward navigation
+- Do not redesign the whole booking page
+- Keep the current Edit Booking button too; this is an additional usability improvement
+- Preserve current layout and dark design language
+
+Use the least risky implementation that fits the current codebase.
+
+==================================================
+PART 6 — RECORD PICK UP DATE/TIME UI MUST BE SIMPLER AND MATCH DESIGN
+==================================================
+
+Current issue:
+The current Record Pick Up calendar/date-time popup feels visually inconsistent, too bulky, and does not match the CRM dark design.
+
+Required improvement:
+- Simplify the pickup date/time selection UI
+- Make it match the CRM design system
+- Prefer a compact dark-themed date/time interaction
+- Keep staff workflow fast
+- Avoid an oversized/light-theme popup
+- If the project already has a better internal DateTimePicker component, reuse it instead of introducing another foreign pattern
+- Apply the same improvement to Drop Off record flow if they share the same input pattern
+
+Do not break stored date/time values or existing backend payload shape.
+
+==================================================
+PART 7 — DASHBOARD FLEET LIVE STATUS CARDS MUST NAVIGATE CORRECTLY
+==================================================
+
+In Dashboard > Fleet Live Status:
+- Available
+- Rented
+- Maintenance
+- Reserved
+- Inactive
+
+Required behavior:
+- Clicking each status card must navigate to the relevant list filtered by that exact status
+- Primary target should be the Fleet page with the correct status filter pre-applied
+- Examples:
+  - Available -> Fleet filtered to AVAILABLE
+  - Rented -> Fleet filtered to RENTED
+  - Maintenance -> Fleet filtered to MAINTENANCE
+  - Reserved -> Fleet filtered to RESERVED
+  - Inactive -> Fleet filtered to INACTIVE
+- Use existing route/query/filter state patterns if present
+- Do not hardcode brittle one-off hacks
+- Preserve existing dashboard styling and card design
+
+Important:
+This must be accurate and deterministic. When clicking a card, the user must land directly in the relevant filtered operational view.
+
+==================================================
+CONSTRAINTS
+==================================================
+
+- Do not touch unrelated modules
+- Do not rewrite the booking system broadly
+- Do not break current working create booking flow
+- Do not break current storage/upload backend
+- Do not break Fleet routing
+- Do not break existing documents/buttons (Rental Agreement, Voucher, Handover Sheet, Return Sheet)
+- Keep dark premium CRM styling
+- Reuse existing shared helpers/components where possible
+- Prefer additive, safe fixes over broad refactors
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+1. First inspect and identify the exact files/components/hooks/routes involved
+2. Then implement all requested fixes carefully
+3. At the end, provide:
+   - list of changed files
+   - concise explanation of what was fixed
+   - any migration or manual testing notes
+4. If any requested point is blocked by an existing architectural limitation, explain exactly where and why before making a risky workaround
+
+==================================================
+MANUAL TEST CHECKLIST TO VERIFY BEFORE FINISHING
+==================================================
+
+- Edit Booking opens with all current booking values prefilled
+- Saving edited booking updates correctly
+- Booking detail vehicle plate opens exact vehicle detail
+- Payment Summary Remaining Balance never shows dash for priced bookings
+- Pick Up photo upload:
+  - multiple files
+  - failed file retry
+  - large invalid file validation
+  - form state preserved during upload error
+- Drop Off photo upload behaves the same
+- Pick Up calendar/date-time UI is dark, compact, and operationally simpler
+- Dashboard status cards open Fleet already filtered to the clicked status
+
+Make the fixes carefully and do not disturb working areas.
