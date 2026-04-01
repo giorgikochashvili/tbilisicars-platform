@@ -134,6 +134,7 @@ export const ListFleetBrandsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
+  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -548,7 +549,7 @@ export const ListAdminBrandsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
-  vehicleCount: zod.number(),
+  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -560,6 +561,7 @@ export const ListAdminBrandsResponse = zod.array(ListAdminBrandsResponseItem);
 export const CreateAdminBrandBody = zod.object({
   name: zod.string(),
   logoUrl: zod.string().optional(),
+  countryOfOrigin: zod.string().optional(),
 });
 
 /**
@@ -573,6 +575,7 @@ export const GetAdminBrandResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
+  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -587,12 +590,14 @@ export const UpdateAdminBrandParams = zod.object({
 export const UpdateAdminBrandBody = zod.object({
   name: zod.string().optional(),
   logoUrl: zod.string().optional(),
+  countryOfOrigin: zod.string().optional(),
 });
 
 export const UpdateAdminBrandResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   logoUrl: zod.string().nullish(),
+  countryOfOrigin: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -616,9 +621,6 @@ export const ListAdminModelsResponseItem = zod.object({
   brandId: zod.number(),
   name: zod.string(),
   active: zod.boolean(),
-  availableForExternalSystems: zod.boolean(),
-  category: zod.string().nullish(),
-  luggageCapacity: zod.number().nullish(),
   seats: zod.number().nullish(),
   doors: zod.number().nullish(),
   transmission: zod
@@ -635,13 +637,6 @@ export const ListAdminModelsResponseItem = zod.object({
     .nullish(),
   imageUrl: zod.string().nullish(),
   deposit: zod.string().nullish(),
-  brand: zod
-    .object({
-      id: zod.number(),
-      name: zod.string(),
-      logoUrl: zod.string().nullish(),
-    })
-    .nullable(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -705,6 +700,7 @@ export const GetAdminModelResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       logoUrl: zod.string().nullish(),
+      countryOfOrigin: zod.string().nullish(),
     })
     .nullish(),
   createdAt: zod.date(),
@@ -766,6 +762,7 @@ export const UpdateAdminModelResponse = zod.object({
       id: zod.number(),
       name: zod.string(),
       logoUrl: zod.string().nullish(),
+      countryOfOrigin: zod.string().nullish(),
     })
     .nullish(),
   createdAt: zod.date(),
@@ -880,10 +877,12 @@ export const ListAdminVehiclesResponse = zod.object({
       id: zod.number(),
       vehicleModelId: zod.number().nullish(),
       vehicleGroupId: zod.number().nullish(),
+      make: zod.string().nullish(),
+      model: zod.string().nullish(),
       year: zod.number().nullish(),
       color: zod.string().nullish(),
       licensePlate: zod.string().nullish(),
-      techpassportNumber: zod.string().nullish(),
+      vin: zod.string().nullish(),
       vehicleClass: zod
         .union([
           zod.literal("ECONOMY"),
@@ -931,22 +930,6 @@ export const ListAdminVehiclesResponse = zod.object({
       startingPrice: zod.string(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
-      vehicleModel: zod
-        .object({
-          id: zod.number(),
-          name: zod.string().nullish(),
-          transmission: zod.string().nullish(),
-          fuelType: zod.string().nullish(),
-          seats: zod.number().nullish(),
-          brand: zod
-            .object({
-              id: zod.number(),
-              name: zod.string().nullish(),
-              logoUrl: zod.string().nullish(),
-            })
-            .nullish(),
-        })
-        .nullish(),
     }),
   ),
   meta: zod.object({
@@ -963,7 +946,7 @@ export const CreateAdminVehicleBody = zod.object({
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   licensePlate: zod.string().optional(),
-  techpassportNumber: zod.string().optional(),
+  vin: zod.string().optional(),
   year: zod.number().optional(),
   color: zod.string().optional(),
   vehicleClass: zod
@@ -1007,7 +990,7 @@ export const GetAdminVehicleResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  techpassportNumber: zod.string().nullish(),
+  vin: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),
@@ -1078,7 +1061,7 @@ export const UpdateAdminVehicleBody = zod.object({
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   licensePlate: zod.string().optional(),
-  techpassportNumber: zod.string().optional(),
+  vin: zod.string().optional(),
   year: zod.number().optional(),
   color: zod.string().optional(),
   vehicleClass: zod
@@ -1115,7 +1098,7 @@ export const UpdateAdminVehicleResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  techpassportNumber: zod.string().nullish(),
+  vin: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),
@@ -1655,7 +1638,7 @@ export const ListAdminBookingsQueryParams = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]).optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
   search: zod.coerce.string().optional(),
   dateFrom: zod.coerce.string().optional(),
   dateTo: zod.coerce.string().optional(),
@@ -1676,7 +1659,7 @@ export const ListAdminBookingsResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -1696,8 +1679,11 @@ export const ListAdminBookingsResponse = zod.object({
           id: zod.number(),
           licensePlate: zod.string().nullish(),
           modelName: zod.string().nullish(),
+          brandName: zod.string().nullish(),
         })
         .nullish(),
+      vehicleModelName: zod.string().nullish(),
+      vehicleModelBrandName: zod.string().nullish(),
       pickupLocation: zod.object({
         id: zod.number(),
         name: zod.string(),
@@ -1740,19 +1726,15 @@ export const CreateAdminBookingBody = zod.object({
     })
     .optional(),
   contactFullName: zod.string(),
-  contactEmail: zod.string().nullish(),
-  contactPhone: zod.string().nullish(),
+  contactEmail: zod.string().optional(),
+  contactPhone: zod.string().optional(),
   vehicleId: zod.number().optional(),
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number(),
   dropoffLocationId: zod.number(),
-  pickupDatetime: zod.coerce.date(),
-  dropoffDatetime: zod.coerce.date(),
-  pickupType: zod.string().nullish(),
-  pickupAddress: zod.string().nullish(),
-  dropoffType: zod.string().nullish(),
-  dropoffAddress: zod.string().nullish(),
+  pickupDatetime: zod.date(),
+  dropoffDatetime: zod.date(),
   status: zod
     .enum([
       "PENDING",
@@ -1763,7 +1745,7 @@ export const CreateAdminBookingBody = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]).optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
   rateId: zod.number().optional(),
   rateTierId: zod.number().optional(),
   pricePerDay: zod.string().optional(),
@@ -1771,7 +1753,7 @@ export const CreateAdminBookingBody = zod.object({
   currency: zod.string().optional(),
   source: zod.string().optional(),
   broker: zod.string().optional(),
-  notes: zod.string().nullish(),
+  notes: zod.string().optional(),
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
@@ -1795,7 +1777,7 @@ export const GetAdminBookingResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -1815,8 +1797,11 @@ export const GetAdminBookingResponse = zod
         id: zod.number(),
         licensePlate: zod.string().nullish(),
         modelName: zod.string().nullish(),
+        brandName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
+    vehicleModelBrandName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -1875,7 +1860,7 @@ export const GetAdminBookingResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
@@ -1901,8 +1886,8 @@ export const UpdateAdminBookingBody = zod.object({
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number().optional(),
   dropoffLocationId: zod.number().optional(),
-  pickupDatetime: zod.coerce.date().optional(),
-  dropoffDatetime: zod.coerce.date().optional(),
+  pickupDatetime: zod.date().optional(),
+  dropoffDatetime: zod.date().optional(),
   status: zod
     .enum([
       "PENDING",
@@ -1913,7 +1898,7 @@ export const UpdateAdminBookingBody = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]).optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
   rateId: zod.number().optional(),
   rateTierId: zod.number().optional(),
   pricePerDay: zod.string().optional(),
@@ -1938,7 +1923,7 @@ export const UpdateAdminBookingResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -1958,8 +1943,11 @@ export const UpdateAdminBookingResponse = zod
         id: zod.number(),
         licensePlate: zod.string().nullish(),
         modelName: zod.string().nullish(),
+        brandName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
+    vehicleModelBrandName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -2018,7 +2006,7 @@ export const UpdateAdminBookingResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
@@ -2068,7 +2056,7 @@ export const GetAdminDashboardTodayResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -2088,8 +2076,11 @@ export const GetAdminDashboardTodayResponse = zod.object({
           id: zod.number(),
           licensePlate: zod.string().nullish(),
           modelName: zod.string().nullish(),
+          brandName: zod.string().nullish(),
         })
         .nullish(),
+      vehicleModelName: zod.string().nullish(),
+      vehicleModelBrandName: zod.string().nullish(),
       pickupLocation: zod.object({
         id: zod.number(),
         name: zod.string(),
@@ -2118,7 +2109,7 @@ export const GetAdminDashboardTodayResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -2138,8 +2129,11 @@ export const GetAdminDashboardTodayResponse = zod.object({
           id: zod.number(),
           licensePlate: zod.string().nullish(),
           modelName: zod.string().nullish(),
+          brandName: zod.string().nullish(),
         })
         .nullish(),
+      vehicleModelName: zod.string().nullish(),
+      vehicleModelBrandName: zod.string().nullish(),
       pickupLocation: zod.object({
         id: zod.number(),
         name: zod.string(),
@@ -2196,7 +2190,7 @@ export const UpdateAdminVehicleStatusResponse = zod.object({
   year: zod.number().nullish(),
   color: zod.string().nullish(),
   licensePlate: zod.string().nullish(),
-  techpassportNumber: zod.string().nullish(),
+  vin: zod.string().nullish(),
   vehicleClass: zod
     .union([
       zod.literal("ECONOMY"),
@@ -2327,7 +2321,7 @@ export const UpdateAdminBookingStatusBody = zod.object({
     "CANCELED",
     "NO_SHOW",
   ]),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]).optional(),
+  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
 });
 
 export const UpdateAdminBookingStatusResponse = zod
@@ -2341,7 +2335,7 @@ export const UpdateAdminBookingStatusResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -2361,8 +2355,11 @@ export const UpdateAdminBookingStatusResponse = zod
         id: zod.number(),
         licensePlate: zod.string().nullish(),
         modelName: zod.string().nullish(),
+        brandName: zod.string().nullish(),
       })
       .nullish(),
+    vehicleModelName: zod.string().nullish(),
+    vehicleModelBrandName: zod.string().nullish(),
     pickupLocation: zod.object({
       id: zod.number(),
       name: zod.string(),
@@ -2421,7 +2418,7 @@ export const UpdateAdminBookingStatusResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),

@@ -29,7 +29,7 @@ export interface AdminVehicleDetail {
   /** @nullable */
   licensePlate?: string | null;
   /** @nullable */
-  techpassportNumber?: string | null;
+  vin?: string | null;
   /** @nullable */
   vehicleClass?: AdminVehicleDetailVehicleClass;
   /** @nullable */

@@ -15,4 +15,6 @@ export type AdminBookingRowVehicle = {
   licensePlate?: string | null;
   /** @nullable */
   modelName?: string | null;
+  /** @nullable */
+  brandName?: string | null;
 } | null;

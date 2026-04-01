@@ -35,6 +35,10 @@ export interface AdminBookingRow {
   customer: AdminBookingRowCustomer;
   /** @nullable */
   vehicle?: AdminBookingRowVehicle;
+  /** @nullable */
+  vehicleModelName?: string | null;
+  /** @nullable */
+  vehicleModelBrandName?: string | null;
   pickupLocation: AdminBookingRowPickupLocation;
   dropoffLocation: AdminBookingRowDropoffLocation;
   /** @nullable */

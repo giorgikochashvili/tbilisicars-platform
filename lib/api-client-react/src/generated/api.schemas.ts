@@ -768,7 +768,7 @@ export interface AdminVehicleDetail {
   /** @nullable */
   licensePlate?: string | null;
   /** @nullable */
-  techpassportNumber?: string | null;
+  vin?: string | null;
   /** @nullable */
   vehicleClass?: AdminVehicleDetailVehicleClass;
   /** @nullable */
@@ -966,6 +966,8 @@ export type AdminBookingRowVehicle = {
   licensePlate?: string | null;
   /** @nullable */
   modelName?: string | null;
+  /** @nullable */
+  brandName?: string | null;
 } | null;
 
 export type AdminBookingRowPickupLocation = {
@@ -1008,6 +1010,10 @@ export interface AdminBookingRow {
   customer: AdminBookingRowCustomer;
   /** @nullable */
   vehicle?: AdminBookingRowVehicle;
+  /** @nullable */
+  vehicleModelName?: string | null;
+  /** @nullable */
+  vehicleModelBrandName?: string | null;
   pickupLocation: AdminBookingRowPickupLocation;
   dropoffLocation: AdminBookingRowDropoffLocation;
   /** @nullable */
@@ -1306,7 +1312,7 @@ export interface AdminCreateVehicleBody {
   vehicleModelId?: number;
   vehicleGroupId?: number;
   licensePlate?: string;
-  techpassportNumber?: string;
+  vin?: string;
   year?: number;
   color?: string;
   vehicleClass?: AdminCreateVehicleBodyVehicleClass;

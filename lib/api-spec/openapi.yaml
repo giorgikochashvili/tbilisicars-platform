@@ -3382,8 +3382,14 @@ components:
               type: ["string", "null"]
             modelName:
               type: ["string", "null"]
+            brandName:
+              type: ["string", "null"]
           required:
             - id
+        vehicleModelName:
+          type: ["string", "null"]
+        vehicleModelBrandName:
+          type: ["string", "null"]
         pickupLocation:
           type: object
           properties:
