@@ -1,11 +1,13 @@
 import {
   db,
   bookingHandoverTable,
+  bookingTable,
   bookingphotoTable,
   bookingHistoryTable,
   adminsTable,
 } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { NotFoundError } from "../lib/errors.js";
 import { updateAdminBookingStatus } from "./admin-bookings.service.js";
 
 export async function createHandover(data: {
@@ -28,6 +30,16 @@ export async function createHandover(data: {
     notes,
     photoUrls = [],
   } = data;
+
+  // Verify booking exists before any inserts (avoids raw FK constraint violation → 500)
+  const bookingRows = await db
+    .select({ id: bookingTable.id })
+    .from(bookingTable)
+    .where(and(eq(bookingTable.id, bookingId), isNull(bookingTable.deletedAt)))
+    .limit(1);
+  if (bookingRows.length === 0) {
+    throw new NotFoundError(`Booking ${bookingId} not found`);
+  }
 
   // Insert the handover record
   const [handover] = await db
