@@ -463,7 +463,8 @@ function HandoverModal({
 
       // Collect resolved paths directly from results — avoids stale fileItems closure
       const newPaths = new Map<string, string>();
-      let hasError = false;
+      // Derive hasError from results before any state update (deterministic)
+      const hasError = results.some((r) => r.status === "rejected");
 
       setFileItems((prev) => {
         const updated = [...prev];
@@ -474,7 +475,6 @@ function HandoverModal({
             newPaths.set(toUpload[i].id, r.value.path);
           } else {
             updated[idx] = { ...updated[idx], status: "error", error: (r.reason as Error)?.message ?? "Upload failed" };
-            hasError = true;
           }
         });
         return updated;
@@ -1170,7 +1170,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <SummaryCard
                     label="Total Paid"
-                    value={summary ? fmt(summary.totalPaid) : "₾0.00"}
+                    value={summary ? fmt(summary.totalPaid) : fmt(0)}
                   />
                   <SummaryCard
                     label="Remaining Balance"
@@ -1179,19 +1179,19 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   />
                   <SummaryCard
                     label="Deposit Received"
-                    value={summary ? fmt(summary.depositReceived) : "₾0.00"}
+                    value={summary ? fmt(summary.depositReceived) : fmt(0)}
                   />
                   <SummaryCard
                     label="Deposit Returned"
-                    value={summary ? fmt(summary.depositReturned) : "₾0.00"}
+                    value={summary ? fmt(summary.depositReturned) : fmt(0)}
                   />
                   <SummaryCard
                     label="Total Refunded"
-                    value={summary ? fmt(summary.totalRefunded) : "₾0.00"}
+                    value={summary ? fmt(summary.totalRefunded) : fmt(0)}
                   />
                   <SummaryCard
                     label="Net Deposit"
-                    value={summary ? fmt(summary.netDeposit) : "₾0.00"}
+                    value={summary ? fmt(summary.netDeposit) : fmt(0)}
                     sub="Received minus returned"
                   />
                 </div>
