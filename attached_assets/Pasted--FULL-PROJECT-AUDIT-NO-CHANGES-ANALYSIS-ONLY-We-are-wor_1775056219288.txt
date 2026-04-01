@@ -1,0 +1,239 @@
+# FULL PROJECT AUDIT — NO CHANGES, ANALYSIS ONLY
+
+We are working on a LIVE production-connected system.
+The project is fully assembled inside Replit and deployed via DigitalOcean.
+This repository has recently been connected to a NEW Replit account.
+
+Your task is to perform a COMPLETE SYSTEM AUDIT.
+DO NOT change any code.
+DO NOT apply fixes.
+DO NOT refactor anything.
+DO NOT install/remove dependencies.
+DO NOT modify Replit config, workflows, or deployment files.
+
+This is STRICTLY ANALYSIS + REPORT.
+
+---
+
+## CRITICAL RULES
+
+- ZERO code changes
+- ZERO file edits
+- ZERO refactors
+- ZERO formatting changes
+- ZERO dependency changes
+- ZERO environment changes
+- DO NOT “fix while auditing”
+- DO NOT assume anything — verify everything from code and runtime
+- If something cannot be verified, explicitly state it as “NOT VERIFIED”
+
+---
+
+## OBJECTIVE
+
+Produce a precise, structured audit of the ENTIRE system:
+
+1. Backend (API)
+2. CRM (admin panel)
+3. Website (public frontend)
+4. Replit runtime behavior
+5. Build system
+6. Environment variables usage
+7. API integrations between CRM ↔ Backend ↔ Website
+8. Critical flows:
+   - Login
+   - Booking flow
+   - Pick Up / Drop Off
+   - Fleet data
+   - Dashboard data
+
+---
+
+## STEP 1 — REPLIT RUNTIME VERIFICATION
+
+Run the project in Replit preview (without modifying anything):
+
+- Start the project using the existing run/dev command
+- Confirm:
+  - CRM loads
+  - Website loads
+  - API responds
+- Verify routes:
+  - / (website)
+  - /crm
+  - /api endpoints (basic response)
+
+Report:
+- Which ports/services are running
+- Any runtime errors in console/logs
+- Any failing endpoints
+
+---
+
+## STEP 2 — FRONTEND (CRM + WEBSITE) AUDIT
+
+Check:
+
+### CRM
+- Booking Detail page loads
+- Pick Up modal opens
+- Drop Off modal opens
+- API calls are triggered correctly (inspect fetch/mutation logic)
+- No obvious console errors
+
+### Website
+- Homepage loads
+- Booking widget renders
+- Vehicle list loads
+- No broken API calls
+
+Report:
+- Any console errors
+- Any broken components
+- Any missing data bindings
+
+---
+
+## STEP 3 — BACKEND AUDIT
+
+Inspect API server:
+
+- Confirm routes exist and are wired:
+  - /api/auth/admin/*
+  - /api/admin/bookings/*
+  - /api/admin/handovers/*
+  - /api/public/*
+- Check:
+  - error handling middleware
+  - route handlers structure
+  - service layer calls
+
+Report:
+- Any unsafe patterns
+- Any potential unhandled errors
+- Any mismatched payload expectations
+
+---
+
+## STEP 4 — DATA FLOW CONSISTENCY
+
+Verify end-to-end flow consistency:
+
+- CRM → API payloads match backend expectations
+- Backend → DB writes logically consistent
+- API → Website responses match frontend usage
+
+Specifically check:
+- booking structure
+- pickup/dropoff payload
+- vehicle assignment logic
+
+Report:
+- Any mismatches (field names, types, nullability)
+- Any risky assumptions
+
+---
+
+## STEP 5 — BUILD & CONFIG AUDIT
+
+Without changing anything, verify:
+
+- package.json scripts
+- pnpm workspace structure
+- build commands:
+  - API
+  - CRM
+  - Website
+- vite configs (PORT / BASE_PATH usage)
+
+Report:
+- Any fragile configs
+- Any environment dependency risks
+- Any missing safeguards
+
+---
+
+## STEP 6 — ENVIRONMENT VARIABLES CHECK
+
+Identify ALL used environment variables across:
+- API
+- CRM
+- Website
+
+Report:
+- Which are required
+- Which are optional
+- Which are used but not validated
+- Any risk of runtime crash if missing
+
+DO NOT change or add variables.
+
+---
+
+## STEP 7 — CRITICAL FLOW VALIDATION
+
+Logically verify (code-level, not modifying):
+
+- Admin login flow
+- Booking creation
+- Booking status updates
+- Pick Up flow
+- Drop Off flow
+- Dashboard aggregation logic
+
+Report:
+- Any weak points
+- Any potential failure points
+- Any missing guards
+
+---
+
+## OUTPUT FORMAT
+
+Respond in this EXACT structure:
+
+### 1. System status
+<working / partially working / unstable + explanation>
+
+### 2. Replit runtime
+- Services running:
+- Errors:
+- Routes working:
+
+### 3. CRM audit
+- Status:
+- Issues:
+
+### 4. Website audit
+- Status:
+- Issues:
+
+### 5. Backend audit
+- Status:
+- Issues:
+
+### 6. Data flow consistency
+- Findings:
+
+### 7. Build & config risks
+- Findings:
+
+### 8. Environment variables
+- List + risks:
+
+### 9. Critical risks (if any)
+- <only real, proven risks>
+
+### 10. Improvement opportunities (SAFE ONLY)
+- <non-breaking, minimal improvements only>
+
+---
+
+## FINAL RULE
+
+If something is not confirmed from code or runtime:
+WRITE "NOT VERIFIED"
+
+DO NOT GUESS.
+DO NOT ASSUME.
+DO NOT CHANGE ANYTHING.
