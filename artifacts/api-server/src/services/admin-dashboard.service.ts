@@ -233,13 +233,30 @@ export async function getDashboardSummary(city?: string) {
 //   - dropoffs filtered to bookings where dropoffLocation.city = city
 
 export async function getTodayActivity(city?: string, date?: string) {
-  const base = date ? new Date(date + "T00:00:00Z") : new Date();
-  const todayStart = new Date(
-    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()),
-  );
-  const todayEnd = new Date(
-    Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + 1),
-  );
+  // Georgia Standard Time = UTC+4 (no DST).
+  // All booking datetimes are stored in UTC as timestamp-without-timezone.
+  // The operational "local date" window must start at UTC+4 midnight (= UTC−4h).
+  const TZ_OFFSET_MS = 4 * 60 * 60 * 1000;
+
+  let localMidnightUTC: Date;
+  if (date) {
+    // date is already the Tbilisi local date string "YYYY-MM-DD".
+    // Local midnight (Tbilisi) = that date at 00:00+04:00 = date T00:00:00Z minus 4 h.
+    localMidnightUTC = new Date(new Date(date + "T00:00:00Z").getTime() - TZ_OFFSET_MS);
+  } else {
+    // Derive today's Tbilisi date from the current UTC instant.
+    // Adding 4 h to the UTC instant gives us a shifted clock whose UTC components
+    // match the Tbilisi year/month/day — then subtract 4 h to get the UTC instant
+    // of local midnight (handles the 20:00–23:59 UTC edge where UTC date ≠ Tbilisi date).
+    const now = new Date();
+    const shifted = new Date(now.getTime() + TZ_OFFSET_MS);
+    localMidnightUTC = new Date(
+      Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) - TZ_OFFSET_MS,
+    );
+  }
+
+  const todayStart = localMidnightUTC;
+  const todayEnd = new Date(localMidnightUTC.getTime() + 24 * 60 * 60 * 1000);
 
   const notDeleted = isNull(bookingTable.deletedAt);
 
