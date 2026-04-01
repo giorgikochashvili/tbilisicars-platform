@@ -14,7 +14,6 @@
  *  - No PII, no raw questions, no raw answers are written to the DB or logs.
  */
 
-import { openai } from "@workspace/integrations-openai-ai-server";
 import {
   getAISummary,
   getAIBookings,
@@ -354,6 +353,7 @@ export async function processAdminChat(
 
   let answer: string;
   try {
+    const { openai } = await import("@workspace/integrations-openai-ai-server");
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
       max_completion_tokens: 8192,
