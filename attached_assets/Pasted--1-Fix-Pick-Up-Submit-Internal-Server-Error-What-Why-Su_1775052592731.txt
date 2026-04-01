@@ -1,0 +1,86 @@
+#1 - Fix Pick Up Submit Internal Server Error
+
+## What & Why
+Submitting the "Record Pick Up" modal in CRM Booking Detail returns a 500 "Internal server error".
+The booking detail page loads and the modal opens correctly, so auth and page loading are not the issue.
+The failure happens during the POST to /api/admin/bookings/:id/pickup on the backend.
+
+## Done looks like
+- Submitting the Pick Up modal with no photos completes successfully
+- Submitting with mileage and fuel values also succeeds
+- Booking history entry is written correctly
+- Vehicle status changes correctly to RENTED when pickup is recorded
+- Booking status updates correctly to DELIVERED
+- Drop Off flow is unaffected
+- No TypeScript errors in changed files
+
+## Out of scope
+- UI design changes
+- Drop Off logic unless the bug is proven to be in a shared path
+- Unrelated refactoring or style changes
+- Dashboard, fleet, accounting, auth, upload, or deployment logic
+- Any dev data cleanup or database restore work
+
+## Tasks
+
+### 1) Identify the exact thrown exception first
+- Trace the exact submit path from CRM Booking Detail to the backend route
+- Find the exact backend route, service, and downstream calls used by Pick Up
+- Reproduce the failing request using the existing safest available confirmed booking/testable booking in the current environment
+- Read the API server logs and identify the exact thrown exception / stack trace causing the 500
+- Do not assume the cause before confirming it from logs and code path
+
+### 2) Apply the minimal fix only after the exact throw site is confirmed
+- Use the log stack trace and actual code path as the source of truth
+- Apply the smallest possible fix in the exact affected files only
+- If the most suspicious path is createHandover → updateAdminBookingStatus → getAdminBooking(id), treat it only as a hypothesis until confirmed
+- Do NOT change standalone /admin/bookings/:id/status route behavior unless the confirmed bug requires a shared safe fix
+
+### 3) Verify
+Confirm that Pick Up succeeds:
+- without photos
+- with mileage/fuel values
+- with booking history still written correctly
+- with vehicle status updated correctly
+- with booking status updated correctly
+
+Also confirm:
+- no regression in Drop Off if the touched code is shared
+- no TypeScript/build errors in changed files
+- no unrelated files/configuration were changed
+
+## Critical safety rules
+- Make the smallest safe fix only
+- Do NOT refactor unrelated code
+- Do NOT change UI
+- Do NOT rename APIs
+- Do NOT change project structure
+- Do NOT modify workflows, .replit config, package versions, routing, artifact paths, or deployment files
+- Do NOT hardcode assumptions about booking IDs, seed data, or current DB state
+- Preserve existing booking workflow behavior
+
+## Relevant files
+- artifacts/api-server/src/routes/admin-bookings.ts:267-304
+- artifacts/api-server/src/services/admin-handovers.service.ts
+- artifacts/api-server/src/services/admin-bookings.service.ts:637-703
+- artifacts/crm/src/pages/BookingDetail.tsx:849-888
+- artifacts/api-server/src/middlewares/errorHandler.ts
+
+## Required output format
+
+### Root cause
+<brief explanation based on actual logs and code path>
+
+### Files changed
+- <exact path>
+- <exact path>
+
+### Changes made
+- <minimal change>
+- <minimal change>
+
+### Validation
+<what was tested>
+
+### Non-goals confirmed
+<state explicitly that unrelated Replit/project/deployment/config files were not changed>

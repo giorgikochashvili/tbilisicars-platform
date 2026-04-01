@@ -1,0 +1,99 @@
+# Task — Fix Booking Pick Up submit internal server error ONLY
+
+We are working on a LIVE production-connected system.
+This project is already fully assembled and working inside Replit, and it is also deployed via DigitalOcean.
+This repository has just been connected to a NEW Replit account, so be extremely careful not to disturb any existing project structure, runtime assumptions, workflows, or deployment-related setup.
+
+## Critical safety rules
+- Make the smallest safe fix only
+- Do NOT refactor unrelated code
+- Do NOT change UI design
+- Do NOT rename APIs
+- Do NOT change project structure
+- Do NOT modify Replit-specific setup unless absolutely required and explicitly proven necessary
+- Do NOT touch workflows, .replit config, package versions, build commands, ports, environment variable names, routing, artifact paths, or deployment files unless this exact Pick Up bug is proven to require it
+- Do NOT touch Drop Off logic unless the exact same shared bug is proven to exist in a shared helper used by Pick Up
+- Do NOT change database schema unless the bug is impossible to fix otherwise
+- Preserve all existing booking workflow behavior
+- Preserve current modal behavior
+- Do NOT change any dashboard, fleet, payment, booking list, auth, upload, or deployment logic unless the exact failing code path directly depends on it
+
+## Current bug
+In CRM Booking Detail, clicking "Record Pick Up" opens the modal correctly, but submitting it returns:
+"Internal server error"
+
+## Important environment note
+This codebase is now connected to a new Replit account, but it must remain behaviorally identical to the previous stable project state.
+That means:
+- do not "clean up" anything unrelated
+- do not rewrite existing patterns just because you prefer another style
+- do not reconfigure Replit
+- do not alter deployment assumptions
+- do not touch secrets/env usage except if the exact root cause proves a direct issue in this Pick Up flow
+
+## What you must do first
+1. Find the exact frontend submit handler for the Pick Up modal
+2. Find the exact backend API endpoint/service used by that submit
+3. Identify the real root cause from code and logs BEFORE changing anything
+4. Explain the root cause clearly in 2–5 sentences
+5. Then apply the minimal fix only in the exact files involved
+
+## Strict investigation scope
+Inspect only the exact files involved in this Pick Up flow, such as:
+- CRM booking detail page / Pick Up modal component
+- CRM API mutation hook used by Pick Up submit
+- API route/controller for booking pickup action
+- backend service/repository for pickup creation / booking status update
+- shared validation schema for pickup payload
+- upload/photo handling only if the request currently includes photos even when none are uploaded
+- audit/history/activity write only if it is in the actual failing call chain
+
+Do NOT expand scope unless the failing stack trace proves it is necessary.
+
+## Root-cause checklist
+Check these carefully and confirm which one is actually failing:
+- frontend payload field names do not match backend schema
+- backend requires a field the frontend does not send
+- backend expects null/number/date formats differently
+- pickup action tries to write to a missing table/column
+- booking status update logic throws on current booking state
+- actionDateTime parsing fails because of timezone/date format
+- mileage/fuel fields arrive as strings and fail validation/DB insert
+- photo array/upload field is undefined and backend crashes
+- audit log insert or activity insert is failing
+- authenticated admin user lookup inside pickup action is failing
+- a Replit environment difference exposed an already-existing backend bug in this route
+
+## Required workflow
+1. Show the exact file paths involved
+2. Show root cause
+3. Show the exact code change
+4. Keep the diff minimal
+5. After fix, verify:
+   - Pick Up submit succeeds without photos
+   - Pick Up submit succeeds with mileage/fuel values
+   - booking status updates correctly
+   - history/recent activity still records correctly
+   - no regression in Drop Off
+   - no TypeScript/build errors in changed files
+   - no unrelated Replit/deployment/config files were modified
+
+## Output format
+Respond in this exact structure:
+
+### Root cause
+<brief explanation>
+
+### Files changed
+- <exact file path>
+- <exact file path>
+
+### Changes made
+<brief bullets, minimal only>
+
+### Validation
+<what was tested>
+
+If backend logs expose the exact thrown error, use that as the source of truth and fix only that cause.
+
+Before making any code change, explicitly confirm that you are NOT changing unrelated Replit/project/deployment setup.
