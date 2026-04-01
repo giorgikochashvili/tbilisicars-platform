@@ -863,9 +863,10 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const splitDT = (iso: string | null | undefined) => {
     if (!iso) return { date: "", time: "09:00" };
     const d = new Date(iso);
+    const pad = (n: number) => n.toString().padStart(2, "0");
     return {
-      date: d.toISOString().slice(0, 10),
-      time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
+      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
     };
   };
 

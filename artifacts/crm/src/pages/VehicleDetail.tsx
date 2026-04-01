@@ -180,12 +180,13 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
         const { uploadURL, objectPath } = await metaRes.json();
         const putRes = await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
         if (!putRes.ok) throw new Error("Failed to upload file");
-        await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos`, {
+        const saveRes = await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ photoUrl: objectPath }),
         });
+        if (!saveRes.ok) throw new Error("Failed to save photo record");
         uploadedCount++;
       } catch (err: any) {
         toast({ title: `Upload failed for ${file.name}`, description: err.message, variant: "destructive" });
@@ -198,14 +199,19 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
 
   const handleDeleteSelected = async () => {
     if (!vehicleId || selectedPhotoIds.size === 0) return;
+    let deletedCount = 0;
     for (const photoId of Array.from(selectedPhotoIds)) {
       try {
-        await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos/${photoId}`, { method: "DELETE", credentials: "include" });
-      } catch { /* ignore individual failures */ }
+        const res = await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos/${photoId}`, { method: "DELETE", credentials: "include" });
+        if (res.ok) deletedCount++;
+        else toast({ title: `Failed to delete photo ${photoId}`, variant: "destructive" });
+      } catch (err: any) {
+        toast({ title: `Delete error`, description: err.message, variant: "destructive" });
+      }
     }
     setSelectedPhotoIds(new Set());
     await fetchPhotos();
-    toast({ title: "Photos deleted" });
+    if (deletedCount > 0) toast({ title: `${deletedCount} photo${deletedCount > 1 ? "s" : ""} deleted` });
   };
 
   const handleWhatsAppShare = () => {
