@@ -931,9 +931,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          ...(overviewDraft.totalAmount !== "" ? { totalAmount: parseFloat(overviewDraft.totalAmount) } : {}),
+          ...(overviewDraft.totalAmount !== "" ? { totalAmount: overviewDraft.totalAmount } : {}),
           currency: overviewDraft.currency,
-          notes: overviewDraft.notes || null,
+          ...(overviewDraft.notes !== "" ? { notes: overviewDraft.notes } : {}),
           ...(overviewDraft.pickupLocationId ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) } : {}),
           ...(overviewDraft.dropoffLocationId ? { dropoffLocationId: parseInt(overviewDraft.dropoffLocationId) } : {}),
           ...(overviewDraft.pickupDate && overviewDraft.pickupTime
