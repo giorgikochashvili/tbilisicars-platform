@@ -1,0 +1,139 @@
+#20 - Dashboard Operations Count Reconciliation Fix (Must Match Real Booking Totals)
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make this as a minimal, precise fix only. Do not redesign the dashboard. Do not touch unrelated modules. Do not stop at a partial guess. Fully reconcile the Dashboard Operations counts/lists against the real bookings for the selected date and make them match exactly.
+
+==================================================
+CURRENT PROBLEM
+==================================================
+
+Dashboard > Operations is still undercounting.
+
+Example:
+For 2026-04-01 there are actually 16 pickup bookings in the system for that date, but the Dashboard Pickups widget shows only 14.
+
+So the previous fix was incomplete.
+
+This means one or more of the following is still wrong:
+- date filtering
+- timezone/window logic
+- status filtering
+- query joins excluding rows
+- count/list mismatch
+- frontend filtering after fetch
+- hidden truncation
+- incorrect interpretation of pickup/dropoff date
+
+==================================================
+REQUIRED RESULT
+==================================================
+
+For the selected Operations date:
+- Pickups count must exactly match the real number of bookings whose pickup belongs to that date
+- Pickups rows must list all of them
+- Dropoffs count must exactly match the real number of bookings whose dropoff belongs to that date
+- Dropoffs rows must list all of them
+
+The Dashboard Operations widgets must reconcile exactly with the real Bookings dataset for the same date.
+
+No approximate fix.
+No partial fix.
+No status guess without verification.
+
+==================================================
+RECONCILIATION REQUIREMENT
+==================================================
+
+You must inspect and reconcile the Dashboard Operations query against the actual booking source of truth.
+
+Use this approach:
+
+1. Inspect the exact query/service powering Dashboard Operations
+2. Inspect the exact booking source/query used in admin bookings data
+3. Compare them carefully for the selected date
+4. Identify why 2 rows are missing
+5. Fix the root cause so Dashboard Operations and real bookings match exactly
+
+Potential root causes to verify explicitly:
+- pickup/dropoff timestamp converted with wrong timezone boundaries
+- date window using UTC incorrectly for local business date
+- status filter still excluding valid operational rows
+- joins/filters removing bookings with null vehicle or null customer details
+- source mismatch between dashboard query and bookings query
+- frontend-side filtering/slicing after backend response
+- wrong field used for date comparison
+- bookings crossing midnight handled incorrectly
+
+==================================================
+DATE LOGIC RULE
+==================================================
+
+The operational date should reflect the CRM/business local date used by staff.
+
+For a selected date:
+- Pickups = all bookings whose pickup local date is that selected date
+- Dropoffs = all bookings whose dropoff local date is that selected date
+
+Do not let UTC conversion hide valid bookings from the dashboard.
+
+If the system currently stores datetimes in UTC, correctly map them into the local operational date window before filtering.
+
+==================================================
+STATUS RULE
+==================================================
+
+Do not assume the status rule is already correct.
+Verify it against real bookings.
+
+Operationally relevant rows for Pickups/Dropoffs on that selected date must be included even if their status later advanced, as long as they are still valid real operations and not noise.
+
+Only exclude statuses that are truly not operational for that date, such as canceled / no-show, unless verification shows otherwise.
+
+==================================================
+FRONTEND RULE
+==================================================
+
+After backend reconciliation is fixed:
+- badge count must equal row count
+- rows must equal the real dataset returned
+- no frontend truncation
+- no array slicing
+- no hidden max row cap
+
+==================================================
+SAFETY RULES
+==================================================
+
+- Do not redesign the widgets
+- Do not change unrelated dashboard cards
+- Do not change unrelated booking logic
+- Do not broad-refactor services
+- Keep changes minimal and precise
+- This is a reconciliation bug fix, not a UI redesign
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. Exact root cause found for the missing rows
+3. Exact fix applied
+4. Confirmation that Dashboard Pickups/Dropoffs now match the real bookings for the selected date
+5. Note whether the issue was timezone, status filtering, query mismatch, frontend truncation, or a combination
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- For a known selected date (example: 2026-04-01), Pickups count exactly matches the real number of bookings for that pickup date
+- For the same date, Pickups rows list all of them
+- For the same date, Dropoffs count exactly matches the real number of bookings for that dropoff date
+- For the same date, Dropoffs rows list all of them
+- Count badge equals visible rows
+- No hidden truncation remains
+- Previous/next date navigation still works
+- Widget layout/styling still works correctly
+
+Implement carefully and do not disturb working areas.
