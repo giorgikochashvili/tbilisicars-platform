@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,13 +6,20 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   Car, MapPin, Gauge, AlertTriangle, CalendarDays, Wrench,
-  TrendingUp, ExternalLink, CheckCircle2, Clock, BarChart3, Activity
+  TrendingUp, ExternalLink, CheckCircle2, Clock, BarChart3, Activity,
+  Image, Upload, Download, MessageCircle, Trash2, Check, X
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import { Button } from "@/components/ui/button";
 import BookingDetail from "./BookingDetail";
 
 const BASE = "/api";
+
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
+}
 
 async function apiFetch(path: string) {
   const res = await fetch(`${BASE}${path}`, { credentials: "include" });
@@ -113,6 +120,12 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
   const [loading, setLoading] = useState(false);
   const [openBookingId, setOpenBookingId] = useState<number | null>(null);
 
+  // ── Vehicle Photos state ──────────────────────────────────────────────────
+  const [photos, setPhotos] = useState<any[]>([]);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const fetchDetail = useCallback(async () => {
     if (!vehicleId) return;
     setLoading(true);
@@ -126,13 +139,109 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
     }
   }, [vehicleId]);
 
+  const fetchPhotos = useCallback(async () => {
+    if (!vehicleId) return;
+    try {
+      const result = await apiFetch(`/admin/fleet/vehicles/${vehicleId}/photos`);
+      setPhotos(result);
+    } catch {
+      // Non-critical
+    }
+  }, [vehicleId]);
+
   useEffect(() => {
     if (open && vehicleId) {
       fetchDetail();
+      fetchPhotos();
+      setSelectedPhotoIds(new Set());
     } else {
       setData(null);
+      setPhotos([]);
+      setSelectedPhotoIds(new Set());
     }
   }, [open, vehicleId]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length || !vehicleId) return;
+    setPhotoUploading(true);
+    let uploadedCount = 0;
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) { toast({ title: `${file.name} is not an image`, variant: "destructive" }); continue; }
+      if (file.size > 20 * 1024 * 1024) { toast({ title: `${file.name} is too large (max 20 MB)`, variant: "destructive" }); continue; }
+      try {
+        const metaRes = await fetch(`${BASE}/storage/uploads/request-url`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+        });
+        if (!metaRes.ok) throw new Error("Failed to get upload URL");
+        const { uploadURL, objectPath } = await metaRes.json();
+        const putRes = await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+        if (!putRes.ok) throw new Error("Failed to upload file");
+        await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ photoUrl: objectPath }),
+        });
+        uploadedCount++;
+      } catch (err: any) {
+        toast({ title: `Upload failed for ${file.name}`, description: err.message, variant: "destructive" });
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setPhotoUploading(false);
+    if (uploadedCount > 0) { await fetchPhotos(); toast({ title: `${uploadedCount} photo${uploadedCount > 1 ? "s" : ""} uploaded` }); }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!vehicleId || selectedPhotoIds.size === 0) return;
+    for (const photoId of Array.from(selectedPhotoIds)) {
+      try {
+        await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/photos/${photoId}`, { method: "DELETE", credentials: "include" });
+      } catch { /* ignore individual failures */ }
+    }
+    setSelectedPhotoIds(new Set());
+    await fetchPhotos();
+    toast({ title: "Photos deleted" });
+  };
+
+  const handleWhatsAppShare = () => {
+    const selected = photos.filter((p) => selectedPhotoIds.has(p.id));
+    const urls = selected.map((p) => {
+      const src = toStorageSrc(p.photoUrl);
+      if (!src) return "";
+      return src.startsWith("http") ? src : `${window.location.origin}${src}`;
+    }).filter(Boolean);
+    const text = urls.join("\n");
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const handleDownloadSelected = () => {
+    const selected = photos.filter((p) => selectedPhotoIds.has(p.id));
+    selected.forEach((p, i) => {
+      setTimeout(() => {
+        const src = toStorageSrc(p.photoUrl);
+        if (!src) return;
+        const a = document.createElement("a");
+        a.href = src;
+        a.download = `vehicle-photo-${p.id}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 150);
+    });
+  };
+
+  const togglePhoto = (id: number) => {
+    setSelectedPhotoIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const v = data?.vehicle;
   const displayName = v ? `${v.brand?.name ?? ""} ${v.model?.name ?? ""}`.trim() : "";
@@ -190,8 +299,22 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                     </div>
                     {v.techpassportNumber && <div className="mt-1 text-xs text-muted-foreground font-mono">Techpassport Number: {v.techpassportNumber}</div>}
                   </div>
-                  {/* Key Stats */}
-                  <div className="flex flex-col gap-2 min-w-[160px]">
+                  {/* Key Stats + Model Image */}
+                  <div className="flex flex-col gap-2 min-w-[160px] items-start">
+                    {/* Model image */}
+                    {v.model?.imageUrl ? (
+                      <img
+                        src={toStorageSrc(v.model.imageUrl)}
+                        alt={displayName}
+                        className="w-28 h-18 object-contain rounded-lg bg-muted/30 border border-border/30 self-center"
+                        style={{ maxHeight: "72px" }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <div className="w-28 h-18 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-center self-center" style={{ minHeight: "72px", minWidth: "112px" }}>
+                        <Car className="w-8 h-8 text-muted-foreground/30" />
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 text-sm">
                       <Gauge className="w-4 h-4 text-muted-foreground" />
                       <span className="font-mono font-bold">{v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"}</span>
@@ -357,6 +480,89 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                   </div>
                 );
               })()}
+
+              {/* ─── Vehicle Photos ──────────────────────────────────────────── */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" /> Vehicle Photos
+                </h3>
+                {/* Bulk action bar */}
+                {selectedPhotoIds.size > 0 && (
+                  <div className="flex items-center gap-2 mb-3 p-2 rounded-lg border border-border/40 bg-muted/20">
+                    <span className="text-xs text-muted-foreground flex-1">{selectedPhotoIds.size} selected</span>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleWhatsAppShare}>
+                      <MessageCircle className="w-3.5 h-3.5 text-green-500" /> WhatsApp
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleDownloadSelected}>
+                      <Download className="w-3.5 h-3.5" /> Download
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={handleDeleteSelected}>
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </Button>
+                  </div>
+                )}
+                {/* Photo grid */}
+                {photos.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-3">
+                    {photos.map((photo: any) => {
+                      const isSelected = selectedPhotoIds.has(photo.id);
+                      return (
+                        <div
+                          key={photo.id}
+                          className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer transition-all ${
+                            isSelected ? "border-primary ring-2 ring-primary/40" : "border-border/40 hover:border-border/70"
+                          }`}
+                          onClick={() => togglePhoto(photo.id)}
+                        >
+                          <img
+                            src={toStorageSrc(photo.photoUrl)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "";
+                              (e.target as HTMLImageElement).parentElement!.classList.add("bg-muted/40");
+                            }}
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                <Check className="w-3 h-3 text-primary-foreground" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-border/30 bg-muted/10 py-6 text-center text-sm text-muted-foreground mb-3">
+                    <Image className="w-5 h-5 mx-auto mb-1.5 opacity-30" />
+                    No photos yet. Upload vehicle images below.
+                  </div>
+                )}
+                {/* Upload button */}
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    disabled={photoUploading}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    disabled={photoUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {photoUploading ? "Uploading…" : "Upload Photos"}
+                  </Button>
+                </div>
+              </div>
 
               {/* ─── Booking History ──────────────────────────────────────────── */}
               <div>

@@ -700,7 +700,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
   // Overview quick-edit state
   const [isOverviewEditing, setIsOverviewEditing] = useState(false);
-  const [overviewDraft, setOverviewDraft] = useState({ totalAmount: "", currency: "GEL", notes: "", pickupLocationId: "", dropoffLocationId: "" });
+  const [overviewDraft, setOverviewDraft] = useState({ totalAmount: "", currency: "GEL", notes: "", pickupLocationId: "", dropoffLocationId: "", pickupDate: "", pickupTime: "09:00", dropoffDate: "", dropoffTime: "09:00" });
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
 
@@ -750,6 +750,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       setShowAddForm(false);
       setForm(EMPTY_FORM);
       setIsOverviewEditing(false);
+      // Pre-load locations so location selects show real values immediately on edit
+      apiFetch("/locations").then((data: any) => setOverviewLocations(data || [])).catch(() => {});
     }
   }, [open, bookingId]);
 
@@ -858,17 +860,29 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     else setShowDropoffModal(true);
   };
 
+  const splitDT = (iso: string | null | undefined) => {
+    if (!iso) return { date: "", time: "09:00" };
+    const d = new Date(iso);
+    return {
+      date: d.toISOString().slice(0, 10),
+      time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
+    };
+  };
+
   const enterOverviewEdit = () => {
+    const pu = splitDT(booking?.pickupDatetime);
+    const dr = splitDT(booking?.dropoffDatetime);
     setOverviewDraft({
       totalAmount: booking?.totalAmount ?? "",
       currency: booking?.currency ?? "GEL",
       notes: booking?.notes ?? "",
       pickupLocationId: booking?.pickupLocationId?.toString() ?? "",
       dropoffLocationId: booking?.dropoffLocationId?.toString() ?? "",
+      pickupDate: pu.date,
+      pickupTime: pu.time,
+      dropoffDate: dr.date,
+      dropoffTime: dr.time,
     });
-    if (overviewLocations.length === 0) {
-      apiFetch("/locations").then((data: any) => setOverviewLocations(data || [])).catch(() => {});
-    }
     setIsOverviewEditing(true);
   };
 
@@ -883,6 +897,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           notes: overviewDraft.notes || null,
           ...(overviewDraft.pickupLocationId ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) } : {}),
           ...(overviewDraft.dropoffLocationId ? { dropoffLocationId: parseInt(overviewDraft.dropoffLocationId) } : {}),
+          ...(overviewDraft.pickupDate && overviewDraft.pickupTime
+            ? { pickupDatetime: new Date(`${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00`).toISOString() }
+            : {}),
+          ...(overviewDraft.dropoffDate && overviewDraft.dropoffTime
+            ? { dropoffDatetime: new Date(`${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00`).toISOString() }
+            : {}),
         }),
       });
       setIsOverviewEditing(false);
@@ -1126,20 +1146,22 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           </SelectContent>
                         </Select>
                       </div>
-                      {/* Pickup datetime (read-only) */}
-                      <div className="grid gap-1.5">
-                        <Label className="text-xs text-muted-foreground">Pickup Date & Time</Label>
-                        <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
-                          {booking?.pickupDatetime ? format(new Date(booking.pickupDatetime), "dd MMM yyyy HH:mm") : "—"}
-                        </div>
-                      </div>
-                      {/* Dropoff datetime (read-only) */}
-                      <div className="grid gap-1.5">
-                        <Label className="text-xs text-muted-foreground">Dropoff Date & Time</Label>
-                        <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
-                          {booking?.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "dd MMM yyyy HH:mm") : "—"}
-                        </div>
-                      </div>
+                      {/* Pickup datetime (editable) */}
+                      <HandoverDateTimePicker
+                        label="Pickup Date & Time"
+                        dateValue={overviewDraft.pickupDate}
+                        timeValue={overviewDraft.pickupTime}
+                        onDateChange={(d) => setOverviewDraft((p) => ({ ...p, pickupDate: d }))}
+                        onTimeChange={(t) => setOverviewDraft((p) => ({ ...p, pickupTime: t }))}
+                      />
+                      {/* Dropoff datetime (editable) */}
+                      <HandoverDateTimePicker
+                        label="Dropoff Date & Time"
+                        dateValue={overviewDraft.dropoffDate}
+                        timeValue={overviewDraft.dropoffTime}
+                        onDateChange={(d) => setOverviewDraft((p) => ({ ...p, dropoffDate: d }))}
+                        onTimeChange={(t) => setOverviewDraft((p) => ({ ...p, dropoffTime: t }))}
+                      />
                       {/* Notes */}
                       <div className="col-span-2 sm:col-span-3 grid gap-1.5">
                         <Label className="text-xs">Notes</Label>

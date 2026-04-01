@@ -247,4 +247,36 @@ router.delete("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
   res.json(result);
 });
 
+// ─── Vehicle Photos ────────────────────────────────────────────────────────────
+
+router.get("/admin/fleet/vehicles/:id/photos", requireAdmin, async (req, res) => {
+  const vehicleId = parseInt(String(req.params.id), 10);
+  if (!vehicleId || isNaN(vehicleId)) { res.status(400).json({ error: "Invalid vehicle ID" }); return; }
+  const { rows } = await pool.query(
+    `SELECT id, photo_url AS "photoUrl", is_primary AS "isPrimary", created_at AS "createdAt" FROM vehiclephoto WHERE vehicle_id = $1 ORDER BY created_at ASC`,
+    [vehicleId],
+  );
+  res.json(rows);
+});
+
+router.post("/admin/fleet/vehicles/:id/photos", requireAdmin, async (req, res) => {
+  const vehicleId = parseInt(String(req.params.id), 10);
+  if (!vehicleId || isNaN(vehicleId)) { res.status(400).json({ error: "Invalid vehicle ID" }); return; }
+  const { photoUrl } = req.body as { photoUrl?: string };
+  if (!photoUrl || typeof photoUrl !== "string") { res.status(400).json({ error: "photoUrl is required" }); return; }
+  const { rows } = await pool.query(
+    `INSERT INTO vehiclephoto (vehicle_id, photo_url, is_primary) VALUES ($1, $2, false) RETURNING id, photo_url AS "photoUrl", is_primary AS "isPrimary", created_at AS "createdAt"`,
+    [vehicleId, photoUrl],
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.delete("/admin/fleet/vehicles/:id/photos/:photoId", requireAdmin, async (req, res) => {
+  const vehicleId = parseInt(String(req.params.id), 10);
+  const photoId = parseInt(String(req.params.photoId), 10);
+  if (!vehicleId || isNaN(vehicleId) || !photoId || isNaN(photoId)) { res.status(400).json({ error: "Invalid ID" }); return; }
+  await pool.query("DELETE FROM vehiclephoto WHERE id = $1 AND vehicle_id = $2", [photoId, vehicleId]);
+  res.json({ ok: true });
+});
+
 export default router;
