@@ -278,7 +278,7 @@ export async function getTodayActivity(city?: string) {
           notDeleted,
           gte(bookingTable.pickupDatetime, todayStart),
           lt(bookingTable.pickupDatetime, todayEnd),
-          inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED"]),
+          inArray(bookingTable.status, ["PENDING", "CONFIRMED"]),
           ...(pickupCityCondition ? [pickupCityCondition] : []),
         ),
       )
@@ -289,7 +289,7 @@ export async function getTodayActivity(city?: string) {
           notDeleted,
           gte(bookingTable.dropoffDatetime, todayStart),
           lt(bookingTable.dropoffDatetime, todayEnd),
-          eq(bookingTable.status, "DELIVERED"),
+          inArray(bookingTable.status, ["CONFIRMED", "DELIVERED"]),
           ...(dropoffCityCondition ? [dropoffCityCondition] : []),
         ),
       )
