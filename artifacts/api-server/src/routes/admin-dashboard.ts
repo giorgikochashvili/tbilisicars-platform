@@ -39,7 +39,19 @@ router.get("/admin/dashboard/summary", requireAdmin, async (req, res) => {
 router.get("/admin/dashboard/today", requireAdmin, async (req, res) => {
   const city = parseCity(req.query.city);
   const rawDate = req.query.date;
-  const date = typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : undefined;
+  let date: string | undefined;
+  if (typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    const [y, m, d] = rawDate.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, d));
+    if (
+      !isNaN(parsed.getTime()) &&
+      parsed.getUTCFullYear() === y &&
+      parsed.getUTCMonth() + 1 === m &&
+      parsed.getUTCDate() === d
+    ) {
+      date = rawDate;
+    }
+  }
   const activity = await getTodayActivity(city, date);
   res.json(GetAdminDashboardTodayResponse.parse(activity));
 });
