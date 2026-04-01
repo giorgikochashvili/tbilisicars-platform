@@ -497,10 +497,14 @@ function HandoverModal({
         .map((fi) => fi.path!);
       const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
       await onSubmit(type, photoUrls);
+      // Clear file state after successful submit
+      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
     } else {
       // No pending files — submit with already-done file paths
       const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
       await onSubmit(type, photoUrls);
+      // Clear file state after successful submit
+      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
     }
   };
 
@@ -1113,14 +1117,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       <div className="grid gap-1.5">
                         <Label className="text-xs text-muted-foreground">Pickup Date & Time</Label>
                         <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
-                          {booking?.pickupAt ? format(new Date(booking.pickupAt), "dd MMM yyyy HH:mm") : "—"}
+                          {booking?.pickupDatetime ? format(new Date(booking.pickupDatetime), "dd MMM yyyy HH:mm") : "—"}
                         </div>
                       </div>
                       {/* Dropoff datetime (read-only) */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs text-muted-foreground">Dropoff Date & Time</Label>
                         <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
-                          {booking?.dropoffAt ? format(new Date(booking.dropoffAt), "dd MMM yyyy HH:mm") : "—"}
+                          {booking?.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "dd MMM yyyy HH:mm") : "—"}
                         </div>
                       </div>
                       {/* Notes */}
