@@ -768,7 +768,7 @@ export interface AdminVehicleDetail {
   /** @nullable */
   licensePlate?: string | null;
   /** @nullable */
-  vin?: string | null;
+  techpassportNumber?: string | null;
   /** @nullable */
   vehicleClass?: AdminVehicleDetailVehicleClass;
   /** @nullable */
@@ -1312,7 +1312,7 @@ export interface AdminCreateVehicleBody {
   vehicleModelId?: number;
   vehicleGroupId?: number;
   licensePlate?: string;
-  vin?: string;
+  techpassportNumber?: string;
   year?: number;
   color?: string;
   vehicleClass?: AdminCreateVehicleBodyVehicleClass;

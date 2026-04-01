@@ -13,5 +13,6 @@ export const AdminCreateBookingBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
