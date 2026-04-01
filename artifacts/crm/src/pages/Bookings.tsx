@@ -647,7 +647,7 @@ export default function BookingsPage() {
                         {b.vehicle ? (
                           <>{b.vehicle.modelName} <span className="font-mono text-xs text-muted-foreground">· {b.vehicle.licensePlate}</span></>
                         ) : b.vehicleModelName ? (
-                          <span className="italic text-muted-foreground">{b.vehicleModelName} <span className="text-xs">(unassigned)</span></span>
+                          <>{b.vehicleModelName}</>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">No vehicle assigned</span>
                         )}
