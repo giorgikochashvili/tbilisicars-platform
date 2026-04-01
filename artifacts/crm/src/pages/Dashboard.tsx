@@ -486,15 +486,23 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
 // ─── Fleet Timeline ───────────────────────────────────────────────────────────
 
 const BOOKING_BLOCK_COLORS: Record<string, string> = {
-  PENDING:   "bg-amber-500/30 border-amber-500/60 text-amber-200",
-  CONFIRMED: "bg-blue-500/30 border-blue-500/60 text-blue-200",
-  DELIVERED: "bg-emerald-500/30 border-emerald-500/60 text-emerald-200",
-  RETURNED:  "bg-slate-500/20 border-slate-500/40 text-slate-400",
-  CANCELED:  "bg-red-500/20 border-red-500/40 text-red-300",
-  NO_SHOW:   "bg-orange-500/20 border-orange-500/40 text-orange-300",
+  PENDING:   "bg-amber-500/30 border-amber-500/60 dark:text-amber-200 text-amber-900",
+  CONFIRMED: "bg-blue-500/30 border-blue-500/60 dark:text-blue-200 text-blue-900",
+  DELIVERED: "bg-emerald-500/30 border-emerald-500/60 dark:text-emerald-200 text-emerald-900",
+  RETURNED:  "bg-slate-500/20 border-slate-500/40 dark:text-slate-400 text-slate-700",
+  CANCELED:  "bg-red-500/20 border-red-500/40 dark:text-red-300 text-red-800",
+  NO_SHOW:   "bg-orange-500/20 border-orange-500/40 dark:text-orange-300 text-orange-800",
 };
 
-function FleetTimeline({ calendar, isLoading }: { calendar?: FleetCalendar; isLoading: boolean }) {
+function FleetTimeline({
+  calendar,
+  isLoading,
+  onSelectBooking,
+}: {
+  calendar?: FleetCalendar;
+  isLoading: boolean;
+  onSelectBooking: (id: number) => void;
+}) {
   const days = useMemo(() => {
     if (!calendar) return [];
     const result: Date[] = [];
@@ -578,6 +586,23 @@ function FleetTimeline({ calendar, isLoading }: { calendar?: FleetCalendar; isLo
             INACTIVE: "text-slate-500",
           };
 
+          const dayStrs = days.map((d) => d.toISOString().split("T")[0]);
+          const windowStart = dayStrs[0];
+          const windowEnd = dayStrs[dayStrs.length - 1];
+
+          const visibleBookings = vehicle.bookings
+            .map((b) => {
+              const bookingStart = b.pickupDatetime.split("T")[0];
+              const bookingEnd = b.dropoffDatetime.split("T")[0];
+              if (bookingStart > windowEnd || bookingEnd < windowStart) return null;
+              const clampedStart = bookingStart < windowStart ? windowStart : bookingStart;
+              const clampedEnd = bookingEnd > windowEnd ? windowEnd : bookingEnd;
+              const startCol = dayStrs.indexOf(clampedStart) + 1;
+              const endCol = dayStrs.indexOf(clampedEnd) + 2;
+              return { ...b, startCol, endCol };
+            })
+            .filter((b): b is NonNullable<typeof b> => b !== null);
+
           return (
             <div key={vehicle.vehicleId} className="flex items-stretch border-b border-border/20 last:border-b-0 hover:bg-muted/10 transition-colors">
               {/* Vehicle info */}
@@ -595,40 +620,44 @@ function FleetTimeline({ calendar, isLoading }: { calendar?: FleetCalendar; isLo
                 )}
               </div>
 
-              {/* Day cells */}
-              {days.map((day) => {
-                const dayStr = day.toISOString().split("T")[0];
-                const isToday = dayStr === todayStr;
-
-                const dayBookings = vehicle.bookings.filter((b) => {
-                  const pickup = b.pickupDatetime.split("T")[0];
-                  const dropoff = b.dropoffDatetime.split("T")[0];
-                  return pickup <= dayStr && dropoff >= dayStr;
-                });
-
-                return (
+              {/* Span-based booking grid */}
+              <div
+                className="flex-1 relative min-h-[52px]"
+                style={{ display: "grid", gridTemplateColumns: `repeat(${days.length}, 1fr)` }}
+              >
+                {/* Day background cells (today highlight + borders) */}
+                {dayStrs.map((dayStr, i) => (
                   <div
                     key={dayStr}
                     className={cn(
-                      "flex-1 px-1 py-1.5 border-r border-border/10 last:border-r-0 min-h-[52px] flex flex-col gap-0.5",
-                      isToday && "bg-primary/5",
+                      "border-r border-border/10 last:border-r-0 min-h-[52px]",
+                      dayStr === todayStr && "bg-primary/5",
                     )}
+                    style={{ gridColumn: `${i + 1} / ${i + 2}`, gridRow: 1 }}
+                  />
+                ))}
+
+                {/* Continuous booking bars */}
+                {visibleBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className={cn(
+                      "rounded text-[9px] font-semibold px-1.5 py-1 border leading-tight truncate cursor-pointer hover:opacity-80 transition-opacity",
+                      BOOKING_BLOCK_COLORS[booking.status] ?? "bg-gray-500/20 border-gray-500/40 dark:text-gray-300 text-gray-800",
+                    )}
+                    style={{
+                      gridColumn: `${booking.startCol} / ${booking.endCol}`,
+                      gridRow: 1,
+                      alignSelf: "center",
+                      margin: "4px 2px",
+                    }}
+                    title={`#${booking.id} — ${booking.customerName} — ${booking.status}`}
+                    onClick={() => onSelectBooking(booking.id)}
                   >
-                    {dayBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className={cn(
-                          "rounded text-[9px] font-semibold px-1.5 py-1 border leading-tight truncate",
-                          BOOKING_BLOCK_COLORS[booking.status] ?? "bg-gray-500/20 border-gray-500/40 text-gray-300",
-                        )}
-                        title={`#${booking.id} — ${booking.customerName} — ${booking.status}`}
-                      >
-                        <div className="truncate">#{booking.id} {booking.customerName}</div>
-                      </div>
-                    ))}
+                    <div className="truncate">#{booking.id} {booking.customerName}</div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           );
         })}
@@ -931,7 +960,11 @@ export default function Dashboard() {
           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
           </h2>
-          <FleetTimeline calendar={calendarQuery.data} isLoading={calendarQuery.isLoading} />
+          <FleetTimeline
+            calendar={calendarQuery.data}
+            isLoading={calendarQuery.isLoading}
+            onSelectBooking={(id) => setDetailBookingId(id)}
+          />
         </div>
       )}
 
