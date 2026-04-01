@@ -418,7 +418,9 @@ function HandoverModal({
     const accepted: FileItem[] = [];
     const skipped: string[] = [];
     for (const f of Array.from(e.target.files ?? [])) {
-      const isDupe = fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
+      const isDupe =
+        fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size) ||
+        accepted.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
       if (isDupe) {
         skipped.push(`${f.name} (duplicate)`);
       } else if (f.size > MAX_MB * 1024 * 1024) {
@@ -866,7 +868,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          ...(overviewDraft.totalAmount !== "" ? { totalAmount: overviewDraft.totalAmount } : {}),
+          ...(overviewDraft.totalAmount !== "" ? { totalAmount: parseFloat(overviewDraft.totalAmount) } : {}),
           currency: overviewDraft.currency,
           notes: overviewDraft.notes || null,
           ...(overviewDraft.pickupLocationId ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) } : {}),
