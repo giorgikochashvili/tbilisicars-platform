@@ -1,0 +1,172 @@
+#15 - CRM Booking Vehicle Visibility + Assign Specific Vehicle
+Project: Tbilisicars CRM&WEB
+
+Important:
+This project is already fully built and interconnected inside Replit. Make this as a minimal, safe enhancement only. Do not refactor unrelated modules. Do not break booking creation, website bookings, CRM bookings, assignment logic, filters, payment logic, documents, or routing. Only add/correct the missing visibility and assignment behavior.
+
+==================================================
+GOAL
+==================================================
+
+A booking may already have a selected vehicle Brand + Model, even if no exact physical vehicle has been assigned yet.
+
+The CRM must clearly show the booked vehicle model everywhere relevant.
+Only the exact assigned vehicle/plate should change later when a specific vehicle is assigned.
+
+==================================================
+CURRENT PROBLEM
+==================================================
+
+Right now, if a booking has:
+- vehicle model selected
+- but no specific vehicle assigned yet
+
+the CRM often shows:
+- "No vehicle assigned"
+- "Unassigned"
+- or blank vehicle sections
+
+This is incorrect.
+
+The booked vehicle model must still be visible.
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+PART 1 — Bookings list: "Vehicle & Customer" column
+
+If booking has specific assigned vehicle:
+- show: Brand + Model + plate
+Example:
+Chevrolet Cruze · VK252KK
+
+If booking has no specific assigned vehicle, but has booked model:
+- show: Brand + Model
+Example:
+Toyota Camry XV50
+
+Only if booking has neither model nor assigned vehicle:
+- show:
+No vehicle assigned
+
+Customer name underneath must remain unchanged.
+
+This must work for:
+- CRM-created bookings
+- website-created bookings
+
+==================================================
+PART 2 — Dashboard widgets/tables (example: Today’s Pickups / Dropoffs)
+
+In the Vehicle column:
+- if specific vehicle assigned → show Brand + Model + plate if space allows, or at minimum Model + plate
+- if no specific vehicle assigned but model exists → show Brand + Model
+- only show "Unassigned" if neither exists
+
+Do not redesign the widget layout. Just fix the display logic.
+
+==================================================
+PART 3 — Booking detail modal/page: Overview > Vehicle
+
+In the opened booking detail:
+- Vehicle section must show the booked Brand + Model even when no specific vehicle is assigned yet
+- if specific vehicle is assigned, show Brand + Model + plate
+- if nothing is selected, only then show empty/unassigned state
+
+==================================================
+PART 4 — Add Assign button inside booking detail when no specific vehicle is assigned
+
+If booking has booked model but no specific assigned vehicle:
+- show an "Assign" button in the Vehicle area of booking detail
+
+Clicking Assign should:
+- open a compact modal/popover/dialog
+- list/select available specific vehicles for that booked model
+- allow user to assign one exact vehicle
+- after assignment, update booking detail and all relevant visible places
+
+Expected result after assigning:
+- Bookings list updates to show Brand + Model + plate
+- Booking detail Vehicle section updates to show Brand + Model + plate
+- Any relevant operational widgets using the same booking data reflect the assigned vehicle correctly
+
+==================================================
+ASSIGNMENT RULES
+==================================================
+
+- Only show assign options for vehicles matching the booked model
+- Prefer vehicles that are actually available for assignment
+- Reuse existing vehicle assignment logic/API if it already exists somewhere in CRM
+- Do not invent parallel assignment architecture if one already exists
+- If an assignment endpoint already exists, use it
+- If minimal backend support is needed, keep it extremely scoped and reuse existing booking update patterns
+
+==================================================
+IMPLEMENTATION STRATEGY
+==================================================
+
+1. First inspect the booking list data shape and booking detail data shape
+2. Confirm what model fields are already returned:
+   - brand name
+   - model name
+   - vehicle plate
+   - assigned vehicle
+3. Fix display fallback logic in:
+   - Bookings list
+   - Dashboard pickups/dropoffs table(s)
+   - Booking detail overview
+4. Then implement Assign button in booking detail only
+5. Reuse existing update/assignment flow wherever possible
+6. Keep all changes additive and minimal-surface
+
+==================================================
+SAFETY RULES
+==================================================
+
+- Do not break booking create flow
+- Do not break existing edit booking flow
+- Do not break website booking imports/creation
+- Do not refactor unrelated booking DTOs broadly
+- Do not redesign Bookings page
+- Do not redesign Dashboard widgets
+- Do not touch unrelated modules
+- Preserve current CRM styling language
+- This is an enhancement/correction only
+
+==================================================
+DELIVERABLE FORMAT
+==================================================
+
+At the end provide:
+1. Changed files
+2. Exact display fallback logic implemented
+3. How Assign flow was implemented
+4. Whether frontend-only changes were enough or whether a small backend/service adjustment was required
+
+==================================================
+MANUAL TEST CHECKLIST
+==================================================
+
+- CRM-created booking with model selected but no specific vehicle:
+  Bookings list shows Brand + Model
+
+- Website-created booking with model selected but no specific vehicle:
+  Bookings list shows Brand + Model
+
+- Dashboard pickups/dropoffs vehicle column shows Brand + Model for model-only bookings
+
+- Booking detail Vehicle section shows Brand + Model even before specific assignment
+
+- If no specific vehicle is assigned, Assign button is visible in booking detail
+
+- Clicking Assign allows selecting a matching available vehicle
+
+- After assignment:
+  - Bookings list shows Brand + Model + plate
+  - Booking detail shows Brand + Model + plate
+  - relevant widgets reflect the assigned vehicle
+
+- Booking with neither model nor vehicle still shows No vehicle assigned / Unassigned only in that true empty case
+
+Implement carefully and do not disturb working areas.
