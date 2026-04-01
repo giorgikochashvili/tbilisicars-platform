@@ -557,7 +557,21 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 <SelectContent>
                   {(models as any)?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
-                      {m.brand?.name} {m.name}
+                      <span className="flex items-center gap-2">
+                        {m.imageUrl ? (
+                          <img
+                            src={toStorageSrc(m.imageUrl)}
+                            alt=""
+                            className="w-7 h-7 rounded object-contain flex-shrink-0 bg-muted/30"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <span className="w-7 h-7 rounded bg-muted/30 flex items-center justify-center flex-shrink-0">
+                            <Car className="w-3.5 h-3.5 text-muted-foreground/30" />
+                          </span>
+                        )}
+                        {m.brand?.name} {m.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
