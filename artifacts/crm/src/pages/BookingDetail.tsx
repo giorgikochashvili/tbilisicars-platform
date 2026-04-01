@@ -461,13 +461,17 @@ function HandoverModal({
         toUpload.map((fi) => uploadFile(fi.file).then((path) => ({ id: fi.id, path })))
       );
 
+      // Collect resolved paths directly from results — avoids stale fileItems closure
+      const newPaths = new Map<string, string>();
       let hasError = false;
+
       setFileItems((prev) => {
         const updated = [...prev];
         results.forEach((r, i) => {
           const idx = updated.findIndex((fi) => fi.id === toUpload[i].id);
           if (r.status === "fulfilled") {
             updated[idx] = { ...updated[idx], status: "done", path: r.value.path };
+            newPaths.set(toUpload[i].id, r.value.path);
           } else {
             updated[idx] = { ...updated[idx], status: "error", error: (r.reason as Error)?.message ?? "Upload failed" };
             hasError = true;
@@ -485,10 +489,19 @@ function HandoverModal({
         });
         return;
       }
-    }
 
-    const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
-    await onSubmit(type, photoUrls);
+      // Already-done files (not in this upload batch) + newly uploaded
+      const uploadedIds = new Set(toUpload.map((fi) => fi.id));
+      const prevDone = fileItems
+        .filter((fi) => fi.status === "done" && !uploadedIds.has(fi.id))
+        .map((fi) => fi.path!);
+      const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
+      await onSubmit(type, photoUrls);
+    } else {
+      // No pending files — submit with already-done file paths
+      const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
+      await onSubmit(type, photoUrls);
+    }
   };
 
   return (
@@ -1095,6 +1108,20 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      {/* Pickup datetime (read-only) */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs text-muted-foreground">Pickup Date & Time</Label>
+                        <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
+                          {booking?.pickupAt ? format(new Date(booking.pickupAt), "dd MMM yyyy HH:mm") : "—"}
+                        </div>
+                      </div>
+                      {/* Dropoff datetime (read-only) */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs text-muted-foreground">Dropoff Date & Time</Label>
+                        <div className="h-8 px-2 flex items-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground">
+                          {booking?.dropoffAt ? format(new Date(booking.dropoffAt), "dd MMM yyyy HH:mm") : "—"}
+                        </div>
                       </div>
                       {/* Notes */}
                       <div className="col-span-2 sm:col-span-3 grid gap-1.5">
