@@ -1,0 +1,80 @@
+#2 — Apply ONLY the confirmed Pick Up 500 fix
+
+We are continuing from the previous investigation result.
+Use the previously confirmed root cause as the only source of truth.
+
+This is a LIVE production-connected project already fully assembled in Replit and deployed via DigitalOcean.
+This repository is connected to a NEW Replit account, so do not disturb any existing project structure, runtime assumptions, workflows, Replit setup, or deployment behavior.
+
+## Mission
+Apply ONLY the minimal code fix required for the already-confirmed Pick Up 500 root cause.
+Do not re-investigate broadly.
+Do not expand scope.
+Do not make speculative improvements.
+
+## Hard safety rules
+- Fix ONLY the confirmed cause from the previous step
+- Do NOT refactor unrelated code
+- Do NOT change UI design
+- Do NOT rename APIs
+- Do NOT change project structure
+- Do NOT modify workflows, .replit config, package versions, ports, routing, artifact paths, deployment files, or environment variable names
+- Do NOT clean up unrelated code
+- Do NOT touch database schema unless it was explicitly proven necessary in the previous investigation
+- Do NOT touch Drop Off unless the exact same shared path is already proven to be affected by the same confirmed bug
+- Preserve all existing booking workflow behavior
+- Preserve CRM, Website, Backend, auth, dashboard, fleet, payments, and deployment behavior
+
+## Required input from previous step
+Use these from the previous result only:
+- confirmed root cause
+- exact files involved
+- exact minimal fix path
+
+If the root cause was not actually proven in the previous step, STOP and say so instead of changing code.
+
+## Required implementation workflow
+1. Restate the confirmed root cause in 1–3 sentences
+2. List the exact files you will touch
+3. Apply the smallest possible diff only in those files
+4. Do not touch any other files unless absolutely required by compilation in the same code path
+5. If another file becomes necessary, explain exactly why before editing it
+
+## Validation requirements
+After applying the fix, verify all of the following:
+- Pick Up submit succeeds without photos
+- Pick Up submit succeeds with mileage and fuel values
+- booking status updates correctly
+- vehicle status updates correctly
+- booking history / recent activity still records correctly
+- no regression in Drop Off if shared code was touched
+- no TypeScript/build errors in changed files
+- no unrelated config or Replit/deployment files were modified
+
+## Output format
+Respond in this exact structure:
+
+### Confirmed root cause
+<brief explanation, based only on previous investigation>
+
+### Files changed
+- <exact path>
+- <exact path>
+
+### Exact changes made
+- <minimal diff summary>
+- <minimal diff summary>
+
+### Validation
+<what was tested and result>
+
+### Non-goals confirmed
+- No unrelated Replit/config/deployment files changed
+- No unrelated business logic changed
+- No unrelated UI changes made
+
+Important:
+Do not propose alternative refactors.
+Do not broaden the task.
+Do not “clean up” nearby code.
+Only implement the confirmed minimal fix.
