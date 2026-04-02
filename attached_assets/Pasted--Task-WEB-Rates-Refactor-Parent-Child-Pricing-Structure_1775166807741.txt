@@ -1,0 +1,325 @@
+# Task — WEB Rates Refactor: Parent/Child Pricing Structure + WEB/BROKER Split
+
+You are working inside an already built and operational Tbilisicars CRM + Website monorepo. This system was already created in Replit and contains working pricing, booking, promotions, fleet, and CRM logic. Your job is NOT to rebuild or redesign the system. Your job is to carefully UPGRADE and RESTRUCTURE the Rates module for WEB pricing only, without breaking anything that already works.
+
+CRITICAL RULES:
+- Do NOT refactor unrelated code.
+- Do NOT break existing booking flow, fleet logic, dashboard logic, or manual CRM booking logic.
+- Do NOT redesign the whole Rates page from scratch if the current structure can be extended safely.
+- Reuse existing DB tables, services, routes, and UI components wherever possible.
+- All changes must be incremental, minimal, and safe.
+- If something already exists, EXTEND it — do not replace it blindly.
+- Keep backend as the single source of truth for pricing resolution.
+- Do NOT introduce speculative architecture.
+- This task is ONLY about WEB pricing architecture. BROKER must be visually separated, but BROKER pricing logic itself should not be rebuilt in this task.
+
+---
+
+## OBJECTIVE
+
+Restructure the Rates module so that Rates are clearly split into:
+
+1. WEB
+2. BROKER
+
+For this task, implement WEB pricing architecture only.
+
+WEB pricing must become a hierarchical system with:
+
+- Parent Rate (main/base rate)
+- Child Rate (derived/seasonal rate under a parent)
+
+Pricing must remain MODEL-BASED, not category-based.
+
+Promotions must remain a separate layer:
+- Promotions must select from already created WEB rates
+- Promotions then apply discount or price increase on top of the resolved WEB price
+- Promotions must not rewrite stored base rates
+
+One Way Fee, grace period, minimum 2-day rule, and quote/booking pricing logic already implemented previously must remain intact and must continue to work correctly with the new Parent/Child rate architecture.
+
+---
+
+## BUSINESS LOGIC TO IMPLEMENT
+
+### 1. Split Rates into WEB and BROKER
+In the Rates UI, separate rate plans into:
+- WEB
+- BROKER
+
+This can be tabs, segmented controls, or another clean existing-style switch.
+
+For this task:
+- fully implement WEB structure
+- do not break existing BROKER area
+- do not redesign or rebuild BROKER pricing logic yet
+
+---
+
+### 2. WEB Rates must be model-based
+WEB prices must be written for VEHICLE MODELS, not categories.
+
+Each WEB rate must support:
+- name
+- valid date range
+- locations / regions where it applies
+- selected models
+- day ranges
+- prices per model per day range
+
+This is the core source price for website bookings.
+
+---
+
+### 3. Parent Rate
+A Parent Rate is the main/base WEB rate.
+
+It is created once and acts as the source/base pricing structure.
+
+It contains:
+- name
+- active date period
+- locations / regions
+- selected models
+- day ranges
+- model price matrix
+
+This is the base WEB price.
+
+---
+
+### 4. Child Rate
+A Child Rate is a sub-rate under a Parent Rate.
+
+A Child Rate:
+- MUST reference a Parent Rate
+- has its own valid date range
+- is created by selecting a Parent Rate
+- MUST preload the Parent Rate’s full current pricing dataset into an editable child form
+- after loading parent data, user can edit prices freely
+- when saved, Child Rate stores FULL values, not partial diffs
+
+IMPORTANT:
+Do NOT implement runtime inheritance/diff resolution.
+Do NOT build a fragile partial override system.
+A Child Rate must behave as:
+- full editable copy initialized from Parent
+- then saved as its own full pricing dataset with parent reference
+
+This is intentional for stability and to avoid bugs.
+
+---
+
+### 5. Promotions must remain a separate layer
+Promotions are NOT the same as WEB rates.
+
+Do not merge Promotions into Rates.
+
+Promotions must work like this:
+- admin selects an already created WEB rate context
+- then applies:
+  - discount
+  - or price increase
+
+Promotions must only affect final calculated price.
+Promotions must not overwrite stored Parent/Child rate values.
+
+Pricing order must remain:
+
+1. Resolve correct WEB rate
+2. Apply pricing from Parent/Child rate
+3. Apply grace period + min 2 days logic
+4. Apply One Way Fee separately
+5. Apply Promotion only to rental price portion
+6. One Way Fee must remain fixed and untouched by promotion
+
+---
+
+### 6. No overlapping WEB rates
+WEB rates must not overlap in conflicting date ranges.
+
+Reject create/update if overlap is detected for conflicting WEB rates.
+
+Do not allow multiple conflicting active WEB prices for the same operational context.
+
+Implement safe validation so the system does not become ambiguous.
+
+---
+
+## UI / UX REQUIREMENTS
+
+### 7. Rates Page Structure
+Rates page must clearly separate:
+- WEB
+- BROKER
+
+WEB must show Parent/Child logic clearly.
+
+---
+
+### 8. Add Rate Plan flow for WEB
+When creating a WEB rate, user must choose:
+- Parent Rate
+- Child Rate
+
+---
+
+### 9. Parent Rate Form
+Parent Rate creation/edit form should support:
+- Name
+- Valid date range
+- Locations / Regions
+- Models (multi-select)
+- Day ranges
+- Full price matrix per model per day range
+- Status / active toggle if already supported by current system
+
+Reuse current form structure where possible.
+Do not redesign unnecessarily.
+
+---
+
+### 10. Child Rate Form
+Child Rate creation/edit form should support:
+- Name
+- Parent Rate selector (required)
+- Valid date range
+
+After Parent Rate is selected:
+- preload all parent pricing data into editable grid
+- allow editing of model prices and day ranges
+- save full values into child rate records
+
+Child form must clearly display that it is based on a Parent Rate.
+
+---
+
+### 11. WEB Rates Listing
+In the WEB rates list/table/cards, include:
+- Name
+- Type (Parent / Child)
+- Parent reference (for Child)
+- Validity period
+- Models count
+- Status
+- Actions
+
+Do not redesign the page broadly.
+Extend the existing style and layout.
+
+---
+
+## BACKEND REQUIREMENTS
+
+### 12. Backend pricing resolution
+When website pricing is calculated, resolve WEB rates like this:
+
+- if an applicable Child Rate exists for the selected date/context, use Child Rate
+- otherwise use Parent Rate
+
+Pricing must still remain:
+- model-based
+- location-aware
+- day-range aware
+- quote/booking compatible
+
+Do not break:
+- quote endpoint
+- website booking creation
+- one way fee logic
+- promotion compatibility
+- grace period logic
+- minimum 2-day logic
+
+---
+
+### 13. Schema / data changes
+Add only the minimum necessary structure for WEB Parent/Child rates.
+
+If the existing schema can safely support:
+- rateType / type
+- parentRateId
+
+then extend it minimally.
+
+Do NOT invent a second parallel pricing table unless absolutely necessary.
+Do NOT do a broad rewrite of rates storage if a clean extension works.
+
+Use the simplest stable design.
+
+---
+
+### 14. API / service updates
+Update only the minimum required endpoints/services for:
+- creating WEB Parent Rate
+- creating WEB Child Rate
+- listing WEB rates
+- editing WEB rates
+- validating overlap
+- resolving correct WEB rate at pricing time
+
+Do not alter unrelated pricing flows.
+
+---
+
+## DO NOT TOUCH
+- CRM manual booking pricing
+- Accounting
+- Fleet
+- Dashboard
+- Broker pricing engine logic
+- Extras logic except where already connected to website booking pricing
+- Existing one-way fee behavior
+- Existing grace-period and minimum-day behavior
+- Existing booking assignment logic
+- Unrelated modules
+
+---
+
+## ACCEPTANCE CRITERIA
+
+Done looks like:
+
+- Rates page clearly separates WEB and BROKER
+- WEB supports Parent Rate and Child Rate
+- Parent Rate stores main model-based pricing
+- Child Rate is created from Parent Rate and loads full editable copy of Parent pricing
+- Child Rate saves full values and keeps parent reference
+- WEB pricing remains model-based
+- No conflicting overlapping WEB rates are allowed
+- Website quote and booking use the correct resolved WEB rate
+- Promotions continue to work as a separate pricing layer
+- One Way Fee remains fixed and not affected by promotions
+- Existing booking flow does not break
+- Existing BROKER area is not damaged
+
+---
+
+## IMPLEMENTATION STYLE
+
+- Keep implementation simple, stable, and production-safe
+- Avoid over-engineering
+- Avoid speculative abstractions
+- Avoid runtime inheritance complexity
+- Child = full copied editable dataset initialized from Parent
+- Backend remains the pricing authority
+- Extend existing system carefully instead of rebuilding it
+
+---
+
+## OUTPUT REQUIREMENT
+
+Before coding:
+- Provide a short PLAN
+- Identify exact files/functions you will modify
+- Explain how Parent and Child rates will be stored safely
+- Explain how resolved WEB rate will be selected during quote/booking pricing
+- Explain how overlap validation will work
+
+Then implement.
+
+After implementation:
+- Provide a concise summary of:
+  - what changed
+  - why
+  - what was intentionally not touched
