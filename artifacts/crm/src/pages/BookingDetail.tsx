@@ -1013,6 +1013,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const remaining = totalPrice != null
     ? (summary ? Math.max(0, totalPrice - (summary.totalPaidOriginal ?? summary.totalPaid)) : totalPrice)
     : null;
+  const remainingGel = (isNonGel && summary?.totalPriceGel != null)
+    ? Math.max(0, summary.totalPriceGel - summary.totalPaid)
+    : null;
 
   const canPickUp = booking?.status === "CONFIRMED" && !handovers.pickup;
   const canDropOff = booking?.status === "DELIVERED" && !handovers.dropoff;
@@ -1324,6 +1327,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   <SummaryCard
                     label="Remaining Balance"
                     value={remaining != null ? fmtOrig(remaining) : "—"}
+                    gelSub={remainingGel != null ? fmtGel(remainingGel) : undefined}
                     sub={totalPrice == null ? "Set booking price to track balance" : undefined}
                   />
                   <SummaryCard

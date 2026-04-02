@@ -594,53 +594,85 @@ export default function AccountingPage() {
                     {expandedEntryId === e.id && (
                       <TableRow key={`${e.id}-detail`} className="border-border/10 bg-muted/10">
                         <TableCell colSpan={8} className="p-0">
-                          <div className="px-6 py-3 text-sm border-l-2 border-primary/30 ml-8">
+                          <div className="px-6 py-3 space-y-2 border-l-2 border-primary/30 ml-8">
+                            {/* Primary financial fields — always available from list row */}
+                            <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+                              <span>
+                                <span className="font-medium text-foreground">Amount:</span>{" "}
+                                <span className={`font-mono ${e.type === "INCOME" ? "text-emerald-500" : "text-red-500"}`}>
+                                  {e.type === "EXPENSE" ? "−" : "+"}{formatAmount(e.amount, e.currency)}
+                                </span>
+                              </span>
+                              {e.currency !== "GEL" && (
+                                <span>
+                                  <span className="font-medium text-foreground">GEL equiv.:</span>{" "}
+                                  <span className="font-mono">{formatGel(e.convertedGel)}</span>
+                                </span>
+                              )}
+                              <span>
+                                <span className="font-medium text-foreground">Date:</span>{" "}
+                                {e.entryDate ? new Date(e.entryDate + "T00:00:00").toLocaleDateString() : "—"}
+                              </span>
+                              <span>
+                                <span className="font-medium text-foreground">Category:</span>{" "}
+                                {e.category}
+                              </span>
+                              {e.notes && (
+                                <span>
+                                  <span className="font-medium text-foreground">Notes:</span>{" "}
+                                  {e.notes}
+                                </span>
+                              )}
+                            </div>
+                            {/* Linked entity fields — loaded on expand */}
                             {expandedEntryLoading ? (
                               <div className="flex gap-4">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-4 w-40" />
-                                <Skeleton className="h-4 w-28" />
+                                <Skeleton className="h-3 w-32" />
+                                <Skeleton className="h-3 w-40" />
+                                <Skeleton className="h-3 w-28" />
                               </div>
-                            ) : expandedEntryData ? (
-                              <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                            ) : expandedEntryData && (
+                              <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground border-t border-border/30 pt-1.5">
+                                {expandedEntryData.payment_type_detail && (
+                                  <span>
+                                    <span className="font-medium text-foreground">Payment type:</span>{" "}
+                                    {expandedEntryData.payment_type_detail.toLowerCase().replace(/_/g, " ")}
+                                  </span>
+                                )}
+                                {expandedEntryData.payment_method && (
+                                  <span>
+                                    <span className="font-medium text-foreground">Method:</span>{" "}
+                                    {expandedEntryData.payment_method.toLowerCase().replace(/_/g, " ")}
+                                  </span>
+                                )}
                                 {expandedEntryData.customer_name && (
                                   <span className="flex items-center gap-1">
-                                    <User className="w-3.5 h-3.5" />
-                                    <span>{expandedEntryData.customer_name}</span>
+                                    <User className="w-3 h-3" />
+                                    {expandedEntryData.customer_name}
                                     {expandedEntryData.customer_phone && (
-                                      <span className="text-xs opacity-70">· {expandedEntryData.customer_phone}</span>
+                                      <span className="opacity-70">· {expandedEntryData.customer_phone}</span>
                                     )}
                                   </span>
                                 )}
                                 {expandedEntryData.booking_ref_id && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-xs">Booking</span>
-                                    <span className="font-mono text-xs text-foreground">#{expandedEntryData.booking_ref_id}</span>
+                                  <span>
+                                    <span className="font-medium text-foreground">Booking:</span>{" "}
+                                    <span className="font-mono">#{expandedEntryData.booking_ref_id}</span>
                                   </span>
                                 )}
                                 {(expandedEntryData.vehicle_brand_name || expandedEntryData.vehicle_model_name) && (
                                   <span className="flex items-center gap-1">
-                                    <Car className="w-3.5 h-3.5" />
-                                    <span>{[expandedEntryData.vehicle_brand_name, expandedEntryData.vehicle_model_name].filter(Boolean).join(" ")}</span>
+                                    <Car className="w-3 h-3" />
+                                    {[expandedEntryData.vehicle_brand_name, expandedEntryData.vehicle_model_name].filter(Boolean).join(" ")}
                                     {expandedEntryData.vehicle_plate && (
-                                      <span className="font-mono text-xs opacity-70">({expandedEntryData.vehicle_plate})</span>
+                                      <span className="font-mono opacity-70">({expandedEntryData.vehicle_plate})</span>
                                     )}
                                   </span>
                                 )}
-                                {expandedEntryData.payment_method && (
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-xs">Method:</span>
-                                    <span className="text-xs font-medium text-foreground capitalize">
-                                      {expandedEntryData.payment_method.toLowerCase().replace("_", " ")}
-                                    </span>
-                                  </span>
-                                )}
                                 {!expandedEntryData.customer_name && !expandedEntryData.booking_ref_id && !expandedEntryData.vehicle_plate && (
-                                  <span className="text-xs italic">No linked booking or vehicle</span>
+                                  <span className="italic">No linked booking or vehicle</span>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-xs italic">No detail available</span>
                             )}
                           </div>
                         </TableCell>

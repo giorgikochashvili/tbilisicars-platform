@@ -182,7 +182,7 @@ export async function getAccountingEntry(id: number) {
     FROM accounting_entries ae
     LEFT JOIN booking b        ON b.id   = ae.related_booking_id
     LEFT JOIN "user" u         ON u.id   = b.user_id
-    LEFT JOIN vehicle v        ON v.id   = ae.related_vehicle_id
+    LEFT JOIN vehicle v        ON v.id   = COALESCE(ae.related_vehicle_id, b.vehicle_id)
     LEFT JOIN vehicle_model vm ON vm.id  = v.vehicle_model_id
     LEFT JOIN brand br         ON br.id  = vm.brand_id
     LEFT JOIN booking_payment bp ON bp.accounting_entry_id = ae.id

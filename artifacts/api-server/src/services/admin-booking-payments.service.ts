@@ -36,10 +36,11 @@ const PAYMENT_TYPE_ACCOUNTING: Record<
 
 export async function getBookingPaymentSummary(bookingId: number) {
   const { rows: bookingRows } = await pool.query(
-    `SELECT currency FROM booking WHERE id = $1`,
+    `SELECT currency, total_amount FROM booking WHERE id = $1`,
     [bookingId],
   );
   const bookingCurrency: string = bookingRows[0]?.currency ?? "GEL";
+  const bookingTotalAmount: string | null = bookingRows[0]?.total_amount ?? null;
 
   const { rows } = await pool.query(
     `SELECT
@@ -69,6 +70,21 @@ export async function getBookingPaymentSummary(bookingId: number) {
   const totalRefunded = totals["REFUND"]?.gel ?? 0;
   const totalRefundedOriginal = totals["REFUND"]?.original ?? 0;
 
+  let totalPriceGel: number | null = null;
+  if (bookingTotalAmount) {
+    const priceNum = parseFloat(bookingTotalAmount);
+    if (!isNaN(priceNum)) {
+      if (bookingCurrency === "GEL") {
+        totalPriceGel = priceNum;
+      } else {
+        const rate = await getExchangeRate();
+        totalPriceGel = rate
+          ? convertToGel(priceNum, bookingCurrency as PaymentCurrency, rate)
+          : null;
+      }
+    }
+  }
+
   return {
     currency: bookingCurrency,
     totalPaid,
@@ -81,6 +97,7 @@ export async function getBookingPaymentSummary(bookingId: number) {
     totalRefundedOriginal,
     netDeposit: depositReceived - depositReturned,
     netDepositOriginal: depositReceivedOriginal - depositReturnedOriginal,
+    totalPriceGel,
   };
 }
 
