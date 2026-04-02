@@ -70,3 +70,43 @@ export async function listOneWayFees() {
       asc(oneWayFeesTable.toLocationId),
     );
 }
+
+export async function createOneWayFee(data: {
+  fromLocationId: number;
+  toLocationId: number;
+  fee: string;
+  currency?: string;
+}) {
+  const [row] = await db
+    .insert(oneWayFeesTable)
+    .values({
+      fromLocationId: data.fromLocationId,
+      toLocationId: data.toLocationId,
+      fee: data.fee,
+      currency: data.currency ?? "GEL",
+    })
+    .returning();
+  return row!;
+}
+
+export async function updateOneWayFee(
+  id: number,
+  data: Partial<{ fee: string; currency: string }>,
+) {
+  const [row] = await db
+    .update(oneWayFeesTable)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(oneWayFeesTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`One-way fee ${id} not found`);
+  return row;
+}
+
+export async function deleteOneWayFee(id: number) {
+  const [row] = await db
+    .delete(oneWayFeesTable)
+    .where(eq(oneWayFeesTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`One-way fee ${id} not found`);
+  return { message: "One-way fee deleted" };
+}

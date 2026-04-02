@@ -48,6 +48,7 @@ interface Quote {
   rateName: string | null; basePricePerDay: number | null; baseCurrency: string | null;
   baseTotal: number | null; extrasTotal: number;
   promoDiscountType: string | null; promoDiscountValue: number | null; discountAmount: number | null;
+  oneWayFee?: number;
   estimatedTotal: number | null;
 }
 
@@ -142,7 +143,12 @@ function formatDT(iso: string) {
 
 function calcDays(pickup: string, dropoff: string) {
   if (!pickup || !dropoff) return 0;
-  return Math.max(1, Math.ceil((new Date(dropoff).getTime() - new Date(pickup).getTime()) / 86400000));
+  const elapsedMs = new Date(dropoff).getTime() - new Date(pickup).getTime();
+  if (elapsedMs <= 0) return 0;
+  const fullBlocks = Math.floor(elapsedMs / 86_400_000);
+  const remainderMinutes = (elapsedMs - fullBlocks * 86_400_000) / 60_000;
+  const extraDay = remainderMinutes > 120 ? 1 : 0;
+  return Math.max(2, fullBlocks + extraDay);
 }
 
 function transLabel(t: string | null) { return t === "AUTOMATIC" ? "Automatic" : t === "MANUAL" ? "Manual" : t; }
@@ -1459,6 +1465,8 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         vehicleModelId: Number(form.vehicleModelId),
         pickupDatetime: form.pickupDatetime,
         dropoffDatetime: form.dropoffDatetime,
+        pickupLocationId: form.pickupLocationId ? Number(form.pickupLocationId) : undefined,
+        dropoffLocationId: form.dropoffLocationId ? Number(form.dropoffLocationId) : undefined,
         extras: form.extras.length > 0 ? form.extras : undefined,
         promoCode: form.promoCode.trim() || undefined,
       }),
@@ -1498,6 +1506,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           resolvedRateTierId: resolvedQuote?.rateTierId ?? null,
           resolvedBaseRate: resolvedQuote?.basePricePerDay ?? null,
           resolvedTotal: resolvedQuote?.estimatedTotal ?? null,
+          resolvedOneWayFee: resolvedQuote?.oneWayFee ?? null,
           currency: resolvedQuote?.baseCurrency ?? undefined,
         }),
       });
@@ -1646,6 +1655,9 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
             })}
             {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
               <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
+            )}
+            {quote.oneWayFee != null && quote.oneWayFee > 0 && (
+              <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
             )}
             <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
               <span className="text-sm font-semibold text-white">Estimated Total</span>
@@ -1868,6 +1880,9 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
                 <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
               )}
+              {quote.oneWayFee != null && quote.oneWayFee > 0 && (
+                <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
+              )}
               <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
                 <span className="text-sm font-semibold text-white">Estimated Total</span>
                 <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
@@ -1988,6 +2003,8 @@ export default function Booking() {
             vehicleModelId: Number(form.vehicleModelId),
             pickupDatetime: form.pickupDatetime,
             dropoffDatetime: form.dropoffDatetime,
+            pickupLocationId: form.pickupLocationId ? Number(form.pickupLocationId) : undefined,
+            dropoffLocationId: form.dropoffLocationId ? Number(form.dropoffLocationId) : undefined,
             extras: form.extras.length > 0 ? form.extras : undefined,
             promoCode: form.promoCode.trim() || undefined,
           }),
@@ -2000,7 +2017,7 @@ export default function Booking() {
       }
     }, 600);
     return () => { if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current); };
-  }, [form.vehicleModelId, form.pickupDatetime, form.dropoffDatetime, form.extras, form.promoCode]);
+  }, [form.vehicleModelId, form.pickupDatetime, form.dropoffDatetime, form.pickupLocationId, form.dropoffLocationId, form.extras, form.promoCode]);
   // ───────────────────────────────────────────────────────────────────────────
 
   const { data: config, isLoading, isFetching: configFetching, error } = useQuery<BookingConfig>({

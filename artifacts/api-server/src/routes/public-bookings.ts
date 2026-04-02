@@ -7,6 +7,7 @@ import { pool } from "@workspace/db";
 import { createAdminBooking } from "../services/admin-bookings.service.js";
 import { db, bookingextraTable } from "@workspace/db";
 import { sendBookingConfirmationEmail } from "../services/email.service.js";
+import { calculateChargeableDays } from "../lib/pricing.js";
 
 const router: IRouter = Router();
 
@@ -264,6 +265,8 @@ router.post("/public/quote", async (req, res) => {
     vehicleModelId?: number;
     pickupDatetime?: string;
     dropoffDatetime?: string;
+    pickupLocationId?: number;
+    dropoffLocationId?: number;
     extras?: Array<{ extraId: number; quantity: number }>;
     promoCode?: string;
   };
@@ -278,7 +281,7 @@ router.post("/public/quote", async (req, res) => {
     return res.status(400).json({ error: "Invalid dates" });
   }
 
-  const days = Math.max(1, Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const days = calculateChargeableDays(pickupDate, dropoffDate);
   const pickupDateStr = pickupDate.toISOString().slice(0, 10);
 
   // Resolve best active rate tier for this vehicle model + dates + duration
@@ -343,8 +346,26 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  const estimatedTotal: number | null = baseTotal !== null
-    ? Math.max(0, baseTotal - (discountAmount ?? 0)) + extrasTotal
+  // One-way fee: only when pickup and dropoff differ and both are provided
+  let oneWayFee: number | undefined;
+  const pickupLocId = body.pickupLocationId ? Number(body.pickupLocationId) : null;
+  const dropoffLocId = body.dropoffLocationId ? Number(body.dropoffLocationId) : null;
+  if (pickupLocId && dropoffLocId && pickupLocId !== dropoffLocId) {
+    const { rows: feeRows } = await pool.query(
+      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
+      [pickupLocId, dropoffLocId],
+    );
+    if (feeRows[0] && Number(feeRows[0].fee) > 0) {
+      oneWayFee = Number(feeRows[0].fee);
+    }
+  }
+
+  // Price order: base rental → promo (rental only) → one-way fee added last
+  const rentalAfterPromo: number | null = baseTotal !== null
+    ? Math.max(0, baseTotal - (discountAmount ?? 0))
+    : null;
+  const estimatedTotal: number | null = rentalAfterPromo !== null
+    ? rentalAfterPromo + extrasTotal + (oneWayFee ?? 0)
     : null;
 
   return res.json({
@@ -360,6 +381,7 @@ router.post("/public/quote", async (req, res) => {
     promoDiscountType,
     promoDiscountValue,
     discountAmount,
+    ...(oneWayFee !== undefined ? { oneWayFee } : {}),
     estimatedTotal,
   });
 });
@@ -451,7 +473,7 @@ router.post("/public/bookings", async (req, res) => {
     }
   }
 
-  const rentalDays = Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24));
+  const rentalDays = calculateChargeableDays(pickupDate, dropoffDate);
   let extrasTotal = 0;
   const validatedExtras: Array<{ extraId: number; quantity: number; price: number; name: string; pricingType: string }> = [];
   if (body.extras && body.extras.length > 0) {
@@ -475,6 +497,19 @@ router.post("/public/bookings", async (req, res) => {
 
   const contactFullName = `${body.firstName!.trim()} ${body.lastName!.trim()}`;
   const currency = body.currency ?? "GEL";
+
+  // Resolve one-way fee server-side — do NOT trust client-supplied value
+  let resolvedOneWayFee: number | null = null;
+  if (body.pickupLocationId && body.dropoffLocationId &&
+      Number(body.pickupLocationId) !== Number(body.dropoffLocationId)) {
+    const { rows: owfRows } = await pool.query(
+      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
+      [Number(body.pickupLocationId), Number(body.dropoffLocationId)],
+    );
+    if (owfRows[0] && Number(owfRows[0].fee) > 0) {
+      resolvedOneWayFee = Number(owfRows[0].fee);
+    }
+  }
 
   const totalAmount: string | null = body.resolvedTotal != null
     ? String(body.resolvedTotal)
@@ -522,6 +557,7 @@ router.post("/public/bookings", async (req, res) => {
     rateId: body.resolvedRateId ?? null,
     rateTierId: body.resolvedRateTierId ?? null,
     baseRate: body.resolvedBaseRate != null ? String(body.resolvedBaseRate) : null,
+    oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
   });
 
   if (validatedExtras.length > 0) {

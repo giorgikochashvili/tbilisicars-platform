@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListLocations,
@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, MapPin } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, MapPin, ArrowRightLeft } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function LocationsPage() {
@@ -37,6 +37,67 @@ export default function LocationsPage() {
   const createMutation = useCreateAdminLocation(reqOpts);
   const updateMutation = useUpdateAdminLocation(reqOpts);
   const deleteMutation = useDeleteAdminLocation(reqOpts);
+
+  // ── One Way Fees state ──────────────────────────────────────────────────────
+  const [owfList, setOwfList] = useState<any[]>([]);
+  const [owfLoading, setOwfLoading] = useState(true);
+  const [owfForm, setOwfForm] = useState({ fromLocationId: "", toLocationId: "", fee: "", currency: "GEL" });
+  const [owfSaving, setOwfSaving] = useState(false);
+
+  const loadOwf = useCallback(async () => {
+    try {
+      const r = await fetch("/api/admin/one-way-fees", { credentials: "include" });
+      const data = await r.json();
+      setOwfList(Array.isArray(data) ? data : []);
+    } catch {
+      setOwfList([]);
+    } finally {
+      setOwfLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadOwf(); }, [loadOwf]);
+
+  const handleOwfAdd = async () => {
+    if (!owfForm.fromLocationId || !owfForm.toLocationId || !owfForm.fee) {
+      toast({ title: "Error", description: "From, To, and Fee are required", variant: "destructive" });
+      return;
+    }
+    setOwfSaving(true);
+    try {
+      const r = await fetch("/api/admin/one-way-fees", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromLocationId: Number(owfForm.fromLocationId),
+          toLocationId: Number(owfForm.toLocationId),
+          fee: owfForm.fee,
+          currency: owfForm.currency || "GEL",
+        }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error ?? "Failed"); }
+      toast({ title: "Success", description: "One-way fee added" });
+      setOwfForm({ fromLocationId: "", toLocationId: "", fee: "", currency: "GEL" });
+      await loadOwf();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setOwfSaving(false);
+    }
+  };
+
+  const handleOwfDelete = async (id: number) => {
+    if (!confirm("Delete this one-way fee?")) return;
+    try {
+      const r = await fetch(`/api/admin/one-way-fees/${id}`, { method: "DELETE", credentials: "include" });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error ?? "Failed"); }
+      toast({ title: "Success", description: "One-way fee deleted" });
+      await loadOwf();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+  // ───────────────────────────────────────────────────────────────────────────
 
   const handleOpenModal = (loc: any = null) => {
     if (loc) {
@@ -208,6 +269,135 @@ export default function LocationsPage() {
           </Table>
         </div>
       </Card>
+
+      {/* ── One Way Fees section ────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <ArrowRightLeft className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-bold font-display tracking-tight">One Way Fees</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Fees charged when a vehicle is dropped off at a different location than picked up.
+          The promo discount does not apply to these fees.
+        </p>
+        <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm mb-4">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="border-border/40 hover:bg-transparent">
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Fee</TableHead>
+                  <TableHead>Currency</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {owfLoading ? (
+                  Array.from({ length: 2 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : owfList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      No one-way fees configured
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  owfList.map((owf: any) => {
+                    const fromLoc = (locations as any[])?.find((l: any) => l.id === owf.fromLocationId);
+                    const toLoc = (locations as any[])?.find((l: any) => l.id === owf.toLocationId);
+                    return (
+                      <TableRow key={owf.id} className="border-border/20 hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-medium">{fromLoc?.name ?? `#${owf.fromLocationId}`}</TableCell>
+                        <TableCell className="font-medium">{toLoc?.name ?? `#${owf.toLocationId}`}</TableCell>
+                        <TableCell>{Number(owf.fee).toLocaleString("en-US", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-muted-foreground">{owf.currency}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleOwfDelete(owf.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+
+        {/* Add One Way Fee form */}
+        <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Add One Way Fee</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+              <div className="grid gap-1">
+                <Label className="text-xs">From Location</Label>
+                <Select value={owfForm.fromLocationId} onValueChange={(v) => setOwfForm({ ...owfForm, fromLocationId: v })}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(locations as any[] ?? []).map((l: any) => (
+                      <SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">To Location</Label>
+                <Select value={owfForm.toLocationId} onValueChange={(v) => setOwfForm({ ...owfForm, toLocationId: v })}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(locations as any[] ?? []).map((l: any) => (
+                      <SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Fee</Label>
+                <Input
+                  className="h-8 text-xs" type="number" step="0.01" min="0" placeholder="e.g. 50"
+                  value={owfForm.fee} onChange={(e) => setOwfForm({ ...owfForm, fee: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Currency</Label>
+                <div className="flex gap-2">
+                  <Select value={owfForm.currency} onValueChange={(v) => setOwfForm({ ...owfForm, currency: v })}>
+                    <SelectTrigger className="h-8 text-xs flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GEL">GEL</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" className="h-8 px-3 shrink-0" onClick={handleOwfAdd} disabled={owfSaving}>
+                    <Plus className="w-3 h-3 mr-1" />{owfSaving ? "..." : "Add"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
