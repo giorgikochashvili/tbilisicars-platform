@@ -138,6 +138,14 @@ export async function createAdminRateTier(
       if (conflictParentId === rateId) {
         continue;
       }
+      // Allow: same-hierarchy siblings — both children of the same parent may share model coverage
+      if (
+        currentRate.parentRateId != null &&
+        conflictParentId != null &&
+        conflictParentId === currentRate.parentRateId
+      ) {
+        continue;
+      }
 
       throw new ValidationError(
         `A WEB rate "${conflict.conflicting_rate_name}" already has pricing for this vehicle model covering the same date period (${currentRate.validFrom} – ${currentRate.validUntil}). Remove that tier or adjust the date range to avoid overlap.`,

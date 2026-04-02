@@ -708,6 +708,7 @@ export default function RatesPage() {
         );
       });
 
+      let tierFailCount = 0;
       if (newRate?.id && childTiers.length > 0) {
         for (const tier of childTiers) {
           try {
@@ -726,19 +727,22 @@ export default function RatesPage() {
                 { onSuccess: () => resolve(), onError: reject },
               );
             });
-          } catch (tierErr: unknown) {
-            const msg = tierErr instanceof Error ? tierErr.message : "unknown error";
-            toast({
-              title: "Warning",
-              description: `Rate created but a tier failed: ${msg}`,
-              variant: "destructive",
-            });
+          } catch {
+            tierFailCount += 1;
           }
         }
       }
 
-      toast({ title: "Success", description: "Child rate created with tiers" });
       queryClient.invalidateQueries();
+      if (tierFailCount > 0) {
+        toast({
+          title: "Partial success",
+          description: `Child rate created, but ${tierFailCount} of ${childTiers.length} tier(s) failed to copy. Open the rate to review and add missing tiers manually.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Success", description: "Child rate created with tiers" });
+      }
       setIsChildModalOpen(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to create child rate";
