@@ -417,19 +417,20 @@ export default function TeamPage() {
       toast({ title: "Validation Error", description: "Name is required", variant: "destructive" });
       return;
     }
+    if (!memberForm.roleId) {
+      toast({ title: "Validation Error", description: "Please select a role for this member", variant: "destructive" });
+      return;
+    }
+
     const payload: Record<string, unknown> = {
       fullName,
       username: memberForm.username,
       email: memberForm.email,
       phoneNumber: memberForm.phoneNumber || null,
       isActive: memberForm.isActive,
+      roleId: Number(memberForm.roleId),
     };
     if (memberForm.password) payload.password = memberForm.password;
-    if (memberForm.roleId) {
-      payload.roleId = Number(memberForm.roleId);
-      const role = rolesForEdit.find((r) => r.id === Number(memberForm.roleId));
-      if (role) payload.adminRole = inferLegacyRole(role.name);
-    }
 
     if (editingMemberId !== null) {
       updateMemberMutation.mutate({ id: editingMemberId, payload });
@@ -935,13 +936,3 @@ function permKeyToLabel(key: string): string {
   return key;
 }
 
-const SYSTEM_ROLE_TO_ENUM: Record<string, LegacyAdminRole> = {
-  "Admin": "admin",
-  "Regional Manager": "regional_manager",
-  "Service Manager": "service_manager",
-  "Rental Agent": "rental_agent",
-};
-
-function inferLegacyRole(roleName: string): LegacyAdminRole {
-  return SYSTEM_ROLE_TO_ENUM[roleName] ?? "rental_agent";
-}

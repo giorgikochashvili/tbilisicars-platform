@@ -1,8 +1,9 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, Link } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Loader2, ShieldOff } from "lucide-react";
+import { Loader2, ShieldOff, LayoutDashboard } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
@@ -45,7 +46,7 @@ const queryClient = new QueryClient({
 
 function AccessDenied() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center">
       <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
         <ShieldOff className="w-8 h-8 text-red-500" />
       </div>
@@ -55,6 +56,12 @@ function AccessDenied() {
           You don't have permission to access this section. Contact your administrator to request access.
         </p>
       </div>
+      <Link href="/dashboard">
+        <Button variant="outline">
+          <LayoutDashboard className="w-4 h-4 mr-2" />
+          Go to Dashboard
+        </Button>
+      </Link>
     </div>
   );
 }

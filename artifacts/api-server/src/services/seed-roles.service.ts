@@ -1,5 +1,5 @@
 import { db, adminsTable, adminRolesTable, adminRolePermissionsTable } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const PERMISSION_KEYS = [
   "canManageVehicles",
@@ -26,7 +26,6 @@ const PERMISSION_KEYS = [
 ] as const;
 
 type PermissionKey = (typeof PERMISSION_KEYS)[number];
-
 type RolePermissions = Record<PermissionKey, boolean>;
 
 const SYSTEM_ROLES: Array<{
@@ -154,6 +153,13 @@ const SYSTEM_ROLES: Array<{
   },
 ];
 
+const SYSTEM_ROLE_ENUM: Record<string, "admin" | "regional_manager" | "service_manager" | "rental_agent"> = {
+  "Admin": "admin",
+  "Regional Manager": "regional_manager",
+  "Service Manager": "service_manager",
+  "Rental Agent": "rental_agent",
+};
+
 function buildPermissionUpdate(permissions: RolePermissions): Record<string, boolean> {
   const update: Record<string, boolean> = {};
   for (const key of PERMISSION_KEYS) {
@@ -168,29 +174,29 @@ export async function seedSystemRoles(): Promise<void> {
   const enumToRoleId: Record<string, number> = {};
 
   for (const roleSpec of SYSTEM_ROLES) {
-    const [existing] = await db
-      .select({ id: adminRolesTable.id })
-      .from(adminRolesTable)
-      .where(eq(adminRolesTable.name, roleSpec.name))
-      .limit(1);
+    const [upserted] = await db
+      .insert(adminRolesTable)
+      .values({
+        name: roleSpec.name,
+        description: roleSpec.description,
+        color: roleSpec.color,
+        isSystem: true,
+        isActive: true,
+      })
+      .onConflictDoNothing()
+      .returning({ id: adminRolesTable.id });
 
     let roleId: number;
-
-    if (existing) {
-      roleId = existing.id;
-    } else {
-      const [inserted] = await db
-        .insert(adminRolesTable)
-        .values({
-          name: roleSpec.name,
-          description: roleSpec.description,
-          color: roleSpec.color,
-          isSystem: true,
-          isActive: true,
-        })
-        .returning({ id: adminRolesTable.id });
-      roleId = inserted!.id;
+    if (upserted) {
+      roleId = upserted.id;
       console.log(`[seed-roles] Created system role: ${roleSpec.name} (id=${roleId})`);
+    } else {
+      const [existing] = await db
+        .select({ id: adminRolesTable.id })
+        .from(adminRolesTable)
+        .where(eq(adminRolesTable.name, roleSpec.name))
+        .limit(1);
+      roleId = existing!.id;
     }
 
     enumToRoleId[roleSpec.enumValue] = roleId;
@@ -198,21 +204,13 @@ export async function seedSystemRoles(): Promise<void> {
     for (const key of PERMISSION_KEYS) {
       await db
         .insert(adminRolePermissionsTable)
-        .values({
-          roleId,
-          permissionKey: key,
-          granted: roleSpec.permissions[key],
-        })
+        .values({ roleId, permissionKey: key, granted: roleSpec.permissions[key] })
         .onConflictDoNothing();
     }
   }
 
   const allAdmins = await db
-    .select({
-      id: adminsTable.id,
-      adminRole: adminsTable.adminRole,
-      roleId: adminsTable.roleId,
-    })
+    .select({ id: adminsTable.id, adminRole: adminsTable.adminRole, roleId: adminsTable.roleId })
     .from(adminsTable);
 
   for (const admin of allAdmins) {
@@ -226,17 +224,13 @@ export async function seedSystemRoles(): Promise<void> {
 
     await db
       .update(adminsTable)
-      .set({
-        roleId: assignedRoleId,
-        ...buildPermissionUpdate(roleSpec.permissions),
-        updatedAt: new Date(),
-      })
+      .set({ roleId: assignedRoleId, ...buildPermissionUpdate(roleSpec.permissions), updatedAt: new Date() })
       .where(eq(adminsTable.id, admin.id));
 
-    console.log(
-      `[seed-roles] Backfilled admin id=${admin.id} → role "${roleSpec.name}" (roleId=${assignedRoleId})`,
-    );
+    console.log(`[seed-roles] Backfilled admin id=${admin.id} → role "${roleSpec.name}" (roleId=${assignedRoleId})`);
   }
 
   console.log("[seed-roles] Done.");
 }
+
+export { SYSTEM_ROLE_ENUM };

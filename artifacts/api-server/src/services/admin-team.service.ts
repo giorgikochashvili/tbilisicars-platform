@@ -1,8 +1,9 @@
-import { db, adminsTable, adminRolePermissionsTable } from "@workspace/db";
+import { db, adminsTable, adminRolesTable, adminRolePermissionsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { NotFoundError } from "../lib/errors.js";
 import { ALL_PERMISSION_KEYS } from "./admin-roles.service.js";
+import { SYSTEM_ROLE_ENUM } from "./seed-roles.service.js";
 
 type LegacyRole = "admin" | "regional_manager" | "service_manager" | "rental_agent";
 
@@ -66,22 +67,37 @@ const MEMBER_COLUMNS = {
   updatedAt: adminsTable.updatedAt,
 } as const;
 
-async function resolveRolePermissions(roleId: number): Promise<AdminPermissionUpdate> {
-  const rows = await db
+async function loadRoleData(roleId: number): Promise<{
+  name: string;
+  adminRole: LegacyRole;
+  permissions: AdminPermissionUpdate;
+}> {
+  const [role] = await db
+    .select({ name: adminRolesTable.name })
+    .from(adminRolesTable)
+    .where(eq(adminRolesTable.id, roleId))
+    .limit(1);
+
+  if (!role) throw Object.assign(new Error(`Role ${roleId} not found`), { statusCode: 400 });
+
+  const perms = await db
     .select()
     .from(adminRolePermissionsTable)
     .where(eq(adminRolePermissionsTable.roleId, roleId));
 
-  const roleMap: Record<string, boolean> = {};
-  for (const row of rows) {
-    roleMap[row.permissionKey] = row.granted;
+  const permMap: Record<string, boolean> = {};
+  for (const p of perms) permMap[p.permissionKey] = p.granted;
+
+  const fullPerms: AdminPermissionUpdate = {};
+  for (const key of ALL_PERMISSION_KEYS) {
+    (fullPerms as Record<string, boolean>)[key] = permMap[key] ?? false;
   }
 
-  const result: AdminPermissionUpdate = {};
-  for (const key of ALL_PERMISSION_KEYS) {
-    (result as Record<string, boolean>)[key] = roleMap[key] ?? false;
-  }
-  return result;
+  return {
+    name: role.name,
+    adminRole: SYSTEM_ROLE_ENUM[role.name] ?? "rental_agent",
+    permissions: fullPerms,
+  };
 }
 
 export async function listAdminTeam() {
@@ -107,14 +123,10 @@ export async function createAdminTeamMember(data: {
   password: string;
   phoneNumber?: string | null;
   isActive?: boolean;
-  adminRole?: LegacyRole;
-  roleId?: number | null;
+  roleId: number;
 }) {
   const hashedPassword = await bcrypt.hash(data.password, 12);
-
-  const permValues: AdminPermissionUpdate = data.roleId
-    ? await resolveRolePermissions(data.roleId)
-    : {};
+  const { adminRole, permissions } = await loadRoleData(data.roleId);
 
   const [row] = await db
     .insert(adminsTable)
@@ -125,9 +137,9 @@ export async function createAdminTeamMember(data: {
       hashedPassword,
       phoneNumber: data.phoneNumber ?? null,
       isActive: data.isActive ?? true,
-      adminRole: data.adminRole ?? "rental_agent",
-      roleId: data.roleId ?? null,
-      ...permValues,
+      adminRole,
+      roleId: data.roleId,
+      ...permissions,
     })
     .returning({ id: adminsTable.id });
 
@@ -143,8 +155,7 @@ export async function updateAdminTeamMember(
     password: string;
     phoneNumber: string | null;
     isActive: boolean;
-    adminRole: LegacyRole;
-    roleId: number | null;
+    roleId: number;
   }>,
 ) {
   type DrizzleAdminUpdate = {
@@ -156,7 +167,7 @@ export async function updateAdminTeamMember(
     phoneNumber?: string | null;
     isActive?: boolean;
     adminRole?: LegacyRole;
-    roleId?: number | null;
+    roleId?: number;
   } & AdminPermissionUpdate;
 
   const update: DrizzleAdminUpdate = { updatedAt: new Date() };
@@ -166,15 +177,13 @@ export async function updateAdminTeamMember(
   if (data.fullName !== undefined) update.fullName = data.fullName;
   if (data.phoneNumber !== undefined) update.phoneNumber = data.phoneNumber;
   if (data.isActive !== undefined) update.isActive = data.isActive;
-  if (data.adminRole !== undefined) update.adminRole = data.adminRole;
   if (data.password) update.hashedPassword = await bcrypt.hash(data.password, 12);
 
   if (data.roleId !== undefined) {
+    const { adminRole, permissions } = await loadRoleData(data.roleId);
     update.roleId = data.roleId;
-    if (data.roleId !== null) {
-      const perms = await resolveRolePermissions(data.roleId);
-      Object.assign(update, perms);
-    }
+    update.adminRole = adminRole;
+    Object.assign(update, permissions);
   }
 
   const [row] = await db
