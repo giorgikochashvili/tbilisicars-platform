@@ -1,5 +1,5 @@
 import { db, pool, rateTable, ratetierTable, ratedayrangeTable } from "@workspace/db";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { NotFoundError, ValidationError } from "../lib/errors.js";
 
 export async function listAllRates() {
@@ -94,6 +94,19 @@ export async function deleteAdminRate(id: number) {
   return { message: "Rate deleted" };
 }
 
+export async function createAdminRateDayRange(
+  rateId: number,
+  data: { fromDays: number; toDays?: number | null; label?: string | null },
+) {
+  const rate = await getAdminRate(rateId);
+  if (!rate) throw new NotFoundError(`Rate ${rateId} not found`);
+  const [row] = await db
+    .insert(ratedayrangeTable)
+    .values({ rateId, fromDays: data.fromDays, toDays: data.toDays ?? null, label: data.label ?? null })
+    .returning();
+  return row!;
+}
+
 export async function bulkSetAdminRateDayRanges(
   rateId: number,
   ranges: Array<{ fromDays: number; toDays?: number | null; label?: string | null }>,
@@ -114,9 +127,9 @@ export async function bulkSetAdminRateDayRanges(
 export async function deleteAdminRateDayRange(rateId: number, rangeId: number) {
   const [row] = await db
     .delete(ratedayrangeTable)
-    .where(eq(ratedayrangeTable.id, rangeId))
+    .where(and(eq(ratedayrangeTable.id, rangeId), eq(ratedayrangeTable.rateId, rateId)))
     .returning();
-  if (!row) throw new NotFoundError(`Day range ${rangeId} not found`);
+  if (!row) throw new NotFoundError(`Day range ${rangeId} not found for rate ${rateId}`);
   return { message: "Day range deleted" };
 }
 

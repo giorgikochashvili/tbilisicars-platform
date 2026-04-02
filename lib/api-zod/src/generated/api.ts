@@ -1480,6 +1480,18 @@ export const DeleteAdminRateResponse = zod.object({
   message: zod.string(),
 });
 
+export const CreateRateDayRangeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateRateDayRangeBody = zod.object({
+  fromDays: zod.number(),
+  toDays: zod.number().optional().nullable(),
+  label: zod.string().optional().nullable(),
+});
+
+export const CreateRateDayRangeResponse = AdminRateDayRangeItem;
+
 export const BulkSetRateDayRangesParams = zod.object({
   id: zod.coerce.number(),
 });

@@ -14,6 +14,8 @@ import {
   UpdateAdminRateTierBody,
   UpdateAdminRateTierResponse,
   DeleteAdminRateTierParams,
+  CreateRateDayRangeParams,
+  CreateRateDayRangeBody,
   BulkSetRateDayRangesParams,
   BulkSetRateDayRangesBody,
   DeleteRateDayRangeParams,
@@ -29,6 +31,7 @@ import {
   createAdminRateTier,
   updateAdminRateTier,
   deleteAdminRateTier,
+  createAdminRateDayRange,
   bulkSetAdminRateDayRanges,
   deleteAdminRateDayRange,
 } from "../services/admin-rates.service.js";
@@ -63,6 +66,13 @@ router.delete("/admin/rates/:id", requireAdmin, requirePermission("canManageRate
   const { id } = DeleteAdminRateParams.parse({ id: req.params.id });
   const result = await deleteAdminRate(id);
   res.json(result);
+});
+
+router.post("/admin/rates/:id/day-ranges", requireAdmin, requirePermission("canManageRates"), async (req, res) => {
+  const { id } = CreateRateDayRangeParams.parse({ id: req.params.id });
+  const body = CreateRateDayRangeBody.parse(req.body);
+  const result = await createAdminRateDayRange(id, body);
+  res.status(201).json(result);
 });
 
 router.put("/admin/rates/:id/day-ranges", requireAdmin, requirePermission("canManageRates"), async (req, res) => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAdminRates,
@@ -154,10 +154,11 @@ function ModelPricingGrid({
   tiers: RateTierItem[];
   dayRanges: RateDayRange[];
 }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingModelId, setEditingModelId] = useState<number | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState("");
-  const [prices, setPrices] = useState<Record<string, string>>({});
+  const [newModelPrices, setNewModelPrices] = useState<Record<string, string>>({});
+  // Track in-progress edits separately from stored values
+  const [dirtyValues, setDirtyValues] = useState<Record<string, string>>({});
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -180,89 +181,66 @@ function ModelPricingGrid({
         (t.toDays ?? null) === (range.toDays ?? null),
     );
 
-  const openAddModal = () => {
-    setEditingModelId(null);
-    setSelectedModelId("");
-    setPrices({});
-    setIsModalOpen(true);
+  // Derive display value: dirty (in-progress) override, else stored tier value
+  const getCellValue = (modelId: number, range: RateDayRange): string => {
+    const key = `${modelId}-${getRangeKey(range)}`;
+    if (key in dirtyValues) return dirtyValues[key];
+    const tier = getTierForModelAndRange(modelId, range);
+    return tier?.pricePerDay?.toString() ?? "";
   };
 
-  const openEditModal = (modelId: number) => {
-    setEditingModelId(modelId);
-    setSelectedModelId(modelId.toString());
-    const initial: Record<string, string> = {};
-    for (const range of dayRanges) {
-      const tier = getTierForModelAndRange(modelId, range);
-      initial[getRangeKey(range)] = tier?.pricePerDay?.toString() ?? "";
-    }
-    setPrices(initial);
-    setIsModalOpen(true);
+  const handleCellChange = (modelId: number, range: RateDayRange, value: string) => {
+    const key = `${modelId}-${getRangeKey(range)}`;
+    setDirtyValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveModel = async () => {
-    if (!selectedModelId) {
-      toast({ title: "Error", description: "Select a vehicle model", variant: "destructive" });
-      return;
-    }
-    const modelId = parseInt(selectedModelId);
-    let failCount = 0;
+  const handleCellBlur = async (modelId: number, range: RateDayRange, value: string) => {
+    const key = `${modelId}-${getRangeKey(range)}`;
+    const existingTier = getTierForModelAndRange(modelId, range);
+    const storedValue = existingTier?.pricePerDay?.toString() ?? "";
 
-    for (const range of dayRanges) {
-      const key = getRangeKey(range);
-      const priceRaw = prices[key];
-      if (priceRaw === undefined || priceRaw === "") continue;
+    // Remove from dirty state regardless
+    setDirtyValues((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
 
-      const pricePerDay = String(parseFloat(priceRaw) || 0);
-      const existingTier = getTierForModelAndRange(modelId, range);
+    if (value === storedValue || value === "") return;
 
-      try {
-        if (existingTier) {
-          await new Promise<void>((resolve, reject) => {
-            updateTierMutation.mutate(
-              {
-                id: rateId,
-                tierId: existingTier.id,
-                data: { pricePerDay, vehicleModelId: modelId },
+    const pricePerDay = String(parseFloat(value) || 0);
+    try {
+      if (existingTier) {
+        await new Promise<void>((resolve, reject) => {
+          updateTierMutation.mutate(
+            { id: rateId, tierId: existingTier.id, data: { pricePerDay } },
+            { onSuccess: () => resolve(), onError: reject },
+          );
+        });
+      } else {
+        await new Promise<void>((resolve, reject) => {
+          createTierMutation.mutate(
+            {
+              id: rateId,
+              data: {
+                vehicleModelId: modelId,
+                fromDays: range.fromDays,
+                toDays: range.toDays ?? undefined,
+                pricePerDay,
+                currency: "EUR",
               },
-              { onSuccess: () => resolve(), onError: reject },
-            );
-          });
-        } else {
-          await new Promise<void>((resolve, reject) => {
-            createTierMutation.mutate(
-              {
-                id: rateId,
-                data: {
-                  vehicleModelId: modelId,
-                  fromDays: range.fromDays,
-                  toDays: range.toDays ?? undefined,
-                  pricePerDay,
-                  currency: "EUR",
-                },
-              },
-              { onSuccess: () => resolve(), onError: reject },
-            );
-          });
-        }
-      } catch {
-        failCount++;
+            },
+            { onSuccess: () => resolve(), onError: reject },
+          );
+        });
       }
+      queryClient.invalidateQueries();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save price";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Revert to stored value on error
+      setDirtyValues((prev) => ({ ...prev, [key]: storedValue }));
     }
-
-    queryClient.invalidateQueries();
-    if (failCount > 0) {
-      toast({
-        title: "Partial success",
-        description: `${failCount} day range(s) failed to save`,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: editingModelId ? "Model pricing updated" : "Model added",
-      });
-    }
-    setIsModalOpen(false);
   };
 
   const handleRemoveModel = (modelId: number) => {
@@ -295,6 +273,55 @@ function ModelPricingGrid({
     });
   };
 
+  const handleAddModel = async () => {
+    if (!selectedModelId) {
+      toast({ title: "Error", description: "Select a vehicle model", variant: "destructive" });
+      return;
+    }
+    const modelId = parseInt(selectedModelId);
+    let failCount = 0;
+
+    for (const range of dayRanges) {
+      const key = getRangeKey(range);
+      const priceRaw = newModelPrices[key];
+      if (priceRaw === undefined || priceRaw === "") continue;
+      const pricePerDay = String(parseFloat(priceRaw) || 0);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          createTierMutation.mutate(
+            {
+              id: rateId,
+              data: {
+                vehicleModelId: modelId,
+                fromDays: range.fromDays,
+                toDays: range.toDays ?? undefined,
+                pricePerDay,
+                currency: "EUR",
+              },
+            },
+            { onSuccess: () => resolve(), onError: reject },
+          );
+        });
+      } catch {
+        failCount++;
+      }
+    }
+
+    queryClient.invalidateQueries();
+    if (failCount > 0) {
+      toast({
+        title: "Partial success",
+        description: `${failCount} day range(s) failed to save`,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Success", description: "Model added" });
+    }
+    setIsAddModalOpen(false);
+    setSelectedModelId("");
+    setNewModelPrices({});
+  };
+
   const usedModelIds = new Set(modelIds);
   const availableModels = models.filter((m) => !usedModelIds.has(m.id));
 
@@ -302,7 +329,7 @@ function ModelPricingGrid({
     <div className="p-4 bg-muted/10 border-t border-border/40">
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-sm font-semibold font-display">Model Pricing Grid</h4>
-        <Button size="sm" variant="outline" onClick={openAddModal} className="h-8">
+        <Button size="sm" variant="outline" onClick={() => { setSelectedModelId(""); setNewModelPrices({}); setIsAddModalOpen(true); }} className="h-8">
           <ListPlus className="w-3 h-3 mr-2" /> Add Model
         </Button>
       </div>
@@ -322,50 +349,38 @@ function ModelPricingGrid({
               <TableRow className="border-border/40 hover:bg-transparent text-xs">
                 <TableHead>Model</TableHead>
                 {dayRanges.map((r) => (
-                  <TableHead key={r.id} className="text-center min-w-[80px]">
+                  <TableHead key={r.id} className="text-center min-w-[96px]">
                     {formatRangeLabel(r)}
                   </TableHead>
                 ))}
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {modelIds.map((modelId) => {
                 const model = models.find((m) => m.id === modelId);
                 return (
-                  <TableRow
-                    key={modelId}
-                    className="border-border/20 hover:bg-muted/30 text-sm"
-                  >
-                    <TableCell className="font-medium">
+                  <TableRow key={modelId} className="border-border/20 hover:bg-muted/20 text-sm">
+                    <TableCell className="font-medium text-xs">
                       {model
                         ? `${model.brand?.name ?? ""} ${model.name}`.trim()
                         : `Model #${modelId}`}
                     </TableCell>
-                    {dayRanges.map((range) => {
-                      const tier = getTierForModelAndRange(modelId, range);
-                      return (
-                        <TableCell
-                          key={range.id}
-                          className="text-center font-mono text-xs"
-                        >
-                          {tier ? (
-                            formatBookingAmount(tier.pricePerDay, "EUR")
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditModal(modelId)}
-                        className="h-6 w-6"
-                      >
-                        <Edit className="w-3 h-3 text-muted-foreground" />
-                      </Button>
+                    {dayRanges.map((range) => (
+                      <TableCell key={range.id} className="py-1 px-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="h-7 w-24 text-xs font-mono text-center"
+                          placeholder="—"
+                          value={getCellValue(modelId, range)}
+                          onChange={(e) => handleCellChange(modelId, range, e.target.value)}
+                          onBlur={(e) => handleCellBlur(modelId, range, e.target.value)}
+                        />
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right py-1 px-2">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -383,29 +398,24 @@ function ModelPricingGrid({
         </div>
       )}
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      {/* Add Model modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingModelId ? "Edit Model Pricing" : "Add Model"}</DialogTitle>
+            <DialogTitle>Add Model</DialogTitle>
             <DialogDescription>
-              {editingModelId
-                ? "Update the per-day prices for each day range."
-                : "Pick a model and set pricing for each day range."}
+              Pick a model and enter initial prices for each day range. You can edit prices inline in the grid afterwards.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Vehicle Model</Label>
-              <Select
-                value={selectedModelId}
-                onValueChange={setSelectedModelId}
-                disabled={editingModelId !== null}
-              >
+              <Select value={selectedModelId} onValueChange={setSelectedModelId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select model…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(editingModelId !== null ? models : availableModels).map((m) => (
+                  {availableModels.map((m) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
                       {m.brand?.name} {m.name}
                     </SelectItem>
@@ -418,16 +428,14 @@ function ModelPricingGrid({
               const key = getRangeKey(range);
               return (
                 <div key={range.id} className="grid gap-2">
-                  <Label>
-                    {formatRangeLabel(range)} — Price / Day (€)
-                  </Label>
+                  <Label>{formatRangeLabel(range)} — Price / Day (€)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={prices[key] ?? ""}
+                    value={newModelPrices[key] ?? ""}
                     onChange={(e) =>
-                      setPrices((prev) => ({ ...prev, [key]: e.target.value }))
+                      setNewModelPrices((prev) => ({ ...prev, [key]: e.target.value }))
                     }
                   />
                 </div>
@@ -435,10 +443,10 @@ function ModelPricingGrid({
             })}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveModel}>Save</Button>
+            <Button onClick={handleAddModel}>Add Model</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1057,8 +1065,9 @@ export default function RatesPage() {
       }
 
       const isWebParent =
-        payload.rateType === "web" || payload.rateType == null;
-      if (isWebParent && parentDayRanges.length > 0) {
+        (payload.rateType === "web" || payload.rateType == null) &&
+        !(editingRate?.parentRateId);
+      if (isWebParent) {
         const resp = await fetch(`/api/admin/rates/${savedId}/day-ranges`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
