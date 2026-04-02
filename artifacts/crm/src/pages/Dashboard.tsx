@@ -512,7 +512,9 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
               <div className="md:hidden flex flex-col gap-1.5 px-3 py-3 hover:bg-muted/40 transition-colors overflow-hidden">
                 <div className="flex items-center justify-between gap-2 min-w-0">
                   <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground flex-shrink-0">#{b.id}</span>
+                  <span className="font-mono text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-background border border-border/50 rounded flex-shrink-0">
+                    #{b.id}
+                  </span>
                 </div>
                 {b.vehicle ? (
                   <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
@@ -529,10 +531,10 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 <span className="text-xs text-muted-foreground truncate min-w-0">
                   {phone ?? <span className="italic opacity-50">—</span>}
                 </span>
-                <div className="flex items-center gap-1 text-xs font-medium">
-                  <span className="font-mono font-bold text-foreground/80">{routeFrom}</span>
+                <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
+                  <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
                   <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
-                  <span className="font-mono font-bold text-foreground/80">{routeTo}</span>
+                  <span className="font-mono font-bold text-foreground/80 truncate">{routeTo}</span>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
