@@ -42,7 +42,7 @@ interface CalendarData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DAY_PX = 52; // width of each day column in pixels
+const DAY_PX = 44; // width of each day column in pixels
 const LABEL_WIDTH = 220; // width of the vehicle label column
 
 const STATUS_COLORS: Record<BookingStatus, { bar: string; text: string }> = {
@@ -132,7 +132,7 @@ export default function FleetCalendarPage() {
   const todayStr = useMemo(() => toDateStr(today), [today]);
 
   const [rangeSize, setRangeSize] = useState<7 | 14 | 30>(14);
-  const [rangeStart, setRangeStart] = useState<Date>(() => today);
+  const [rangeStart, setRangeStart] = useState<Date>(() => addDays(today, -3));
   const [city, setCity] = useState("all");
 
   const rangeEnd = useMemo(() => addDays(rangeStart, rangeSize - 1), [rangeStart, rangeSize]);
@@ -287,9 +287,9 @@ export default function FleetCalendarPage() {
             <div style={{ minWidth: LABEL_WIDTH + totalGridWidth + 24 }}>
               {/* ── Date header row ── */}
               <div className="flex sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border/40 shadow-sm">
-                {/* Empty vehicle label area */}
+                {/* Empty vehicle label area — sticky left so corner stays fixed during horizontal scroll */}
                 <div
-                  className="flex-shrink-0 border-r border-border/40 bg-muted/20"
+                  className="flex-shrink-0 border-r border-border/40 bg-card sticky left-0 z-30"
                   style={{ width: LABEL_WIDTH }}
                 />
                 {/* Date columns header */}
@@ -328,9 +328,9 @@ export default function FleetCalendarPage() {
                     className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group
                       ${rowHasConflict ? "bg-orange-500/5" : ""}`}
                   >
-                    {/* Vehicle label (fixed left) — click to open Vehicle Detail */}
+                    {/* Vehicle label — sticky left so names stay visible during horizontal scroll */}
                     <div
-                      className="flex-shrink-0 flex flex-col justify-center px-3 py-2 border-r border-border/30 gap-1 bg-card/80 cursor-pointer hover:bg-primary/5 transition-colors group/label"
+                      className="flex-shrink-0 flex flex-col justify-center px-3 py-2 border-r border-border/30 gap-1 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors group/label"
                       style={{ width: LABEL_WIDTH }}
                       onClick={() => setDetailVehicleId(vehicle.id)}
                       title="Open vehicle detail"
