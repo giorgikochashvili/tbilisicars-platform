@@ -1290,6 +1290,16 @@ export const DeleteAdminExtraResponse = zod.object({
  * Returns all rates including inactive ones. Tiers not included in list.
  * @summary List all rates (admin)
  */
+const AdminRateDayRangeItem = zod.object({
+  id: zod.number(),
+  rateId: zod.number(),
+  fromDays: zod.number(),
+  toDays: zod.number().nullable(),
+  label: zod.string().nullable().optional(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
 export const ListAdminRatesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -1311,6 +1321,18 @@ export const ListAdminRatesResponseItem = zod.object({
   priceModifierAppliesToAgreementOnly: zod.boolean().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+  tiers: zod.array(zod.object({
+    id: zod.number(),
+    rateId: zod.number(),
+    vehicleModelId: zod.number(),
+    fromDays: zod.number().nullish(),
+    toDays: zod.number().nullish(),
+    pricePerDay: zod.string(),
+    currency: zod.string().nullish(),
+    createdAt: zod.date(),
+    updatedAt: zod.date(),
+  })).optional(),
+  dayRanges: zod.array(AdminRateDayRangeItem).optional(),
 });
 export const ListAdminRatesResponse = zod.array(ListAdminRatesResponseItem);
 
@@ -1378,6 +1400,7 @@ export const GetAdminRateResponse = zod
           updatedAt: zod.date(),
         }),
       ),
+      dayRanges: zod.array(AdminRateDayRangeItem),
     }),
   );
 
@@ -1442,6 +1465,7 @@ export const UpdateAdminRateResponse = zod
           updatedAt: zod.date(),
         }),
       ),
+      dayRanges: zod.array(AdminRateDayRangeItem),
     }),
   );
 
@@ -1454,6 +1478,27 @@ export const DeleteAdminRateParams = zod.object({
 
 export const DeleteAdminRateResponse = zod.object({
   message: zod.string(),
+});
+
+export const BulkSetRateDayRangesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const BulkSetRateDayRangesBody = zod.object({
+  ranges: zod.array(
+    zod.object({
+      fromDays: zod.number(),
+      toDays: zod.number().optional().nullable(),
+      label: zod.string().optional().nullable(),
+    }),
+  ),
+});
+
+export const BulkSetRateDayRangesResponse = zod.array(AdminRateDayRangeItem);
+
+export const DeleteRateDayRangeParams = zod.object({
+  id: zod.coerce.number(),
+  rangeId: zod.coerce.number(),
 });
 
 /**

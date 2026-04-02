@@ -63,11 +63,387 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBookingAmount } from "@/lib/utils";
 
-// Minimal model type for the tier grid
 interface FleetModel {
   id: number;
   name: string;
   brand?: { name: string } | null;
+}
+
+interface RateDayRange {
+  id: number;
+  rateId: number;
+  fromDays: number;
+  toDays?: number | null;
+  label?: string | null;
+}
+
+interface DraftDayRange {
+  key: string;
+  fromDays: number;
+  toDays: number | null;
+  label: string;
+}
+
+const DEFAULT_DAY_RANGES: DraftDayRange[] = [
+  { key: "d0", fromDays: 1, toDays: 3, label: "1–3 days" },
+  { key: "d1", fromDays: 4, toDays: 7, label: "4–7 days" },
+  { key: "d2", fromDays: 8, toDays: 13, label: "8–13 days" },
+  { key: "d3", fromDays: 14, toDays: null, label: "14+ days" },
+];
+
+interface RateTierItem {
+  id: number;
+  rateId: number;
+  vehicleModelId: number;
+  fromDays?: number | null;
+  toDays?: number | null;
+  pricePerDay: string;
+  currency?: string | null;
+}
+
+interface RateItem {
+  id: number;
+  name: string;
+  description?: string | null;
+  parentRateId?: number | null;
+  rateType?: string | null;
+  validFrom: string;
+  validUntil: string;
+  minDays?: number | null;
+  maxDays?: number | null;
+  isActive?: boolean | null;
+  tiers?: RateTierItem[];
+  dayRanges?: RateDayRange[];
+}
+
+interface CopiedTierRow {
+  vehicleModelId: number;
+  fromDays: number;
+  toDays: number;
+  pricePerDay: string;
+}
+
+interface RateFormData {
+  name: string;
+  description: string;
+  validFrom: string;
+  validUntil: string;
+  minDays: number;
+  maxDays: number;
+  isActive: boolean;
+}
+
+
+function formatRangeLabel(r: RateDayRange | DraftDayRange): string {
+  if (r.label) return r.label;
+  if (!r.toDays) return `${r.fromDays}+ d`;
+  return `${r.fromDays}–${r.toDays} d`;
+}
+
+function getRangeKey(r: RateDayRange | DraftDayRange): string {
+  return `${r.fromDays}-${r.toDays ?? "inf"}`;
+}
+
+
+function ModelPricingGrid({
+  rateId,
+  tiers,
+  dayRanges,
+}: {
+  rateId: number;
+  tiers: RateTierItem[];
+  dayRanges: RateDayRange[];
+}) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingModelId, setEditingModelId] = useState<number | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState("");
+  const [prices, setPrices] = useState<Record<string, string>>({});
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const reqOpts = { request: { credentials: "include" as const } };
+
+  const { data: rawModels } = useListFleetModels(reqOpts);
+  const models = (rawModels ?? []) as FleetModel[];
+
+  const createTierMutation = useCreateAdminRateTier(reqOpts);
+  const updateTierMutation = useUpdateAdminRateTier(reqOpts);
+  const deleteTierMutation = useDeleteAdminRateTier(reqOpts);
+
+  const modelIds = [...new Set(tiers.map((t) => t.vehicleModelId))];
+
+  const getTierForModelAndRange = (modelId: number, range: RateDayRange) =>
+    tiers.find(
+      (t) =>
+        t.vehicleModelId === modelId &&
+        (t.fromDays ?? 1) === range.fromDays &&
+        (t.toDays ?? null) === (range.toDays ?? null),
+    );
+
+  const openAddModal = () => {
+    setEditingModelId(null);
+    setSelectedModelId("");
+    setPrices({});
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (modelId: number) => {
+    setEditingModelId(modelId);
+    setSelectedModelId(modelId.toString());
+    const initial: Record<string, string> = {};
+    for (const range of dayRanges) {
+      const tier = getTierForModelAndRange(modelId, range);
+      initial[getRangeKey(range)] = tier?.pricePerDay?.toString() ?? "";
+    }
+    setPrices(initial);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveModel = async () => {
+    if (!selectedModelId) {
+      toast({ title: "Error", description: "Select a vehicle model", variant: "destructive" });
+      return;
+    }
+    const modelId = parseInt(selectedModelId);
+    let failCount = 0;
+
+    for (const range of dayRanges) {
+      const key = getRangeKey(range);
+      const priceRaw = prices[key];
+      if (priceRaw === undefined || priceRaw === "") continue;
+
+      const pricePerDay = String(parseFloat(priceRaw) || 0);
+      const existingTier = getTierForModelAndRange(modelId, range);
+
+      try {
+        if (existingTier) {
+          await new Promise<void>((resolve, reject) => {
+            updateTierMutation.mutate(
+              {
+                id: rateId,
+                tierId: existingTier.id,
+                data: { pricePerDay, vehicleModelId: modelId },
+              },
+              { onSuccess: () => resolve(), onError: reject },
+            );
+          });
+        } else {
+          await new Promise<void>((resolve, reject) => {
+            createTierMutation.mutate(
+              {
+                id: rateId,
+                data: {
+                  vehicleModelId: modelId,
+                  fromDays: range.fromDays,
+                  toDays: range.toDays ?? undefined,
+                  pricePerDay,
+                  currency: "EUR",
+                },
+              },
+              { onSuccess: () => resolve(), onError: reject },
+            );
+          });
+        }
+      } catch {
+        failCount++;
+      }
+    }
+
+    queryClient.invalidateQueries();
+    if (failCount > 0) {
+      toast({
+        title: "Partial success",
+        description: `${failCount} day range(s) failed to save`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: editingModelId ? "Model pricing updated" : "Model added",
+      });
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleRemoveModel = (modelId: number) => {
+    const modelTiers = tiers.filter((t) => t.vehicleModelId === modelId);
+    if (!confirm(`Remove all ${modelTiers.length} pricing tier(s) for this model?`)) return;
+
+    let failCount = 0;
+    const promises = modelTiers.map((tier) =>
+      new Promise<void>((resolve, reject) => {
+        deleteTierMutation.mutate(
+          { id: rateId, tierId: tier.id },
+          { onSuccess: () => resolve(), onError: reject },
+        );
+      }).catch(() => {
+        failCount++;
+      }),
+    );
+
+    Promise.all(promises).then(() => {
+      queryClient.invalidateQueries();
+      if (failCount > 0) {
+        toast({
+          title: "Partial success",
+          description: `${failCount} tier(s) failed to delete`,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Success", description: "Model removed" });
+      }
+    });
+  };
+
+  const usedModelIds = new Set(modelIds);
+  const availableModels = models.filter((m) => !usedModelIds.has(m.id));
+
+  return (
+    <div className="p-4 bg-muted/10 border-t border-border/40">
+      <div className="flex justify-between items-center mb-3">
+        <h4 className="text-sm font-semibold font-display">Model Pricing Grid</h4>
+        <Button size="sm" variant="outline" onClick={openAddModal} className="h-8">
+          <ListPlus className="w-3 h-3 mr-2" /> Add Model
+        </Button>
+      </div>
+
+      {dayRanges.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md border-border/50">
+          No day ranges configured. Edit this rate to add day ranges first.
+        </div>
+      ) : modelIds.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md border-border/50">
+          No models added. Click "Add Model" to set pricing.
+        </div>
+      ) : (
+        <div className="rounded-md border border-border/50 overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="border-border/40 hover:bg-transparent text-xs">
+                <TableHead>Model</TableHead>
+                {dayRanges.map((r) => (
+                  <TableHead key={r.id} className="text-center min-w-[80px]">
+                    {formatRangeLabel(r)}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {modelIds.map((modelId) => {
+                const model = models.find((m) => m.id === modelId);
+                return (
+                  <TableRow
+                    key={modelId}
+                    className="border-border/20 hover:bg-muted/30 text-sm"
+                  >
+                    <TableCell className="font-medium">
+                      {model
+                        ? `${model.brand?.name ?? ""} ${model.name}`.trim()
+                        : `Model #${modelId}`}
+                    </TableCell>
+                    {dayRanges.map((range) => {
+                      const tier = getTierForModelAndRange(modelId, range);
+                      return (
+                        <TableCell
+                          key={range.id}
+                          className="text-center font-mono text-xs"
+                        >
+                          {tier ? (
+                            formatBookingAmount(tier.pricePerDay, "EUR")
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(modelId)}
+                        className="h-6 w-6"
+                      >
+                        <Edit className="w-3 h-3 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveModel(modelId)}
+                        className="h-6 w-6"
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingModelId ? "Edit Model Pricing" : "Add Model"}</DialogTitle>
+            <DialogDescription>
+              {editingModelId
+                ? "Update the per-day prices for each day range."
+                : "Pick a model and set pricing for each day range."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Vehicle Model</Label>
+              <Select
+                value={selectedModelId}
+                onValueChange={setSelectedModelId}
+                disabled={editingModelId !== null}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select model…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(editingModelId !== null ? models : availableModels).map((m) => (
+                    <SelectItem key={m.id} value={m.id.toString()}>
+                      {m.brand?.name} {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {dayRanges.map((range) => {
+              const key = getRangeKey(range);
+              return (
+                <div key={range.id} className="grid gap-2">
+                  <Label>
+                    {formatRangeLabel(range)} — Price / Day (€)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={prices[key] ?? ""}
+                    onChange={(e) =>
+                      setPrices((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveModel}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 
@@ -344,48 +720,6 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: RateTierItem[] })
 }
 
 
-interface RateTierItem {
-  id: number;
-  rateId: number;
-  vehicleModelId: number;
-  fromDays?: number | null;
-  toDays?: number | null;
-  pricePerDay: string;
-  currency?: string | null;
-}
-
-interface RateItem {
-  id: number;
-  name: string;
-  description?: string | null;
-  parentRateId?: number | null;
-  rateType?: string | null;
-  validFrom: string;
-  validUntil: string;
-  minDays?: number | null;
-  maxDays?: number | null;
-  isActive?: boolean | null;
-  tiers?: RateTierItem[];
-}
-
-interface CopiedTierRow {
-  vehicleModelId: number;
-  fromDays: number;
-  toDays: number;
-  pricePerDay: string;
-}
-
-interface RateFormData {
-  name: string;
-  description: string;
-  validFrom: string;
-  validUntil: string;
-  minDays: number;
-  maxDays: number;
-  isActive: boolean;
-}
-
-
 function ChildTierGrid({
   tiers,
   models,
@@ -470,30 +804,54 @@ function ParentRateForm({
     <div className="grid gap-4">
       <div className="grid gap-2">
         <Label>Name</Label>
-        <Input value={formData.name} onChange={(e) => onChange({ ...formData, name: e.target.value })} />
+        <Input
+          value={formData.name}
+          onChange={(e) => onChange({ ...formData, name: e.target.value })}
+        />
       </div>
       <div className="grid gap-2">
         <Label>Description</Label>
-        <Input value={formData.description} onChange={(e) => onChange({ ...formData, description: e.target.value })} />
+        <Input
+          value={formData.description}
+          onChange={(e) => onChange({ ...formData, description: e.target.value })}
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label>Valid From</Label>
-          <Input type="date" value={formData.validFrom} onChange={(e) => onChange({ ...formData, validFrom: e.target.value })} />
+          <Input
+            type="date"
+            value={formData.validFrom}
+            onChange={(e) => onChange({ ...formData, validFrom: e.target.value })}
+          />
         </div>
         <div className="grid gap-2">
           <Label>Valid Until</Label>
-          <Input type="date" value={formData.validUntil} onChange={(e) => onChange({ ...formData, validUntil: e.target.value })} />
+          <Input
+            type="date"
+            value={formData.validUntil}
+            onChange={(e) => onChange({ ...formData, validUntil: e.target.value })}
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label>Minimum Days</Label>
-          <Input type="number" min="1" value={formData.minDays} onChange={(e) => onChange({ ...formData, minDays: parseInt(e.target.value) || 1 })} />
+          <Input
+            type="number"
+            min="1"
+            value={formData.minDays}
+            onChange={(e) => onChange({ ...formData, minDays: parseInt(e.target.value) || 1 })}
+          />
         </div>
         <div className="grid gap-2">
           <Label>Maximum Days (0 = unlimited)</Label>
-          <Input type="number" min="0" value={formData.maxDays} onChange={(e) => onChange({ ...formData, maxDays: parseInt(e.target.value) || 0 })} />
+          <Input
+            type="number"
+            min="0"
+            value={formData.maxDays}
+            onChange={(e) => onChange({ ...formData, maxDays: parseInt(e.target.value) || 0 })}
+          />
         </div>
       </div>
       <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
@@ -501,7 +859,10 @@ function ParentRateForm({
           <Label className="text-base">Active Status</Label>
           <p className="text-sm text-muted-foreground">Is this rate currently applicable?</p>
         </div>
-        <Switch checked={formData.isActive} onCheckedChange={(val) => onChange({ ...formData, isActive: val })} />
+        <Switch
+          checked={formData.isActive}
+          onCheckedChange={(val) => onChange({ ...formData, isActive: val })}
+        />
       </div>
     </div>
   );
@@ -513,7 +874,13 @@ function ChildRateLoader({
   onParentLoaded,
 }: {
   parentId: number;
-  onParentLoaded: (tiers: CopiedTierRow[], validFrom: string, validUntil: string, minDays: number, maxDays: number) => void;
+  onParentLoaded: (
+    tiers: CopiedTierRow[],
+    validFrom: string,
+    validUntil: string,
+    minDays: number,
+    maxDays: number,
+  ) => void;
 }) {
   const reqOpts = { request: { credentials: "include" as const } };
   const { data: parentDetail } = useGetAdminRate(parentId, reqOpts);
@@ -541,7 +908,6 @@ function ChildRateLoader({
 
 
 type ActiveTab = "web" | "broker";
-type CreationMode = "parent" | "child";
 
 const BLANK_FORM: RateFormData = {
   name: "",
@@ -556,22 +922,20 @@ const BLANK_FORM: RateFormData = {
 export default function RatesPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("web");
 
-  // Chooser dialog (Parent or Child)
   const [isChooserOpen, setIsChooserOpen] = useState(false);
 
-  // Parent / edit rate modal
   const [isParentModalOpen, setIsParentModalOpen] = useState(false);
   const [editingRate, setEditingRate] = useState<RateItem | null>(null);
   const [parentFormData, setParentFormData] = useState<RateFormData>(BLANK_FORM);
+  const [parentDayRanges, setParentDayRanges] = useState<DraftDayRange[]>(DEFAULT_DAY_RANGES);
+  const [isSavingParent, setIsSavingParent] = useState(false);
 
-  // Child rate modal
   const [isChildModalOpen, setIsChildModalOpen] = useState(false);
   const [childParentId, setChildParentId] = useState<string>("");
   const [childFormData, setChildFormData] = useState<RateFormData>(BLANK_FORM);
   const [childTiers, setChildTiers] = useState<CopiedTierRow[]>([]);
   const [isSavingChild, setIsSavingChild] = useState(false);
 
-  // Expand rows
   const [expandedRateId, setExpandedRateId] = useState<number | null>(null);
 
   const queryClient = useQueryClient();
@@ -589,7 +953,6 @@ export default function RatesPage() {
   const deleteMutation = useDeleteAdminRate(reqOpts);
   const createTierMutation = useCreateAdminRateTier(reqOpts);
 
-  // Derived lists
   const webRates = rates.filter((r) => r.rateType === "web" || r.rateType == null);
   const brokerRates = rates.filter((r) => r.rateType != null && r.rateType !== "web");
   const webParentRates = webRates.filter((r) => r.parentRateId == null);
@@ -609,6 +972,27 @@ export default function RatesPage() {
       maxDays: rate.maxDays ?? 0,
       isActive: rate.isActive ?? true,
     });
+
+    const isWebParent =
+      (rate.rateType === "web" || rate.rateType == null) && rate.parentRateId == null;
+    if (isWebParent) {
+      const existing = rate.dayRanges ?? [];
+      if (existing.length > 0) {
+        setParentDayRanges(
+          existing.map((r, i) => ({
+            key: String(r.id ?? i),
+            fromDays: r.fromDays,
+            toDays: r.toDays ?? null,
+            label: r.label ?? "",
+          })),
+        );
+      } else {
+        setParentDayRanges(DEFAULT_DAY_RANGES.map((r) => ({ ...r })));
+      }
+    } else {
+      setParentDayRanges([]);
+    }
+
     setIsParentModalOpen(true);
   };
 
@@ -617,6 +1001,7 @@ export default function RatesPage() {
     setIsChooserOpen(false);
     setEditingRate(null);
     setParentFormData(BLANK_FORM);
+    setParentDayRanges(DEFAULT_DAY_RANGES.map((r) => ({ ...r })));
     setIsParentModalOpen(true);
   };
 
@@ -630,43 +1015,79 @@ export default function RatesPage() {
   };
 
 
-  const handleSaveParent = () => {
+  const handleSaveParent = async () => {
+    if (!parentFormData.name) {
+      toast({ title: "Error", description: "Name is required", variant: "destructive" });
+      return;
+    }
+
     const payload = {
       ...parentFormData,
-      // On create, always web; on edit, preserve existing rateType to avoid corrupting broker rates
       rateType: editingRate ? (editingRate.rateType ?? "web") : "web",
       validFrom: parentFormData.validFrom || undefined,
       validUntil: parentFormData.validUntil || undefined,
     };
 
-    if (editingRate) {
-      updateMutation.mutate(
-        { id: editingRate.id, data: payload },
-        {
-          onSuccess: () => {
-            toast({ title: "Success", description: "Rate updated" });
-            queryClient.invalidateQueries();
-            setIsParentModalOpen(false);
-          },
-          onError: (err: Error) => {
-            toast({ title: "Error", description: err.message || "Failed to update", variant: "destructive" });
-          },
-        },
-      );
-    } else {
-      createMutation.mutate(
-        { data: payload },
-        {
-          onSuccess: () => {
-            toast({ title: "Success", description: "Rate created" });
-            queryClient.invalidateQueries();
-            setIsParentModalOpen(false);
-          },
-          onError: (err: Error) => {
-            toast({ title: "Error", description: err.message || "Failed to create", variant: "destructive" });
-          },
-        },
-      );
+    setIsSavingParent(true);
+    try {
+      let savedId: number;
+
+      if (editingRate) {
+        const updated: RateItem = await new Promise((resolve, reject) => {
+          updateMutation.mutate(
+            { id: editingRate.id, data: payload },
+            {
+              onSuccess: (data: unknown) => resolve(data as RateItem),
+              onError: reject,
+            },
+          );
+        });
+        savedId = updated.id;
+      } else {
+        const created: RateItem = await new Promise((resolve, reject) => {
+          createMutation.mutate(
+            { data: payload },
+            {
+              onSuccess: (data: unknown) => resolve(data as RateItem),
+              onError: reject,
+            },
+          );
+        });
+        savedId = created.id;
+      }
+
+      const isWebParent =
+        payload.rateType === "web" || payload.rateType == null;
+      if (isWebParent && parentDayRanges.length > 0) {
+        const resp = await fetch(`/api/admin/rates/${savedId}/day-ranges`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            ranges: parentDayRanges.map((r) => ({
+              fromDays: r.fromDays,
+              toDays: r.toDays,
+              label: r.label || null,
+            })),
+          }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || "Failed to save day ranges");
+        }
+      }
+
+      queryClient.invalidateQueries();
+      toast({
+        title: "Success",
+        description: editingRate ? "Rate updated" : "Rate created",
+      });
+      setIsParentModalOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save rate";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    } finally {
+      setIsSavingParent(false);
     }
   };
 
@@ -765,6 +1186,25 @@ export default function RatesPage() {
   };
 
 
+  const renderExpandedContent = (rate: RateItem) => {
+    const isWebParent =
+      (rate.rateType === "web" || rate.rateType == null) && rate.parentRateId == null;
+    const hasDayRanges = (rate.dayRanges?.length ?? 0) > 0;
+
+    if (isWebParent && hasDayRanges) {
+      return (
+        <ModelPricingGrid
+          rateId={rate.id}
+          tiers={rate.tiers ?? []}
+          dayRanges={rate.dayRanges ?? []}
+        />
+      );
+    }
+
+    return <RateTiers rateId={rate.id} tiers={rate.tiers ?? []} />;
+  };
+
+
   const renderRateRow = (rate: RateItem) => {
     const isChild = rate.parentRateId != null;
     const parent = isChild ? rateMap.get(rate.parentRateId!) : undefined;
@@ -798,7 +1238,8 @@ export default function RatesPage() {
               </div>
               {isChild && parent && (
                 <span className="text-[11px] text-muted-foreground">
-                  inherits from <span className="font-medium text-foreground/70">{parent.name}</span>
+                  inherits from{" "}
+                  <span className="font-medium text-foreground/70">{parent.name}</span>
                 </span>
               )}
               {rate.description && (
@@ -852,7 +1293,7 @@ export default function RatesPage() {
         {expandedRateId === rate.id && (
           <TableRow className="bg-muted/5 hover:bg-muted/5 border-border/20">
             <TableCell colSpan={7} className="p-0">
-              <RateTiers rateId={rate.id} tiers={rate.tiers ?? []} />
+              {renderExpandedContent(rate)}
             </TableCell>
           </TableRow>
         )}
@@ -861,11 +1302,15 @@ export default function RatesPage() {
   };
 
 
+  const isWebParentModal =
+    !editingRate ||
+    ((editingRate.rateType === "web" || editingRate.rateType == null) &&
+      editingRate.parentRateId == null);
+
   const displayedRates = activeTab === "web" ? webRates : brokerRates;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold font-display tracking-tight flex items-center gap-2">
@@ -880,7 +1325,6 @@ export default function RatesPage() {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-border/50">
         <button
           onClick={() => setActiveTab("web")}
@@ -916,14 +1360,12 @@ export default function RatesPage() {
         </button>
       </div>
 
-      {/* BROKER notice */}
       {activeTab === "broker" && (
         <div className="rounded-lg border border-amber-300/40 bg-amber-50/10 dark:bg-amber-900/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
           Broker rate management is available here for viewing. Structured broker pricing is planned for a future release.
         </div>
       )}
 
-      {/* Table */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
         <div className="overflow-x-auto">
           <Table>
@@ -942,13 +1384,27 @@ export default function RatesPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-8 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-8 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+                    </TableCell>
                   </TableRow>
                 ))
               ) : displayedRates.length === 0 ? (
@@ -1010,7 +1466,7 @@ export default function RatesPage() {
 
       {/* ── Parent rate modal ────────────────────────────────────────────────── */}
       <Dialog open={isParentModalOpen} onOpenChange={setIsParentModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
               {editingRate ? "Edit Rate Plan" : "Add Parent Rate Plan"}
@@ -1021,16 +1477,112 @@ export default function RatesPage() {
                 : "Create a base WEB rate plan. Seasonal overrides can be added as child rates."}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-6">
             <ParentRateForm formData={parentFormData} onChange={setParentFormData} />
+
+            {isWebParentModal && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-semibold">Day Ranges</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Define pricing columns for the model grid. Leave "To" empty for unlimited.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    onClick={() =>
+                      setParentDayRanges((prev) => [
+                        ...prev,
+                        { key: String(Date.now()), fromDays: 1, toDays: null, label: "" },
+                      ])
+                    }
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> Add Range
+                  </Button>
+                </div>
+
+                {parentDayRanges.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-3 border border-dashed rounded-md border-border/50">
+                    No day ranges. Click "Add Range" to create pricing columns.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {parentDayRanges.map((range, idx) => (
+                      <div key={range.key} className="flex items-center gap-2">
+                        <Input
+                          className="h-8 text-xs"
+                          placeholder="Label (e.g. 1–3 days)"
+                          value={range.label}
+                          onChange={(e) =>
+                            setParentDayRanges((prev) =>
+                              prev.map((r, i) =>
+                                i === idx ? { ...r, label: e.target.value } : r,
+                              ),
+                            )
+                          }
+                        />
+                        <Input
+                          type="number"
+                          className="h-8 text-xs w-20 flex-shrink-0"
+                          placeholder="From"
+                          min={1}
+                          value={range.fromDays}
+                          onChange={(e) =>
+                            setParentDayRanges((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, fromDays: parseInt(e.target.value) || 1 }
+                                  : r,
+                              ),
+                            )
+                          }
+                        />
+                        <span className="text-muted-foreground text-xs flex-shrink-0">–</span>
+                        <Input
+                          type="number"
+                          className="h-8 text-xs w-20 flex-shrink-0"
+                          placeholder="To (∞)"
+                          min={0}
+                          value={range.toDays ?? ""}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            setParentDayRanges((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, toDays: isNaN(val) || val === 0 ? null : val }
+                                  : r,
+                              ),
+                            );
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 flex-shrink-0"
+                          onClick={() =>
+                            setParentDayRanges((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsParentModalOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleSaveParent}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+            <Button variant="outline" onClick={() => setIsParentModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveParent} disabled={isSavingParent}>
+              {isSavingParent ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1048,7 +1600,6 @@ export default function RatesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Load parent tiers when selected — rendered as invisible side-effect component */}
           {parentIdNum > 0 && (
             <ChildRateLoader
               parentId={parentIdNum}
@@ -1060,7 +1611,6 @@ export default function RatesPage() {
           )}
 
           <div className="grid gap-4 py-4">
-            {/* Parent selector */}
             <div className="grid gap-2">
               <Label>
                 Parent Rate <span className="text-destructive">*</span>
@@ -1083,86 +1633,11 @@ export default function RatesPage() {
               </Select>
             </div>
 
-            {/* Child details */}
-            <div className="grid gap-2">
-              <Label>
-                Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                placeholder="e.g. Summer 2026 Override"
-                value={childFormData.name}
-                onChange={(e) => setChildFormData({ ...childFormData, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Description</Label>
-              <Input
-                value={childFormData.description}
-                onChange={(e) => setChildFormData({ ...childFormData, description: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Valid From</Label>
-                <Input
-                  type="date"
-                  value={childFormData.validFrom}
-                  onChange={(e) => setChildFormData({ ...childFormData, validFrom: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Valid Until</Label>
-                <Input
-                  type="date"
-                  value={childFormData.validUntil}
-                  onChange={(e) => setChildFormData({ ...childFormData, validUntil: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Minimum Days</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={childFormData.minDays}
-                  onChange={(e) =>
-                    setChildFormData({ ...childFormData, minDays: parseInt(e.target.value) || 1 })
-                  }
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Maximum Days (0 = unlimited)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={childFormData.maxDays}
-                  onChange={(e) =>
-                    setChildFormData({ ...childFormData, maxDays: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
-              <div>
-                <Label className="text-base">Active Status</Label>
-                <p className="text-sm text-muted-foreground">Is this rate currently applicable?</p>
-              </div>
-              <Switch
-                checked={childFormData.isActive}
-                onCheckedChange={(val) => setChildFormData({ ...childFormData, isActive: val })}
-              />
-            </div>
+            <ParentRateForm formData={childFormData} onChange={setChildFormData} />
 
-            {/* Tier grid */}
-            {childParentId && (
+            {childTiers.length > 0 && (
               <div className="grid gap-2">
-                <Label className="text-sm font-medium">
-                  Pricing Tiers{" "}
-                  <span className="text-muted-foreground font-normal">
-                    (copied from parent — adjust as needed)
-                  </span>
-                </Label>
+                <Label>Copied Tiers (adjust before saving)</Label>
                 <ChildTierGrid
                   tiers={childTiers}
                   models={models}
@@ -1171,13 +1646,12 @@ export default function RatesPage() {
               </div>
             )}
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsChildModalOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveChild} disabled={isSavingChild}>
-              {isSavingChild ? "Creating…" : "Create Child Rate"}
+              {isSavingChild ? "Saving…" : "Save Child Rate"}
             </Button>
           </DialogFooter>
         </DialogContent>

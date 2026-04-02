@@ -1,13 +1,17 @@
-import { db, pool, rateTable, ratetierTable } from "@workspace/db";
+import { db, pool, rateTable, ratetierTable, ratedayrangeTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { NotFoundError, ValidationError } from "../lib/errors.js";
 
 export async function listAllRates() {
   const rates = await db.select().from(rateTable).orderBy(asc(rateTable.name));
-  const tiers = await db.select().from(ratetierTable).orderBy(asc(ratetierTable.fromDays));
+  const [tiers, dayRanges] = await Promise.all([
+    db.select().from(ratetierTable).orderBy(asc(ratetierTable.fromDays)),
+    db.select().from(ratedayrangeTable).orderBy(asc(ratedayrangeTable.fromDays)),
+  ]);
   return rates.map((rate) => ({
     ...rate,
     tiers: tiers.filter((t) => t.rateId === rate.id),
+    dayRanges: dayRanges.filter((d) => d.rateId === rate.id),
   }));
 }
 
@@ -19,13 +23,20 @@ export async function getAdminRate(id: number) {
   const rate = rows[0];
   if (!rate) throw new NotFoundError(`Rate ${id} not found`);
 
-  const tiers = await db
-    .select()
-    .from(ratetierTable)
-    .where(eq(ratetierTable.rateId, id))
-    .orderBy(asc(ratetierTable.fromDays));
+  const [tiers, dayRanges] = await Promise.all([
+    db
+      .select()
+      .from(ratetierTable)
+      .where(eq(ratetierTable.rateId, id))
+      .orderBy(asc(ratetierTable.fromDays)),
+    db
+      .select()
+      .from(ratedayrangeTable)
+      .where(eq(ratedayrangeTable.rateId, id))
+      .orderBy(asc(ratedayrangeTable.fromDays)),
+  ]);
 
-  return { ...rate, tiers };
+  return { ...rate, tiers, dayRanges };
 }
 
 export async function createAdminRate(data: {
@@ -81,6 +92,32 @@ export async function deleteAdminRate(id: number) {
     .returning();
   if (!row) throw new NotFoundError(`Rate ${id} not found`);
   return { message: "Rate deleted" };
+}
+
+export async function bulkSetAdminRateDayRanges(
+  rateId: number,
+  ranges: Array<{ fromDays: number; toDays?: number | null; label?: string | null }>,
+) {
+  await db.delete(ratedayrangeTable).where(eq(ratedayrangeTable.rateId, rateId));
+  if (ranges.length > 0) {
+    await db.insert(ratedayrangeTable).values(
+      ranges.map((r) => ({ fromDays: r.fromDays, toDays: r.toDays ?? null, label: r.label ?? null, rateId })),
+    );
+  }
+  return db
+    .select()
+    .from(ratedayrangeTable)
+    .where(eq(ratedayrangeTable.rateId, rateId))
+    .orderBy(asc(ratedayrangeTable.fromDays));
+}
+
+export async function deleteAdminRateDayRange(rateId: number, rangeId: number) {
+  const [row] = await db
+    .delete(ratedayrangeTable)
+    .where(eq(ratedayrangeTable.id, rangeId))
+    .returning();
+  if (!row) throw new NotFoundError(`Day range ${rangeId} not found`);
+  return { message: "Day range deleted" };
 }
 
 export async function createAdminRateTier(

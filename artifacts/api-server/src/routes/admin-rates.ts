@@ -14,6 +14,9 @@ import {
   UpdateAdminRateTierBody,
   UpdateAdminRateTierResponse,
   DeleteAdminRateTierParams,
+  BulkSetRateDayRangesParams,
+  BulkSetRateDayRangesBody,
+  DeleteRateDayRangeParams,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
@@ -26,6 +29,8 @@ import {
   createAdminRateTier,
   updateAdminRateTier,
   deleteAdminRateTier,
+  bulkSetAdminRateDayRanges,
+  deleteAdminRateDayRange,
 } from "../services/admin-rates.service.js";
 
 const router: IRouter = Router();
@@ -57,6 +62,19 @@ router.patch("/admin/rates/:id", requireAdmin, requirePermission("canManageRates
 router.delete("/admin/rates/:id", requireAdmin, requirePermission("canManageRates"), async (req, res) => {
   const { id } = DeleteAdminRateParams.parse({ id: req.params.id });
   const result = await deleteAdminRate(id);
+  res.json(result);
+});
+
+router.put("/admin/rates/:id/day-ranges", requireAdmin, requirePermission("canManageRates"), async (req, res) => {
+  const { id } = BulkSetRateDayRangesParams.parse({ id: req.params.id });
+  const body = BulkSetRateDayRangesBody.parse(req.body);
+  const result = await bulkSetAdminRateDayRanges(id, body.ranges);
+  res.json(result);
+});
+
+router.delete("/admin/rates/:id/day-ranges/:rangeId", requireAdmin, requirePermission("canManageRates"), async (req, res) => {
+  const { id, rangeId } = DeleteRateDayRangeParams.parse({ id: req.params.id, rangeId: req.params.rangeId });
+  const result = await deleteAdminRateDayRange(id, rangeId);
   res.json(result);
 });
 
