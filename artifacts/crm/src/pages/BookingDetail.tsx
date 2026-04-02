@@ -556,13 +556,12 @@ function HandoverModal({
       if (hasError) {
         toast({
           title: "Some uploads failed",
-          description: "Retry failed files or remove them before recording.",
+          description: "Proceeding with successfully uploaded photos. Retry failed items later.",
           variant: "destructive",
         });
-        return;
       }
 
-      // Already-done files (not in this upload batch) + newly uploaded
+      // Already-done files (not in this upload batch) + newly uploaded — skip failed ones
       const uploadedIds = new Set(toUpload.map((fi) => fi.id));
       const prevDone = fileItems
         .filter((fi) => fi.status === "done" && !uploadedIds.has(fi.id))
@@ -570,8 +569,12 @@ function HandoverModal({
       const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
       try {
         await onSubmit(type, photoUrls);
-        // Clear file state after successful submit
-        setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+        // Clear only successfully uploaded/done files; leave errored ones in place
+        setFileItems((prev) => {
+          const toKeep = prev.filter((fi) => fi.status === "error");
+          prev.filter((fi) => fi.status !== "error").forEach((fi) => URL.revokeObjectURL(fi.preview));
+          return toKeep;
+        });
       } catch {
         // onSubmit (handleHandoverSubmit) already shows a toast and rethrows;
         // catch here prevents unhandled-promise-rejection noise in the console.
@@ -722,7 +725,7 @@ function HandoverModal({
 
         </div>
 
-        <div className="flex-shrink-0 flex gap-2 justify-end pt-3 border-t border-border/40 mt-1">
+        <div className="flex-shrink-0 sticky bottom-0 flex gap-2 justify-end pt-3 border-t border-border/40 mt-1 bg-background/95 backdrop-blur-sm">
           <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || uploading}>
             Cancel
           </Button>
