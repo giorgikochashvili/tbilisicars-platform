@@ -15,9 +15,11 @@ import {
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
   Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown,
+  ClipboardList, Clock,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
+import { useAuth } from "@/hooks/use-auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -864,6 +866,7 @@ export default function Dashboard() {
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [timelineUserToggled, setTimelineUserToggled] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState(
     () => typeof window !== "undefined" ? window.innerWidth >= 768 : true
@@ -932,6 +935,12 @@ export default function Dashboard() {
     staleTime: 30_000,
   });
 
+  const myTasksSummaryQuery = useQuery<{ total: number; overdue: number; dueToday: number }>({
+    queryKey: ["my-tasks-summary"],
+    queryFn: () => fetchJson(`${BASE}/admin/tasks/my-summary`),
+    staleTime: 60_000,
+  });
+
   const hasError = summaryQuery.isError || todayQuery.isError || fleetQuery.isError;
   const sc = widgetConfig.sections;
   const cc = widgetConfig.cards;
@@ -967,6 +976,50 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* My Tasks Widget */}
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+          <ClipboardList className="w-4 h-4 text-primary" /> My Tasks
+        </h2>
+        <Card
+          className="border border-border/40 bg-card/60 cursor-pointer hover:border-primary/40 hover:bg-card/80 transition-all duration-200 max-w-sm"
+          onClick={() => navigate("/tasks")}
+        >
+          <CardContent className="pt-4 pb-3 px-5">
+            {myTasksSummaryQuery.isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">Open Tasks</p>
+                  <p className="text-3xl font-black font-display text-foreground">{myTasksSummaryQuery.data?.total ?? 0}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {(myTasksSummaryQuery.data?.overdue ?? 0) > 0 && (
+                    <div className="flex items-center gap-1.5 text-red-400">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.overdue} overdue</span>
+                    </div>
+                  )}
+                  {(myTasksSummaryQuery.data?.dueToday ?? 0) > 0 && (
+                    <div className="flex items-center gap-1.5 text-amber-400">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.dueToday} due today</span>
+                    </div>
+                  )}
+                  {(myTasksSummaryQuery.data?.overdue ?? 0) === 0 && (myTasksSummaryQuery.data?.dueToday ?? 0) === 0 && (
+                    <span className="text-xs text-muted-foreground">All on track</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* KPI Cards */}
       {sc.bookingOverview && (

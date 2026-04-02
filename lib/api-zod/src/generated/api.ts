@@ -2776,3 +2776,107 @@ export const GetPublicObjectParams = zod.object({
 export const GetStorageObjectParams = zod.object({
   objectPath: zod.coerce.string(),
 });
+
+// ─── Tasks Module ─────────────────────────────────────────────────────────────
+
+export const TaskStatusEnum = zod.enum(["To Do", "In Progress", "Waiting", "Done", "Canceled"]);
+export const TaskPriorityEnum = zod.enum(["Low", "Medium", "High", "Urgent"]);
+
+export const TaskListItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullable(),
+  status: zod.string(),
+  priority: zod.string(),
+  progressPercent: zod.number(),
+  startDate: zod.string().nullable(),
+  dueDate: zod.string().nullable(),
+  completedAt: zod.string().nullable(),
+  relatedType: zod.string().nullable(),
+  relatedId: zod.number().nullable(),
+  createdById: zod.number(),
+  assignedToId: zod.number().nullable(),
+  assigneeName: zod.string().nullable(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+export const TaskComment = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  authorId: zod.number(),
+  authorName: zod.string().nullable(),
+  body: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+export const TaskActivity = zod.object({
+  id: zod.number(),
+  taskId: zod.number(),
+  actorId: zod.number(),
+  actorName: zod.string().nullable(),
+  action: zod.string(),
+  fromValue: zod.string().nullable(),
+  toValue: zod.string().nullable(),
+  createdAt: zod.string(),
+});
+
+export const TaskDetail = TaskListItem.extend({
+  creatorName: zod.string().nullable(),
+  comments: zod.array(TaskComment),
+  activity: zod.array(TaskActivity),
+});
+
+export const ListAdminTasksResponse = zod.object({
+  tasks: zod.array(TaskListItem),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+export const CreateAdminTaskBody = zod.object({
+  title: zod.string().min(1),
+  description: zod.string().nullable().optional(),
+  assignedToId: zod.number().nullable().optional(),
+  priority: TaskPriorityEnum.optional().default("Medium"),
+  status: TaskStatusEnum.optional().default("To Do"),
+  progressPercent: zod.number().int().min(0).max(100).optional().default(0),
+  startDate: zod.string().nullable().optional(),
+  dueDate: zod.string().nullable().optional(),
+  relatedType: zod.string().nullable().optional(),
+  relatedId: zod.number().nullable().optional(),
+});
+
+export const UpdateAdminTaskBody = zod.object({
+  title: zod.string().min(1).optional(),
+  description: zod.string().nullable().optional(),
+  assignedToId: zod.number().nullable().optional(),
+  priority: TaskPriorityEnum.optional(),
+  status: TaskStatusEnum.optional(),
+  progressPercent: zod.number().int().min(0).max(100).optional(),
+  startDate: zod.string().nullable().optional(),
+  dueDate: zod.string().nullable().optional(),
+  relatedType: zod.string().nullable().optional(),
+  relatedId: zod.number().nullable().optional(),
+});
+
+export const GetAdminTaskParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateTaskCommentBody = zod.object({
+  body: zod.string().min(1),
+});
+
+export const TaskSummaryResponse = zod.object({
+  total: zod.number(),
+  overdue: zod.number(),
+  dueToday: zod.number(),
+});
+
+export const TaskAssigneeItem = zod.object({
+  id: zod.number(),
+  fullName: zod.string(),
+  email: zod.string(),
+});

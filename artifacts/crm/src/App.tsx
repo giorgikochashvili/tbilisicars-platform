@@ -29,6 +29,7 @@ import HandoverDocument from "@/pages/HandoverDocument";
 import AuditLogs from "@/pages/AuditLogs";
 import TbsAirParking from "@/pages/TbsAirParking";
 import AdminAI from "@/pages/AdminAI";
+import TasksPage from "@/pages/Tasks";
 import NotFound from "@/pages/not-found";
 import type { AdminProfile } from "@workspace/api-zod";
 
@@ -146,6 +147,7 @@ function Router() {
       <Route path="/audit-logs"><ProtectedRoute component={AuditLogs} permissionKey="canViewAuditLog" /></Route>
       <Route path="/tbs-parking"><ProtectedRoute component={TbsAirParking} permissionKey="canManageParking" /></Route>
       <Route path="/admin-ai"><ProtectedRoute component={AdminAI} permissionKey="canUseAdminAI" /></Route>
+      <Route path="/tasks"><ProtectedRoute component={TasksPage} /></Route>
 
       <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
       <Route path="/payment-doc/:bookingId/:paymentId/:type"><DocumentRoute component={PaymentDocument} /></Route>

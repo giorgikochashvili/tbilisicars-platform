@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -25,6 +25,7 @@ type PermKey = keyof AdminProfile | null;
 
 const navItems: Array<{ title: string; url: string; icon: React.ElementType; permissionKey: PermKey }> = [
   { title: "Dashboard",       url: "/dashboard",      icon: LayoutDashboard,  permissionKey: null },
+  { title: "Tasks",           url: "/tasks",           icon: ClipboardList,    permissionKey: null },
   { title: "Bookings",        url: "/bookings",        icon: CalendarDays,     permissionKey: "canManageBookings" },
   { title: "Fleet",           url: "/fleet",           icon: Car,              permissionKey: "canManageVehicles" },
   { title: "Fleet Calendar",  url: "/fleet-calendar",  icon: GanttChart,       permissionKey: "canViewCalendar" },
