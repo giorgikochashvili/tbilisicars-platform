@@ -1,0 +1,270 @@
+#5 - Financial Consistency, Currency Handling, Accounting Clarity & Region Filter Fix
+
+We are continuing the existing Tbilisicars CRM & WEB monorepo project that is already fully built inside Replit.
+
+Locked project state:
+- This is an existing live project, not a fresh build
+- Replit Preview works
+- GitHub sync workflow already works
+- Droplet build/deploy already works
+- Stack: PNPM monorepo
+  - artifacts/api-server
+  - artifacts/crm
+  - artifacts/website
+  - lib/db
+  - lib/api-spec
+  - lib/api-zod
+- Do NOT rework infrastructure
+- Do NOT change deployment flow
+- Do NOT touch unrelated modules
+- Do NOT do broad refactors
+- Continue exactly from the current codebase state
+
+Task:
+Implement a targeted financial consistency upgrade across Vehicle modal, Booking detail, Accounting module, and payment status logic, with the smallest safe change set.
+
+==================================================
+CHANGE A — VEHICLE REVENUE FIX
+==================================================
+
+Current problem:
+In the vehicle modal / vehicle history / financial overview, total revenue is incomplete or misleading and currently shows wording like:
+- "GEL bookings only"
+
+This is incorrect.
+
+Required behavior:
+1. Vehicle revenue must include ALL recorded booking payments linked to bookings of that vehicle
+2. It must support all currencies:
+   - GEL
+   - USD
+   - EUR
+3. All amounts must be converted to GEL for the vehicle revenue summary using the current project conversion rules:
+   - USD × 2.7
+   - EUR × 2.9
+   - GEL stays as is
+4. The final displayed total revenue in vehicle financial overview must always be shown in GEL
+5. Remove misleading wording like:
+   - "GEL bookings only"
+6. Replace with something clear like:
+   - "Total Revenue (GEL)"
+
+Important rule:
+- Use existing booking/payment relations
+- Do NOT create a new financial system
+- Do NOT change DB schema
+- Only fix calculation + display + freshness
+
+==================================================
+CHANGE B — BOOKING PAYMENT SUMMARY FIX
+==================================================
+
+Current problem:
+In Booking Detail > Payment Summary, Total Paid is visually shown incorrectly in GEL instead of preserving the original booking/payment currency as the main amount.
+
+Example:
+- Booking price is €183.60
+- Customer paid €183.60
+- But Total Paid currently shows GEL amount as the main number
+
+Required behavior:
+1. Total Paid must display:
+   - primary: original booking/payment currency amount
+   - secondary: GEL equivalent
+2. Same principle must apply to:
+   - Remaining Balance
+   - Deposit Received
+   - Deposit Returned
+   - Total Refunded
+   - Net Deposit where relevant
+3. Display pattern should be:
+   - main line = booking/payment original currency
+   - secondary smaller line = GEL equivalent
+4. Do NOT replace original amount with GEL
+5. The booking price area must remain understandable and consistent with payment summary
+
+Important rule:
+- Keep original currency visible as source-of-truth
+- GEL equivalent is supplementary, not replacement
+
+==================================================
+CHANGE C — ACCOUNTING MODULE DETAIL EXPANSION
+==================================================
+
+Current problem:
+Accounting entries are not descriptive enough. Staff cannot easily understand which booking/payment/vehicle each entry belongs to.
+
+Required behavior:
+When clicking an accounting entry, the UI must expand or open detailed information and show at minimum:
+- Booking ID / reference
+- Customer name
+- Vehicle brand + model + plate
+- Payment type / accounting type
+- Original amount + original currency
+- GEL equivalent
+- Date
+- Optional note if already present
+- Payment method if available
+
+Important rules:
+- Reuse existing linked booking/payment data if already available
+- If current API payload is too thin, extend only the existing accounting list/detail response minimally
+- Do NOT create redundant endpoints if current one can be extended safely
+- Keep UI clean and readable, not overloaded
+
+==================================================
+CHANGE D — ACCOUNTING REGION FILTER
+==================================================
+
+Current problem:
+Accounting module needs filtering by operational region.
+
+Required behavior:
+Add region-based filtering for accounting income/expense entries, aligned with project regional structure:
+- All
+- Tbilisi
+- Kutaisi
+- Batumi
+
+Filtering logic:
+1. For booking-related accounting entries:
+   - derive region from the booking/location context already used in the project
+2. For entries not tied to a booking:
+   - preserve current behavior unless there is already a region/location field available
+3. The filter must work for both:
+   - income
+   - expense
+4. It must integrate cleanly into the existing Accounting page filter UI
+5. Do not break current list, totals, or date filters
+
+Important rule:
+- Reuse existing region/location logic already used elsewhere in CRM where possible
+- No speculative redesign of accounting data model
+
+==================================================
+CHANGE E — PAYMENT STATUS FIX
+==================================================
+
+Current problem:
+Statuses like "PREHALF" are unclear and not operationally correct.
+
+Required behavior:
+Payment status must be derived from real paid-vs-total logic.
+
+Required rules:
+- If total paid = 0 → UNPAID
+- If total paid > 0 and total paid < booking total → PARTIAL
+- If total paid >= booking total → PAID
+
+Required changes:
+1. Remove confusing labels like:
+   - PREHALF
+2. Replace with clear statuses:
+   - UNPAID
+   - PARTIAL
+   - PAID
+3. Apply consistently in:
+   - Booking list
+   - Booking detail
+   - Anywhere else in CRM where booking payment status badge is shown
+4. Preserve current badge style language, just fix the logic and labels
+
+Important rule:
+- This must be based on real payment totals, not legacy string leftovers
+
+==================================================
+CHANGE F — REAL-TIME VEHICLE EARNINGS UPDATE
+==================================================
+
+Required behavior:
+Whenever a payment is added to a booking, the related vehicle financial overview must reflect the new revenue immediately after refresh/reopen and should not stay stale.
+
+Implementation direction:
+- Ensure vehicle modal/detail financial data uses fresh fetches
+- Or trigger refetch after payment creation if needed
+- Minimal safe solution only
+
+==================================================
+STRICT SAFETY RULES
+==================================================
+
+1. First audit current implementation related ONLY to:
+   - vehicle financial overview / vehicle history modal
+   - booking detail payment summary
+   - accounting list/detail rendering
+   - accounting filters
+   - payment status derivation/display
+2. Make the smallest safe change set
+3. Do NOT refactor unrelated modules
+4. Do NOT touch website unless absolutely required (it should not be required)
+5. Do NOT touch infrastructure, auth, deployment, or unrelated CRM modules
+6. Do NOT perform DB migrations unless absolutely required; if not required, explicitly say so
+7. Do NOT create a brand new accounting architecture
+8. Reuse current service/query structure wherever possible
+9. Preserve current design language and current page structure as much as possible
+10. No speculative rewrites
+11. No destructive changes
+
+==================================================
+PREFERRED LOGIC
+==================================================
+
+Currency conversion for GEL equivalent:
+- GEL = amount
+- USD = amount * 2.7
+- EUR = amount * 2.9
+
+Display rule:
+- Original currency amount is the primary value where the payment happened in that currency
+- GEL equivalent is the secondary supporting value
+- Vehicle revenue summary is an exception: it should be shown as GEL aggregate only
+
+==================================================
+FILES TO TOUCH
+==================================================
+
+Audit first, but likely only within:
+- artifacts/crm/src/pages/BookingDetail.tsx
+- artifacts/crm/src/pages/Fleet.tsx
+- artifacts/crm/src/pages/Accounting.tsx
+- related api-server service/query files only if minimally required for accounting/vehicle financial aggregation
+- related shared CRM helpers for payment status / currency display only if they already exist and can be reused safely
+
+Do NOT touch website unless absolutely necessary.
+
+==================================================
+OUT OF SCOPE
+==================================================
+
+- No website changes
+- No payment gateway changes
+- No deployment changes
+- No infrastructure changes
+- No DB redesign
+- No broad refactors
+
+==================================================
+RESPONSE FORMAT
+==================================================
+
+# Plan
+- short audit summary
+- exact change approach
+
+# Files to touch
+- exact file paths only
+
+# Implementation
+- apply the changes
+
+# Done
+- summarize exactly what changed
+- confirm whether crm changed
+- confirm whether api-server changed
+- confirm whether website was untouched
+- confirm whether DB migration is needed or not
+- confirm whether vehicle revenue now includes all currencies converted to GEL
+- confirm whether booking payment summary now shows original currency + GEL equivalent
+- confirm whether accounting entries now expand with booking/vehicle/payment details
+- confirm whether accounting now filters by region
+- confirm whether PREHALF was removed and replaced with clear payment statuses

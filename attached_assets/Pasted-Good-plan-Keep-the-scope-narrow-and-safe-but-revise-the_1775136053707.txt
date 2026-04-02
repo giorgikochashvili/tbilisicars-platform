@@ -1,0 +1,34 @@
+Good plan. Keep the scope narrow and safe, but revise these points before Build:
+
+1. Payment status logic must not be treated as label-only.
+   - The UI/business display must follow real paid-vs-total logic:
+     - totalPaid = 0 → UNPAID
+     - 0 < totalPaid < booking total → PARTIAL
+     - totalPaid >= booking total → PAID
+   - If the stored DB enum still uses HALF internally, do not change schema, but map it correctly in derived CRM display.
+   - Remove confusing "PreHalf" completely from CRM UI.
+   - Do not preserve misleading labels just because legacy enum values exist.
+
+2. For Accounting detail expansion, prefer the smallest safe approach:
+   - First audit whether the existing accounting list payload can be minimally extended with linked booking/customer/vehicle/payment fields.
+   - Only add a new GET /admin/accounting/:id endpoint if the current list response truly cannot support the detail view safely.
+   - Avoid unnecessary endpoint proliferation.
+
+3. For Booking Payment Summary:
+   - The primary displayed amount must be the true original-currency amount relevant to the booking/payment context.
+   - The GEL equivalent must be secondary/supporting text only.
+   - Keep this consistent across Total Paid, Remaining Balance, Deposit Received, Deposit Returned, Total Refunded, and Net Deposit where applicable.
+
+4. For Vehicle Revenue:
+   - Sum actual recorded booking payment amounts, converted row-by-row into GEL.
+   - Do not rely on booking.totalAmount as a proxy for realized revenue.
+   - Use payment records as the source of truth for earned revenue.
+
+5. For Accounting region filter:
+   - Reuse existing region/location logic already used elsewhere in CRM where possible.
+   - Non-booking accounting entries should not be forced into incorrect regions; keep them visible only in All unless a reliable region field already exists.
+
+After revising, output:
+- whether payment status is now derived from actual totals instead of label-only mapping
+- whether accounting detail uses existing payload extension or a new endpoint
+- confirmation that no DB migration is required
