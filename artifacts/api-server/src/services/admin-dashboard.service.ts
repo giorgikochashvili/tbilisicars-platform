@@ -1,6 +1,7 @@
 import {
   db,
   bookingTable,
+  bookingHandoverTable,
   userTable,
   vehicleTable,
   vehicleModelTable,
@@ -18,6 +19,7 @@ import {
   isNull,
   lt,
   lte,
+  notExists,
   or,
   sql,
 } from "drizzle-orm";
@@ -296,6 +298,17 @@ export async function getTodayActivity(city?: string, date?: string) {
           gte(bookingTable.pickupDatetime, todayStart),
           lt(bookingTable.pickupDatetime, todayEnd),
           inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED", "RETURNED"]),
+          notExists(
+            db
+              .select({ _: bookingHandoverTable.id })
+              .from(bookingHandoverTable)
+              .where(
+                and(
+                  eq(bookingHandoverTable.bookingId, bookingTable.id),
+                  eq(bookingHandoverTable.handoverType, "PICKUP"),
+                ),
+              ),
+          ),
           ...(pickupCityCondition ? [pickupCityCondition] : []),
         ),
       )

@@ -706,6 +706,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
   // Assign vehicle dialog state
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [assignModels, setAssignModels] = useState<any[]>([]);
+  const [loadingAssignModels, setLoadingAssignModels] = useState(false);
+  const [assignSelectedModelId, setAssignSelectedModelId] = useState<number | null>(null);
   const [assignVehicles, setAssignVehicles] = useState<any[]>([]);
   const [loadingAssignVehicles, setLoadingAssignVehicles] = useState(false);
   const [savingAssign, setSavingAssign] = useState(false);
@@ -749,30 +752,74 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   }, [bookingId]);
 
   const openAssignDialog = useCallback(async () => {
-    if (!booking?.vehicleModelId) return;
+    const modelId = booking?.vehicleModelId ?? null;
+    setAssignSelectedModelId(modelId);
     setIsAssignOpen(true);
+    setLoadingAssignModels(true);
     setLoadingAssignVehicles(true);
     try {
-      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${booking.vehicleModelId}&limit=100`);
+      const [modelsData, vehiclesData] = await Promise.all([
+        apiFetch("/admin/fleet/models"),
+        modelId
+          ? apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100`)
+          : Promise.resolve({ data: [] }),
+      ]);
+      setAssignModels(modelsData ?? []);
+      setAssignVehicles(vehiclesData?.data ?? []);
+    } catch (e: any) {
+      toast({ title: "Error loading data", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingAssignModels(false);
+      setLoadingAssignVehicles(false);
+    }
+  }, [booking?.vehicleModelId]);
+
+  const handleModelChange = useCallback(async (modelId: number) => {
+    setAssignSelectedModelId(modelId);
+    setLoadingAssignVehicles(true);
+    try {
+      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100`);
       setAssignVehicles(data?.data ?? []);
     } catch (e: any) {
       toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
     } finally {
       setLoadingAssignVehicles(false);
     }
-  }, [booking?.vehicleModelId]);
+  }, []);
 
   const handleAssignVehicle = useCallback(async (vehicleId: number) => {
     if (!bookingId) return;
     setSavingAssign(true);
     try {
+      const patch: Record<string, unknown> = { vehicleId };
+      if (assignSelectedModelId !== null && assignSelectedModelId !== booking?.vehicleModelId) {
+        patch.vehicleModelId = assignSelectedModelId;
+      }
       await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "PATCH",
-        body: JSON.stringify({ vehicleId }),
+        body: JSON.stringify(patch),
       });
       setIsAssignOpen(false);
       await fetchBooking();
       toast({ title: "Vehicle assigned" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingAssign(false);
+    }
+  }, [bookingId, fetchBooking, assignSelectedModelId, booking?.vehicleModelId]);
+
+  const handleUnassignVehicle = useCallback(async () => {
+    if (!bookingId) return;
+    setSavingAssign(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ vehicleId: null }),
+      });
+      setIsAssignOpen(false);
+      await fetchBooking();
+      toast({ title: "Vehicle unassigned" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -1092,16 +1139,25 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
                       {booking.vehicle ? (
-                        <button
-                          className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
-                          onClick={() => {
-                            onClose();
-                            setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
-                          }}
-                        >
-                          {booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
+                            onClick={() => {
+                              onClose();
+                              setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
+                            }}
+                          >
+                            {booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium"
+                            onClick={openAssignDialog}
+                          >
+                            Change
+                          </button>
+                        </div>
                       ) : booking.vehicleModelName ? (
                         <div className="flex items-center gap-2 flex-wrap">
                           <div className="font-medium">
@@ -1584,27 +1640,70 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           <DialogHeader>
             <DialogTitle>Assign Vehicle</DialogTitle>
             <DialogDescription>
-              Select an available vehicle for this booking.
+              Select a model and an available vehicle for this booking.
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2 max-h-72 overflow-y-auto space-y-1">
-            {loadingAssignVehicles ? (
-              <div className="text-center py-6 text-sm text-muted-foreground">Loading vehicles…</div>
-            ) : assignVehicles.length === 0 ? (
-              <div className="text-center py-6 text-sm text-muted-foreground">No vehicles available for this model.</div>
-            ) : (
-              assignVehicles.map((v: any) => (
-                <button
-                  key={v.id}
-                  type="button"
+          <div className="mt-2 space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Model</Label>
+              {loadingAssignModels ? (
+                <div className="text-sm text-muted-foreground py-1">Loading models…</div>
+              ) : (
+                <Select
+                  value={assignSelectedModelId != null ? String(assignSelectedModelId) : ""}
+                  onValueChange={(val) => handleModelChange(Number(val))}
                   disabled={savingAssign}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors border border-border/30 disabled:opacity-50"
-                  onClick={() => handleAssignVehicle(v.id)}
                 >
-                  <span className="font-medium text-sm">{v.licensePlate}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{v.status?.toLowerCase() ?? ""}</span>
-                </button>
-              ))
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select model…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assignModels.map((m: any) => (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        {m.brand?.name ? `${m.brand.name} ` : ""}{m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">Vehicle</Label>
+              <div className="max-h-52 overflow-y-auto space-y-1">
+                {!assignSelectedModelId ? (
+                  <div className="text-center py-4 text-sm text-muted-foreground">Select a model first.</div>
+                ) : loadingAssignVehicles ? (
+                  <div className="text-center py-4 text-sm text-muted-foreground">Loading vehicles…</div>
+                ) : assignVehicles.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-muted-foreground">No vehicles available for this model.</div>
+                ) : (
+                  assignVehicles.map((v: any) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      disabled={savingAssign}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors border border-border/30 disabled:opacity-50"
+                      onClick={() => handleAssignVehicle(v.id)}
+                    >
+                      <span className="font-medium text-sm">{v.licensePlate}</span>
+                      <span className="text-xs text-muted-foreground capitalize">{v.status?.toLowerCase() ?? ""}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            {booking?.vehicle && (
+              <div className="pt-1 border-t border-border/40">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={savingAssign}
+                  onClick={handleUnassignVehicle}
+                >
+                  Unassign vehicle
+                </Button>
+              </div>
             )}
           </div>
         </DialogContent>
