@@ -633,7 +633,8 @@ export default function RatesPage() {
   const handleSaveParent = () => {
     const payload = {
       ...parentFormData,
-      rateType: "web",
+      // On create, always web; on edit, preserve existing rateType to avoid corrupting broker rates
+      rateType: editingRate ? (editingRate.rateType ?? "web") : "web",
       validFrom: parentFormData.validFrom || undefined,
       validUntil: parentFormData.validUntil || undefined,
     };

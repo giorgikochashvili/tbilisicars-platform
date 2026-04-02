@@ -98,8 +98,7 @@ export async function createAdminRateTier(
 
   // Tier-level WEB overlap validation:
   // Reject if another WEB rate already has a tier for the same vehicle model
-  // with overlapping date coverage — unless the conflict is with our own parent
-  // or a sibling child (same parentRateId).
+  // with overlapping date coverage — unless the conflict is a direct parent/child relationship.
   const isWebRate =
     currentRate.rateType === "web" || currentRate.rateType == null;
   if (isWebRate) {
