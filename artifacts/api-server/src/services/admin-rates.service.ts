@@ -130,19 +130,12 @@ export async function createAdminRateTier(
       const conflictId = conflict.conflicting_rate_id;
       const conflictParentId = conflict.conflicting_parent_rate_id;
 
-      // Allow: conflicting rate is the parent of the current rate
-      if (currentRate.parentRateId && conflictId === currentRate.parentRateId) {
+      // Allow: conflicting rate is the direct parent of the current rate
+      if (currentRate.parentRateId != null && conflictId === currentRate.parentRateId) {
         continue;
       }
-      // Allow: current rate is the parent of the conflicting rate
+      // Allow: current rate is the direct parent of the conflicting rate
       if (conflictParentId === rateId) {
-        continue;
-      }
-      // Allow: same parent (siblings) — both are children of the same parent
-      if (
-        currentRate.parentRateId != null &&
-        conflictParentId === currentRate.parentRateId
-      ) {
         continue;
       }
 

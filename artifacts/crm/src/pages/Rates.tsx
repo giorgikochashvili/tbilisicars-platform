@@ -11,7 +11,7 @@ import {
   useDeleteAdminRateTier,
   useListFleetModels,
 } from "@workspace/api-client-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,6 +53,7 @@ import {
   ListPlus,
   Network,
   GitBranch,
+  Layers,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,11 +63,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBookingAmount } from "@/lib/utils";
 
+// Minimal model type for the tier grid
+interface FleetModel {
+  id: number;
+  name: string;
+  brand?: { name: string } | null;
+}
+
 // ─── RateTiers sub-component (unchanged from original) ────────────────────────
 
-function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
+function RateTiers({ rateId, tiers }: { rateId: number; tiers: RateTierItem[] }) {
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
-  const [editingTier, setEditingTier] = useState<any>(null);
+  const [editingTier, setEditingTier] = useState<RateTierItem | null>(null);
   const [tierData, setTierData] = useState({
     vehicleModelId: "",
     fromDays: 1,
@@ -79,21 +87,22 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
   const { toast } = useToast();
   const reqOpts = { request: { credentials: "include" as const } };
 
-  const { data: models } = useListFleetModels(reqOpts);
+  const { data: rawModels } = useListFleetModels(reqOpts);
+  const models = (rawModels ?? []) as FleetModel[];
 
   const createTierMutation = useCreateAdminRateTier(reqOpts);
   const updateTierMutation = useUpdateAdminRateTier(reqOpts);
   const deleteTierMutation = useDeleteAdminRateTier(reqOpts);
 
-  const handleOpenTierModal = (tier: any = null) => {
+  const handleOpenTierModal = (tier: RateTierItem | null = null) => {
     if (tier) {
       setEditingTier(tier);
       setTierData({
-        vehicleModelId: tier.vehicleModelId?.toString() || "",
-        fromDays: tier.fromDays || 1,
-        toDays: tier.toDays || 0,
+        vehicleModelId: tier.vehicleModelId?.toString() ?? "",
+        fromDays: tier.fromDays ?? 1,
+        toDays: tier.toDays ?? 0,
         pricePerDay: Number(tier.pricePerDay) || 0,
-        currency: tier.currency || "EUR",
+        currency: tier.currency ?? "EUR",
       });
     } else {
       setEditingTier(null);
@@ -109,9 +118,11 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
     }
 
     const payload = {
-      ...tierData,
       vehicleModelId: parseInt(tierData.vehicleModelId),
-      pricePerDay: tierData.pricePerDay.toString() as any,
+      fromDays: tierData.fromDays,
+      toDays: tierData.toDays,
+      pricePerDay: String(tierData.pricePerDay),
+      currency: "EUR",
     };
 
     if (editingTier) {
@@ -123,7 +134,7 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
             queryClient.invalidateQueries();
             setIsTierModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({
               title: "Error",
               description: err.message || "Failed to update tier",
@@ -141,7 +152,7 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
             queryClient.invalidateQueries();
             setIsTierModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({
               title: "Error",
               description: err.message || "Failed to create tier",
@@ -162,7 +173,7 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
             toast({ title: "Success", description: "Tier deleted" });
             queryClient.invalidateQueries();
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({
               title: "Error",
               description: err.message || "Failed to delete tier",
@@ -206,7 +217,7 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
                   className="border-border/20 hover:bg-muted/30 transition-colors text-sm"
                 >
                   <TableCell className="font-medium">
-                    {models?.find((m) => m.id === tier.vehicleModelId)?.name ||
+                    {models.find((m) => m.id === tier.vehicleModelId)?.name ||
                       `Model #${tier.vehicleModelId}`}
                   </TableCell>
                   <TableCell>
@@ -262,9 +273,9 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
                   <SelectValue placeholder="Select model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {models?.map((m) => (
+                  {models.map((m) => (
                     <SelectItem key={m.id} value={m.id.toString()}>
-                      {(m as any).brand?.name} {m.name}
+                      {m.brand?.name} {m.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -333,14 +344,50 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: any[] }) {
   );
 }
 
-// ─── Child rate creation: editable copied tier grid ───────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
-type CopiedTierRow = {
+interface RateTierItem {
+  id: number;
+  rateId: number;
+  vehicleModelId: number;
+  fromDays?: number | null;
+  toDays?: number | null;
+  pricePerDay: string;
+  currency?: string | null;
+}
+
+interface RateItem {
+  id: number;
+  name: string;
+  description?: string | null;
+  parentRateId?: number | null;
+  rateType?: string | null;
+  validFrom: string;
+  validUntil: string;
+  minDays?: number | null;
+  maxDays?: number | null;
+  isActive?: boolean | null;
+  tiers?: RateTierItem[];
+}
+
+interface CopiedTierRow {
   vehicleModelId: number;
   fromDays: number;
   toDays: number;
   pricePerDay: string;
-};
+}
+
+interface RateFormData {
+  name: string;
+  description: string;
+  validFrom: string;
+  validUntil: string;
+  minDays: number;
+  maxDays: number;
+  isActive: boolean;
+}
+
+// ─── ChildTierGrid ─────────────────────────────────────────────────────────────
 
 function ChildTierGrid({
   tiers,
@@ -348,12 +395,11 @@ function ChildTierGrid({
   onChange,
 }: {
   tiers: CopiedTierRow[];
-  models: any[];
+  models: FleetModel[];
   onChange: (tiers: CopiedTierRow[]) => void;
 }) {
   const update = (idx: number, patch: Partial<CopiedTierRow>) => {
-    const next = tiers.map((t, i) => (i === idx ? { ...t, ...patch } : t));
-    onChange(next);
+    onChange(tiers.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
 
   if (tiers.length === 0) {
@@ -415,12 +461,95 @@ function ChildTierGrid({
   );
 }
 
+// ─── ParentRateForm ────────────────────────────────────────────────────────────
+
+function ParentRateForm({
+  formData,
+  onChange,
+}: {
+  formData: RateFormData;
+  onChange: (data: RateFormData) => void;
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <Label>Name</Label>
+        <Input value={formData.name} onChange={(e) => onChange({ ...formData, name: e.target.value })} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Description</Label>
+        <Input value={formData.description} onChange={(e) => onChange({ ...formData, description: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>Valid From</Label>
+          <Input type="date" value={formData.validFrom} onChange={(e) => onChange({ ...formData, validFrom: e.target.value })} />
+        </div>
+        <div className="grid gap-2">
+          <Label>Valid Until</Label>
+          <Input type="date" value={formData.validUntil} onChange={(e) => onChange({ ...formData, validUntil: e.target.value })} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>Minimum Days</Label>
+          <Input type="number" min="1" value={formData.minDays} onChange={(e) => onChange({ ...formData, minDays: parseInt(e.target.value) || 1 })} />
+        </div>
+        <div className="grid gap-2">
+          <Label>Maximum Days (0 = unlimited)</Label>
+          <Input type="number" min="0" value={formData.maxDays} onChange={(e) => onChange({ ...formData, maxDays: parseInt(e.target.value) || 0 })} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
+        <div>
+          <Label className="text-base">Active Status</Label>
+          <p className="text-sm text-muted-foreground">Is this rate currently applicable?</p>
+        </div>
+        <Switch checked={formData.isActive} onCheckedChange={(val) => onChange({ ...formData, isActive: val })} />
+      </div>
+    </div>
+  );
+}
+
+// ─── ChildRateLoader — fetches parent tiers inside child modal ─────────────────
+
+function ChildRateLoader({
+  parentId,
+  onParentLoaded,
+}: {
+  parentId: number;
+  onParentLoaded: (tiers: CopiedTierRow[], validFrom: string, validUntil: string, minDays: number, maxDays: number) => void;
+}) {
+  const reqOpts = { request: { credentials: "include" as const } };
+  const { data: parentDetail } = useGetAdminRate(parentId, reqOpts);
+
+  React.useEffect(() => {
+    if (!parentDetail) return;
+    const pd = parentDetail as RateItem & { tiers: RateTierItem[] };
+    const copied: CopiedTierRow[] = (pd.tiers ?? []).map((t) => ({
+      vehicleModelId: t.vehicleModelId,
+      fromDays: t.fromDays ?? 1,
+      toDays: t.toDays ?? 0,
+      pricePerDay: t.pricePerDay?.toString() ?? "0",
+    }));
+    onParentLoaded(
+      copied,
+      pd.validFrom ? new Date(pd.validFrom).toISOString().split("T")[0] : "",
+      pd.validUntil ? new Date(pd.validUntil).toISOString().split("T")[0] : "",
+      pd.minDays ?? 1,
+      pd.maxDays ?? 0,
+    );
+  }, [parentDetail]);
+
+  return null;
+}
+
 // ─── RatesPage ─────────────────────────────────────────────────────────────────
 
 type ActiveTab = "web" | "broker";
 type CreationMode = "parent" | "child";
 
-const BLANK_FORM = {
+const BLANK_FORM: RateFormData = {
   name: "",
   description: "",
   validFrom: "",
@@ -433,15 +562,18 @@ const BLANK_FORM = {
 export default function RatesPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("web");
 
+  // Chooser dialog (Parent or Child)
+  const [isChooserOpen, setIsChooserOpen] = useState(false);
+
   // Parent / edit rate modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRate, setEditingRate] = useState<any>(null);
-  const [formData, setFormData] = useState(BLANK_FORM);
+  const [isParentModalOpen, setIsParentModalOpen] = useState(false);
+  const [editingRate, setEditingRate] = useState<RateItem | null>(null);
+  const [parentFormData, setParentFormData] = useState<RateFormData>(BLANK_FORM);
 
   // Child rate modal
   const [isChildModalOpen, setIsChildModalOpen] = useState(false);
   const [childParentId, setChildParentId] = useState<string>("");
-  const [childFormData, setChildFormData] = useState(BLANK_FORM);
+  const [childFormData, setChildFormData] = useState<RateFormData>(BLANK_FORM);
   const [childTiers, setChildTiers] = useState<CopiedTierRow[]>([]);
   const [isSavingChild, setIsSavingChild] = useState(false);
 
@@ -452,15 +584,11 @@ export default function RatesPage() {
   const { toast } = useToast();
 
   const reqOpts = { request: { credentials: "include" as const } };
-  const { data: rates, isLoading } = useListAdminRates(reqOpts);
-  const { data: models } = useListFleetModels(reqOpts);
+  const { data: rawRates, isLoading } = useListAdminRates(reqOpts);
+  const rates = (rawRates ?? []) as RateItem[];
 
-  // Load parent tiers when a parent is selected for child creation
-  const parentIdNum = childParentId ? parseInt(childParentId) : 0;
-  const { data: parentDetail } = useGetAdminRate(parentIdNum, {
-    request: { credentials: "include" as const },
-    query: { enabled: parentIdNum > 0 },
-  } as any);
+  const { data: rawModels } = useListFleetModels(reqOpts);
+  const models = (rawModels ?? []) as FleetModel[];
 
   const createMutation = useCreateAdminRate(reqOpts);
   const updateMutation = useUpdateAdminRate(reqOpts);
@@ -468,43 +596,57 @@ export default function RatesPage() {
   const createTierMutation = useCreateAdminRateTier(reqOpts);
 
   // Derived lists
-  const webRates =
-    rates?.filter((r: any) => r.rateType === "web" || r.rateType == null) ?? [];
-  const brokerRates =
-    rates?.filter((r: any) => r.rateType != null && r.rateType !== "web") ?? [];
+  const webRates = rates.filter((r) => r.rateType === "web" || r.rateType == null);
+  const brokerRates = rates.filter((r) => r.rateType != null && r.rateType !== "web");
+  const webParentRates = webRates.filter((r) => r.parentRateId == null);
+  const rateMap = new Map(rates.map((r) => [r.id, r]));
 
-  const rateMap = new Map((rates ?? []).map((r: any) => [r.id, r]));
+  const parentIdNum = childParentId ? parseInt(childParentId, 10) : 0;
 
-  // ── Parent modal ─────────────────────────────────────────────────────────────
+  // ── Edit modal ───────────────────────────────────────────────────────────────
 
-  const handleOpenModal = (rate: any = null) => {
-    if (rate) {
-      setEditingRate(rate);
-      setFormData({
-        name: rate.name || "",
-        description: rate.description || "",
-        validFrom: rate.validFrom ? new Date(rate.validFrom).toISOString().split("T")[0] : "",
-        validUntil: rate.validUntil ? new Date(rate.validUntil).toISOString().split("T")[0] : "",
-        minDays: rate.minDays || 1,
-        maxDays: rate.maxDays || 0,
-        isActive: rate.isActive ?? true,
-      });
-    } else {
-      setEditingRate(null);
-      setFormData(BLANK_FORM);
-    }
-    setIsModalOpen(true);
+  const handleEditRate = (rate: RateItem) => {
+    setEditingRate(rate);
+    setParentFormData({
+      name: rate.name || "",
+      description: rate.description || "",
+      validFrom: rate.validFrom ? new Date(rate.validFrom).toISOString().split("T")[0] : "",
+      validUntil: rate.validUntil ? new Date(rate.validUntil).toISOString().split("T")[0] : "",
+      minDays: rate.minDays ?? 1,
+      maxDays: rate.maxDays ?? 0,
+      isActive: rate.isActive ?? true,
+    });
+    setIsParentModalOpen(true);
   };
 
-  const handleSave = () => {
-    const payload: any = {
-      ...formData,
-      validFrom: formData.validFrom || undefined,
-      validUntil: formData.validUntil || undefined,
+  // ── Chooser → Parent form ────────────────────────────────────────────────────
+
+  const handleChooseParent = () => {
+    setIsChooserOpen(false);
+    setEditingRate(null);
+    setParentFormData(BLANK_FORM);
+    setIsParentModalOpen(true);
+  };
+
+  // ── Chooser → Child form ─────────────────────────────────────────────────────
+
+  const handleChooseChild = () => {
+    setIsChooserOpen(false);
+    setChildParentId("");
+    setChildFormData(BLANK_FORM);
+    setChildTiers([]);
+    setIsChildModalOpen(true);
+  };
+
+  // ── Save parent rate ─────────────────────────────────────────────────────────
+
+  const handleSaveParent = () => {
+    const payload = {
+      ...parentFormData,
+      rateType: "web",
+      validFrom: parentFormData.validFrom || undefined,
+      validUntil: parentFormData.validUntil || undefined,
     };
-    if (!editingRate) {
-      payload.rateType = "web";
-    }
 
     if (editingRate) {
       updateMutation.mutate(
@@ -513,9 +655,9 @@ export default function RatesPage() {
           onSuccess: () => {
             toast({ title: "Success", description: "Rate updated" });
             queryClient.invalidateQueries();
-            setIsModalOpen(false);
+            setIsParentModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to update", variant: "destructive" });
           },
         },
@@ -527,9 +669,9 @@ export default function RatesPage() {
           onSuccess: () => {
             toast({ title: "Success", description: "Rate created" });
             queryClient.invalidateQueries();
-            setIsModalOpen(false);
+            setIsParentModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to create", variant: "destructive" });
           },
         },
@@ -537,37 +679,7 @@ export default function RatesPage() {
     }
   };
 
-  // ── Child modal ──────────────────────────────────────────────────────────────
-
-  const handleOpenChildModal = () => {
-    setChildParentId("");
-    setChildFormData(BLANK_FORM);
-    setChildTiers([]);
-    setIsChildModalOpen(true);
-  };
-
-  // When parentDetail loads, pre-populate the child's tier grid and dates
-  React.useEffect(() => {
-    if (!parentDetail) return;
-    const copied: CopiedTierRow[] = ((parentDetail as any).tiers ?? []).map((t: any) => ({
-      vehicleModelId: t.vehicleModelId,
-      fromDays: t.fromDays ?? 1,
-      toDays: t.toDays ?? 0,
-      pricePerDay: t.pricePerDay?.toString() ?? "0",
-    }));
-    setChildTiers(copied);
-    setChildFormData((prev) => ({
-      ...prev,
-      validFrom: (parentDetail as any).validFrom
-        ? new Date((parentDetail as any).validFrom).toISOString().split("T")[0]
-        : "",
-      validUntil: (parentDetail as any).validUntil
-        ? new Date((parentDetail as any).validUntil).toISOString().split("T")[0]
-        : "",
-      minDays: (parentDetail as any).minDays ?? 1,
-      maxDays: (parentDetail as any).maxDays ?? 0,
-    }));
-  }, [parentDetail]);
+  // ── Save child rate ──────────────────────────────────────────────────────────
 
   const handleSaveChild = async () => {
     if (!childParentId) {
@@ -581,59 +693,56 @@ export default function RatesPage() {
 
     setIsSavingChild(true);
     try {
-      const childPayload: any = {
+      const childPayload = {
         ...childFormData,
         rateType: "web",
-        parentRateId: parseInt(childParentId),
+        parentRateId: parseInt(childParentId, 10),
         validFrom: childFormData.validFrom || undefined,
         validUntil: childFormData.validUntil || undefined,
       };
 
-      await new Promise<void>((resolve, reject) => {
+      const newRate: RateItem = await new Promise((resolve, reject) => {
         createMutation.mutate(
           { data: childPayload },
-          {
-            onSuccess: async (newRate: any) => {
-              const newRateId = newRate?.id;
-              if (newRateId && childTiers.length > 0) {
-                for (const tier of childTiers) {
-                  try {
-                    await new Promise<void>((res, rej) => {
-                      createTierMutation.mutate(
-                        {
-                          id: newRateId,
-                          data: {
-                            vehicleModelId: tier.vehicleModelId,
-                            fromDays: tier.fromDays,
-                            toDays: tier.toDays,
-                            pricePerDay: tier.pricePerDay as any,
-                            currency: "EUR",
-                          },
-                        },
-                        { onSuccess: () => res(), onError: rej },
-                      );
-                    });
-                  } catch (tierErr: any) {
-                    toast({
-                      title: "Warning",
-                      description: `Rate created but tier failed: ${tierErr?.message ?? "unknown error"}`,
-                      variant: "destructive",
-                    });
-                  }
-                }
-              }
-              resolve();
-            },
-            onError: reject,
-          },
+          { onSuccess: (data: unknown) => resolve(data as RateItem), onError: reject },
         );
       });
+
+      if (newRate?.id && childTiers.length > 0) {
+        for (const tier of childTiers) {
+          try {
+            await new Promise<void>((resolve, reject) => {
+              createTierMutation.mutate(
+                {
+                  id: newRate.id,
+                  data: {
+                    vehicleModelId: tier.vehicleModelId,
+                    fromDays: tier.fromDays,
+                    toDays: tier.toDays,
+                    pricePerDay: tier.pricePerDay,
+                    currency: "EUR",
+                  },
+                },
+                { onSuccess: () => resolve(), onError: reject },
+              );
+            });
+          } catch (tierErr: unknown) {
+            const msg = tierErr instanceof Error ? tierErr.message : "unknown error";
+            toast({
+              title: "Warning",
+              description: `Rate created but a tier failed: ${msg}`,
+              variant: "destructive",
+            });
+          }
+        }
+      }
 
       toast({ title: "Success", description: "Child rate created with tiers" });
       queryClient.invalidateQueries();
       setIsChildModalOpen(false);
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.message || "Failed to create child rate", variant: "destructive" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to create child rate";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setIsSavingChild(false);
     }
@@ -650,7 +759,7 @@ export default function RatesPage() {
             toast({ title: "Success", description: "Rate deleted" });
             queryClient.invalidateQueries();
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to delete", variant: "destructive" });
           },
         },
@@ -664,9 +773,9 @@ export default function RatesPage() {
 
   // ── Rate row renderer ────────────────────────────────────────────────────────
 
-  const renderRateRow = (rate: any) => {
+  const renderRateRow = (rate: RateItem) => {
     const isChild = rate.parentRateId != null;
-    const parent = isChild ? rateMap.get(rate.parentRateId) : null;
+    const parent = isChild ? rateMap.get(rate.parentRateId!) : undefined;
 
     return (
       <React.Fragment key={rate.id}>
@@ -697,7 +806,7 @@ export default function RatesPage() {
               </div>
               {isChild && parent && (
                 <span className="text-[11px] text-muted-foreground">
-                  inherits from <span className="font-medium text-foreground/70">{(parent as any).name}</span>
+                  inherits from <span className="font-medium text-foreground/70">{parent.name}</span>
                 </span>
               )}
               {rate.description && (
@@ -717,12 +826,12 @@ export default function RatesPage() {
           </TableCell>
           <TableCell>
             <Badge variant="secondary" className="bg-primary/10 text-primary">
-              {rate.tiers?.length || 0}
+              {rate.tiers?.length ?? 0}
             </Badge>
           </TableCell>
           <TableCell>
             <Switch
-              checked={rate.isActive}
+              checked={rate.isActive ?? false}
               disabled
               className="data-[state=checked]:bg-emerald-500"
             />
@@ -735,7 +844,7 @@ export default function RatesPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleOpenModal(rate)}>
+                <DropdownMenuItem onClick={() => handleEditRate(rate)}>
                   <Edit className="w-4 h-4 mr-2" /> Edit Plan
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -751,7 +860,7 @@ export default function RatesPage() {
         {expandedRateId === rate.id && (
           <TableRow className="bg-muted/5 hover:bg-muted/5 border-border/20">
             <TableCell colSpan={7} className="p-0">
-              <RateTiers rateId={rate.id} tiers={rate.tiers || []} />
+              <RateTiers rateId={rate.id} tiers={rate.tiers ?? []} />
             </TableCell>
           </TableRow>
         )}
@@ -762,7 +871,6 @@ export default function RatesPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const displayedRates = activeTab === "web" ? webRates : brokerRates;
-  const webParentRates = webRates.filter((r: any) => r.parentRateId == null);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -774,16 +882,10 @@ export default function RatesPage() {
           </h2>
           <p className="text-muted-foreground">Manage dynamic pricing and seasonal rates</p>
         </div>
-
         {activeTab === "web" && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleOpenChildModal} className="shadow-sm hover-elevate">
-              <GitBranch className="w-4 h-4 mr-2" /> Add Child Rate
-            </Button>
-            <Button onClick={() => handleOpenModal()} className="shadow-sm hover-elevate">
-              <Plus className="w-4 h-4 mr-2" /> Add Parent Rate
-            </Button>
-          </div>
+          <Button onClick={() => setIsChooserOpen(true)} className="shadow-sm hover-elevate">
+            <Plus className="w-4 h-4 mr-2" /> Add Rate Plan
+          </Button>
         )}
       </div>
 
@@ -849,27 +951,13 @@ export default function RatesPage() {
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell>
-                      <Skeleton className="h-4 w-4" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-32" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-6 w-8 rounded-full" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-6 w-16 rounded-full" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="h-8 w-8 ml-auto rounded-md" />
-                    </TableCell>
+                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-8 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
                   </TableRow>
                 ))
               ) : displayedRates.length === 0 ? (
@@ -880,15 +968,57 @@ export default function RatesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                displayedRates.map((rate: any) => renderRateRow(rate))
+                displayedRates.map((rate) => renderRateRow(rate))
               )}
             </TableBody>
           </Table>
         </div>
       </Card>
 
+      {/* ── Chooser modal ────────────────────────────────────────────────────── */}
+      <Dialog open={isChooserOpen} onOpenChange={setIsChooserOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Add Rate Plan</DialogTitle>
+            <DialogDescription>
+              Choose whether to create a standalone parent rate or a child override that inherits from an existing parent.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            <button
+              onClick={handleChooseParent}
+              className="flex flex-col items-center gap-3 p-4 rounded-xl border-2 border-border/50 hover:border-primary/60 hover:bg-primary/5 transition-all text-left cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                <Layers className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <div className="font-semibold text-sm text-foreground">Parent Rate</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Base pricing for a date range. Used directly unless a child overrides it.
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={handleChooseChild}
+              className="flex flex-col items-center gap-3 p-4 rounded-xl border-2 border-border/50 hover:border-primary/60 hover:bg-primary/5 transition-all text-left cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <GitBranch className="w-5 h-5 text-violet-500" />
+              </div>
+              <div>
+                <div className="font-semibold text-sm text-foreground">Child Rate</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Seasonal override with adjusted prices copied from a parent.
+                </div>
+              </div>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Parent rate modal ────────────────────────────────────────────────── */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isParentModalOpen} onOpenChange={setIsParentModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
@@ -900,83 +1030,13 @@ export default function RatesPage() {
                 : "Create a base WEB rate plan. Seasonal overrides can be added as child rates."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Name</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Description</Label>
-              <Input
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Valid From</Label>
-                <Input
-                  type="date"
-                  value={formData.validFrom}
-                  onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Valid Until</Label>
-                <Input
-                  type="date"
-                  value={formData.validUntil}
-                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Minimum Days</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.minDays}
-                  onChange={(e) =>
-                    setFormData({ ...formData, minDays: parseInt(e.target.value) || 1 })
-                  }
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Maximum Days (0 = unlimited)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={formData.maxDays}
-                  onChange={(e) =>
-                    setFormData({ ...formData, maxDays: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg mt-2 bg-muted/30">
-              <div>
-                <Label className="text-base">Active Status</Label>
-                <p className="text-sm text-muted-foreground">Is this rate currently applicable?</p>
-              </div>
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(val) => setFormData({ ...formData, isActive: val })}
-              />
-            </div>
+          <div className="py-4">
+            <ParentRateForm formData={parentFormData} onChange={setParentFormData} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setIsParentModalOpen(false)}>Cancel</Button>
             <Button
-              onClick={handleSave}
+              onClick={handleSaveParent}
               disabled={createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
@@ -993,21 +1053,33 @@ export default function RatesPage() {
               <GitBranch className="w-5 h-5 text-violet-500" /> Add Child Rate
             </DialogTitle>
             <DialogDescription>
-              A child rate inherits its date scope from a parent and starts with a copy of the
-              parent's tiers. Adjust prices before saving.
+              A child rate inherits from a parent and starts with a copy of its tiers. Adjust prices before saving.
             </DialogDescription>
           </DialogHeader>
+
+          {/* Load parent tiers when selected — rendered as invisible side-effect component */}
+          {parentIdNum > 0 && (
+            <ChildRateLoader
+              parentId={parentIdNum}
+              onParentLoaded={(tiers, validFrom, validUntil, minDays, maxDays) => {
+                setChildTiers(tiers);
+                setChildFormData((prev) => ({ ...prev, validFrom, validUntil, minDays, maxDays }));
+              }}
+            />
+          )}
 
           <div className="grid gap-4 py-4">
             {/* Parent selector */}
             <div className="grid gap-2">
-              <Label>Parent Rate <span className="text-destructive">*</span></Label>
+              <Label>
+                Parent Rate <span className="text-destructive">*</span>
+              </Label>
               <Select value={childParentId} onValueChange={setChildParentId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a parent rate…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {webParentRates.map((r: any) => (
+                  {webParentRates.map((r) => (
                     <SelectItem key={r.id} value={r.id.toString()}>
                       {r.name}{" "}
                       <span className="text-muted-foreground text-xs">
@@ -1020,9 +1092,11 @@ export default function RatesPage() {
               </Select>
             </div>
 
-            {/* Child name & description */}
+            {/* Child details */}
             <div className="grid gap-2">
-              <Label>Name <span className="text-destructive">*</span></Label>
+              <Label>
+                Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 placeholder="e.g. Summer 2026 Override"
                 value={childFormData.name}
@@ -1036,8 +1110,6 @@ export default function RatesPage() {
                 onChange={(e) => setChildFormData({ ...childFormData, description: e.target.value })}
               />
             </div>
-
-            {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Valid From</Label>
@@ -1052,13 +1124,10 @@ export default function RatesPage() {
                 <Input
                   type="date"
                   value={childFormData.validUntil}
-                  onChange={(e) =>
-                    setChildFormData({ ...childFormData, validUntil: e.target.value })
-                  }
+                  onChange={(e) => setChildFormData({ ...childFormData, validUntil: e.target.value })}
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Minimum Days</Label>
@@ -1083,7 +1152,6 @@ export default function RatesPage() {
                 />
               </div>
             </div>
-
             <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
               <div>
                 <Label className="text-base">Active Status</Label>
@@ -1106,7 +1174,7 @@ export default function RatesPage() {
                 </Label>
                 <ChildTierGrid
                   tiers={childTiers}
-                  models={models ?? []}
+                  models={models}
                   onChange={setChildTiers}
                 />
               </div>
