@@ -82,6 +82,74 @@ async function uploadFile(file: File): Promise<string> {
   return objectPath as string;
 }
 
+async function compressImage(file: File): Promise<File> {
+  const MAX_DIM = 1800;
+  const QUALITY = 0.82;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width <= MAX_DIM && height <= MAX_DIM) {
+        resolve(file);
+        return;
+      }
+      if (width > height) {
+        height = Math.round((height * MAX_DIM) / width);
+        width = MAX_DIM;
+      } else {
+        width = Math.round((width * MAX_DIM) / height);
+        height = MAX_DIM;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        QUALITY,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+    img.src = url;
+  });
+}
+
+async function uploadWithRetry(file: File, maxRetries = 3): Promise<string> {
+  let lastErr: Error = new Error("Upload failed");
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await uploadFile(file);
+    } catch (err) {
+      lastErr = err as Error;
+      if (attempt < maxRetries - 1) {
+        await new Promise<void>((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+async function runConcurrentQueue<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+}
+
 // ─── Labels ──────────────────────────────────────────────────────────────────
 
 const PAYMENT_TYPE_LABELS: Record<string, string> = {
@@ -460,28 +528,29 @@ function HandoverModal({
         )
       );
 
-      const results = await Promise.allSettled(
-        toUpload.map((fi) => uploadFile(fi.file).then((path) => ({ id: fi.id, path })))
-      );
-
-      // Collect resolved paths directly from results — avoids stale fileItems closure
       const newPaths = new Map<string, string>();
-      // Derive hasError from results before any state update (deterministic)
-      const hasError = results.some((r) => r.status === "rejected");
+      let hasError = false;
 
-      setFileItems((prev) => {
-        const updated = [...prev];
-        results.forEach((r, i) => {
-          const idx = updated.findIndex((fi) => fi.id === toUpload[i].id);
-          if (r.status === "fulfilled") {
-            updated[idx] = { ...updated[idx], status: "done", path: r.value.path };
-            newPaths.set(toUpload[i].id, r.value.path);
-          } else {
-            updated[idx] = { ...updated[idx], status: "error", error: (r.reason as Error)?.message ?? "Upload failed" };
-          }
-        });
-        return updated;
+      await runConcurrentQueue(toUpload, 3, async (fi) => {
+        try {
+          const compressed = await compressImage(fi.file);
+          const path = await uploadWithRetry(compressed);
+          newPaths.set(fi.id, path);
+          setFileItems((prev) =>
+            prev.map((f) => (f.id === fi.id ? { ...f, status: "done" as const, path } : f))
+          );
+        } catch (err) {
+          hasError = true;
+          setFileItems((prev) =>
+            prev.map((f) =>
+              f.id === fi.id
+                ? { ...f, status: "error" as const, error: (err as Error)?.message ?? "Upload failed" }
+                : f
+            )
+          );
+        }
       });
+
       setUploading(false);
 
       if (hasError) {
@@ -522,8 +591,8 @@ function HandoverModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleModalClose(); }}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Icon className={`w-4 h-4 ${accentClass}`} />
             {title}
@@ -533,7 +602,7 @@ function HandoverModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
+        <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-0.5">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <HandoverDateTimePicker
@@ -651,19 +720,20 @@ function HandoverModal({
             )}
           </div>
 
-          <div className="flex gap-2 justify-end pt-1">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || uploading}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              className="h-7 text-xs"
-              onClick={handleRecord}
-              disabled={savingHandover || uploading || fileItems.some((fi) => fi.status === "uploading")}
-            >
-              {savingHandover || uploading ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
-            </Button>
-          </div>
+        </div>
+
+        <div className="flex-shrink-0 flex gap-2 justify-end pt-3 border-t border-border/40 mt-1">
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || uploading}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleRecord}
+            disabled={savingHandover || uploading || fileItems.some((fi) => fi.status === "uploading")}
+          >
+            {savingHandover || uploading ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

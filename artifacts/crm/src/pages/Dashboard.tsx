@@ -1049,7 +1049,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-[400px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-[560px] max-lg:h-[440px]">
             <ActivityTable
               title="Pickups"
               bookings={todayQuery.data?.pickups}

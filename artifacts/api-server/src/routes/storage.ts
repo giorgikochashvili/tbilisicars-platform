@@ -102,7 +102,7 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 router.put(
   "/storage/local-uploads/:filename",
   requireAdmin,
-  express.raw({ type: "*/*", limit: "20mb" }),
+  express.raw({ type: "*/*", limit: "25mb" }),
   async (req: Request, res: Response) => {
     const { filename } = req.params;
     if (!/^[a-zA-Z0-9][a-zA-Z0-9\-]*\.[a-z]{2,5}$/.test(filename)) {
