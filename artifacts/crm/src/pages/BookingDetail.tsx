@@ -854,14 +854,16 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     setAssignSelectedModelId(modelId);
     setLoadingAssignVehicles(true);
     try {
-      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100`);
+      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocationId)?.city;
+      const cityParam = pickupCity ? `&city=${encodeURIComponent(pickupCity)}` : "";
+      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`);
       setAssignVehicles(data?.data ?? []);
     } catch (e: any) {
       toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
     } finally {
       setLoadingAssignVehicles(false);
     }
-  }, []);
+  }, [booking?.pickupLocationId, overviewLocations]);
 
   const handleAssignVehicle = useCallback(async (vehicleId: number) => {
     if (!bookingId) return;
@@ -1226,14 +1228,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       {booking.vehicle ? (
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
-                            className="font-medium text-left flex items-center gap-1 hover:text-primary transition-colors group"
+                            className="font-medium text-left flex items-center gap-1 min-w-0 hover:text-primary transition-colors group"
                             onClick={() => {
                               onClose();
                               setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
                             }}
                           >
-                            {booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}
-                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            <span className="truncate">{booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
                           </button>
                           <button
                             type="button"

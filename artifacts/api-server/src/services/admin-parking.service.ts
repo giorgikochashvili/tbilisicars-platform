@@ -1,5 +1,6 @@
 import {
   db,
+  locationTable,
   parkingAssignmentTable,
   vehicleTable,
   vehicleModelTable,
@@ -71,14 +72,22 @@ export async function assignVehicleToZone(
     throw new ConflictError(`Invalid zone "${zone}". Must be one of: ${VALID_ZONES.join(", ")}`);
   }
 
-  // Check vehicle exists
+  // Check vehicle exists and is located in Tbilisi
   const [vehicle] = await db
-    .select({ id: vehicleTable.id })
+    .select({ id: vehicleTable.id, locationId: vehicleTable.locationId, city: locationTable.city })
     .from(vehicleTable)
+    .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
     .where(eq(vehicleTable.id, vehicleId))
     .limit(1);
 
   if (!vehicle) throw new NotFoundError(`Vehicle ${vehicleId} not found`);
+
+  if (vehicle.city !== "Tbilisi") {
+    throw new ConflictError(
+      `TBS AIR PARKING only accepts vehicles currently located in Tbilisi. ` +
+      `This vehicle is in ${vehicle.city ?? "an unknown location"}.`,
+    );
+  }
 
   // Check: vehicle not already actively parked
   const [existing] = await db

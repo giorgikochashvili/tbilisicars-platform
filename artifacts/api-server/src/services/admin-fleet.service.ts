@@ -1,6 +1,7 @@
 import {
   db,
   brandTable,
+  locationTable,
   vehicleModelTable,
   vehiclegroupTable,
   vehicleTable,
@@ -265,6 +266,7 @@ export async function getAdminGroup(id: number) {
 export interface AdminVehicleFilters {
   status?: NonNullable<Vehicle["status"]>;
   locationId?: number;
+  city?: string;
   modelId?: number;
   groupId?: number;
 }
@@ -281,6 +283,9 @@ export async function listAdminVehicles(
   }
   if (filters.locationId != null) {
     conditions.push(eq(vehicleTable.locationId, filters.locationId));
+  }
+  if (filters.city != null) {
+    conditions.push(eq(locationTable.city, filters.city));
   }
   if (filters.modelId != null) {
     conditions.push(eq(vehicleTable.vehicleModelId, filters.modelId));
@@ -322,11 +327,16 @@ export async function listAdminVehicles(
       .from(vehicleTable)
       .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
       .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+      .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
       .where(where)
       .orderBy(asc(vehicleTable.id))
       .limit(limit)
       .offset(offset),
-    db.select({ total: count() }).from(vehicleTable).where(where),
+    db
+      .select({ total: count() })
+      .from(vehicleTable)
+      .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
+      .where(where),
   ]);
 
   const data = rows.map(({ modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, brandLogoUrl, ...v }) => ({

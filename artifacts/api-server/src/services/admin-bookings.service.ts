@@ -675,7 +675,7 @@ export async function applyAdminBookingStatus(
     if (status === "DELIVERED") {
       await db
         .update(vehicleTable)
-        .set({ status: "RENTED", updatedAt: new Date() })
+        .set({ status: "RENTED", locationId: current.dropoffLocationId, updatedAt: new Date() })
         .where(eq(vehicleTable.id, current.vehicleId));
       await removeFromParkingByVehicle(current.vehicleId);
     } else if (status === "RETURNED") {
