@@ -284,7 +284,9 @@ router.post("/public/quote", async (req, res) => {
   const days = calculateChargeableDays(pickupDate, dropoffDate);
   const pickupDateStr = pickupDate.toISOString().slice(0, 10);
 
-  // Resolve best active rate tier for this vehicle model + dates + duration
+  // Resolve best active rate tier for this vehicle model + dates + duration.
+  // Prefer child rates (parent_rate_id IS NOT NULL) over parent rates.
+  // Exclude broker rates; treat legacy null rate_type as WEB.
   const { rows: tierRows } = await pool.query(
     `SELECT rt.id AS tier_id, rt.rate_id, rt.price_per_day, rt.currency,
             r.name AS rate_name, r.valid_from, r.valid_until
@@ -292,11 +294,15 @@ router.post("/public/quote", async (req, res) => {
      JOIN rate r ON r.id = rt.rate_id
      WHERE rt.vehicle_model_id = $1
        AND r.is_active = true
+       AND (r.rate_type = 'web' OR r.rate_type IS NULL)
        AND r.valid_from::date <= $2::date
        AND r.valid_until::date >= $2::date
        AND rt.from_days <= $3
        AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= $3)
-     ORDER BY r.valid_from DESC, rt.from_days DESC
+     ORDER BY
+       (CASE WHEN r.parent_rate_id IS NOT NULL THEN 1 ELSE 0 END) DESC,
+       r.valid_from DESC,
+       rt.from_days DESC
      LIMIT 1`,
     [body.vehicleModelId, pickupDateStr, days],
   );

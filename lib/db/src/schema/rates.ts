@@ -36,6 +36,7 @@ export const rateTable = pgTable(
     unlimitedKm: boolean("unlimited_km").default(true),
     editableBy: varchar("editable_by", { length: 50 }).default("all"),
     isActive: boolean("is_active").default(true),
+    rateType: varchar("rate_type", { length: 20 }).default("web"),
     priceModifierName: varchar("price_modifier_name", { length: 100 }),
     priceModifierType: varchar("price_modifier_type", { length: 20 }),
     priceModifierValue: numeric("price_modifier_value", {

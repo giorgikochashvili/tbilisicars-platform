@@ -1,6 +1,6 @@
-import { db, rateTable, ratetierTable } from "@workspace/db";
+import { db, pool, rateTable, ratetierTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
-import { NotFoundError } from "../lib/errors.js";
+import { NotFoundError, ValidationError } from "../lib/errors.js";
 
 export async function listAllRates() {
   const rates = await db.select().from(rateTable).orderBy(asc(rateTable.name));
@@ -32,6 +32,7 @@ export async function createAdminRate(data: {
   name: string;
   description?: string | null;
   parentRateId?: number | null;
+  rateType?: string | null;
   incrementType?: string | null;
   incrementValue?: string | null;
   validFrom: string;
@@ -52,6 +53,7 @@ export async function updateAdminRate(
     name: string;
     description: string | null;
     parentRateId: number | null;
+    rateType: string | null;
     incrementType: string | null;
     incrementValue: string | null;
     validFrom: string;
@@ -91,8 +93,65 @@ export async function createAdminRateTier(
     currency?: string | null;
   },
 ) {
-  // Verify rate exists
-  await getAdminRate(rateId);
+  // Verify rate exists and get its metadata for overlap validation
+  const currentRate = await getAdminRate(rateId);
+
+  // Tier-level WEB overlap validation:
+  // Reject if another WEB rate already has a tier for the same vehicle model
+  // with overlapping date coverage — unless the conflict is with our own parent
+  // or a sibling child (same parentRateId).
+  const isWebRate =
+    currentRate.rateType === "web" || currentRate.rateType == null;
+  if (isWebRate) {
+    const { rows: conflicts } = await pool.query(
+      `SELECT r2.id AS conflicting_rate_id, r2.name AS conflicting_rate_name,
+              r2.parent_rate_id AS conflicting_parent_rate_id
+       FROM ratetier rt2
+       JOIN rate r2 ON r2.id = rt2.rate_id
+       WHERE rt2.vehicle_model_id = $1
+         AND rt2.rate_id != $2
+         AND (r2.rate_type = 'web' OR r2.rate_type IS NULL)
+         AND r2.is_active = true
+         AND r2.valid_from::date <= $3::date
+         AND r2.valid_until::date >= $4::date`,
+      [
+        data.vehicleModelId,
+        rateId,
+        currentRate.validUntil,
+        currentRate.validFrom,
+      ],
+    );
+
+    for (const conflict of conflicts as Array<{
+      conflicting_rate_id: number;
+      conflicting_rate_name: string;
+      conflicting_parent_rate_id: number | null;
+    }>) {
+      const conflictId = conflict.conflicting_rate_id;
+      const conflictParentId = conflict.conflicting_parent_rate_id;
+
+      // Allow: conflicting rate is the parent of the current rate
+      if (currentRate.parentRateId && conflictId === currentRate.parentRateId) {
+        continue;
+      }
+      // Allow: current rate is the parent of the conflicting rate
+      if (conflictParentId === rateId) {
+        continue;
+      }
+      // Allow: same parent (siblings) — both are children of the same parent
+      if (
+        currentRate.parentRateId != null &&
+        conflictParentId === currentRate.parentRateId
+      ) {
+        continue;
+      }
+
+      throw new ValidationError(
+        `A WEB rate "${conflict.conflicting_rate_name}" already has pricing for this vehicle model covering the same date period (${currentRate.validFrom} – ${currentRate.validUntil}). Remove that tier or adjust the date range to avoid overlap.`,
+      );
+    }
+  }
+
   const [row] = await db
     .insert(ratetierTable)
     .values({ ...data, rateId, currency: "EUR" } as any)

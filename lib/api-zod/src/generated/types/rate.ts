@@ -13,6 +13,8 @@ export interface Rate {
   description?: string | null;
   /** @nullable */
   parentRateId?: number | null;
+  /** @nullable */
+  rateType?: string | null;
   validFrom: string;
   validUntil: string;
   /** @nullable */
