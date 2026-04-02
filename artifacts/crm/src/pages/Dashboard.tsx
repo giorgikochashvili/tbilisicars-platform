@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -368,6 +367,9 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
+const OPS_GRID = "grid-cols-[44px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_76px_minmax(0,0.9fr)_52px]";
+const OPS_HEADERS = ["Ref", "Client", "Phone", "Vehicle", "Amount", "Route", "Time"] as const;
+
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick }: {
   title: string;
   bookings?: BookingRow[];
@@ -386,98 +388,160 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
           </Badge>
         </CardTitle>
       </CardHeader>
-      <div className="flex-1 overflow-auto bg-card/30">
-        <Table>
-          <TableHeader className="bg-background/80 sticky top-0 backdrop-blur-xl z-10">
-            <TableRow className="border-border/40 hover:bg-transparent">
-              <TableHead className="w-[56px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ref</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</TableHead>
-              <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Route</TableHead>
-              <TableHead className="w-[60px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <TableRow key={i} className="border-border/20 hover:bg-transparent">
-                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-14" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-10" /></TableCell>
-                  </TableRow>
-                ))
-              : !bookings || bookings.length === 0
-              ? (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={7} className="text-center h-36">
-                      <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
-                        <CalendarClock className="w-8 h-8 opacity-20" />
-                        <span className="text-sm font-medium">{emptyMessage}</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              : bookings.map((b) => {
-                  const dt = timeKey === "pickup" ? b.pickupDatetime : b.dropoffDatetime;
-                  const phone = b.customer?.phone ?? b.contactPhone ?? null;
-                  return (
-                    <TableRow
-                      key={b.id}
-                      className={cn(
-                        "border-border/20 hover:bg-muted/40 transition-colors",
-                        onRowClick ? "cursor-pointer" : "cursor-default",
-                      )}
-                      onClick={() => onRowClick?.(b.id)}
-                    >
-                      <TableCell className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</TableCell>
-                      <TableCell className="font-semibold text-sm text-foreground">
-                        {b.customer?.fullName || b.customer?.email || b.contactFullName}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {phone ?? <span className="italic opacity-50">—</span>}
-                      </TableCell>
-                      <TableCell>
-                        {b.vehicle ? (
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium text-foreground">
-                              {b.vehicle.brandName ? `${b.vehicle.brandName} ` : ""}{b.vehicle.modelName}
-                            </span>
-                            <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded inline-flex w-fit mt-0.5">
-                              {b.vehicle.licensePlate}
-                            </span>
-                          </div>
-                        ) : b.vehicleModelName ? (
-                          <span className="text-xs font-medium text-foreground">
-                            {b.vehicleModelBrandName ? `${b.vehicleModelBrandName} ` : ""}{b.vehicleModelName}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground italic">Unassigned</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono font-semibold text-foreground">
-                        {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : <span className="opacity-40">—</span>}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-xs font-medium">
-                          <span className="text-foreground/80 font-mono font-bold">{locationShortCode(b.pickupLocation.name)}</span>
-                          <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
-                          <span className="text-foreground/80 font-mono font-bold">{locationShortCode(b.dropoffLocation.name)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm font-bold text-foreground">
-                        {new Date(dt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-          </TableBody>
-        </Table>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-card/30">
+        {/* ── Desktop column headers (md+) ── */}
+        <div className={cn(
+          "hidden md:grid items-center px-3 py-2 gap-x-2",
+          "sticky top-0 bg-background/80 backdrop-blur-xl z-10",
+          "border-b border-border/30",
+          OPS_GRID,
+        )}>
+          {OPS_HEADERS.map((h) => (
+            <span key={h} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* ── Loading skeletons ── */}
+        {isLoading && (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                {/* Desktop skeleton */}
+                <div className={cn(
+                  "hidden md:grid items-center px-3 py-3 gap-x-2 border-b border-border/20",
+                  OPS_GRID,
+                )}>
+                  <Skeleton className="h-4 w-8" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-14" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                {/* Mobile skeleton */}
+                <div className="md:hidden flex flex-col gap-2 px-3 py-3 border-b border-border/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-32" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-14" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ── Empty state ── */}
+        {!isLoading && (!bookings || bookings.length === 0) && (
+          <div className="h-36 flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <CalendarClock className="w-8 h-8 opacity-20" />
+            <span className="text-sm font-medium">{emptyMessage}</span>
+          </div>
+        )}
+
+        {/* ── Data rows ── */}
+        {!isLoading && bookings && bookings.length > 0 && bookings.map((b) => {
+          const dt = timeKey === "pickup" ? b.pickupDatetime : b.dropoffDatetime;
+          const phone = b.customer?.phone ?? b.contactPhone ?? null;
+          const timeStr = new Date(dt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+          const clientName = b.customer?.fullName || b.customer?.email || b.contactFullName;
+          const vehicleName = b.vehicle
+            ? `${b.vehicle.brandName ? b.vehicle.brandName + " " : ""}${b.vehicle.modelName}`
+            : b.vehicleModelName
+            ? `${b.vehicleModelBrandName ? b.vehicleModelBrandName + " " : ""}${b.vehicleModelName}`
+            : null;
+          const amountEl = b.totalAmount
+            ? <span>{formatBookingAmount(b.totalAmount, b.currency)}</span>
+            : <span className="opacity-40">—</span>;
+          const routeFrom = locationShortCode(b.pickupLocation.name);
+          const routeTo = locationShortCode(b.dropoffLocation.name);
+
+          return (
+            <div
+              key={b.id}
+              className={cn(
+                "border-b border-border/20 transition-colors",
+                onRowClick ? "cursor-pointer" : "cursor-default",
+              )}
+              onClick={() => onRowClick?.(b.id)}
+            >
+              {/* Desktop row (md+) */}
+              <div className={cn(
+                "hidden md:grid items-center px-3 py-2.5 gap-x-2 hover:bg-muted/40 transition-colors",
+                OPS_GRID,
+              )}>
+                <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
+                <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
+                <span className="text-xs text-muted-foreground truncate min-w-0">
+                  {phone ?? <span className="italic opacity-50">—</span>}
+                </span>
+                <div className="flex flex-col min-w-0 overflow-hidden">
+                  {b.vehicle ? (
+                    <>
+                      <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
+                        {b.vehicle.licensePlate}
+                      </span>
+                    </>
+                  ) : vehicleName ? (
+                    <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                  )}
+                </div>
+                <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
+                <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
+                  <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
+                  <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
+                  <span className="font-mono font-bold text-foreground/80 truncate">{routeTo}</span>
+                </div>
+                <span className="text-sm font-bold text-foreground">{timeStr}</span>
+              </div>
+
+              {/* Mobile card (below md) */}
+              <div className="md:hidden flex flex-col gap-1.5 px-3 py-3 hover:bg-muted/40 transition-colors overflow-hidden">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground flex-shrink-0">#{b.id}</span>
+                </div>
+                {b.vehicle ? (
+                  <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                    <span className="text-xs text-foreground/80 truncate min-w-0">{vehicleName}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded flex-shrink-0">
+                      {b.vehicle.licensePlate}
+                    </span>
+                  </div>
+                ) : vehicleName ? (
+                  <span className="text-xs text-foreground/80 truncate min-w-0">{vehicleName}</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                )}
+                <span className="text-xs text-muted-foreground truncate min-w-0">
+                  {phone ?? <span className="italic opacity-50">—</span>}
+                </span>
+                <div className="flex items-center gap-1 text-xs font-medium">
+                  <span className="font-mono font-bold text-foreground/80">{routeFrom}</span>
+                  <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
+                  <span className="font-mono font-bold text-foreground/80">{routeTo}</span>
+                </div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
+                  <span className="text-sm font-bold text-primary">{timeStr}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
