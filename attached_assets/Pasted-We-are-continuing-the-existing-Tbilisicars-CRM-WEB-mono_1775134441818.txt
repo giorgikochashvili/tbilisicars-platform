@@ -1,0 +1,129 @@
+We are continuing the existing Tbilisicars CRM & WEB monorepo project that is already fully built inside Replit.
+
+Locked project state:
+- This is an existing live project, not a fresh build
+- Replit Preview works
+- GitHub sync workflow already works
+- Droplet build/deploy already works
+- Stack: PNPM monorepo
+  - artifacts/api-server
+  - artifacts/crm
+  - artifacts/website
+  - lib/db
+  - lib/api-spec
+  - lib/api-zod
+- Recent DB schema push already added booking_handover support on the server side
+- DO NOT rework infrastructure
+- DO NOT change deployment flow
+- DO NOT touch unrelated modules
+- DO NOT do broad refactors
+- Continue exactly from the current codebase state
+
+Task:
+Implement only the two changes below, with the smallest safe change set.
+
+==================================================
+CHANGE 1 — Upgrade booking Assign flow inside booking details
+==================================================
+
+Current known behavior:
+- In booking details, near the vehicle/model area, there is an Assign action
+- It opens a modal and allows assigning an available vehicle
+- This works, but is too limited for real operations
+
+Required behavior:
+1. Inside the same Assign flow/modal, staff must be able to:
+   - assign a specific available vehicle
+   - unassign/remove the currently assigned vehicle
+   - change the booking’s selected vehicle model
+   - indirectly change brand by selecting a model from another brand
+
+2. Real use case to support:
+   - booking may be planned with one model in advance
+   - at pickup time customer may request another car
+   - staff must be able to switch model and/or vehicle quickly from this same Assign flow
+   - staff should NOT be forced into full Edit Booking just to change model/vehicle assignment
+
+3. UX rules:
+   - show current selected model clearly
+   - show current assigned vehicle clearly (if any)
+   - allow selecting another model
+   - once model changes, refresh available vehicles for that model
+   - provide a clear “Unassign vehicle” action if a vehicle is currently attached
+   - keep flow simple and operational, not overly complex
+
+4. Data rules:
+   - if vehicle changes, update booking.vehicleId
+   - if model changes, update booking.vehicleModelId
+   - if vehicle is unassigned, vehicleId becomes null
+   - booking must remain valid even if vehicleId is null
+   - do not break existing booking detail rendering
+
+5. API/backend rules:
+   - first audit whether existing booking update endpoint/service already supports vehicleModelId + vehicleId updates
+   - if yes, reuse it
+   - only add minimal API support if current route truly cannot support this
+   - do not create redundant endpoints if existing booking patch/update flow can handle it safely
+
+==================================================
+CHANGE 2 — Hide already picked-up bookings from Dashboard Pickups
+==================================================
+
+Current problem:
+- Bookings that already had Pick Up recorded still appear in Dashboard > Operations > Pickups
+
+Required behavior:
+- Any booking that already has a PICKUP record in booking_handover must NOT appear in Dashboard Pickups
+- booking_handover is the source of truth for whether pickup already happened
+- keep existing date-based pickup logic otherwise intact
+- keep Dropoffs logic unchanged unless a tiny shared query improvement is required
+
+Rules:
+- do NOT rely only on booking status for this filter
+- exclude bookings specifically when a PICKUP handover record exists for that booking
+- do not disturb other dashboard sections/widgets
+
+==================================================
+STRICT SAFETY RULES
+==================================================
+
+1. First audit current implementation related ONLY to:
+   - booking details Assign modal / Assign button flow
+   - booking update route/service used by that flow
+   - dashboard operations pickups query
+2. Make the smallest safe change set
+3. Do NOT refactor unrelated booking code
+4. Do NOT refactor unrelated dashboard code
+5. Do NOT touch website unless absolutely required (it should not be required)
+6. Do NOT touch infrastructure, auth, deployment, or unrelated CRM modules
+7. Preserve current styling/theme behavior as much as possible
+8. If any shared type/schema must change, keep it minimal and targeted
+9. No speculative rewrites
+10. No destructive DB changes
+11. No migration unless absolutely required; if not required, explicitly say so
+
+==================================================
+RESPONSE FORMAT
+==================================================
+
+# Plan
+- short audit summary
+- exact change approach
+
+# Files to touch
+- exact file paths only
+
+# Implementation
+- apply the changes
+
+# Done
+- summarize exactly what changed
+- confirm whether api-server changed
+- confirm whether crm changed
+- confirm whether website was untouched
+- confirm whether DB migration is needed or not
+- confirm whether Assign flow now supports:
+  - change model
+  - assign vehicle
+  - unassign vehicle
+- confirm whether Dashboard Pickups now excludes bookings with recorded PICKUP handover
