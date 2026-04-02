@@ -97,11 +97,23 @@ export async function createAdminRateTier(
   const currentRate = await getAdminRate(rateId);
 
   // Tier-level WEB overlap validation:
-  // Reject if another WEB rate already has a tier for the same vehicle model
-  // with overlapping date coverage — unless the conflict is a direct parent/child relationship.
+  // Reject if another active WEB rate already has a tier for the same vehicle model
+  // covering the same date period, using parent-period semantics for the effective range.
+  // Exemptions: direct parent↔child relationships, and same-parent siblings
+  // (children under the same parent may share their parent's model coverage).
   const isWebRate =
     currentRate.rateType === "web" || currentRate.rateType == null;
   if (isWebRate) {
+    // Parent-period semantics: if the current rate is a child, use the parent's
+    // validFrom/validUntil as the effective date window for overlap detection.
+    let effectiveFrom = currentRate.validFrom;
+    let effectiveUntil = currentRate.validUntil;
+    if (currentRate.parentRateId) {
+      const parentRate = await getAdminRate(currentRate.parentRateId);
+      effectiveFrom = parentRate.validFrom;
+      effectiveUntil = parentRate.validUntil;
+    }
+
     const { rows: conflicts } = await pool.query(
       `SELECT r2.id AS conflicting_rate_id, r2.name AS conflicting_rate_name,
               r2.parent_rate_id AS conflicting_parent_rate_id
@@ -113,12 +125,7 @@ export async function createAdminRateTier(
          AND r2.is_active = true
          AND r2.valid_from::date <= $3::date
          AND r2.valid_until::date >= $4::date`,
-      [
-        data.vehicleModelId,
-        rateId,
-        currentRate.validUntil,
-        currentRate.validFrom,
-      ],
+      [data.vehicleModelId, rateId, effectiveUntil, effectiveFrom],
     );
 
     for (const conflict of conflicts as Array<{
@@ -137,9 +144,17 @@ export async function createAdminRateTier(
       if (conflictParentId === rateId) {
         continue;
       }
+      // Allow: same-parent siblings — children under the same parent share model coverage
+      if (
+        currentRate.parentRateId != null &&
+        conflictParentId != null &&
+        conflictParentId === currentRate.parentRateId
+      ) {
+        continue;
+      }
 
       throw new ValidationError(
-        `A WEB rate "${conflict.conflicting_rate_name}" already has pricing for this vehicle model covering the same date period (${currentRate.validFrom} – ${currentRate.validUntil}). Remove that tier or adjust the date range to avoid overlap.`,
+        `A WEB rate "${conflict.conflicting_rate_name}" already has pricing for this vehicle model covering the same date period. Remove that tier or adjust the date range to avoid overlap.`,
       );
     }
   }
