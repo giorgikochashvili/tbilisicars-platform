@@ -72,6 +72,7 @@ export const GetAdminMeResponse = zod.object({
     "service_manager",
     "rental_agent",
   ]),
+  roleId: zod.number().nullable().optional(),
   canManageVehicles: zod.boolean(),
   canManageBookings: zod.boolean(),
   canManageUsers: zod.boolean(),
@@ -86,6 +87,13 @@ export const GetAdminMeResponse = zod.object({
   canManageTasks: zod.boolean(),
   canViewCalendar: zod.boolean(),
   canManageCases: zod.boolean(),
+  canManageService: zod.boolean(),
+  canViewAccounting: zod.boolean(),
+  canManageAccounting: zod.boolean(),
+  canViewAlerts: zod.boolean(),
+  canViewAuditLog: zod.boolean(),
+  canManageParking: zod.boolean(),
+  canUseAdminAI: zod.boolean(),
 });
 
 /**

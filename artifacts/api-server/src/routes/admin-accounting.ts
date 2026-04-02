@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { requirePermission } from "../middlewares/requirePermission.js";
 import {
   listAccountingEntries,
   getAccountingEntry,
@@ -21,7 +22,7 @@ seedDefaultExchangeRate().catch(console.error);
 
 // ─── Categories metadata ───────────────────────────────────────────────────────
 
-router.get("/admin/accounting/categories", requireAdmin, (_req, res) => {
+router.get("/admin/accounting/categories", requireAdmin, requirePermission("canViewAccounting"), (_req, res) => {
   res.json({
     income: [...INCOME_CATEGORIES],
     expense: [...EXPENSE_CATEGORIES],
@@ -30,12 +31,12 @@ router.get("/admin/accounting/categories", requireAdmin, (_req, res) => {
 
 // ─── Exchange rate ─────────────────────────────────────────────────────────────
 
-router.get("/admin/accounting/rates", requireAdmin, async (_req, res) => {
+router.get("/admin/accounting/rates", requireAdmin, requirePermission("canViewAccounting"), async (_req, res) => {
   const rate = await getExchangeRate();
   res.json(rate);
 });
 
-router.put("/admin/accounting/rates", requireAdmin, async (req, res) => {
+router.put("/admin/accounting/rates", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const { usdToGel, eurToGel } = req.body as { usdToGel: string; eurToGel: string };
   if (!usdToGel || !eurToGel) {
     res.status(400).json({ error: "usdToGel and eurToGel are required" });
@@ -47,14 +48,14 @@ router.put("/admin/accounting/rates", requireAdmin, async (req, res) => {
 
 // ─── Summary (for dashboard) ───────────────────────────────────────────────────
 
-router.get("/admin/accounting/summary", requireAdmin, async (_req, res) => {
+router.get("/admin/accounting/summary", requireAdmin, requirePermission("canViewAccounting"), async (_req, res) => {
   const summary = await getAccountingSummary();
   res.json(summary);
 });
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
-router.get("/admin/accounting", requireAdmin, async (req, res) => {
+router.get("/admin/accounting", requireAdmin, requirePermission("canViewAccounting"), async (req, res) => {
   const { type, category, currency, dateFrom, dateTo, city, page, limit } =
     req.query as Record<string, string | undefined>;
   const entries = await listAccountingEntries({
@@ -72,7 +73,7 @@ router.get("/admin/accounting", requireAdmin, async (req, res) => {
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-router.post("/admin/accounting", requireAdmin, async (req, res) => {
+router.post("/admin/accounting", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const body = req.body as {
     type: "INCOME" | "EXPENSE";
     category: string;
@@ -94,7 +95,7 @@ router.post("/admin/accounting", requireAdmin, async (req, res) => {
 
 // ─── Single ───────────────────────────────────────────────────────────────────
 
-router.get("/admin/accounting/:id", requireAdmin, async (req, res) => {
+router.get("/admin/accounting/:id", requireAdmin, requirePermission("canViewAccounting"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const entry = await getAccountingEntry(id);
   res.json(entry);
@@ -102,7 +103,7 @@ router.get("/admin/accounting/:id", requireAdmin, async (req, res) => {
 
 // ─── Update ───────────────────────────────────────────────────────────────────
 
-router.patch("/admin/accounting/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/accounting/:id", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const entry = await updateAccountingEntry(id, req.body);
   res.json(entry);
@@ -110,7 +111,7 @@ router.patch("/admin/accounting/:id", requireAdmin, async (req, res) => {
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-router.delete("/admin/accounting/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/accounting/:id", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   const result = await deleteAccountingEntry(id);
   res.json(result);

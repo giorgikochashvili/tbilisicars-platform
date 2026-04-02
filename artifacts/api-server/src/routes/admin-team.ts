@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { requirePermission } from "../middlewares/requirePermission.js";
 import {
   listAdminTeam,
   getAdminTeamMember,
@@ -23,8 +24,8 @@ router.get("/admin/team", requireAdmin, async (_req, res) => {
   res.json(data);
 });
 
-router.post("/admin/team", requireAdmin, async (req, res) => {
-  const { username, email, fullName, password, phoneNumber, isActive, adminRole } = req.body ?? {};
+router.post("/admin/team", requireAdmin, requirePermission("canManageUsers"), async (req, res) => {
+  const { username, email, fullName, password, phoneNumber, isActive, adminRole, roleId } = req.body ?? {};
   if (
     typeof username !== "string" || !username ||
     typeof email !== "string" || !email ||
@@ -42,6 +43,7 @@ router.post("/admin/team", requireAdmin, async (req, res) => {
     phoneNumber: typeof phoneNumber === "string" ? phoneNumber || null : null,
     isActive: typeof isActive === "boolean" ? isActive : true,
     adminRole: isValidRole(adminRole) ? adminRole : "rental_agent",
+    roleId: typeof roleId === "number" ? roleId : null,
   });
   logAudit({
     actorId: req.session.adminId ?? null,
@@ -50,7 +52,7 @@ router.post("/admin/team", requireAdmin, async (req, res) => {
     entityRef: email,
     action: "created",
     summary: `Admin created team member ${fullName} (${email})`,
-    afterData: { email, fullName, adminRole: isValidRole(adminRole) ? adminRole : "rental_agent" },
+    afterData: { email, fullName, adminRole: isValidRole(adminRole) ? adminRole : "rental_agent", roleId },
   });
   res.status(201).json(member);
 });
@@ -62,10 +64,10 @@ router.get("/admin/team/:id", requireAdmin, async (req, res) => {
   res.json(member);
 });
 
-router.patch("/admin/team/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/team/:id", requireAdmin, requirePermission("canManageUsers"), async (req, res) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
-  const { username, email, fullName, password, phoneNumber, isActive, adminRole } = req.body ?? {};
+  const { username, email, fullName, password, phoneNumber, isActive, adminRole, roleId } = req.body ?? {};
   const data: Parameters<typeof updateAdminTeamMember>[1] = {};
   if (typeof username === "string" && username) data.username = username;
   if (typeof email === "string" && email) data.email = email;
@@ -74,6 +76,7 @@ router.patch("/admin/team/:id", requireAdmin, async (req, res) => {
   if (phoneNumber !== undefined) data.phoneNumber = typeof phoneNumber === "string" ? phoneNumber || null : null;
   if (typeof isActive === "boolean") data.isActive = isActive;
   if (isValidRole(adminRole)) data.adminRole = adminRole;
+  if (typeof roleId === "number") data.roleId = roleId;
   const member = await updateAdminTeamMember(id, data);
   logAudit({
     actorId: req.session.adminId ?? null,
@@ -87,7 +90,7 @@ router.patch("/admin/team/:id", requireAdmin, async (req, res) => {
   res.json(member);
 });
 
-router.delete("/admin/team/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/team/:id", requireAdmin, requirePermission("canManageUsers"), async (req, res) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
   const result = await deleteAdminTeamMember(id);

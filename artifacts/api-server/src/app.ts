@@ -6,6 +6,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "@workspace/db";
 import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { seedSystemRoles } from "./services/seed-roles.service.js";
 
 const PgSession = connectPgSimple(session);
 
@@ -42,6 +43,10 @@ app.use(
     },
   }),
 );
+
+seedSystemRoles().catch((err) => {
+  console.error("[seed-roles] Error during seeding:", err);
+});
 
 app.get("/", (_req, res) => {
   res.redirect("/website/");

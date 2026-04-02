@@ -1,4 +1,4 @@
-import { db, adminsTable } from "@workspace/db";
+import { db, adminsTable, adminRolePermissionsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { NotFoundError } from "../lib/errors.js";
@@ -11,6 +11,7 @@ const MEMBER_COLUMNS = {
   phoneNumber: adminsTable.phoneNumber,
   isActive: adminsTable.isActive,
   adminRole: adminsTable.adminRole,
+  roleId: adminsTable.roleId,
   isSuperAdmin: adminsTable.isSuperAdmin,
   lastLogin: adminsTable.lastLogin,
   canManageVehicles: adminsTable.canManageVehicles,
@@ -27,9 +28,29 @@ const MEMBER_COLUMNS = {
   canManageTasks: adminsTable.canManageTasks,
   canViewCalendar: adminsTable.canViewCalendar,
   canManageCases: adminsTable.canManageCases,
+  canManageService: adminsTable.canManageService,
+  canViewAccounting: adminsTable.canViewAccounting,
+  canManageAccounting: adminsTable.canManageAccounting,
+  canViewAlerts: adminsTable.canViewAlerts,
+  canViewAuditLog: adminsTable.canViewAuditLog,
+  canManageParking: adminsTable.canManageParking,
+  canUseAdminAI: adminsTable.canUseAdminAI,
   createdAt: adminsTable.createdAt,
   updatedAt: adminsTable.updatedAt,
 } as const;
+
+async function applyRolePermissions(roleId: number): Promise<Record<string, boolean>> {
+  const permissions = await db
+    .select()
+    .from(adminRolePermissionsTable)
+    .where(eq(adminRolePermissionsTable.roleId, roleId));
+
+  const permMap: Record<string, boolean> = {};
+  for (const p of permissions) {
+    permMap[p.permissionKey] = p.granted;
+  }
+  return permMap;
+}
 
 export async function listAdminTeam() {
   return db
@@ -55,12 +76,22 @@ export async function createAdminTeamMember(data: {
   phoneNumber?: string | null;
   isActive?: boolean;
   adminRole?: "admin" | "regional_manager" | "service_manager" | "rental_agent";
+  roleId?: number | null;
 }) {
-  const { password, ...rest } = data;
+  const { password, roleId, ...rest } = data;
   const hashedPassword = await bcrypt.hash(password, 12);
+
+  const insertPayload: Record<string, unknown> = { ...rest, hashedPassword };
+
+  if (roleId) {
+    const permMap = await applyRolePermissions(roleId);
+    Object.assign(insertPayload, permMap);
+    insertPayload.roleId = roleId;
+  }
+
   const [row] = await db
     .insert(adminsTable)
-    .values({ ...rest, hashedPassword } as any)
+    .values(insertPayload as any)
     .returning({ id: adminsTable.id });
   return getAdminTeamMember(row!.id);
 }
@@ -75,13 +106,23 @@ export async function updateAdminTeamMember(
     phoneNumber: string | null;
     isActive: boolean;
     adminRole: "admin" | "regional_manager" | "service_manager" | "rental_agent";
+    roleId: number | null;
   }>,
 ) {
-  const { password, ...rest } = data;
+  const { password, roleId, ...rest } = data;
   const updatePayload: Record<string, unknown> = { ...rest, updatedAt: new Date() };
   if (password) {
     updatePayload.hashedPassword = await bcrypt.hash(password, 12);
   }
+
+  if (roleId !== undefined) {
+    updatePayload.roleId = roleId;
+    if (roleId !== null) {
+      const permMap = await applyRolePermissions(roleId);
+      Object.assign(updatePayload, permMap);
+    }
+  }
+
   const [row] = await db
     .update(adminsTable)
     .set(updatePayload as any)

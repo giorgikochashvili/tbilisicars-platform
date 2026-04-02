@@ -19,25 +19,28 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import type { AdminProfile } from "@workspace/api-zod";
 
-const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Bookings", url: "/bookings", icon: CalendarDays },
-  { title: "Fleet", url: "/fleet", icon: Car },
-  { title: "Fleet Calendar", url: "/fleet-calendar", icon: GanttChart },
-  { title: "Service", url: "/service", icon: Wrench },
-  { title: "Accounting", url: "/accounting", icon: BookOpenText },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Alerts", url: "/alerts", icon: Bell },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Locations", url: "/locations", icon: MapPin },
-  { title: "Extras", url: "/extras", icon: Package },
-  { title: "Rates", url: "/rates", icon: BadgeDollarSign },
-  { title: "Promotions", url: "/promotions", icon: Tag },
-  { title: "Team", url: "/team", icon: UserCog },
-  { title: "Audit Log", url: "/audit-logs", icon: Activity },
-  { title: "TBS AIR PARKING", url: "/tbs-parking", icon: PlaneTakeoff },
-  { title: "Admin AI", url: "/admin-ai", icon: Bot },
+type PermKey = keyof AdminProfile | null;
+
+const navItems: Array<{ title: string; url: string; icon: React.ElementType; permissionKey: PermKey }> = [
+  { title: "Dashboard",       url: "/dashboard",      icon: LayoutDashboard,  permissionKey: null },
+  { title: "Bookings",        url: "/bookings",        icon: CalendarDays,     permissionKey: "canManageBookings" },
+  { title: "Fleet",           url: "/fleet",           icon: Car,              permissionKey: "canManageVehicles" },
+  { title: "Fleet Calendar",  url: "/fleet-calendar",  icon: GanttChart,       permissionKey: "canViewCalendar" },
+  { title: "Service",         url: "/service",         icon: Wrench,           permissionKey: "canManageService" },
+  { title: "Accounting",      url: "/accounting",      icon: BookOpenText,     permissionKey: "canViewAccounting" },
+  { title: "Reports",         url: "/reports",         icon: BarChart3,        permissionKey: "canViewReports" },
+  { title: "Alerts",          url: "/alerts",          icon: Bell,             permissionKey: "canViewAlerts" },
+  { title: "Customers",       url: "/customers",       icon: Users,            permissionKey: "canManageUsers" },
+  { title: "Locations",       url: "/locations",       icon: MapPin,           permissionKey: "canManageLocations" },
+  { title: "Extras",          url: "/extras",          icon: Package,          permissionKey: "canManageExtras" },
+  { title: "Rates",           url: "/rates",           icon: BadgeDollarSign,  permissionKey: "canManageRates" },
+  { title: "Promotions",      url: "/promotions",      icon: Tag,              permissionKey: "canManagePromotions" },
+  { title: "Team",            url: "/team",            icon: UserCog,          permissionKey: "canManageUsers" },
+  { title: "Audit Log",       url: "/audit-logs",      icon: Activity,         permissionKey: "canViewAuditLog" },
+  { title: "TBS AIR PARKING", url: "/tbs-parking",     icon: PlaneTakeoff,     permissionKey: "canManageParking" },
+  { title: "Admin AI",        url: "/admin-ai",        icon: Bot,              permissionKey: "canUseAdminAI" },
 ];
 
 export function AppSidebar() {
@@ -55,6 +58,13 @@ export function AppSidebar() {
     staleTime: 30_000,
   });
   const alertCount = alertSummary?.total ?? 0;
+
+  const visibleItems = navItems.filter((item) => {
+    if (!item.permissionKey) return true;
+    if (!user) return false;
+    const val = user[item.permissionKey as keyof typeof user];
+    return val === true;
+  });
 
   return (
     <Sidebar variant="inset" collapsible="offcanvas" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
@@ -75,7 +85,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
+              {visibleItems.map((item) => {
                 const isActive = location === item.url || (location === "/" && item.url === "/dashboard");
                 const showBadge = item.url === "/alerts" && alertCount > 0;
                 return (
