@@ -1,0 +1,288 @@
+#15 - CRM Tasks Module: Team Tasks, Dashboard Integration, Progress Tracking
+
+IMPORTANT:
+This is an existing fully working Tbilisicars CRM + Website project built in Replit.
+DO NOT break or refactor existing systems unnecessarily.
+DO NOT change existing logic (auth, bookings, fleet, services, dashboard, website).
+ONLY extend the system cleanly by adding this module.
+
+----------------------------------------
+
+WHAT & WHY
+Add a new Tasks module to the CRM to manage internal team operations.
+
+Admins/managers should:
+- create tasks
+- assign them to staff
+- set priority, status, progress %, and deadlines
+
+Staff should:
+- see their tasks on Dashboard (My Tasks widget)
+- open tasks
+- update progress %
+- change status
+- add comments
+- complete tasks
+
+This must be backend-persisted and production-ready.
+
+----------------------------------------
+
+SCOPE
+
+1) SIDEBAR
+Add new item:
+- Tasks
+
+Keep existing sidebar behavior unchanged.
+
+----------------------------------------
+
+2) DATABASE / BACKEND
+
+Create task system with fields:
+- id
+- title
+- description
+- createdByAdminId
+- assigneeAdminId
+- priority (Low / Medium / High / Urgent)
+- status (To Do / In Progress / Waiting / Done / Canceled)
+- progressPercent (0–100)
+- startDate (nullable)
+- dueDate (nullable)
+- relatedType (nullable)
+- relatedId (nullable)
+- completedAt (nullable)
+- createdAt
+- updatedAt
+
+Also create:
+- task_comments table
+- task_activity_log table
+
+----------------------------------------
+
+3) TASK CREATION
+
+Create modal/form with:
+- Title (required)
+- Description
+- Assignee
+- Priority
+- Status
+- Progress % (default 0)
+- Start date
+- Due date
+- Optional related entity:
+  (Booking / Vehicle / Service / Customer / Parking)
+
+Rules:
+- progress must be 0–100
+- if status = Done → progress = 100
+- dueDate >= startDate
+
+----------------------------------------
+
+4) TASK LIST PAGE
+
+Add full Tasks page with:
+
+Top cards:
+- All Tasks
+- My Tasks
+- Overdue
+- Due Today
+- Completed
+- Urgent
+
+Filters:
+- Search
+- Status
+- Priority
+- Assignee
+- Creator
+- Date range
+- Due state
+- Related type
+
+Table columns:
+- Title
+- Assignee
+- Priority
+- Status
+- Progress
+- Start Date
+- Due Date
+- Related
+- Updated At
+
+Rows must be clickable.
+
+Visual rules:
+- Overdue = red highlight
+- Urgent = strong badge
+- Completed = subtle
+
+----------------------------------------
+
+5) TASK DETAIL VIEW
+
+On row click → open detail drawer/page:
+
+Show:
+- title
+- description
+- assignee
+- creator
+- priority
+- status
+- progress %
+- dates
+- related entity (clickable)
+- comments
+- activity log
+
+Allow:
+- update status
+- update progress %
+- add comment
+- reassign (if allowed)
+- mark Done
+
+Rules:
+- Done → progress = 100
+- save completedAt
+- log all changes
+
+----------------------------------------
+
+6) DASHBOARD INTEGRATION
+
+Add widget:
+- My Tasks
+
+Show for current user:
+- total tasks
+- overdue count
+- due today count
+
+Example:
+My Tasks: 7
+2 overdue
+1 due today
+
+Click → open Tasks page filtered:
+assigned to current user
+
+DO NOT break existing dashboard widgets.
+
+----------------------------------------
+
+7) PROGRESS LOGIC
+
+- 0–100%
+- visible in list and detail
+- editable
+- simple clean UI
+
+Mapping:
+- To Do → 0%
+- In Progress → 1–99%
+- Done → 100%
+
+----------------------------------------
+
+8) RELATED ENTITY
+
+If linked, show clickable:
+- Booking → booking ref
+- Vehicle → name/plate
+- Service → service record
+- Customer → name
+- Parking → zone
+
+Use existing routes.
+
+----------------------------------------
+
+9) PERMISSIONS
+
+Respect existing system:
+
+Admin:
+- full access
+
+Manager:
+- controlled access
+
+Staff:
+- only own tasks
+- update progress/status
+- comment
+- mark done (if allowed)
+
+----------------------------------------
+
+10) ACTIVITY LOG
+
+Track:
+- created
+- assigned
+- status change
+- progress change
+- comment added
+- completed
+
+Store:
+- actor
+- timestamp
+- action
+- values
+
+----------------------------------------
+
+CONSTRAINTS
+
+DO NOT BREAK:
+- auth/session
+- dashboard
+- bookings
+- fleet
+- services
+- parking
+- accounting
+- website
+- routing
+- UI system
+
+Use existing architecture only.
+
+----------------------------------------
+
+DONE LOOKS LIKE
+
+- Tasks module exists in sidebar
+- tasks can be created and saved
+- tasks assigned to staff
+- dashboard shows My Tasks
+- clicking widget opens filtered tasks
+- tasks support progress %, status, comments
+- overdue & due today logic works
+- activity history works
+- permissions respected
+- no regressions anywhere
+
+----------------------------------------
+
+VERIFY
+
+- create/edit task works
+- progress saves correctly
+- Done = 100%
+- comments persist
+- activity log works
+- dashboard counts correct
+- filters work
+- no UI break
+- build passes
