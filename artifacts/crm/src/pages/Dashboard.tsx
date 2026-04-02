@@ -1098,13 +1098,13 @@ export default function Dashboard() {
             </h2>
             <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", timelineExpanded ? "rotate-180" : "")} />
           </button>
-          {timelineExpanded && (
+          <div className={timelineExpanded ? undefined : "hidden"}>
             <FleetTimeline
               calendar={calendarQuery.data}
               isLoading={calendarQuery.isLoading}
               onSelectBooking={(id) => setDetailBookingId(id)}
             />
-          )}
+          </div>
         </div>
       )}
 

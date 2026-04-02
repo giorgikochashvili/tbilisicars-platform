@@ -1098,7 +1098,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-        <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto overflow-x-hidden w-full">
           <DialogHeader>
             <DialogTitle className="font-display text-xl flex items-center gap-2">
               Booking #{bookingId}
