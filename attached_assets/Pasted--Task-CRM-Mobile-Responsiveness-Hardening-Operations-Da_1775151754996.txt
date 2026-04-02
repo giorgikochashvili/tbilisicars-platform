@@ -1,0 +1,264 @@
+# Task — CRM Mobile Responsiveness Hardening + Operations Dashboard UX Improvements
+You are working inside the existing Tbilisicars CRM monorepo built in Replit. This is NOT a redesign from scratch. This is a careful responsive-hardening and dashboard usability task for the CRM admin UI, focused on mobile usability, compactness, dashboard clarity, and preserving all existing working logic.
+
+Important constraints:
+- Do NOT change backend/API/business logic unless absolutely required for rendering or harmless UI state persistence.
+- Do NOT refactor unrelated modules.
+- Do NOT break desktop layout.
+- Do NOT remove any existing working functionality.
+- Prefer targeted edits in CRM frontend components/styles/state only.
+- Preserve current dark premium visual style.
+- All current modules must remain functional.
+- This task is about responsive layout stabilization, compact rendering, dashboard usability improvements, and persistent UI state.
+
+## Goal
+Make the CRM mobile version feel intentionally designed for phones, not just desktop squeezed into a small screen. Also improve the Operations Dashboard so it is clearer and more useful on desktop and mobile, without changing the underlying operational logic.
+
+---
+
+## Scope 1 — Mobile sidebar / modules panel
+Problem:
+The CRM mobile sidebar/modules panel is too wide and consumes too much space.
+
+Required result:
+- On mobile, the left modules/sidebar panel must be much narrower and better fitted to phone screens.
+- Add proper collapsible / expandable behavior for the mobile sidebar.
+- In collapsed state, it should consume minimal width.
+- In expanded state, it should still remain usable and not feel oversized.
+- Ensure the overlay/drawer behavior works naturally on mobile.
+- Prevent horizontal overflow and off-screen clipping.
+- Keep desktop sidebar behavior intact unless a very small safe improvement is needed.
+
+Implementation notes:
+- Adjust sidebar width with responsive breakpoints.
+- Tighten paddings, icon/text spacing, and bottom account/logout block spacing for mobile.
+- Make sure long module lists remain scrollable inside the sidebar without layout breaking.
+
+---
+
+## Scope 2 — Dashboard Operations cards (Pickups / Dropoffs) mobile compaction
+Problem:
+On mobile, the Operations cards are too tall per item and show too few rows at once.
+
+Required result:
+- On mobile, Pickups and Dropoffs cards should display approximately 5–7 compact rows/items at once on screen.
+- If there are more items, the card body must become internally scrollable.
+- Keep existing information, but render each row in a tighter mobile layout.
+- Preserve clickability of booking rows/cards.
+- Prevent text overflow and broken alignment.
+
+Implementation notes:
+- Reduce row/card vertical padding.
+- Stack metadata efficiently.
+- Consider a denser layout for name / vehicle / phone / route / amount / time.
+- Keep the current useful information but compress whitespace aggressively for mobile only.
+- Use max-height + overflow-y: auto on the list body.
+- Ensure the card header remains visible and visually stable.
+
+---
+
+## Scope 3 — Booking detail mobile layout after Pick Up flow
+Problem:
+After opening/using the Pick Up flow, the mobile layout stretches or loses its responsive structure.
+
+Required result:
+- Fix the booking detail / pickup workflow so it remains fully mobile-friendly.
+- No section should overflow the viewport horizontally.
+- No modal/sheet/form should render too wide.
+- Buttons, fields, photo upload sections, summaries, and action blocks must stay inside the screen width.
+- Preserve the existing pickup/dropoff functionality exactly.
+
+Implementation notes:
+- Audit the booking detail page and pickup modal/form components.
+- Fix widths, flex wrapping, min-width issues, grid columns, action button grouping, and upload previews.
+- Add responsive stacking where needed.
+- Ensure document buttons and action buttons wrap cleanly on narrow screens.
+- Preserve existing booking detail collapsible sections.
+
+---
+
+## Scope 4 — Dashboard Fleet Timeline collapsible section
+Problem:
+Fleet Timeline on the dashboard occupies too much vertical space on mobile.
+
+Required result:
+- Make the Dashboard Fleet Timeline section collapsible/expandable.
+- Default mobile state should be compact (collapsed or minimized preview).
+- User can expand it when needed.
+- This section should contain the heavy vehicle timeline visualization; avoid unnecessary duplication elsewhere on the dashboard.
+- Preserve current timeline functionality and data rendering.
+
+Implementation notes:
+- Add a clear expand/collapse control in the section header.
+- Keep the component mounted safely or use a lightweight conditional render if safe.
+- Ensure collapse behavior does not break horizontal scrolling inside the timeline.
+- Preserve desktop behavior unless a subtle improvement is beneficial.
+
+---
+
+## Scope 5 — Fleet Calendar mobile-specific compact vehicle column
+Problem:
+Fleet Calendar mobile layout wastes too much width on the vehicle info column, leaving too little room for the dates/timeline grid.
+
+Required result:
+- On mobile, redesign the left vehicle info column into a much more compact stacked format.
+- Example target style:
+  - plate number clearly visible, e.g. PA700PO
+  - vehicle model shown above or below in a smaller stacked layout
+  - other supporting details (status/location/icon) arranged vertically and compactly
+- The vehicle info area must become narrower.
+- The date/timeline grid must gain more visible width on mobile.
+- The timeline should become easier to scan on phones.
+- Long vehicle names should truncate gracefully without ruining layout.
+
+Implementation notes:
+- Mobile-only layout change for vehicle rows.
+- Use stacked text blocks instead of wide horizontal layouts.
+- Tighten font sizes, line heights, icon spacing, pills/badges, and left padding.
+- Keep vehicle identity clear while minimizing consumed width.
+- Check sticky column behavior on mobile and ensure it still works correctly if currently enabled.
+- Do not degrade desktop/tablet layout.
+
+---
+
+## Scope 6 — Search input placeholders restoration
+Problem:
+Several search inputs no longer show example text / usage hint, so users cannot tell what each field searches.
+
+Required result:
+- Restore meaningful placeholder text for search inputs on Bookings page and any other affected CRM pages.
+- Placeholder text must clarify intended search purpose.
+
+Examples:
+- Search reservation number
+- Search customer name
+- Search vehicle or plate
+- Search bookings...
+- Search vehicles...
+- Search customers...
+
+Implementation notes:
+- Audit the main CRM pages for search fields lacking placeholders.
+- Only add concise, useful placeholders.
+- Do not reintroduce clutter or fake default values.
+- Maintain current styling.
+
+---
+
+## Scope 7 — Global CRM mobile audit and hardening
+Problem:
+The CRM was generated primarily from desktop-oriented layouts and needs a careful mobile pass across all major sections.
+
+Required result:
+Perform a targeted mobile audit and fix obvious issues across CRM pages:
+- horizontal overflow
+- broken card widths
+- buttons going off-screen
+- filter rows not wrapping well
+- tables unusable on narrow screens
+- oversized spacing wasting viewport height
+- fixed min-width elements causing stretch
+- modal/sheet content exceeding viewport
+- header/action bars not wrapping cleanly
+
+But:
+- do NOT perform broad redesigns
+- do NOT change backend contracts
+- do NOT rename routes
+- do NOT remove current features
+
+This should be a stabilization pass, not a rewrite.
+
+---
+
+## Scope 8 — Operations Dashboard region filter persistence
+Problem:
+When a staff member selects a region on the Operations Dashboard (for example Kutaisi), then navigates to another module and later returns to the dashboard, the selected region resets back to All. This is bad for operations workflow.
+
+Required result:
+- Persist the selected Operations Dashboard region filter across module navigation.
+- If the user selects a specific region (All / Tbilisi / Kutaisi / Batumi), leaves the dashboard, and returns, the same selected region must still be active.
+- The persisted state should survive normal in-app navigation and page revisits within the same browser session.
+- If there is already an existing pattern in the CRM for persisted UI filters, reuse it.
+
+Implementation notes:
+- Prefer lightweight frontend persistence only (for example URL param, localStorage, sessionStorage, or shared UI state) unless the codebase already has a better established approach.
+- Do NOT introduce backend persistence for this.
+- Do NOT break current region filtering logic.
+- Make sure the dashboard loads using the restored region cleanly, without flicker or accidental reset to All.
+
+---
+
+## Scope 9 — Operations Dashboard layout: stack Today’s Pickups and Today’s Dropoffs vertically on desktop
+Problem:
+The current desktop layout places Today’s Pickups and Today’s Dropoffs side by side. This limits the width of each card and makes operational details harder to read.
+
+Required result:
+- On desktop/tablet widths where these panels are currently side by side, change the layout so Today’s Pickups and Today’s Dropoffs render one above the other instead.
+- Each panel should become wider and more informative.
+- Use the extra width to show booking data more clearly and comfortably.
+
+Information that should read clearly in the wider layout:
+- booking reference
+- customer first/last name
+- phone number
+- vehicle
+- pickup / dropoff route
+- time
+- amount
+- other useful booking details already available in current row data
+
+Implementation notes:
+- This is an intentional dashboard UX improvement, not a mobile fallback.
+- Keep styling premium and clean.
+- Maintain row click behavior.
+- Avoid unnecessary horizontal truncation where space now allows better visibility.
+- Keep the empty state for no dropoffs/no pickups visually polished.
+- Ensure spacing between the two stacked panels feels deliberate and balanced.
+
+---
+
+## Scope 10 — Operations Dashboard card density and readability on larger screens
+Problem:
+The Operations section has enough width on desktop to show more informative booking rows, but the current layout is still too constrained.
+
+Required result:
+- Since Pickups and Dropoffs will become full-width stacked sections, improve their row layout on larger screens to use the space better.
+- Show operational data in a clearer, broader, more readable way.
+- Do not make the layout visually noisy, but reduce unnecessary truncation.
+
+Implementation notes:
+- Revisit columns/spacing for ref, client, phone, vehicle, amount, route, time.
+- Improve alignment and usable width distribution.
+- Preserve compactness, but allow meaningful readability.
+- Ensure the design still scales down nicely for smaller breakpoints.
+
+---
+
+## Deliverables
+1. Implement the responsive fixes and dashboard improvements in the CRM frontend only.
+2. Keep changes minimal and localized.
+3. Reuse existing components/styles where possible.
+4. After edits, verify these flows specifically:
+   - dashboard sidebar open/close on mobile
+   - operations pickups/dropoffs scroll on mobile
+   - booking detail open on mobile
+   - pick up action flow on mobile
+   - dashboard fleet timeline collapse/expand
+   - fleet calendar compact rows on mobile
+   - bookings page filters + search placeholders on mobile
+   - operations dashboard region selection persists after navigating to other modules and back
+   - operations dashboard pickups/dropoffs panels render vertically and clearly on desktop
+5. Ensure no desktop regressions outside the intentional Operations Dashboard improvement.
+
+---
+
+## Output format
+First provide:
+- a short PLAN listing exactly which CRM frontend files/components you will touch and why
+
+Then implement.
+
+Do not make speculative backend changes.
+Do not touch unrelated modules.
+Do not rewrite working business logic.
