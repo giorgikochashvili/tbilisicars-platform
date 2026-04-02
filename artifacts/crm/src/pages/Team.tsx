@@ -935,10 +935,13 @@ function permKeyToLabel(key: string): string {
   return key;
 }
 
+const SYSTEM_ROLE_TO_ENUM: Record<string, LegacyAdminRole> = {
+  "Admin": "admin",
+  "Regional Manager": "regional_manager",
+  "Service Manager": "service_manager",
+  "Rental Agent": "rental_agent",
+};
+
 function inferLegacyRole(roleName: string): LegacyAdminRole {
-  const n = roleName.toLowerCase();
-  if (n.includes("regional")) return "regional_manager";
-  if (n.includes("service")) return "service_manager";
-  if (n === "admin" || n.includes("admin")) return "admin";
-  return "rental_agent";
+  return SYSTEM_ROLE_TO_ENUM[roleName] ?? "rental_agent";
 }

@@ -33,6 +33,7 @@ import {
   DeleteAdminVehicleParams,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { requirePermission } from "../middlewares/requirePermission.js";
 import {
   listAdminBrands,
   getAdminBrand,
@@ -66,7 +67,7 @@ router.get("/admin/fleet/brands", requireAdmin, async (_req, res) => {
   res.json(ListAdminBrandsResponse.parse(data));
 });
 
-router.post("/admin/fleet/brands", requireAdmin, async (req, res) => {
+router.post("/admin/fleet/brands", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const body = CreateAdminBrandBody.parse(req.body);
   const brand = await createAdminBrand(body);
   res.status(201).json(brand);
@@ -78,14 +79,14 @@ router.get("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
   res.json(GetAdminBrandResponse.parse(brand));
 });
 
-router.patch("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/fleet/brands/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminBrandParams.parse({ id: req.params.id });
   const body = UpdateAdminBrandBody.parse(req.body);
   const brand = await updateAdminBrand(id, body);
   res.json(UpdateAdminBrandResponse.parse(brand));
 });
 
-router.delete("/admin/fleet/brands/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/fleet/brands/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = DeleteAdminBrandParams.parse({ id: req.params.id });
   const result = await deleteAdminBrand(id);
   res.json(result);
@@ -98,7 +99,7 @@ router.get("/admin/fleet/models", requireAdmin, async (_req, res) => {
   res.json(ListAdminModelsResponse.parse(data));
 });
 
-router.post("/admin/fleet/models", requireAdmin, async (req, res) => {
+router.post("/admin/fleet/models", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const body = CreateAdminModelBody.parse(req.body);
   const model = await createAdminModel(body as any);
   res.status(201).json(model);
@@ -110,14 +111,14 @@ router.get("/admin/fleet/models/:id", requireAdmin, async (req, res) => {
   res.json(GetAdminModelResponse.parse(vehicleModel));
 });
 
-router.patch("/admin/fleet/models/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/fleet/models/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminModelParams.parse({ id: req.params.id });
   const body = UpdateAdminModelBody.parse(req.body);
   const model = await updateAdminModel(id, body as any);
   res.json(UpdateAdminModelResponse.parse(model));
 });
 
-router.delete("/admin/fleet/models/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/fleet/models/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = DeleteAdminModelParams.parse({ id: req.params.id });
   const result = await deleteAdminModel(id);
   res.json(result);
@@ -153,7 +154,7 @@ router.get("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
   res.json(ListAdminVehiclesResponse.parse(data));
 });
 
-router.post("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
+router.post("/admin/fleet/vehicles", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const body = CreateAdminVehicleBody.parse(req.body);
   const vehicle = await createAdminVehicle(body as any);
   logAudit({
@@ -183,7 +184,7 @@ router.get("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
   res.json(GetAdminVehicleResponse.parse(vehicle));
 });
 
-router.patch("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
+router.patch("/admin/fleet/vehicles/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminVehicleParams.parse({ id: req.params.id });
   const body = UpdateAdminVehicleBody.parse(req.body);
   const vehicle = await updateAdminVehicle(id, body as any);
@@ -199,7 +200,7 @@ router.patch("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
   res.json(UpdateAdminVehicleResponse.parse(vehicle));
 });
 
-router.patch("/admin/fleet/vehicles/:id/status", requireAdmin, async (req, res) => {
+router.patch("/admin/fleet/vehicles/:id/status", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminVehicleStatusParams.parse({ id: req.params.id });
   const { status } = UpdateAdminVehicleStatusBody.parse(req.body);
 
@@ -227,7 +228,7 @@ router.patch("/admin/fleet/vehicles/:id/status", requireAdmin, async (req, res) 
   res.json(UpdateAdminVehicleStatusResponse.parse(vehicle));
 });
 
-router.delete("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/fleet/vehicles/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = DeleteAdminVehicleParams.parse({ id: req.params.id });
   // Fetch plate before deletion
   const { rows: cur } = await pool.query<{ license_plate: string | null }>(
@@ -259,7 +260,7 @@ router.get("/admin/fleet/vehicles/:id/photos", requireAdmin, async (req, res) =>
   res.json(rows);
 });
 
-router.post("/admin/fleet/vehicles/:id/photos", requireAdmin, async (req, res) => {
+router.post("/admin/fleet/vehicles/:id/photos", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const vehicleId = parseInt(String(req.params.id), 10);
   if (!vehicleId || isNaN(vehicleId)) { res.status(400).json({ error: "Invalid vehicle ID" }); return; }
   const { photoUrl } = req.body as { photoUrl?: string };
@@ -271,7 +272,7 @@ router.post("/admin/fleet/vehicles/:id/photos", requireAdmin, async (req, res) =
   res.status(201).json(rows[0]);
 });
 
-router.delete("/admin/fleet/vehicles/:id/photos/:photoId", requireAdmin, async (req, res) => {
+router.delete("/admin/fleet/vehicles/:id/photos/:photoId", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const vehicleId = parseInt(String(req.params.id), 10);
   const photoId = parseInt(String(req.params.photoId), 10);
   if (!vehicleId || isNaN(vehicleId) || !photoId || isNaN(photoId)) { res.status(400).json({ error: "Invalid ID" }); return; }

@@ -2,6 +2,33 @@ import { db, adminsTable, adminRolePermissionsTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { NotFoundError } from "../lib/errors.js";
+import { ALL_PERMISSION_KEYS } from "./admin-roles.service.js";
+
+type LegacyRole = "admin" | "regional_manager" | "service_manager" | "rental_agent";
+
+type AdminPermissionUpdate = {
+  canManageVehicles?: boolean;
+  canManageBookings?: boolean;
+  canManageUsers?: boolean;
+  canViewReports?: boolean;
+  canManageSettings?: boolean;
+  canManageRates?: boolean;
+  canManageExtras?: boolean;
+  canManagePromotions?: boolean;
+  canManageLocations?: boolean;
+  canViewReviews?: boolean;
+  canManageDamages?: boolean;
+  canManageTasks?: boolean;
+  canViewCalendar?: boolean;
+  canManageCases?: boolean;
+  canManageService?: boolean;
+  canViewAccounting?: boolean;
+  canManageAccounting?: boolean;
+  canViewAlerts?: boolean;
+  canViewAuditLog?: boolean;
+  canManageParking?: boolean;
+  canUseAdminAI?: boolean;
+};
 
 const MEMBER_COLUMNS = {
   id: adminsTable.id,
@@ -39,17 +66,22 @@ const MEMBER_COLUMNS = {
   updatedAt: adminsTable.updatedAt,
 } as const;
 
-async function applyRolePermissions(roleId: number): Promise<Record<string, boolean>> {
-  const permissions = await db
+async function resolveRolePermissions(roleId: number): Promise<AdminPermissionUpdate> {
+  const rows = await db
     .select()
     .from(adminRolePermissionsTable)
     .where(eq(adminRolePermissionsTable.roleId, roleId));
 
-  const permMap: Record<string, boolean> = {};
-  for (const p of permissions) {
-    permMap[p.permissionKey] = p.granted;
+  const roleMap: Record<string, boolean> = {};
+  for (const row of rows) {
+    roleMap[row.permissionKey] = row.granted;
   }
-  return permMap;
+
+  const result: AdminPermissionUpdate = {};
+  for (const key of ALL_PERMISSION_KEYS) {
+    (result as Record<string, boolean>)[key] = roleMap[key] ?? false;
+  }
+  return result;
 }
 
 export async function listAdminTeam() {
@@ -75,24 +107,30 @@ export async function createAdminTeamMember(data: {
   password: string;
   phoneNumber?: string | null;
   isActive?: boolean;
-  adminRole?: "admin" | "regional_manager" | "service_manager" | "rental_agent";
+  adminRole?: LegacyRole;
   roleId?: number | null;
 }) {
-  const { password, roleId, ...rest } = data;
-  const hashedPassword = await bcrypt.hash(password, 12);
+  const hashedPassword = await bcrypt.hash(data.password, 12);
 
-  const insertPayload: Record<string, unknown> = { ...rest, hashedPassword };
-
-  if (roleId) {
-    const permMap = await applyRolePermissions(roleId);
-    Object.assign(insertPayload, permMap);
-    insertPayload.roleId = roleId;
-  }
+  const permValues: AdminPermissionUpdate = data.roleId
+    ? await resolveRolePermissions(data.roleId)
+    : {};
 
   const [row] = await db
     .insert(adminsTable)
-    .values(insertPayload as any)
+    .values({
+      username: data.username,
+      email: data.email,
+      fullName: data.fullName,
+      hashedPassword,
+      phoneNumber: data.phoneNumber ?? null,
+      isActive: data.isActive ?? true,
+      adminRole: data.adminRole ?? "rental_agent",
+      roleId: data.roleId ?? null,
+      ...permValues,
+    })
     .returning({ id: adminsTable.id });
+
   return getAdminTeamMember(row!.id);
 }
 
@@ -105,29 +143,46 @@ export async function updateAdminTeamMember(
     password: string;
     phoneNumber: string | null;
     isActive: boolean;
-    adminRole: "admin" | "regional_manager" | "service_manager" | "rental_agent";
+    adminRole: LegacyRole;
     roleId: number | null;
   }>,
 ) {
-  const { password, roleId, ...rest } = data;
-  const updatePayload: Record<string, unknown> = { ...rest, updatedAt: new Date() };
-  if (password) {
-    updatePayload.hashedPassword = await bcrypt.hash(password, 12);
-  }
+  type DrizzleAdminUpdate = {
+    updatedAt: Date;
+    username?: string;
+    email?: string;
+    fullName?: string;
+    hashedPassword?: string;
+    phoneNumber?: string | null;
+    isActive?: boolean;
+    adminRole?: LegacyRole;
+    roleId?: number | null;
+  } & AdminPermissionUpdate;
 
-  if (roleId !== undefined) {
-    updatePayload.roleId = roleId;
-    if (roleId !== null) {
-      const permMap = await applyRolePermissions(roleId);
-      Object.assign(updatePayload, permMap);
+  const update: DrizzleAdminUpdate = { updatedAt: new Date() };
+
+  if (data.username !== undefined) update.username = data.username;
+  if (data.email !== undefined) update.email = data.email;
+  if (data.fullName !== undefined) update.fullName = data.fullName;
+  if (data.phoneNumber !== undefined) update.phoneNumber = data.phoneNumber;
+  if (data.isActive !== undefined) update.isActive = data.isActive;
+  if (data.adminRole !== undefined) update.adminRole = data.adminRole;
+  if (data.password) update.hashedPassword = await bcrypt.hash(data.password, 12);
+
+  if (data.roleId !== undefined) {
+    update.roleId = data.roleId;
+    if (data.roleId !== null) {
+      const perms = await resolveRolePermissions(data.roleId);
+      Object.assign(update, perms);
     }
   }
 
   const [row] = await db
     .update(adminsTable)
-    .set(updatePayload as any)
+    .set(update)
     .where(eq(adminsTable.id, id))
     .returning({ id: adminsTable.id });
+
   if (!row) throw new NotFoundError(`Team member ${id} not found`);
   return getAdminTeamMember(id);
 }

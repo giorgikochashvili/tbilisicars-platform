@@ -1,6 +1,53 @@
 import { db, adminRolesTable, adminRolePermissionsTable, adminsTable } from "@workspace/db";
-import { eq, or, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
+
+export const ALL_PERMISSION_KEYS = [
+  "canManageVehicles",
+  "canManageBookings",
+  "canManageUsers",
+  "canViewReports",
+  "canManageSettings",
+  "canManageRates",
+  "canManageExtras",
+  "canManagePromotions",
+  "canManageLocations",
+  "canViewReviews",
+  "canManageDamages",
+  "canManageTasks",
+  "canViewCalendar",
+  "canManageCases",
+  "canManageService",
+  "canViewAccounting",
+  "canManageAccounting",
+  "canViewAlerts",
+  "canViewAuditLog",
+  "canManageParking",
+  "canUseAdminAI",
+] as const;
+
+type PermissionKey = (typeof ALL_PERMISSION_KEYS)[number];
+
+function normalizePermissions(partial: Record<string, boolean>): Record<PermissionKey, boolean> {
+  const full = {} as Record<PermissionKey, boolean>;
+  for (const key of ALL_PERMISSION_KEYS) {
+    full[key] = partial[key] ?? false;
+  }
+  return full;
+}
+
+async function upsertPermissions(roleId: number, permissions: Record<string, boolean>) {
+  const normalized = normalizePermissions(permissions);
+  for (const [key, granted] of Object.entries(normalized)) {
+    await db
+      .insert(adminRolePermissionsTable)
+      .values({ roleId, permissionKey: key, granted })
+      .onConflictDoUpdate({
+        target: [adminRolePermissionsTable.roleId, adminRolePermissionsTable.permissionKey],
+        set: { granted },
+      });
+  }
+}
 
 export async function listAdminRoles(includeRoleId?: number) {
   const rows = await db
@@ -21,19 +68,17 @@ export async function listAdminRoles(includeRoleId?: number) {
     (r) => r.isActive || (includeRoleId !== undefined && r.id === includeRoleId),
   );
 
-  const permissions = await db
-    .select()
-    .from(adminRolePermissionsTable);
+  const allPerms = await db.select().from(adminRolePermissionsTable);
 
-  return filtered.map((role) => ({
-    ...role,
-    permissions: permissions
+  return filtered.map((role) => {
+    const rolePerms = allPerms
       .filter((p) => p.roleId === role.id)
       .reduce<Record<string, boolean>>((acc, p) => {
         acc[p.permissionKey] = p.granted;
         return acc;
-      }, {}),
-  }));
+      }, {});
+    return { ...role, permissions: normalizePermissions(rolePerms) };
+  });
 }
 
 export async function getAdminRole(id: number) {
@@ -45,10 +90,15 @@ export async function getAdminRole(id: number) {
 
   if (!role) throw new NotFoundError(`Role ${id} not found`);
 
-  const permissions = await db
+  const perms = await db
     .select()
     .from(adminRolePermissionsTable)
     .where(eq(adminRolePermissionsTable.roleId, id));
+
+  const permMap = perms.reduce<Record<string, boolean>>((acc, p) => {
+    acc[p.permissionKey] = p.granted;
+    return acc;
+  }, {});
 
   const memberCount = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -57,10 +107,7 @@ export async function getAdminRole(id: number) {
 
   return {
     ...role,
-    permissions: permissions.reduce<Record<string, boolean>>((acc, p) => {
-      acc[p.permissionKey] = p.granted;
-      return acc;
-    }, {}),
+    permissions: normalizePermissions(permMap),
     memberCount: memberCount[0]?.count ?? 0,
   };
 }
@@ -83,17 +130,7 @@ export async function createAdminRole(data: {
     .returning({ id: adminRolesTable.id });
 
   const roleId = inserted!.id;
-
-  if (Object.keys(data.permissions).length > 0) {
-    await db.insert(adminRolePermissionsTable).values(
-      Object.entries(data.permissions).map(([key, granted]) => ({
-        roleId,
-        permissionKey: key,
-        granted,
-      })),
-    ).onConflictDoNothing();
-  }
-
+  await upsertPermissions(roleId, data.permissions);
   return getAdminRole(roleId);
 }
 
@@ -115,29 +152,23 @@ export async function updateAdminRole(
 
   if (!existing) throw new NotFoundError(`Role ${id} not found`);
 
-  const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
-  if (data.name !== undefined) updatePayload.name = data.name;
-  if (data.description !== undefined) updatePayload.description = data.description;
-  if (data.color !== undefined) updatePayload.color = data.color;
-  if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+  const updates: {
+    updatedAt: Date;
+    name?: string;
+    description?: string;
+    color?: string;
+    isActive?: boolean;
+  } = { updatedAt: new Date() };
 
-  if (Object.keys(updatePayload).length > 1) {
-    await db
-      .update(adminRolesTable)
-      .set(updatePayload as any)
-      .where(eq(adminRolesTable.id, id));
-  }
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.description !== undefined) updates.description = data.description;
+  if (data.color !== undefined) updates.color = data.color;
+  if (data.isActive !== undefined) updates.isActive = data.isActive;
 
-  if (data.permissions) {
-    for (const [key, granted] of Object.entries(data.permissions)) {
-      await db
-        .insert(adminRolePermissionsTable)
-        .values({ roleId: id, permissionKey: key, granted })
-        .onConflictDoUpdate({
-          target: [adminRolePermissionsTable.roleId, adminRolePermissionsTable.permissionKey],
-          set: { granted },
-        });
-    }
+  await db.update(adminRolesTable).set(updates).where(eq(adminRolesTable.id, id));
+
+  if (data.permissions !== undefined) {
+    await upsertPermissions(id, data.permissions);
   }
 
   return getAdminRole(id);
@@ -156,12 +187,11 @@ export async function deactivateAdminRole(id: number) {
     throw Object.assign(new Error("System roles cannot be deleted"), { statusCode: 400 });
   }
 
-  const members = await db
+  const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(adminsTable)
     .where(eq(adminsTable.roleId, id));
 
-  const count = members[0]?.count ?? 0;
   if (count > 0) {
     throw Object.assign(
       new Error(`Cannot deactivate role with ${count} active member(s). Reassign them first.`),
