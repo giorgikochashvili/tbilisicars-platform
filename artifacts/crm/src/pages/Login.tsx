@@ -43,7 +43,8 @@ export default function Login() {
   function onSubmit(data: z.infer<typeof loginSchema>) {
     login({ data }, {
       onSuccess: () => {
-        window.location.href = import.meta.env.BASE_URL + "dashboard";
+        const base = import.meta.env.BASE_URL as string;
+        window.location.href = (base.endsWith("/") ? base : base + "/") + "dashboard";
       },
       onError: () => {
         form.setError("root", { message: "Invalid credentials. Please verify your access and try again." });
@@ -94,7 +95,6 @@ export default function Login() {
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                           <Input 
-                            placeholder="admin@tbilisicars.ge" 
                             {...field} 
                             className="h-12 pl-10 bg-background/50 border-border/50 focus:bg-background focus:ring-primary/20 focus:border-primary transition-all rounded-xl" 
                             data-testid="input-email" 
@@ -117,7 +117,6 @@ export default function Login() {
                           <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                           <Input 
                             type="password" 
-                            placeholder="••••••••" 
                             {...field} 
                             className="h-12 pl-10 bg-background/50 border-border/50 focus:bg-background focus:ring-primary/20 focus:border-primary transition-all rounded-xl" 
                             data-testid="input-password" 

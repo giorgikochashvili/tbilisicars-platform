@@ -22,6 +22,8 @@ if (!sessionSecret) {
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,6 +41,7 @@ app.use(
     cookie: {
       secure: isProduction,
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),

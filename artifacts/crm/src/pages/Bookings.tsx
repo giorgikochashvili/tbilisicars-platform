@@ -838,7 +838,6 @@ export default function BookingsPage() {
                   <div className="grid gap-2">
                     <Label>Full Name <span className="text-destructive">*</span></Label>
                     <Input 
-                      placeholder="Customer full name"
                       value={booking.newCustomerName}
                       onChange={e => setBooking({...booking, newCustomerName: e.target.value})}
                     />
@@ -847,7 +846,6 @@ export default function BookingsPage() {
                     <div className="grid gap-2">
                       <Label>Phone</Label>
                       <Input 
-                        placeholder="+995 555..."
                         value={booking.newCustomerPhone}
                         onChange={e => setBooking({...booking, newCustomerPhone: e.target.value})}
                       />
@@ -856,7 +854,6 @@ export default function BookingsPage() {
                       <Label>Email</Label>
                       <Input 
                         type="email"
-                        placeholder="email@example.com"
                         value={booking.newCustomerEmail}
                         onChange={e => setBooking({...booking, newCustomerEmail: e.target.value})}
                       />
@@ -974,7 +971,6 @@ export default function BookingsPage() {
                 <div className="grid gap-2">
                   <Label>Pickup Address</Label>
                   <Input 
-                    placeholder="Hotel name or full address"
                     value={booking.pickupAddress}
                     onChange={e => setBooking({...booking, pickupAddress: e.target.value})}
                   />
@@ -1017,7 +1013,6 @@ export default function BookingsPage() {
                 <div className="grid gap-2">
                   <Label>Dropoff Address</Label>
                   <Input 
-                    placeholder="Hotel name or full address"
                     value={booking.dropoffAddress}
                     onChange={e => setBooking({...booking, dropoffAddress: e.target.value})}
                   />
@@ -1034,7 +1029,6 @@ export default function BookingsPage() {
                   <div className="flex gap-2">
                     <Input 
                       type="number" step="0.01" 
-                      placeholder="0.00"
                       value={booking.totalAmount}
                       onChange={e => setBooking({...booking, totalAmount: e.target.value})}
                       className="flex-1"
@@ -1065,7 +1059,6 @@ export default function BookingsPage() {
               <div className="grid gap-2">
                 <Label>Notes</Label>
                 <Textarea 
-                  placeholder="Flight number, special requests, internal notes..."
                   value={booking.notes}
                   onChange={e => setBooking({...booking, notes: e.target.value})}
                   rows={2}

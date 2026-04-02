@@ -581,7 +581,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>License Plate <span className="text-destructive">*</span></Label>
-                <Input className="font-mono uppercase" value={formData.licensePlate} onChange={e => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})} placeholder="AA-123-BB" />
+                <Input className="font-mono uppercase" value={formData.licensePlate} onChange={e => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})} />
               </div>
               <div className="grid gap-2">
                 <Label>Status</Label>

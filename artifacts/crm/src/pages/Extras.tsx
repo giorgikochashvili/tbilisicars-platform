@@ -216,11 +216,11 @@ export default function ExtrasPage() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Name</Label>
-              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Baby Seat" />
+              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="grid gap-2">
               <Label>Description</Label>
-              <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Brief description..." />
+              <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">

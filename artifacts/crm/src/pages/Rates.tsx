@@ -437,11 +437,11 @@ export default function RatesPage() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Name</Label>
-              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Summer High Season 2024" />
+              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="grid gap-2">
               <Label>Description</Label>
-              <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Optional description..." />
+              <Input value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">

@@ -1005,7 +1005,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
           Promo Code
         </div>
         <div className="flex gap-2">
-          <Inp placeholder="Enter promo code" value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && applyPromo()} disabled={promoState?.valid} className="uppercase" />
+          <Inp value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && applyPromo()} disabled={promoState?.valid} className="uppercase" />
           {promoState?.valid ? (
             <Btn variant="outline" onClick={() => { setPromoInput(""); setPromoState(null); setForm((f) => ({ ...f, promoCode: "" })); }} className="shrink-0 text-destructive border-destructive/30">Remove</Btn>
           ) : (
@@ -1136,12 +1136,12 @@ function Step4({ form, setForm, onNext, onBack }: {
           Personal Details
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div><FieldLabel required>First Name</FieldLabel><Inp placeholder="e.g. Giorgi" value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} /></div>
-          <div><FieldLabel required>Last Name</FieldLabel><Inp placeholder="e.g. Beridze" value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
+          <div><FieldLabel required>First Name</FieldLabel><Inp value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))} /></div>
+          <div><FieldLabel required>Last Name</FieldLabel><Inp value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><FieldLabel required>Email Address</FieldLabel><Inp type="email" placeholder="your@email.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
-          <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" placeholder="+995 555 000 000" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+          <div><FieldLabel required>Email Address</FieldLabel><Inp type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
+          <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
         </div>
       </div>
 
@@ -1154,11 +1154,11 @@ function Step4({ form, setForm, onNext, onBack }: {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <FieldLabel>Nationality</FieldLabel>
-            <Inp placeholder="e.g. Georgian" value={form.nationality} onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))} />
+            <Inp value={form.nationality} onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))} />
           </div>
           <div>
             <FieldLabel>Age</FieldLabel>
-            <Inp type="number" placeholder="e.g. 28" min="18" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
+            <Inp type="number" min="18" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
             <p className="text-xs text-muted-foreground mt-1">Minimum age: 18 years</p>
           </div>
         </div>
@@ -1166,7 +1166,7 @@ function Step4({ form, setForm, onNext, onBack }: {
           <FieldLabel>Flight Number</FieldLabel>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Inp placeholder="e.g. W6 1234" value={form.flightNumber} onChange={(e) => setForm((f) => ({ ...f, flightNumber: e.target.value }))} className="pl-9" />
+            <Inp value={form.flightNumber} onChange={(e) => setForm((f) => ({ ...f, flightNumber: e.target.value }))} className="pl-9" />
           </div>
           <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for smooth pickup</p>
         </div>
@@ -1180,7 +1180,7 @@ function Step4({ form, setForm, onNext, onBack }: {
         </div>
         <div className="mb-4">
           <FieldLabel>Special Requests / Notes</FieldLabel>
-          <textarea placeholder="Any special requirements or requests…" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
+          <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
             className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors" />
         </div>
 

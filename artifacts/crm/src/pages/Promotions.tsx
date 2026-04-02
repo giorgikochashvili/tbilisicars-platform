@@ -269,7 +269,6 @@ export default function PromotionsPage() {
                   className="font-mono uppercase tracking-widest" 
                   value={formData.code} 
                   onChange={e => setFormData({...formData, code: e.target.value.toUpperCase()})} 
-                  placeholder="SUMMER2026" 
                 />
                 {!editingPromo && (
                   <Button variant="outline" onClick={() => {

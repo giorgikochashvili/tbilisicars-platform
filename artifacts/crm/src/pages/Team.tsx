@@ -755,31 +755,31 @@ export default function TeamPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>First Name</Label>
-                <Input value={memberForm.firstName} onChange={(e) => setMemberField("firstName", e.target.value)} placeholder="John" />
+                <Input value={memberForm.firstName} onChange={(e) => setMemberField("firstName", e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label>Last Name</Label>
-                <Input value={memberForm.lastName} onChange={(e) => setMemberField("lastName", e.target.value)} placeholder="Doe" />
+                <Input value={memberForm.lastName} onChange={(e) => setMemberField("lastName", e.target.value)} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Username</Label>
-                <Input value={memberForm.username} onChange={(e) => setMemberField("username", e.target.value)} placeholder="johndoe" />
+                <Input value={memberForm.username} onChange={(e) => setMemberField("username", e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label>Phone</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input className="pl-9" value={memberForm.phoneNumber} onChange={(e) => setMemberField("phoneNumber", e.target.value)} placeholder="+995 555 000 000" />
+                  <Input className="pl-9" value={memberForm.phoneNumber} onChange={(e) => setMemberField("phoneNumber", e.target.value)} />
                 </div>
               </div>
             </div>
 
             <div className="grid gap-2">
               <Label>Email</Label>
-              <Input type="email" value={memberForm.email} onChange={(e) => setMemberField("email", e.target.value)} placeholder="john@tbilisicars.ge" />
+              <Input type="email" value={memberForm.email} onChange={(e) => setMemberField("email", e.target.value)} />
             </div>
 
             <div className="grid gap-2">
@@ -791,7 +791,7 @@ export default function TeamPage() {
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input type="password" className="pl-9" value={memberForm.password} onChange={(e) => setMemberField("password", e.target.value)} placeholder={editingMemberId !== null ? "••••••••" : "Create secure password"} />
+                <Input type="password" className="pl-9" value={memberForm.password} onChange={(e) => setMemberField("password", e.target.value)} />
               </div>
             </div>
 
@@ -868,7 +868,6 @@ export default function TeamPage() {
               <Input
                 value={roleForm.name}
                 onChange={(e) => setRoleForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Regional Coordinator"
               />
             </div>
 
@@ -877,7 +876,6 @@ export default function TeamPage() {
               <Textarea
                 value={roleForm.description}
                 onChange={(e) => setRoleForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Brief description of this role's responsibilities"
                 rows={2}
               />
             </div>

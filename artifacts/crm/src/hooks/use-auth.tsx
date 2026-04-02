@@ -30,8 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     logoutMutate(undefined, {
       onSuccess: () => {
-        // Force full reload to clear react-query cache and ensure clean state
-        window.location.href = import.meta.env.BASE_URL + "login";
+        const base = import.meta.env.BASE_URL as string;
+        window.location.href = (base.endsWith("/") ? base : base + "/") + "login";
       }
     });
   };

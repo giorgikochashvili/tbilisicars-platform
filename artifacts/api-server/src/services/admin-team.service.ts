@@ -143,6 +143,7 @@ export async function createAdminTeamMember(data: {
     })
     .returning({ id: adminsTable.id });
 
+  console.info(`[team] Member created: id=${row!.id} email=${data.email} roleId=${data.roleId} hashedPassword=set`);
   return getAdminTeamMember(row!.id);
 }
 

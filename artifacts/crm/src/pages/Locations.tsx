@@ -218,7 +218,7 @@ export default function LocationsPage() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Name</Label>
-              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Main Office" />
+              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -245,7 +245,7 @@ export default function LocationsPage() {
 
             <div className="grid gap-2">
               <Label>Address</Label>
-              <Input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="123 Main St" />
+              <Input value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

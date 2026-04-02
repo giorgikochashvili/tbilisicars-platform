@@ -237,7 +237,6 @@ export default function CustomersPage() {
                 id="fullName" 
                 value={formData.fullName} 
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} 
-                placeholder="e.g. Giorgi Beridze"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -246,7 +245,6 @@ export default function CustomersPage() {
                 <Input 
                   value={formData.phone} 
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
-                  placeholder="+995 555 000 000"
                 />
               </div>
               <div className="grid gap-2">
@@ -255,7 +253,6 @@ export default function CustomersPage() {
                   type="email" 
                   value={formData.email} 
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                  placeholder="customer@email.com"
                 />
               </div>
             </div>
@@ -264,7 +261,6 @@ export default function CustomersPage() {
               <Input 
                 value={formData.country} 
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })} 
-                placeholder="e.g. Georgia, Russia, Turkey"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -273,7 +269,6 @@ export default function CustomersPage() {
                 <Input 
                   value={formData.passportId} 
                   onChange={(e) => setFormData({ ...formData, passportId: e.target.value })} 
-                  placeholder="Optional"
                 />
               </div>
               <div className="grid gap-2">
@@ -281,7 +276,6 @@ export default function CustomersPage() {
                 <Input 
                   value={formData.drivingLicense} 
                   onChange={(e) => setFormData({ ...formData, drivingLicense: e.target.value })} 
-                  placeholder="Optional"
                 />
               </div>
             </div>
@@ -290,7 +284,6 @@ export default function CustomersPage() {
               <Textarea 
                 value={formData.notes} 
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
-                placeholder="Internal notes..."
                 rows={2}
               />
             </div>
