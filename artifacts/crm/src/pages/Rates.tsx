@@ -284,8 +284,10 @@ function ModelPricingGrid({
     for (const range of dayRanges) {
       const key = getRangeKey(range);
       const priceRaw = newModelPrices[key];
-      if (priceRaw === undefined || priceRaw === "") continue;
-      const pricePerDay = String(parseFloat(priceRaw) || 0);
+      // Default blank prices to 0 so all ranges receive a tier
+      const pricePerDay = priceRaw !== undefined && priceRaw !== ""
+        ? String(parseFloat(priceRaw) || 0)
+        : "0";
       try {
         await new Promise<void>((resolve, reject) => {
           createTierMutation.mutate(

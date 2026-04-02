@@ -111,6 +111,8 @@ export async function bulkSetAdminRateDayRanges(
   rateId: number,
   ranges: Array<{ fromDays: number; toDays?: number | null; label?: string | null }>,
 ) {
+  const rateRows = await db.select().from(rateTable).where(eq(rateTable.id, rateId));
+  if (!rateRows[0]) throw new NotFoundError(`Rate ${rateId} not found`);
   await db.delete(ratedayrangeTable).where(eq(ratedayrangeTable.rateId, rateId));
   if (ranges.length > 0) {
     await db.insert(ratedayrangeTable).values(
