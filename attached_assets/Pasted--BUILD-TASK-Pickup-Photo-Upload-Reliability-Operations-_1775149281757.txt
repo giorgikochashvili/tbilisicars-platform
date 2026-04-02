@@ -1,0 +1,201 @@
+# BUILD TASK — Pickup Photo Upload Reliability + Operations UI Expansion (Mobile + Desktop)
+
+Project context
+This is the existing Tbilisicars CRM&WEB monorepo built iteratively inside Replit.
+Do NOT refactor architecture.
+Do NOT change business logic.
+Do NOT break existing booking / pickup / dropoff flows.
+All fixes must integrate into the current structure safely.
+
+Focus ONLY on:
+1) Pickup/Dropoff photo upload reliability
+2) Operations dashboard layout improvement
+
+==================================================
+PART 1 — PICKUP PHOTO UPLOAD (CRITICAL STABILITY FIX)
+==================================================
+
+Problem
+During pickup, multiple photos are selected but uploads fail with:
+"Some uploads failed"
+
+This is unacceptable for operations.
+
+Required outcome:
+Uploads must be extremely reliable under ALL conditions:
+- slow internet
+- mobile data
+- many images (10–30+)
+- large image sizes
+- unstable connections
+
+==================================================
+IMPLEMENTATION REQUIREMENTS
+==================================================
+
+1. CLIENT-SIDE RESILIENCE
+
+Improve upload system in pickup/dropoff flow:
+
+- Use upload queue system (not all images in parallel blindly)
+- Limit concurrency (e.g. 2–3 uploads at a time)
+- Add retry mechanism:
+  - auto retry failed uploads (at least 2–3 attempts)
+- Track upload status per image:
+  - uploading
+  - success
+  - failed (with retry button)
+
+- NEVER lose selected images from UI if upload fails
+- Keep them in memory until success or manual removal
+
+2. LARGE IMAGE HANDLING
+
+- Before upload:
+  - compress images on client (reasonable quality)
+  - resize if too large (e.g. max width ~1600–2000px)
+- Prevent huge file payload failures
+
+3. PROGRESS & UX
+
+- Show per-image progress indicator
+- Show global upload status
+
+- Disable final "Record" action ONLY if:
+  - there are still uploading images
+  - OR failed images not resolved
+
+- Allow:
+  - retry failed uploads
+  - remove failed images manually
+
+4. SERVER COMPATIBILITY
+
+- Ensure backend endpoint can handle:
+  - multiple uploads
+  - larger payload safely
+
+- If needed:
+  - adjust multer/body limits carefully (without breaking security)
+
+5. DO NOT BREAK EXISTING STORAGE LOGIC
+
+- Keep current storage system (do not redesign storage)
+- Just make it reliable
+
+==================================================
+PART 1.1 — MOBILE UX FIX (VERY IMPORTANT)
+==================================================
+
+Problem:
+"Record" / submit button is too low and hard to reach
+
+Fix:
+
+- Make bottom action bar sticky:
+  - visible at bottom of screen at all times
+- OR ensure scroll + spacing always reveals it clearly
+
+- Ensure:
+  - no overlap with keyboard on mobile
+  - safe padding
+
+- Photos grid must not push button out of reach
+
+- Works perfectly on:
+  - mobile (primary)
+  - tablet
+  - desktop
+
+==================================================
+PART 2 — OPERATIONS DASHBOARD IMPROVEMENT
+==================================================
+
+Problem:
+Operations panel shows only 1 booking → not useful enough
+
+==================================================
+REQUIREMENTS
+==================================================
+
+MOBILE:
+
+- Show at least 4–5 bookings per section (Pickups / Dropoffs)
+- Make list vertically scrollable inside card
+- Increase card height slightly
+
+- Keep compact but more informative
+
+DESKTOP:
+
+- Expand layout:
+  - allow larger vertical space
+  - allow stacking layout if needed (Pickups above Dropoffs)
+
+- OR allow both cards to grow vertically
+
+- Show more bookings at once (5–10 depending on space)
+
+- Maintain clean premium UI (no clutter)
+
+==================================================
+UX RULES
+==================================================
+
+- Keep existing design language (dark, premium)
+- Do NOT redesign whole dashboard
+- Only improve:
+  - spacing
+  - scrollability
+  - visible data density
+
+- Booking rows remain clickable (important)
+
+==================================================
+IMPORTANT NON-GOALS
+==================================================
+
+DO NOT:
+- change booking logic
+- change pickup/dropoff data model
+- break image storage structure
+- refactor entire dashboard
+- introduce new libraries unless absolutely necessary
+
+==================================================
+DONE LOOKS LIKE
+==================================================
+
+Pickup:
+
+- Can upload 10–30+ photos reliably
+- Works on slow mobile internet
+- Failed uploads can be retried
+- No images are lost
+- Button always accessible
+
+Operations:
+
+- Shows multiple bookings (not just 1)
+- Scrollable list inside card
+- Better visibility on both mobile and desktop
+
+==================================================
+FILES MOST LIKELY TO TOUCH
+==================================================
+
+- artifacts/crm/src/pages/BookingDetails.tsx (or pickup modal component)
+- upload-related components/hooks
+- API upload route (if needed)
+- artifacts/crm/src/pages/Dashboard.tsx (Operations section)
+
+==================================================
+OUTPUT
+==================================================
+
+Implement changes and return:
+
+1. What was improved in upload system
+2. How retry/queue works
+3. What was changed in Operations layout
+4. Any limits added (file size, concurrency, etc.)
