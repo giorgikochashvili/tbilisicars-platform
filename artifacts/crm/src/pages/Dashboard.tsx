@@ -864,8 +864,11 @@ export default function Dashboard() {
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
-  const [timelineExpanded, setTimelineExpanded] = useState(true);
-  useEffect(() => { if (isMobile) setTimelineExpanded(false); }, [isMobile]);
+  const [timelineUserToggled, setTimelineUserToggled] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(!isMobile);
+  useEffect(() => {
+    if (!timelineUserToggled) setTimelineExpanded(!isMobile);
+  }, [isMobile, timelineUserToggled]);
 
   const handleWidgetChange = (cfg: WidgetConfig) => {
     setWidgetConfig(cfg);
@@ -1092,7 +1095,7 @@ export default function Dashboard() {
           <button
             type="button"
             className="w-full flex items-center gap-2 mb-3 text-left group"
-            onClick={() => setTimelineExpanded((v) => !v)}
+            onClick={() => { setTimelineUserToggled(true); setTimelineExpanded((v) => !v); }}
           >
             <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 flex-1">
               <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
