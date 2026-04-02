@@ -1,4 +1,4 @@
-import { db } from "@workspace/db";
+import { db, pool } from "@workspace/db";
 import { accountingEntriesTable, exchangeRatesTable } from "@workspace/db";
 import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
@@ -80,12 +80,13 @@ export interface ListAccountingParams {
   currency?: "GEL" | "USD" | "EUR";
   dateFrom?: string;
   dateTo?: string;
+  city?: string;
   page?: number;
   limit?: number;
 }
 
 export async function listAccountingEntries(params: ListAccountingParams = {}) {
-  const { type, category, currency, dateFrom, dateTo, page = 1, limit = 50 } = params;
+  const { type, category, currency, dateFrom, dateTo, city, page = 1, limit = 50 } = params;
   const offset = (page - 1) * limit;
 
   const conditions = [];
@@ -94,6 +95,16 @@ export async function listAccountingEntries(params: ListAccountingParams = {}) {
   if (currency) conditions.push(eq(accountingEntriesTable.currency, currency));
   if (dateFrom) conditions.push(gte(accountingEntriesTable.entryDate, dateFrom));
   if (dateTo) conditions.push(lte(accountingEntriesTable.entryDate, dateTo));
+  if (city) {
+    conditions.push(
+      sql`(${accountingEntriesTable.relatedBookingId} IS NOT NULL AND EXISTS (
+        SELECT 1 FROM booking b
+        JOIN location l ON l.id = b.pickup_location_id
+        WHERE b.id = ${accountingEntriesTable.relatedBookingId}
+        AND LOWER(l.city) = LOWER(${city})
+      ))`,
+    );
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -156,12 +167,40 @@ export async function getAccountingSummary() {
 // ─── Single ───────────────────────────────────────────────────────────────────
 
 export async function getAccountingEntry(id: number) {
-  const [row] = await db
-    .select()
-    .from(accountingEntriesTable)
-    .where(eq(accountingEntriesTable.id, id));
-  if (!row) throw new NotFoundError(`Accounting entry ${id} not found`);
-  return row;
+  const { rows } = await pool.query(
+    `SELECT
+      ae.*,
+      b.id                 AS booking_ref_id,
+      u.full_name          AS customer_name,
+      u.email              AS customer_email,
+      u.phone              AS customer_phone,
+      v.license_plate      AS vehicle_plate,
+      vm.name              AS vehicle_model_name,
+      br.name              AS vehicle_brand_name,
+      bp.method            AS payment_method,
+      bp.payment_type      AS payment_type_detail
+    FROM accounting_entries ae
+    LEFT JOIN booking b        ON b.id   = ae.related_booking_id
+    LEFT JOIN "user" u         ON u.id   = b.user_id
+    LEFT JOIN vehicle v        ON v.id   = ae.related_vehicle_id
+    LEFT JOIN vehicle_model vm ON vm.id  = v.vehicle_model_id
+    LEFT JOIN brand br         ON br.id  = vm.brand_id
+    LEFT JOIN booking_payment bp ON bp.accounting_entry_id = ae.id
+    WHERE ae.id = $1`,
+    [id],
+  );
+  if (!rows[0]) throw new NotFoundError(`Accounting entry ${id} not found`);
+  return rows[0] as typeof rows[0] & {
+    booking_ref_id: number | null;
+    customer_name: string | null;
+    customer_email: string | null;
+    customer_phone: string | null;
+    vehicle_plate: string | null;
+    vehicle_model_name: string | null;
+    vehicle_brand_name: string | null;
+    payment_method: string | null;
+    payment_type_detail: string | null;
+  };
 }
 
 // ─── Create ───────────────────────────────────────────────────────────────────

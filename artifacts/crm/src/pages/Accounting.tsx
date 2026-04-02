@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Filter, X, Edit, Trash2, TrendingUp, TrendingDown,
   ArrowUpCircle, ArrowDownCircle, DollarSign, MoreHorizontal,
-  RefreshCw,
+  RefreshCw, ChevronDown, ChevronRight, User, Car,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -104,6 +104,11 @@ export default function AccountingPage() {
   const [filterCurrency, setFilterCurrency] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+
+  const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
+  const [expandedEntryData, setExpandedEntryData] = useState<any>(null);
+  const [expandedEntryLoading, setExpandedEntryLoading] = useState(false);
 
   const [showRateEditor, setShowRateEditor] = useState(false);
   const [rateUsd, setRateUsd] = useState("");
@@ -130,9 +135,10 @@ export default function AccountingPage() {
   if (filterCurrency) params.set("currency", filterCurrency);
   if (filterDateFrom) params.set("dateFrom", filterDateFrom);
   if (filterDateTo) params.set("dateTo", filterDateTo);
+  if (filterCity) params.set("city", filterCity);
 
   const { data: listData, isLoading } = useQuery({
-    queryKey: ["accounting-entries", filterType, filterCategory, filterCurrency, filterDateFrom, filterDateTo],
+    queryKey: ["accounting-entries", filterType, filterCategory, filterCurrency, filterDateFrom, filterDateTo, filterCity],
     queryFn: () => apiFetch(`/api/admin/accounting?${params.toString()}`),
   });
 
@@ -280,9 +286,29 @@ export default function AccountingPage() {
     setFilterCurrency("");
     setFilterDateFrom("");
     setFilterDateTo("");
+    setFilterCity("");
   };
 
-  const hasFilters = filterType || filterCategory || filterCurrency || filterDateFrom || filterDateTo;
+  const hasFilters = filterType || filterCategory || filterCurrency || filterDateFrom || filterDateTo || filterCity;
+
+  const toggleExpand = async (id: number) => {
+    if (expandedEntryId === id) {
+      setExpandedEntryId(null);
+      setExpandedEntryData(null);
+      return;
+    }
+    setExpandedEntryId(id);
+    setExpandedEntryData(null);
+    setExpandedEntryLoading(true);
+    try {
+      const data = await apiFetch(`/api/admin/accounting/${id}`);
+      setExpandedEntryData(data);
+    } catch {
+      setExpandedEntryData(null);
+    } finally {
+      setExpandedEntryLoading(false);
+    }
+  };
   const allCategories = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES];
   const categoryOptions = formData.type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -392,7 +418,7 @@ export default function AccountingPage() {
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <Select value={filterType || "all"} onValueChange={(v) => setFilterType(v === "all" ? "" : v)}>
               <SelectTrigger className="h-9 text-sm bg-background">
                 <SelectValue placeholder="Type" />
@@ -423,6 +449,17 @@ export default function AccountingPage() {
                 <SelectItem value="GEL">₾ GEL</SelectItem>
                 <SelectItem value="USD">$ USD</SelectItem>
                 <SelectItem value="EUR">€ EUR</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCity || "all"} onValueChange={(v) => setFilterCity(v === "all" ? "" : v)}>
+              <SelectTrigger className="h-9 text-sm bg-background">
+                <SelectValue placeholder="Region" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Regions</SelectItem>
+                <SelectItem value="Tbilisi">Tbilisi</SelectItem>
+                <SelectItem value="Batumi">Batumi</SelectItem>
+                <SelectItem value="Kutaisi">Kutaisi</SelectItem>
               </SelectContent>
             </Select>
             <Input
@@ -459,6 +496,7 @@ export default function AccountingPage() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border/40 hover:bg-transparent">
+                <TableHead className="w-8" />
                 <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
@@ -472,14 +510,14 @@ export default function AccountingPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <TrendingDown className="w-8 h-8 opacity-20" />
                       <p>{hasFilters ? "No entries match the current filters." : "No accounting entries yet."}</p>
@@ -488,58 +526,127 @@ export default function AccountingPage() {
                 </TableRow>
               ) : (
                 entries.map((e: any) => (
-                  <TableRow key={e.id} className="border-border/20 hover:bg-muted/30 transition-colors">
-                    <TableCell className="text-sm font-mono text-muted-foreground">
-                      {e.entryDate
-                        ? new Date(e.entryDate + "T00:00:00").toLocaleDateString()
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${TYPE_COLORS[e.type] ?? ""}`}>
-                        {e.type === "INCOME" ? (
-                          <><TrendingUp className="w-3 h-3 mr-1" />Income</>
-                        ) : (
-                          <><TrendingDown className="w-3 h-3 mr-1" />Expense</>
+                  <Fragment key={e.id}>
+                    <TableRow className="border-border/20 hover:bg-muted/30 transition-colors">
+                      <TableCell className="w-8 pr-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => toggleExpand(e.id)}
+                        >
+                          {expandedEntryId === e.id
+                            ? <ChevronDown className="w-3.5 h-3.5" />
+                            : <ChevronRight className="w-3.5 h-3.5" />}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="text-sm font-mono text-muted-foreground">
+                        {e.entryDate
+                          ? new Date(e.entryDate + "T00:00:00").toLocaleDateString()
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${TYPE_COLORS[e.type] ?? ""}`}>
+                          {e.type === "INCOME" ? (
+                            <><TrendingUp className="w-3 h-3 mr-1" />Income</>
+                          ) : (
+                            <><TrendingDown className="w-3 h-3 mr-1" />Expense</>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{e.category}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        <span className={e.type === "INCOME" ? "text-emerald-500" : "text-red-500"}>
+                          {e.type === "EXPENSE" ? "−" : "+"}
+                          {formatAmount(e.amount, e.currency)}
+                        </span>
+                        {e.currency !== "GEL" && (
+                          <span className="ml-1 text-xs text-muted-foreground">({e.currency})</span>
                         )}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">{e.category}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      <span className={e.type === "INCOME" ? "text-emerald-500" : "text-red-500"}>
-                        {e.type === "EXPENSE" ? "−" : "+"}
-                        {formatAmount(e.amount, e.currency)}
-                      </span>
-                      {e.currency !== "GEL" && (
-                        <span className="ml-1 text-xs text-muted-foreground">({e.currency})</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
-                      {formatGel(e.convertedGel)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {e.notes || "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem onClick={() => openModal(e)}>
-                            <Edit className="w-4 h-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(e.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                        {formatGel(e.convertedGel)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                        {e.notes || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => openModal(e)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(e.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    {expandedEntryId === e.id && (
+                      <TableRow key={`${e.id}-detail`} className="border-border/10 bg-muted/10">
+                        <TableCell colSpan={8} className="p-0">
+                          <div className="px-6 py-3 text-sm border-l-2 border-primary/30 ml-8">
+                            {expandedEntryLoading ? (
+                              <div className="flex gap-4">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-4 w-40" />
+                                <Skeleton className="h-4 w-28" />
+                              </div>
+                            ) : expandedEntryData ? (
+                              <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                                {expandedEntryData.customer_name && (
+                                  <span className="flex items-center gap-1">
+                                    <User className="w-3.5 h-3.5" />
+                                    <span>{expandedEntryData.customer_name}</span>
+                                    {expandedEntryData.customer_phone && (
+                                      <span className="text-xs opacity-70">· {expandedEntryData.customer_phone}</span>
+                                    )}
+                                  </span>
+                                )}
+                                {expandedEntryData.booking_ref_id && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-xs">Booking</span>
+                                    <span className="font-mono text-xs text-foreground">#{expandedEntryData.booking_ref_id}</span>
+                                  </span>
+                                )}
+                                {(expandedEntryData.vehicle_brand_name || expandedEntryData.vehicle_model_name) && (
+                                  <span className="flex items-center gap-1">
+                                    <Car className="w-3.5 h-3.5" />
+                                    <span>{[expandedEntryData.vehicle_brand_name, expandedEntryData.vehicle_model_name].filter(Boolean).join(" ")}</span>
+                                    {expandedEntryData.vehicle_plate && (
+                                      <span className="font-mono text-xs opacity-70">({expandedEntryData.vehicle_plate})</span>
+                                    )}
+                                  </span>
+                                )}
+                                {expandedEntryData.payment_method && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="text-xs">Method:</span>
+                                    <span className="text-xs font-medium text-foreground capitalize">
+                                      {expandedEntryData.payment_method.toLowerCase().replace("_", " ")}
+                                    </span>
+                                  </span>
+                                )}
+                                {!expandedEntryData.customer_name && !expandedEntryData.booking_ref_id && !expandedEntryData.vehicle_plate && (
+                                  <span className="text-xs italic">No linked booking or vehicle</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs italic">No detail available</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
                 ))
               )}
             </TableBody>

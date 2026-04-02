@@ -176,11 +176,12 @@ function CollapsibleSection({
 
 // ─── Payment Summary Card ────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function SummaryCard({ label, value, sub, gelSub }: { label: string; value: string; sub?: string; gelSub?: string }) {
   return (
     <div className="rounded-lg border border-border/40 bg-muted/20 p-3 flex flex-col gap-0.5">
       <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
       <span className="text-lg font-bold font-mono">{value}</span>
+      {gelSub && <span className="text-[11px] text-muted-foreground font-mono">≈ {gelSub}</span>}
       {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
     </div>
   );
@@ -872,6 +873,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       fetchPayments();
       fetchBooking();
       onPaymentChanged?.();
+      if (booking?.vehicle?.id) {
+        window.dispatchEvent(new CustomEvent("vehicleDetailRefresh", { detail: { vehicleId: booking.vehicle.id } }));
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -1001,10 +1005,13 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     }
   };
 
-  const fmt = (v: number) => `${currencySymbol(booking?.currency ?? "GEL")}${v.toFixed(2)}`;
+  const bkCurrency = booking?.currency ?? "GEL";
+  const fmtOrig = (v: number) => `${currencySymbol(bkCurrency)}${v.toFixed(2)}`;
+  const fmtGel = (v: number) => `₾${v.toFixed(2)}`;
+  const isNonGel = bkCurrency !== "GEL";
   const totalPrice = booking?.totalAmount ? parseFloat(booking.totalAmount) : null;
   const remaining = totalPrice != null
-    ? (summary ? totalPrice - summary.totalPaid : totalPrice)
+    ? (summary ? Math.max(0, totalPrice - (summary.totalPaidOriginal ?? summary.totalPaid)) : totalPrice)
     : null;
 
   const canPickUp = booking?.status === "CONFIRMED" && !handovers.pickup;
@@ -1311,28 +1318,33 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <SummaryCard
                     label="Total Paid"
-                    value={summary ? fmt(summary.totalPaid) : fmt(0)}
+                    value={summary ? fmtOrig(summary.totalPaidOriginal ?? summary.totalPaid) : fmtOrig(0)}
+                    gelSub={isNonGel && summary ? fmtGel(summary.totalPaid) : undefined}
                   />
                   <SummaryCard
                     label="Remaining Balance"
-                    value={remaining != null ? fmt(Math.max(0, remaining)) : "—"}
+                    value={remaining != null ? fmtOrig(remaining) : "—"}
                     sub={totalPrice == null ? "Set booking price to track balance" : undefined}
                   />
                   <SummaryCard
                     label="Deposit Received"
-                    value={summary ? fmt(summary.depositReceived) : fmt(0)}
+                    value={summary ? fmtOrig(summary.depositReceivedOriginal ?? summary.depositReceived) : fmtOrig(0)}
+                    gelSub={isNonGel && summary ? fmtGel(summary.depositReceived) : undefined}
                   />
                   <SummaryCard
                     label="Deposit Returned"
-                    value={summary ? fmt(summary.depositReturned) : fmt(0)}
+                    value={summary ? fmtOrig(summary.depositReturnedOriginal ?? summary.depositReturned) : fmtOrig(0)}
+                    gelSub={isNonGel && summary ? fmtGel(summary.depositReturned) : undefined}
                   />
                   <SummaryCard
                     label="Total Refunded"
-                    value={summary ? fmt(summary.totalRefunded) : fmt(0)}
+                    value={summary ? fmtOrig(summary.totalRefundedOriginal ?? summary.totalRefunded) : fmtOrig(0)}
+                    gelSub={isNonGel && summary ? fmtGel(summary.totalRefunded) : undefined}
                   />
                   <SummaryCard
                     label="Net Deposit"
-                    value={summary ? fmt(summary.netDeposit) : fmt(0)}
+                    value={summary ? fmtOrig(summary.netDepositOriginal ?? summary.netDeposit) : fmtOrig(0)}
+                    gelSub={isNonGel && summary ? fmtGel(summary.netDeposit) : undefined}
                     sub="Received minus returned"
                   />
                 </div>

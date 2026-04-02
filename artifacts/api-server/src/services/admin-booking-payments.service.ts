@@ -35,32 +35,52 @@ const PAYMENT_TYPE_ACCOUNTING: Record<
 // ─── Payment Summary ──────────────────────────────────────────────────────────
 
 export async function getBookingPaymentSummary(bookingId: number) {
+  const { rows: bookingRows } = await pool.query(
+    `SELECT currency FROM booking WHERE id = $1`,
+    [bookingId],
+  );
+  const bookingCurrency: string = bookingRows[0]?.currency ?? "GEL";
+
   const { rows } = await pool.query(
     `SELECT
       payment_type,
-      SUM(converted_gel::numeric) AS total_gel
+      SUM(converted_gel::numeric) AS total_gel,
+      SUM(CASE WHEN currency = $2 THEN amount::numeric ELSE 0 END) AS total_original
     FROM booking_payment
     WHERE booking_id = $1
     GROUP BY payment_type`,
-    [bookingId],
+    [bookingId, bookingCurrency],
   );
 
-  const totals: Record<string, number> = {};
+  const totals: Record<string, { gel: number; original: number }> = {};
   for (const r of rows) {
-    totals[r.payment_type] = parseFloat(r.total_gel ?? "0");
+    totals[r.payment_type] = {
+      gel: parseFloat(r.total_gel ?? "0"),
+      original: parseFloat(r.total_original ?? "0"),
+    };
   }
 
-  const totalPaid = (totals["BOOKING_PAYMENT"] ?? 0) + (totals["ADJUSTMENT"] ?? 0);
-  const depositReceived = totals["DEPOSIT_RECEIVED"] ?? 0;
-  const depositReturned = totals["DEPOSIT_RETURNED"] ?? 0;
-  const totalRefunded = totals["REFUND"] ?? 0;
+  const totalPaid = (totals["BOOKING_PAYMENT"]?.gel ?? 0) + (totals["ADJUSTMENT"]?.gel ?? 0);
+  const totalPaidOriginal = (totals["BOOKING_PAYMENT"]?.original ?? 0) + (totals["ADJUSTMENT"]?.original ?? 0);
+  const depositReceived = totals["DEPOSIT_RECEIVED"]?.gel ?? 0;
+  const depositReceivedOriginal = totals["DEPOSIT_RECEIVED"]?.original ?? 0;
+  const depositReturned = totals["DEPOSIT_RETURNED"]?.gel ?? 0;
+  const depositReturnedOriginal = totals["DEPOSIT_RETURNED"]?.original ?? 0;
+  const totalRefunded = totals["REFUND"]?.gel ?? 0;
+  const totalRefundedOriginal = totals["REFUND"]?.original ?? 0;
 
   return {
+    currency: bookingCurrency,
     totalPaid,
+    totalPaidOriginal,
     depositReceived,
+    depositReceivedOriginal,
     depositReturned,
+    depositReturnedOriginal,
     totalRefunded,
+    totalRefundedOriginal,
     netDeposit: depositReceived - depositReturned,
+    netDepositOriginal: depositReceivedOriginal - depositReturnedOriginal,
   };
 }
 

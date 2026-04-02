@@ -48,7 +48,7 @@ function StatusBadge({ status }: { status: string }) {
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   UNPAID: "Unpaid",
-  HALF: "PreHalf",
+  HALF: "Partial",
   PAID: "Paid",
   PREPAID: "PrePaid",
   REFUNDED: "Refunded",
@@ -560,7 +560,7 @@ export default function BookingsPage() {
               <SelectContent>
                 <SelectItem value="ALL">All Payments</SelectItem>
                 <SelectItem value="UNPAID">Unpaid</SelectItem>
-                <SelectItem value="HALF">PreHalf</SelectItem>
+                <SelectItem value="HALF">Partial</SelectItem>
                 <SelectItem value="PAID">Paid</SelectItem>
                 <SelectItem value="PREPAID">PrePaid</SelectItem>
                 <SelectItem value="REFUNDED">Refunded</SelectItem>
@@ -1055,7 +1055,7 @@ export default function BookingsPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="UNPAID">Unpaid</SelectItem>
-                      <SelectItem value="HALF">PreHalf</SelectItem>
+                      <SelectItem value="HALF">Partial</SelectItem>
                       <SelectItem value="PAID">Paid</SelectItem>
                       <SelectItem value="PREPAID">PrePaid</SelectItem>
                     </SelectContent>

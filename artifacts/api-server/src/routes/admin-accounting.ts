@@ -55,7 +55,7 @@ router.get("/admin/accounting/summary", requireAdmin, async (_req, res) => {
 // ─── List ──────────────────────────────────────────────────────────────────────
 
 router.get("/admin/accounting", requireAdmin, async (req, res) => {
-  const { type, category, currency, dateFrom, dateTo, page, limit } =
+  const { type, category, currency, dateFrom, dateTo, city, page, limit } =
     req.query as Record<string, string | undefined>;
   const entries = await listAccountingEntries({
     type: type as "INCOME" | "EXPENSE" | undefined,
@@ -63,6 +63,7 @@ router.get("/admin/accounting", requireAdmin, async (req, res) => {
     currency: currency as "GEL" | "USD" | "EUR" | undefined,
     dateFrom,
     dateTo,
+    city: city || undefined,
     page: page ? parseInt(page) : 1,
     limit: limit ? parseInt(limit) : 50,
   });

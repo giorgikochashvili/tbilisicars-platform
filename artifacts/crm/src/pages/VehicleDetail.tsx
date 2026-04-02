@@ -180,6 +180,14 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
     }
   }, [open, vehicleId]);
 
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ vehicleId: number }>) => {
+      if (e.detail.vehicleId === vehicleId && open) fetchDetail();
+    };
+    window.addEventListener("vehicleDetailRefresh", handler as EventListener);
+    return () => window.removeEventListener("vehicleDetailRefresh", handler as EventListener);
+  }, [vehicleId, open, fetchDetail]);
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length || !vehicleId) return;
@@ -431,7 +439,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <StatCard icon={CalendarDays} label="Total Bookings" value={String(data.financial.totalBookings)} />
-                  <StatCard icon={TrendingUp} label="Total Revenue" value={fmtMoney(data.financial.totalRevenueGel)} sub="GEL bookings only" />
+                  <StatCard icon={TrendingUp} label="Total Revenue" value={fmtMoney(data.financial.totalRevenueGel)} sub="Total Revenue (GEL)" />
                   <StatCard icon={Wrench} label="Service Cost" value={fmtMoney(data.financial.totalServiceCost)} />
                   <StatCard icon={Gauge} label="Current Mileage" value={v.mileage != null ? `${v.mileage.toLocaleString()} km` : "—"} />
                 </div>

@@ -117,9 +117,12 @@ export async function getVehicleDetail(vehicleId: number) {
   // ── Financial context ─────────────────────────────────────────────────────────
   const { rows: financialRows } = await pool.query(
     `SELECT
-      COUNT(b.id)::int AS total_bookings,
-      COALESCE(SUM(b.total_amount::numeric) FILTER (WHERE b.currency = 'GEL'), 0)::numeric AS total_revenue_gel
+      COUNT(DISTINCT b.id)::int AS total_bookings,
+      COALESCE(SUM(bp.converted_gel::numeric), 0)::numeric AS total_revenue_gel
     FROM booking b
+    LEFT JOIN booking_payment bp
+      ON bp.booking_id = b.id
+      AND bp.payment_type IN ('BOOKING_PAYMENT', 'ADJUSTMENT')
     WHERE b.vehicle_id = $1
       AND b.deleted_at IS NULL
       AND b.status NOT IN ('CANCELED', 'NO_SHOW')`,
