@@ -119,12 +119,13 @@ export async function createAdminRateTier(
               r2.parent_rate_id AS conflicting_parent_rate_id
        FROM ratetier rt2
        JOIN rate r2 ON r2.id = rt2.rate_id
+       LEFT JOIN rate parent2 ON parent2.id = r2.parent_rate_id
        WHERE rt2.vehicle_model_id = $1
          AND rt2.rate_id != $2
          AND (r2.rate_type = 'web' OR r2.rate_type IS NULL)
          AND r2.is_active = true
-         AND r2.valid_from::date <= $3::date
-         AND r2.valid_until::date >= $4::date`,
+         AND COALESCE(parent2.valid_from, r2.valid_from)::date <= $3::date
+         AND COALESCE(parent2.valid_until, r2.valid_until)::date >= $4::date`,
       [data.vehicleModelId, rateId, effectiveUntil, effectiveFrom],
     );
 
