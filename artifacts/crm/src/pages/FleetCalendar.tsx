@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
@@ -43,7 +43,8 @@ interface CalendarData {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DAY_PX = 44; // width of each day column in pixels
-const LABEL_WIDTH = 220; // width of the vehicle label column
+const LABEL_WIDTH_DESKTOP = 220; // vehicle label column width on desktop
+const LABEL_WIDTH_MOBILE = 120; // vehicle label column width on mobile
 
 const STATUS_COLORS: Record<BookingStatus, { bar: string; text: string }> = {
   PENDING: { bar: "bg-yellow-500/80 hover:bg-yellow-500 border-yellow-600/50", text: "text-yellow-950" },
@@ -127,6 +128,16 @@ export default function FleetCalendarPage() {
   const [, navigate] = useLocation();
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
 
+  // Responsive label width
+  const [labelWidth, setLabelWidth] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP
+  );
+  useEffect(() => {
+    const update = () => setLabelWidth(window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   // Default: today to today + 13 (14 days)
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => toDateStr(today), [today]);
@@ -177,6 +188,7 @@ export default function FleetCalendarPage() {
   }
 
   const totalGridWidth = rangeSize * DAY_PX;
+  const LABEL_WIDTH = labelWidth;
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-500 h-full">

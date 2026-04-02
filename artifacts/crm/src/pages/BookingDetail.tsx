@@ -1531,7 +1531,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       No payments recorded yet.
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-border/40 overflow-hidden">
+                    <div className="rounded-lg border border-border/40 overflow-hidden overflow-x-auto">
                       <Table>
                         <TableHeader className="bg-muted/30">
                           <TableRow className="border-border/40 hover:bg-transparent">

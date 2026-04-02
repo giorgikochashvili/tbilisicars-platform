@@ -68,7 +68,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" collapsible="offcanvas" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
-      <SidebarHeader className="border-b border-border/40 py-5 px-4 flex flex-row items-center gap-3">
+      <SidebarHeader className="border-b border-border/40 py-3 px-4 flex flex-row items-center gap-3">
         <div className="bg-primary text-primary-foreground p-2 rounded-xl shadow-lg shadow-primary/20 hover-elevate">
           <CarFront className="w-5 h-5" />
         </div>
@@ -94,7 +94,7 @@ export function AppSidebar() {
                       asChild 
                       isActive={isActive} 
                       tooltip={item.title} 
-                      className="data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-semibold transition-all duration-200 mx-2 rounded-lg py-5"
+                      className="data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-semibold transition-all duration-200 mx-2 rounded-lg py-2"
                     >
                       <Link href={item.url} className="hover-elevate group flex items-center justify-between w-full">
                         <span className="flex items-center gap-0">
@@ -116,24 +116,25 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/40 p-4">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3 bg-background/50 p-2.5 rounded-xl border border-border/40 hover-elevate cursor-default">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center font-bold text-sm shadow-md">
+      <SidebarFooter className="border-t border-border/40 p-3">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 bg-background/50 px-2 py-1.5 rounded-lg border border-border/40 cursor-default">
+            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center font-bold text-xs shadow-md flex-shrink-0">
               {user?.fullName?.charAt(0) || "A"}
             </div>
-            <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-semibold truncate text-foreground tracking-tight">{user?.fullName}</span>
-              <span className="text-[11px] text-muted-foreground truncate">{user?.email}</span>
+            <div className="flex flex-col overflow-hidden min-w-0">
+              <span className="text-xs font-semibold truncate text-foreground tracking-tight">{user?.fullName}</span>
+              <span className="text-[10px] text-muted-foreground truncate">{user?.email}</span>
             </div>
           </div>
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 active-elevate-2 font-medium" 
+            size="sm"
+            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-medium h-8 text-xs" 
             onClick={() => logout()} 
             data-testid="button-logout"
           >
-            <LogOut className="w-4 h-4 mr-2" />
+            <LogOut className="w-3.5 h-3.5 mr-2" />
             Logout Session
           </Button>
         </div>

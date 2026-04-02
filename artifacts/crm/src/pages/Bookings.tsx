@@ -494,6 +494,7 @@ export default function BookingsPage() {
               <Input
                 value={bookingIdSearch}
                 onChange={(e) => { setBookingIdSearch(e.target.value.replace(/\D/g, "")); setPage(1); }}
+                placeholder="Ref #"
                 className="pl-8 bg-background h-9 text-sm"
               />
             </div>
@@ -503,6 +504,7 @@ export default function BookingsPage() {
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Customer name or email"
                 className="pl-8 bg-background h-9 text-sm"
               />
             </div>
@@ -512,6 +514,7 @@ export default function BookingsPage() {
               <Input
                 value={vehicleSearch}
                 onChange={(e) => { setVehicleSearch(e.target.value); setPage(1); }}
+                placeholder="Vehicle / plate"
                 className="pl-8 bg-background h-9 text-sm"
               />
             </div>

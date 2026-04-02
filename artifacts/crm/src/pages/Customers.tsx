@@ -138,10 +138,10 @@ export default function CustomersPage() {
           <CardTitle className="text-base font-display">Customer List {meta && <span className="font-normal text-muted-foreground ml-2 text-sm">({meta.total} total)</span>}</CardTitle>
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              
+            <Input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Name, email or phone"
               className="pl-9 bg-background"
             />
           </div>

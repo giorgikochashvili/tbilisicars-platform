@@ -364,6 +364,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               <Input
                 value={vehicleSearch}
                 onChange={(e) => setVehicleSearch(e.target.value)}
+                placeholder="Plate, brand or model"
                 className="pl-9 bg-background h-9 text-sm"
               />
             </div>

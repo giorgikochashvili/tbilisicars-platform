@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { formatMoney, formatBookingAmount, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import {
   PlayCircle, CheckCircle2, Flag, RotateCcw,
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
-  Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight,
+  Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
@@ -367,7 +368,7 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
-const OPS_GRID = "grid-cols-[44px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_76px_minmax(0,0.9fr)_52px]";
+const OPS_GRID = "grid-cols-[44px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.8fr)_80px_minmax(0,1fr)_56px]";
 const OPS_HEADERS = ["Ref", "Client", "Phone", "Vehicle", "Amount", "Route", "Time"] as const;
 
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick }: {
@@ -379,7 +380,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
   onRowClick?: (id: number) => void;
 }) {
   return (
-    <Card className="flex flex-col h-full border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden">
+    <Card className="flex flex-col border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden" style={{ maxHeight: "380px" }}>
       <CardHeader className="border-b border-border/40 py-4 bg-background/50">
         <CardTitle className="text-base font-bold flex items-center gap-3 font-display">
           {title}
@@ -846,13 +847,24 @@ function shiftDate(dateStr: string, days: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function loadRegion(): Region {
+  try {
+    const v = localStorage.getItem("dashboard-region");
+    if (v === "Tbilisi" || v === "Kutaisi" || v === "Batumi") return v;
+  } catch {}
+  return "All";
+}
+
 export default function Dashboard() {
-  const [region, setRegion] = useState<Region>("All");
+  const [region, setRegion] = useState<Region>(loadRegion);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(loadWidgetConfig);
   const [selectedOpsDate, setSelectedOpsDate] = useState<string>(todayDateStr);
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
+  const [timelineExpanded, setTimelineExpanded] = useState(true);
+  useEffect(() => { if (isMobile) setTimelineExpanded(false); }, [isMobile]);
 
   const handleWidgetChange = (cfg: WidgetConfig) => {
     setWidgetConfig(cfg);
@@ -931,7 +943,10 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-3">
           <CustomizePopover config={widgetConfig} onChange={handleWidgetChange} region={region} />
-          <RegionSelector value={region} onChange={setRegion} />
+          <RegionSelector value={region} onChange={(r) => {
+            setRegion(r);
+            try { localStorage.setItem("dashboard-region", r); } catch {}
+          }} />
         </div>
       </div>
 
@@ -1049,7 +1064,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-[560px] max-lg:h-[440px]">
+          <div className="grid grid-cols-1 gap-5">
             <ActivityTable
               title="Pickups"
               bookings={todayQuery.data?.pickups}
@@ -1073,14 +1088,23 @@ export default function Dashboard() {
       {/* Fleet Timeline */}
       {sc.fleetTimeline && (
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
-          </h2>
-          <FleetTimeline
-            calendar={calendarQuery.data}
-            isLoading={calendarQuery.isLoading}
-            onSelectBooking={(id) => setDetailBookingId(id)}
-          />
+          <button
+            type="button"
+            className="w-full flex items-center gap-2 mb-3 text-left group"
+            onClick={() => setTimelineExpanded((v) => !v)}
+          >
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 flex-1">
+              <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
+            </h2>
+            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", timelineExpanded ? "rotate-180" : "")} />
+          </button>
+          {timelineExpanded && (
+            <FleetTimeline
+              calendar={calendarQuery.data}
+              isLoading={calendarQuery.isLoading}
+              onSelectBooking={(id) => setDetailBookingId(id)}
+            />
+          )}
         </div>
       )}
 

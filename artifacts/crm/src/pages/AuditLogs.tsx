@@ -258,6 +258,7 @@ export default function AuditLogs() {
 
       {/* Table */}
       <div className="rounded-xl border border-border/40 bg-card/60 overflow-hidden">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border/40">
@@ -332,6 +333,7 @@ export default function AuditLogs() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
