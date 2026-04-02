@@ -662,7 +662,7 @@ export default function TeamPage() {
                     : roles.map((role) => {
                         const grantedCount = Object.values(role.permissions).filter(Boolean).length;
                         const totalCount = Object.keys(role.permissions).length;
-                        const membersUsingRole = team.filter((m) => m.roleId === role.id).length;
+                        const membersUsingRole = team.filter((m) => m.roleId === role.id && m.isActive).length;
                         return (
                           <TableRow key={role.id} className="border-border/20 hover:bg-muted/30 transition-colors">
                             <TableCell>

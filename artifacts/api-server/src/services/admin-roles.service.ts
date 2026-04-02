@@ -1,5 +1,5 @@
 import { db, adminRolesTable, adminRolePermissionsTable, adminsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 export const ALL_PERMISSION_KEYS = [
@@ -145,12 +145,16 @@ export async function updateAdminRole(
   },
 ) {
   const [existing] = await db
-    .select({ id: adminRolesTable.id })
+    .select({ id: adminRolesTable.id, isSystem: adminRolesTable.isSystem })
     .from(adminRolesTable)
     .where(eq(adminRolesTable.id, id))
     .limit(1);
 
   if (!existing) throw new NotFoundError(`Role ${id} not found`);
+
+  if (existing.isSystem && data.name !== undefined) {
+    throw Object.assign(new Error("System role names cannot be changed"), { statusCode: 400 });
+  }
 
   const updates: {
     updatedAt: Date;
@@ -190,7 +194,7 @@ export async function deactivateAdminRole(id: number) {
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(adminsTable)
-    .where(eq(adminsTable.roleId, id));
+    .where(and(eq(adminsTable.roleId, id), eq(adminsTable.isActive, true)));
 
   if (count > 0) {
     throw Object.assign(
