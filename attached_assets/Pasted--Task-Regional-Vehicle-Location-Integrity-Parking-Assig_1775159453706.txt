@@ -1,0 +1,280 @@
+# Task — Regional Vehicle Location Integrity + Parking Assignment Flow + Booking Mobile Stability
+You are working inside the existing Tbilisicars CRM monorepo built in Replit. This project is already operational and must be improved carefully without breaking any working logic. This is NOT a redesign. This is a targeted operational correctness task touching parking assignment flow, vehicle-region integrity, booking assignment filtering, pickup/dropoff vehicle relocation logic, and a cautious mobile booking-detail stability fix.
+
+Important constraints:
+- Do NOT perform broad refactors.
+- Do NOT rewrite unrelated pages or architecture.
+- Do NOT change API contracts unless strictly required for correct operational logic.
+- Preserve existing dark premium UI style.
+- Keep all working behavior intact unless it is directly part of the bug being fixed.
+- Prefer precise targeted backend + frontend changes only where needed.
+- If a DB field or logic already exists for vehicle location/region, reuse it instead of inventing parallel state.
+- Do not guess. Inspect the current schema, booking status flow, parking flow, booking assignment logic, dashboard timeline logic, and fleet calendar data sources before editing.
+
+## High-level goal
+Make vehicle region/location behavior operationally correct across the entire CRM:
+
+1. A vehicle should only appear in the correct region where it currently belongs.
+2. Assigning vehicles to bookings must respect regional logic.
+3. TBS AIR PARKING must only show/select vehicles that belong to Tbilisi.
+4. Pickup and dropoff actions must relocate vehicles correctly between regions when the booking route crosses regions.
+5. Timeline/calendar/booking/dropoff views must all reflect the same real vehicle region consistently.
+6. Booking detail mobile rendering should be hardened only if a safe fix is identified.
+
+---
+
+## Scope 1 — TBS AIR PARKING: replace direct vehicle selection flow
+Problem:
+In TBS AIR PARKING > Enter Car in Parking, the current flow is not ideal and appears to show wrong vehicle options.
+
+Required result:
+Replace the parking assignment selection flow so it becomes:
+
+1. Parking Zone
+2. Brand
+3. Model
+4. Specific Vehicle
+
+instead of selecting vehicle too early.
+
+Requirements:
+- The modal/form should first require parking zone selection.
+- After that, vehicle filtering should follow:
+  - brand dropdown
+  - model dropdown
+  - specific vehicle dropdown
+- Vehicle dropdown must list only vehicles matching the selected brand/model and only vehicles that are eligible for Tbilisi parking.
+- Keep the UI clean, compact, and consistent with the current CRM design.
+
+Important:
+- TBS AIR PARKING must only show vehicles that currently belong to Tbilisi region/location.
+- Do not show Kutaisi/Batumi vehicles there.
+- If there is already a plate-based quick search available anywhere in parking flow, preserve it if safe, but the main structured flow must become Brand → Model → Vehicle.
+
+---
+
+## Scope 2 — Parking eligibility must be Tbilisi-only
+Problem:
+TBS AIR PARKING currently appears to show incorrect vehicles because filtering is not strict enough.
+
+Required result:
+- Only vehicles currently located in Tbilisi should be eligible for parking assignment in TBS AIR PARKING.
+- The zone assignment modal and all supporting dropdown data must be filtered accordingly.
+- The displayed parked vehicles list must remain correct.
+- Do not mix region ownership with parking zone occupancy; a vehicle must first be region-valid, then parkable.
+
+Implementation notes:
+- Reuse the actual vehicle current location / region source of truth used elsewhere in the system if it already exists.
+- Do not hardcode fake frontend filtering if the backend list endpoint is returning too much data. Fix at the correct layer.
+- Ensure consistency with fleet list, booking assignment, dashboard timeline, and fleet calendar.
+
+---
+
+## Scope 3 — Regional vehicle segregation across the CRM
+Problem:
+Vehicles uploaded/assigned to a specific region must not appear incorrectly in other regional operational flows.
+
+Required result:
+Enforce region-correct vehicle visibility anywhere vehicle choice matters.
+
+Examples:
+- A vehicle assigned to Tbilisi should not appear when assigning a vehicle to a Kutaisi booking.
+- A Kutaisi vehicle should not appear in Tbilisi-only operational flows.
+- Vehicle selection lists must respect the booking region / current vehicle location / operational context.
+
+Critical places to inspect and fix:
+- booking vehicle assignment
+- parking assignment
+- any relevant admin vehicle selector used in operational actions
+- timeline/calendar datasets if they currently use wrong region assumptions
+
+Important:
+- Do not blindly filter only by the booking pickup city if the vehicle current location logic already changes after movement. Use the real operational rule.
+- The goal is that the system reflects where the vehicle actually is.
+
+---
+
+## Scope 4 — Booking vehicle assignment must respect the correct region
+Problem:
+When assigning a vehicle to a booking, vehicles from the wrong region may appear.
+
+Required result:
+- When a booking is in Kutaisi context, Tbilisi vehicles must not appear as assignable unless they are truly valid under the current operational rules.
+- Use the booking’s operational location context and the vehicle’s current region/location to determine eligibility.
+- Ensure assigned vehicles reflect real availability and real region.
+
+Clarification:
+This project operates by region. Vehicles should not cross-appear incorrectly in assignment dropdowns. The filtering must be strict and operationally correct.
+
+Inspect:
+- booking assignment modal / section
+- backend endpoint used to fetch assignable vehicles
+- region/location filter logic
+- any helper that derives visible vehicles
+
+---
+
+## Scope 5 — Pickup must relocate vehicle to dropoff region when route crosses regions
+Problem:
+If a booking starts in one region and ends in another, the vehicle’s current region must update appropriately after the booking operationally begins and then completes.
+
+Required result:
+Handle cross-region movement correctly.
+
+Business rule:
+- Example: booking pickup = Kutaisi, dropoff = Tbilisi
+- After Pick Up is completed, the vehicle is now actively on a trip that will end in Tbilisi
+- The system must consistently reflect the intended relocation logic so operational views stay correct
+- By the time the vehicle is relevant for destination-side operations, it must be treated as moving toward / belonging to the destination workflow
+- After Drop Off is completed, the vehicle must remain in the dropoff region
+
+Minimum required outcome:
+- Timeline, Fleet Calendar, and dropoff-side operational views must correctly reflect this vehicle’s destination region behavior
+- After dropoff completion, the vehicle’s stored current region/location must be the dropoff region
+- If the vehicle later goes back on another booking to another region, the same logic must continue to work
+
+Important:
+Before editing, inspect current pickup/dropoff status transition handlers and determine where region/location updates should happen safely.
+
+Preferred implementation behavior:
+- Use a single consistent source of truth for vehicle current location/region
+- If needed, distinguish between:
+  - current stored region
+  - active booking destination logic
+But do not invent unnecessary complexity if a clean update at pickup/dropoff stage solves it safely.
+
+The final result must make these screens consistent:
+- Bookings
+- Booking Detail
+- Dashboard operations
+- Dropoff workflow
+- Fleet Timeline
+- Fleet Calendar
+- Parking eligibility
+
+---
+
+## Scope 6 — After Drop Off, vehicle must remain in the completed dropoff region
+Problem:
+Once a booking ends, the vehicle must stay assigned to the region where it was physically returned.
+
+Required result:
+- On dropoff completion, persist the vehicle’s current region/location as the booking’s dropoff region
+- All future selectors, filters, parking flows, and fleet views must treat the vehicle as belonging to that returned region
+- This must work for any direction:
+  - Kutaisi → Tbilisi
+  - Tbilisi → Kutaisi
+  - Batumi → Tbilisi
+  - etc.
+
+This is critical and must be operationally reliable.
+
+---
+
+## Scope 7 — Fleet Timeline and Fleet Calendar must match real location logic
+Problem:
+The timeline/calendar must not disagree with booking detail, parking, or assignment logic.
+
+Required result:
+- Fleet Timeline and Fleet Calendar must use the same region/location truth as the rest of the CRM
+- A vehicle should appear in the proper regional context based on the corrected movement logic
+- If a vehicle is effectively moving or has been relocated by pickup/dropoff workflow, the rendered operational region behavior must stay consistent
+
+Important:
+- Do not rewrite the full timeline/calendar.
+- Make only the minimum changes needed so region display/filtering matches the corrected operational logic.
+
+---
+
+## Scope 8 — Booking Detail mobile instability audit (safe fix only)
+Problem:
+On mobile, opening a booking detail sometimes causes the layout to overflow or render as if it does not fit the screen. This does not happen consistently.
+
+Required result:
+- Carefully audit BookingDetail mobile layout for intermittent overflow causes
+- Only apply safe stabilizing fixes if they clearly improve reliability
+- Do not disturb the current layout if the root cause is unclear
+- Do not introduce visual regressions
+
+Inspect for:
+- hidden min-width issues
+- flex children without min-w-0
+- button groups not wrapping
+- modal/sheet width constraints
+- card/grid combinations that sometimes exceed viewport
+- overflow from document/action button rows
+- photo strips or summary blocks that occasionally stretch layout
+
+Important:
+This scope is intentionally cautious:
+- Improve only if safe
+- Do not “over-fix”
+- Do not create new breakage
+
+---
+
+## Scope 9 — Keep current operational behavior intact where not explicitly changed
+Important regression guardrails:
+- Do not break existing pickup/dropoff actions
+- Do not break parking capacity logic
+- Do not break parked-vehicle auto-removal when booking reaches delivered/pickup state if that already exists
+- Do not break dashboard widgets
+- Do not break booking creation/editing
+- Do not break region filters already working in the dashboard
+- Do not break the newly improved mobile responsiveness from the previous task
+
+---
+
+## Required investigation before coding
+Before making changes, inspect:
+- the vehicle schema / region-location field(s)
+- booking schema fields related to pickup/dropoff locations
+- booking assignment endpoint(s)
+- parking assignment endpoint(s)
+- pickup/dropoff completion handlers
+- Fleet Timeline data source
+- Fleet Calendar data source
+- Booking Detail assignment UI
+- any helper that determines region/city-specific vehicle lists
+
+Do not assume the source of truth. Confirm it first.
+
+---
+
+## Deliverables
+Implement the fix so that:
+
+1. TBS AIR PARKING vehicle entry flow becomes:
+   - zone
+   - brand
+   - model
+   - specific vehicle
+
+2. TBS AIR PARKING only shows Tbilisi-current vehicles.
+
+3. Vehicle assignment in bookings respects true region/location logic and does not surface wrong-region vehicles.
+
+4. Cross-region booking movement updates vehicle location behavior correctly.
+
+5. After dropoff, the vehicle remains in the dropoff region.
+
+6. Timeline/calendar/dashboard/parking/booking assignment all stay consistent with the same regional truth.
+
+7. BookingDetail mobile instability is improved only with safe fixes.
+
+---
+
+## Output format
+First provide:
+- a short PLAN
+- exact files you will touch
+- where the region/location source of truth currently lives
+- how pickup/dropoff relocation will be handled
+- whether backend changes are required and why
+
+Then implement.
+
+Do not do a broad rewrite.
+Do not make speculative changes.
+Do not invent parallel location systems if one already exists.
+Focus on operational correctness and consistency.
