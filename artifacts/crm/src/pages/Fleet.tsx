@@ -362,7 +362,6 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search plate, brand, model"
                 value={vehicleSearch}
                 onChange={(e) => setVehicleSearch(e.target.value)}
                 className="pl-9 bg-background h-9 text-sm"
@@ -612,7 +611,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
             <div className="grid gap-2">
               <Label>Techpassport Number</Label>
-              <Input className="font-mono uppercase" value={formData.techpassportNumber} onChange={e => setFormData({...formData, techpassportNumber: e.target.value.toUpperCase()})} placeholder="Optional" />
+              <Input className="font-mono uppercase" value={formData.techpassportNumber} onChange={e => setFormData({...formData, techpassportNumber: e.target.value.toUpperCase()})} />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -950,7 +949,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
             </div>
             <div className="grid gap-2">
               <Label>Model Name <span className="text-destructive">*</span></Label>
-              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Camry, RAV4, Prius" />
+              <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="grid gap-2">
               <Label>Model Image (optional)</Label>
@@ -1210,7 +1209,6 @@ function BrandsTab({ reqOpts }: { reqOpts: any }) {
               <Input
                 value={formData.name}
                 onChange={e => { setFormData({...formData, name: e.target.value}); setNameError(null); }}
-                placeholder="e.g. Toyota"
                 className={nameError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               {nameError && <p className="text-xs text-destructive">{nameError}</p>}

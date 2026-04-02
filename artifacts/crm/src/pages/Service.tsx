@@ -271,7 +271,6 @@ export default function ServicePage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Vehicle / plate…"
                 value={vehicleSearch}
                 onChange={(e) => setVehicleSearch(e.target.value)}
                 className="pl-9 bg-background h-9 text-sm"
@@ -305,14 +304,12 @@ export default function ServicePage() {
               value={filterDateFrom}
               onChange={(e) => setFilterDateFrom(e.target.value)}
               className="h-9 text-sm bg-background"
-              placeholder="From date"
             />
             <Input
               type="date"
               value={filterDateTo}
               onChange={(e) => setFilterDateTo(e.target.value)}
               className="h-9 text-sm bg-background"
-              placeholder="To date"
             />
           </div>
         </div>
@@ -445,7 +442,6 @@ export default function ServicePage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by plate…"
                   value={svcPlateSearch}
                   onChange={(e) => {
                     setSvcPlateSearch(e.target.value.toUpperCase());
@@ -549,7 +545,6 @@ export default function ServicePage() {
                   min="0"
                   value={formData.mileage}
                   onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
-                  placeholder="e.g. 45000"
                   className="bg-background"
                 />
               </div>
@@ -561,7 +556,6 @@ export default function ServicePage() {
                   min="0"
                   value={formData.cost}
                   onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  placeholder="e.g. 120.00"
                   className="bg-background"
                 />
               </div>
@@ -574,7 +568,6 @@ export default function ServicePage() {
                 <Input
                   value={formData.shopName}
                   onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
-                  placeholder="e.g. AutoService Tbilisi"
                   className="bg-background"
                 />
               </div>
@@ -583,7 +576,6 @@ export default function ServicePage() {
                 <Input
                   value={formData.mechanicName}
                   onChange={(e) => setFormData({ ...formData, mechanicName: e.target.value })}
-                  placeholder="Optional"
                   className="bg-background"
                 />
               </div>
@@ -595,7 +587,6 @@ export default function ServicePage() {
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Details about work performed…"
                 rows={3}
                 className="bg-background"
               />

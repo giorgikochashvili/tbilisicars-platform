@@ -345,7 +345,6 @@ export default function ReportsPage() {
                 </Label>
                 <Input
                   className="h-8 text-sm"
-                  placeholder="Search..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />

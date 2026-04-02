@@ -504,7 +504,6 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
             value={form.pickupDatetime}
             min={md}
             onChange={(v) => setForm((f) => ({ ...f, pickupDatetime: v }))}
-            placeholder="Select pickup date & time"
           />
         </div>
         <div>
@@ -513,7 +512,6 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
             value={form.dropoffDatetime}
             min={form.pickupDatetime || md}
             onChange={(v) => setForm((f) => ({ ...f, dropoffDatetime: v }))}
-            placeholder="Select return date & time"
           />
         </div>
       </div>
