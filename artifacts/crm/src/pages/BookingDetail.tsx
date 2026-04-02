@@ -695,8 +695,9 @@ function HandoverModal({
                     {fi.status === "error" && (
                       <button
                         type="button"
-                        title={fi.error ?? "Upload failed — click to retry"}
-                        className="absolute bottom-0.5 left-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-400 transition-colors"
+                        title={`Retry: ${fi.error ?? "Upload failed"}`}
+                        aria-label="Retry upload"
+                        className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-0.5 bg-red-500/90 hover:bg-red-400 transition-colors text-white rounded-b-lg py-0.5"
                         onClick={() =>
                           setFileItems((prev) =>
                             prev.map((f) =>
@@ -705,7 +706,8 @@ function HandoverModal({
                           )
                         }
                       >
-                        <RotateCcw className="w-2.5 h-2.5 text-white" />
+                        <RotateCcw className="w-2 h-2" />
+                        <span className="text-[8px] font-bold uppercase tracking-wide">Retry</span>
                       </button>
                     )}
                     {fi.status !== "uploading" && (
