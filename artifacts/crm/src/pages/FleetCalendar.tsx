@@ -340,46 +340,50 @@ export default function FleetCalendarPage() {
                     className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group
                       ${rowHasConflict ? "bg-orange-500/5" : ""}`}
                   >
-                    {/* Vehicle label — sticky left so names stay visible during horizontal scroll */}
+                    {/* Vehicle label — sticky left, mobile-compact or desktop-full */}
                     <div
-                      className="flex-shrink-0 flex flex-col justify-center px-3 py-2 border-r border-border/30 gap-1 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors group/label"
+                      className="flex-shrink-0 flex flex-col justify-center px-2 py-2 border-r border-border/30 gap-0.5 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors group/label"
                       style={{ width: LABEL_WIDTH }}
                       onClick={() => setDetailVehicleId(vehicle.id)}
                       title="Open vehicle detail"
                     >
-                      <div className="flex items-center gap-1.5">
-                        <Car className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm font-semibold text-foreground truncate flex-1">
-                          {vehicle.label}
+                      {/* Plate — always prominent */}
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-xs font-mono font-bold text-foreground truncate flex-1">
+                          {vehicle.plate}
                         </span>
-                        <Info className="w-3 h-3 text-muted-foreground/40 group-hover/label:text-primary/60 flex-shrink-0 transition-colors" />
                         {rowHasConflict && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <AlertTriangle className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                              <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent side="right">
                               <p className="text-xs">Booking conflict detected</p>
                             </TooltipContent>
                           </Tooltip>
                         )}
+                        <Info className="w-2.5 h-2.5 text-muted-foreground/30 group-hover/label:text-primary/60 flex-shrink-0 transition-colors" />
                       </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">
-                          {vehicle.plate}
-                        </span>
-                        {vehicle.status && (
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] h-4 px-1 py-0 ${VEHICLE_STATUS_COLORS[vehicle.status]}`}
-                          >
-                            {vehicle.status}
-                          </Badge>
-                        )}
-                        {vehicle.city && (
-                          <span className="text-[9px] text-muted-foreground/70">{vehicle.city}</span>
-                        )}
-                      </div>
+                      {/* Model — secondary, truncated */}
+                      <span className="text-[10px] text-muted-foreground truncate leading-tight">
+                        {vehicle.label}
+                      </span>
+                      {/* Status + city — only on desktop (hidden when label is too narrow) */}
+                      {LABEL_WIDTH > 160 && (
+                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                          {vehicle.status && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] h-4 px-1 py-0 ${VEHICLE_STATUS_COLORS[vehicle.status]}`}
+                            >
+                              {vehicle.status}
+                            </Badge>
+                          )}
+                          {vehicle.city && (
+                            <span className="text-[9px] text-muted-foreground/70">{vehicle.city}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Timeline area */}

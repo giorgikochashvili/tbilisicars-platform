@@ -423,18 +423,19 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-10" />
                 </div>
-                {/* Mobile skeleton */}
-                <div className="md:hidden flex flex-col gap-2 px-3 py-3 border-b border-border/20">
+                {/* Mobile skeleton — 3-line compact */}
+                <div className="md:hidden flex flex-col gap-0.5 px-3 py-1.5 border-b border-border/20">
                   <div className="flex items-center justify-between gap-2">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-10" />
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-8" />
                   </div>
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-32" />
+                  <div className="flex items-center gap-1.5">
+                    <Skeleton className="h-2.5 w-20" />
+                    <Skeleton className="h-2.5 w-14 ml-auto" />
+                  </div>
                   <div className="flex items-center justify-between">
-                    <Skeleton className="h-4 w-14" />
-                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-2.5 w-8" />
+                    <Skeleton className="h-2.5 w-12" />
                   </div>
                 </div>
               </div>
@@ -509,37 +510,37 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 <span className="text-sm font-bold text-foreground">{timeStr}</span>
               </div>
 
-              {/* Mobile card (below md) */}
-              <div className="md:hidden flex flex-col gap-1.5 px-3 py-3 hover:bg-muted/40 transition-colors overflow-hidden">
+              {/* Mobile card (below md) — compact 3-line layout */}
+              <div className="md:hidden flex flex-col gap-0.5 px-3 py-1.5 hover:bg-muted/40 transition-colors overflow-hidden">
+                {/* Row 1: client + time */}
                 <div className="flex items-center justify-between gap-2 min-w-0">
-                  <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
-                  <span className="font-mono text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-background border border-border/50 rounded flex-shrink-0">
-                    #{b.id}
+                  <span className="font-semibold text-xs text-foreground truncate min-w-0">{clientName}</span>
+                  <span className="text-xs font-bold text-primary flex-shrink-0">{timeStr}</span>
+                </div>
+                {/* Row 2: vehicle/plate + route */}
+                <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                  {b.vehicle ? (
+                    <>
+                      <span className="text-[10px] text-foreground/70 truncate min-w-0">{vehicleName}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground px-1 py-0 bg-background border border-border/50 rounded flex-shrink-0">
+                        {b.vehicle.licensePlate}
+                      </span>
+                    </>
+                  ) : vehicleName ? (
+                    <span className="text-[10px] text-foreground/70 truncate min-w-0">{vehicleName}</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
+                  )}
+                  <span className="ml-auto flex items-center gap-0.5 flex-shrink-0 text-[10px] font-medium text-muted-foreground">
+                    <span className="font-mono font-bold text-foreground/70">{routeFrom}</span>
+                    <ArrowRightLeft className="w-2 h-2 text-primary/50" />
+                    <span className="font-mono font-bold text-foreground/70">{routeTo}</span>
                   </span>
                 </div>
-                {b.vehicle ? (
-                  <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-                    <span className="text-xs text-foreground/80 truncate min-w-0">{vehicleName}</span>
-                    <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded flex-shrink-0">
-                      {b.vehicle.licensePlate}
-                    </span>
-                  </div>
-                ) : vehicleName ? (
-                  <span className="text-xs text-foreground/80 truncate min-w-0">{vehicleName}</span>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">Unassigned</span>
-                )}
-                <span className="text-xs text-muted-foreground truncate min-w-0">
-                  {phone ?? <span className="italic opacity-50">—</span>}
-                </span>
-                <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
-                  <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
-                  <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
-                  <span className="font-mono font-bold text-foreground/80 truncate">{routeTo}</span>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
-                  <span className="text-sm font-bold text-primary">{timeStr}</span>
+                {/* Row 3: ref + amount */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="font-mono text-[9px] text-muted-foreground">#{b.id}</span>
+                  <span className="text-[10px] font-mono font-semibold text-foreground">{amountEl}</span>
                 </div>
               </div>
             </div>
