@@ -70,7 +70,6 @@ interface FleetModel {
   brand?: { name: string } | null;
 }
 
-// ─── RateTiers sub-component (unchanged from original) ────────────────────────
 
 function RateTiers({ rateId, tiers }: { rateId: number; tiers: RateTierItem[] }) {
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
@@ -344,7 +343,6 @@ function RateTiers({ rateId, tiers }: { rateId: number; tiers: RateTierItem[] })
   );
 }
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface RateTierItem {
   id: number;
@@ -387,7 +385,6 @@ interface RateFormData {
   isActive: boolean;
 }
 
-// ─── ChildTierGrid ─────────────────────────────────────────────────────────────
 
 function ChildTierGrid({
   tiers,
@@ -461,7 +458,6 @@ function ChildTierGrid({
   );
 }
 
-// ─── ParentRateForm ────────────────────────────────────────────────────────────
 
 function ParentRateForm({
   formData,
@@ -511,7 +507,6 @@ function ParentRateForm({
   );
 }
 
-// ─── ChildRateLoader — fetches parent tiers inside child modal ─────────────────
 
 function ChildRateLoader({
   parentId,
@@ -544,7 +539,6 @@ function ChildRateLoader({
   return null;
 }
 
-// ─── RatesPage ─────────────────────────────────────────────────────────────────
 
 type ActiveTab = "web" | "broker";
 type CreationMode = "parent" | "child";
@@ -603,7 +597,6 @@ export default function RatesPage() {
 
   const parentIdNum = childParentId ? parseInt(childParentId, 10) : 0;
 
-  // ── Edit modal ───────────────────────────────────────────────────────────────
 
   const handleEditRate = (rate: RateItem) => {
     setEditingRate(rate);
@@ -619,7 +612,6 @@ export default function RatesPage() {
     setIsParentModalOpen(true);
   };
 
-  // ── Chooser → Parent form ────────────────────────────────────────────────────
 
   const handleChooseParent = () => {
     setIsChooserOpen(false);
@@ -628,7 +620,6 @@ export default function RatesPage() {
     setIsParentModalOpen(true);
   };
 
-  // ── Chooser → Child form ─────────────────────────────────────────────────────
 
   const handleChooseChild = () => {
     setIsChooserOpen(false);
@@ -638,7 +629,6 @@ export default function RatesPage() {
     setIsChildModalOpen(true);
   };
 
-  // ── Save parent rate ─────────────────────────────────────────────────────────
 
   const handleSaveParent = () => {
     const payload = {
@@ -679,7 +669,6 @@ export default function RatesPage() {
     }
   };
 
-  // ── Save child rate ──────────────────────────────────────────────────────────
 
   const handleSaveChild = async () => {
     if (!childParentId) {
@@ -752,7 +741,6 @@ export default function RatesPage() {
     }
   };
 
-  // ── Delete ───────────────────────────────────────────────────────────────────
 
   const handleDelete = (id: number) => {
     if (confirm("Are you sure you want to delete this rate plan?")) {
@@ -775,7 +763,6 @@ export default function RatesPage() {
     setExpandedRateId(expandedRateId === id ? null : id);
   };
 
-  // ── Rate row renderer ────────────────────────────────────────────────────────
 
   const renderRateRow = (rate: RateItem) => {
     const isChild = rate.parentRateId != null;
@@ -872,7 +859,6 @@ export default function RatesPage() {
     );
   };
 
-  // ── Render ───────────────────────────────────────────────────────────────────
 
   const displayedRates = activeTab === "web" ? webRates : brokerRates;
 
