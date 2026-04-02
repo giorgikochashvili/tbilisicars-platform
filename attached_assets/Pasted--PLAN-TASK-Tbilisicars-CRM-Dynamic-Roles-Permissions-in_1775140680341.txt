@@ -1,0 +1,205 @@
+# PLAN TASK — Tbilisicars CRM: Dynamic Roles & Permissions inside Team module
+
+Project
+This is the Tbilisicars CRM&WEB monorepo project.
+The project is already built and has an existing Team/admin/staff structure.
+Your first job is to AUDIT the current implementation before proposing changes.
+
+Critical instruction
+Do NOT start coding.
+Do NOT assume architecture.
+Do NOT invent a parallel system if a usable one already exists.
+First inspect the current codebase and produce a precise implementation plan that extends the existing system safely.
+
+Goal
+We need to upgrade the existing Team module so roles are no longer limited to hardcoded/static options like:
+- Rental Agent
+- Service Manager
+- Regional Manager
+- Admin
+
+Instead, the CRM must support:
+1) creating new roles from the Team module
+2) editing existing roles
+3) assigning permissions to each role
+4) enabling/disabling what users of that role can see or do
+5) using the existing project structure to determine which permissions/modules/actions should exist
+
+Important business rule
+Do NOT require us to manually design every permission from scratch in the prompt.
+You must inspect the current CRM project and derive the permission map logically from the real existing modules, pages, actions, sidebar items, APIs, and admin workflows already present in the project.
+
+==================================================
+PHASE 1 — AUDIT THE CURRENT PROJECT
+==================================================
+
+First, inspect and document the current implementation for all of the following:
+
+1. Existing Team module
+- current Team page/component
+- how staff/admin members are created/edited
+- current role field structure
+- whether roles are enum-based, hardcoded in frontend, hardcoded in backend, or stored in DB
+
+2. Existing auth/admin architecture
+- admin user schema/table
+- login/session/auth middleware
+- current user object returned to frontend
+- whether there is already any permission logic or only role checks
+
+3. Existing CRM modules that may need permissions
+Audit the real current project and identify all existing major modules/screens/actions, for example:
+- Dashboard
+- Bookings
+- Fleet
+- Rates
+- Services / Maintenance
+- Accounting
+- Parking
+- Documents
+- Team
+- Admin AI
+- Settings
+- any other real modules currently present in the sidebar or protected admin routes
+
+4. Existing action surfaces
+For each real module found in the codebase, identify likely permission actions based on actual UI/API behavior, for example:
+- view
+- create
+- edit
+- delete
+- change_status
+- manage_payments
+- manage_documents
+- print
+- assign
+- import/export
+Do not guess blindly — derive from current code.
+
+5. Existing backend admin routes
+Audit protected admin API routes and identify where permission middleware would need to be introduced safely later.
+
+Output for Phase 1
+Produce a concise but specific audit summary:
+- where current role logic lives
+- whether roles are frontend-only/backend-only/db-backed
+- which DB tables/files must change
+- which CRM modules/actions should become permission-controlled
+- what risks or migration concerns exist
+
+==================================================
+PHASE 2 — DESIGN THE RIGHT ROLES & PERMISSIONS MODEL
+==================================================
+
+After the audit, propose the best architecture for THIS existing project.
+
+Requirements:
+- Keep the current system stable
+- Extend, do not replace unnecessarily
+- Avoid breaking current admin login/access
+- Prefer a clean, maintainable, production-friendly model
+
+Design a roles-permissions structure that includes:
+
+A. Roles entity
+- roles should be DB-backed, not hardcoded only in frontend
+- support create/edit/deactivate for roles
+- support system-protected role(s) if needed, such as Admin/Owner
+
+B. Permissions entity / model
+- permissions should be based on the actual modules/actions found in the audit
+- each permission should be toggleable on/off for a role
+- structure should be scalable for future modules
+
+C. User-to-role relationship
+- staff user should belong to one role initially
+- keep it simple unless the current architecture strongly suggests multi-role support
+
+D. Safe defaults
+- existing Admin users must keep full access after migration
+- existing staff accounts must not lose access unexpectedly
+- inactive roles or users must be handled safely
+
+==================================================
+PHASE 3 — TEAM MODULE UX PLAN
+==================================================
+
+Plan the UX changes inside the existing Team module.
+
+We need:
+
+1. Roles management area inside Team module
+- a visible section/tab/card/table for Roles
+- button: Add Role
+- list/table of roles
+- edit role action
+- optional deactivate role action if safe
+
+2. Add/Edit Role form
+- Role name
+- Description (optional but recommended)
+- Permissions matrix/checklist generated from real project modules/actions
+- each permission can be enabled/disabled
+- grouped by module
+- good dark-theme usability
+- clear “all in module” behavior if appropriate
+
+3. Team member form integration
+- when creating/editing a team member, role dropdown should load from DB-backed roles instead of static hardcoded values
+- existing current role dropdown must be replaced/adapted safely
+
+4. Guardrails
+- do not allow deletion/deactivation of a role if it would break critical admin access, unless a safe reassignment flow exists
+- do not allow removing the final full-access admin role/user accidentally
+
+==================================================
+PHASE 4 — ACCESS CONTROL ENFORCEMENT PLAN
+==================================================
+
+Propose how permissions should be enforced both in frontend and backend using the current project structure.
+
+Need a safe implementation plan for:
+
+Frontend
+- sidebar visibility based on permissions
+- page/route protection for restricted modules
+- hiding/disabling action buttons if permission missing
+- graceful “Access Denied” state instead of broken pages
+
+Backend
+- reusable permission middleware/helper
+- route-level checks on sensitive admin endpoints
+- preserve current authentication, then add authorization cleanly
+
+Important
+Do NOT suggest a reckless full-project rewrite.
+Plan an incremental rollout:
+- first make roles DB-backed + editable
+- then wire permission-aware UI
+- then enforce backend permissions on the most critical modules/actions
+- then expand coverage carefully
+
+==================================================
+PHASE 5 — DELIVERABLE FORMAT
+==================================================
+
+Your response must be a structured implementation plan only.
+Do not code yet.
+
+Return the plan in this exact structure:
+
+1. Current-state audit
+2. Problems in the current static-role approach
+3. Recommended target architecture
+4. DB/schema changes needed
+5. Backend changes needed
+6. Frontend/Team module changes needed
+7. Permission matrix derived from the actual current project
+8. Migration and backward-compatibility strategy
+9. Risk list
+10. Ordered build steps for the coding phase
+
+Final requirement
+Base the permission matrix on the REAL existing Tbilisicars CRM project, not on generic examples.
+Where the current project already defines modules/actions, reuse them.
+Where something is ambiguous, explicitly mark it as “to confirm during implementation” instead of guessing.
