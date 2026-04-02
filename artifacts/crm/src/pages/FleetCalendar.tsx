@@ -286,7 +286,7 @@ export default function FleetCalendarPage() {
             {/* Sticky outer wrapper */}
             <div style={{ minWidth: LABEL_WIDTH + totalGridWidth + 24 }}>
               {/* ── Date header row ── */}
-              <div className="flex sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border/40 shadow-sm">
+              <div className="flex sticky top-0 z-20 bg-card border-b border-border/40 shadow-sm">
                 {/* Empty vehicle label area — sticky left so corner stays fixed during horizontal scroll */}
                 <div
                   className="flex-shrink-0 border-r border-border/40 bg-card sticky left-0 z-30"
