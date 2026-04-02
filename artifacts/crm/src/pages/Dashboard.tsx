@@ -865,7 +865,9 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [timelineUserToggled, setTimelineUserToggled] = useState(false);
-  const [timelineExpanded, setTimelineExpanded] = useState(!isMobile);
+  const [timelineExpanded, setTimelineExpanded] = useState(
+    () => typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
   useEffect(() => {
     if (!timelineUserToggled) setTimelineExpanded(!isMobile);
   }, [isMobile, timelineUserToggled]);
