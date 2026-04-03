@@ -1,0 +1,75 @@
+#20 - Homepage Featured Cars Slider UI Tuning
+What & Why
+The Featured Cars slider is working correctly, including image upload and homepage rendering. Now the issue is visual balance: the side-view car images appear too large inside the cards, and the cards are slightly too narrow for this type of horizontal car image. As a result, the image dominates the card and the composition feels cramped.
+
+We want a small, safe UI refinement only:
+- make each featured car card a bit wider
+- make the overall card/content feel slightly smaller and more balanced
+- reduce the visual dominance of the car image
+- improve image fit for side-view car PNGs
+- keep the same premium design language
+- do not change functionality, routing, API, CRM logic, or booking behavior
+
+Goal
+Refine the homepage Featured Cars slider card proportions so side-view car images fit more naturally and the overall card layout looks more premium and balanced.
+
+Exact visual intent
+- Increase card width by roughly 15–20%
+- Reduce image area / image visual scale by roughly 10–15%
+- Keep cards horizontal enough for side-view car images
+- Preserve dark premium styling and current section structure
+- Do not redesign the whole section
+- Do not change text content or card functionality
+
+Done looks like
+- Featured Cars cards feel slightly wider and less cramped
+- Car images look better centered/fitted inside cards
+- The image no longer feels oversized relative to the text/button area
+- The card remains elegant and premium on desktop
+- Mobile layout remains clean and usable
+- No API / logic / CRM / booking changes
+
+Scope
+Only adjust the public homepage Featured Cars slider UI in:
+- artifacts/website/src/pages/Home.tsx
+and/or any directly related local styling/classes used only by this section
+
+Do NOT touch:
+- CRM Featured Cars module
+- upload logic
+- DB schema
+- public API
+- booking flow
+- homepage hero
+- other homepage sections unless strictly required for spacing consistency
+
+Implementation guidance
+1) Inspect the Featured Cars card container and image wrapper in Home.tsx.
+2) Adjust the card width so cards are approximately 15–20% wider than now on desktop.
+3) Slightly reduce the image wrapper height and/or image scale so the side-view car image does not dominate the card.
+4) Tune object-fit / object-position / padding so the full side-view car composition sits more naturally in the card.
+5) Keep title, subtitle, price, and CTA spacing visually balanced after the resize.
+6) Keep the section horizontally scrollable/swipeable exactly as before.
+7) Preserve mobile responsiveness:
+   - do not make cards oversized on small screens
+   - keep swipe behavior intact
+   - use responsive sizing if needed so the wider desktop card does not break mobile
+
+Preferred approach
+- Make minimal Tailwind/className adjustments only
+- Reuse the existing card structure
+- Avoid adding new abstractions or refactors
+- Focus only on proportion tuning
+
+Design target
+This section should feel like a premium vehicle showcase:
+- slightly wider cards
+- slightly smaller/more controlled image presence
+- better breathing room
+- cleaner composition for side-view vehicle images
+
+Deliverables
+After the change, report:
+- exact class/style adjustments made
+- which elements were resized
+- how desktop vs mobile sizing is handled
