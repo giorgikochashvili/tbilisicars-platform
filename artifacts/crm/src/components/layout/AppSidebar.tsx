@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -28,6 +28,7 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
   { title: "Tasks",           url: "/tasks",           icon: ClipboardList,    permissionKey: "canManageTasks" },
   { title: "Bookings",        url: "/bookings",        icon: CalendarDays,     permissionKey: "canManageBookings" },
   { title: "Fleet",           url: "/fleet",           icon: Car,              permissionKey: "canManageVehicles" },
+  { title: "Featured Cars",   url: "/featured-cars",   icon: Star,             permissionKey: "canManageVehicles" },
   { title: "Fleet Calendar",  url: "/fleet-calendar",  icon: GanttChart,       permissionKey: "canViewCalendar" },
   { title: "Service",         url: "/service",         icon: Wrench,           permissionKey: "canManageService" },
   { title: "Accounting",      url: "/accounting",      icon: BookOpenText,     permissionKey: "canViewAccounting" },

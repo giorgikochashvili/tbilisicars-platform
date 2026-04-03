@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   MapPin, Calendar, Shield, ChevronRight, ChevronDown,
-  Users, CheckCircle, Phone, Infinity, Car, HeartHandshake,
+  Users, CheckCircle, Phone, Infinity, Car, HeartHandshake, ChevronLeft,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker, type DateTimePickerHandle } from "@/components/DateTimePicker";
@@ -16,6 +16,34 @@ interface Location {
 
 interface BookingConfig {
   locations: Location[];
+}
+
+interface FeaturedSliderItem {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  badgeText: string | null;
+  displayPriceText: string;
+  ctaLabel: string | null;
+  imageUrl: string;
+  vehicleModelId: number;
+}
+
+interface FeaturedSliderSettings {
+  sectionTitle: string;
+  sectionSubtitle: string;
+  isSectionActive: boolean;
+}
+
+interface FeaturedSliderData {
+  settings: FeaturedSliderSettings;
+  items: FeaturedSliderItem[];
+}
+
+function toStorageSrc(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("/api/storage/")) return path;
+  return `/api/storage${path}`;
 }
 
 async function apiFetch(path: string) {
@@ -157,6 +185,19 @@ export default function Home() {
     queryKey: ["booking-config"],
     queryFn: () => apiFetch("/api/public/booking-config"),
   });
+
+  const { data: sliderData, isLoading: sliderLoading } = useQuery<FeaturedSliderData>({
+    queryKey: ["public-featured-slider"],
+    queryFn: () => apiFetch("/api/public/featured-slider"),
+  });
+
+  const sliderScrollRef = useRef<HTMLDivElement>(null);
+
+  function scrollSlider(dir: "left" | "right") {
+    const el = sliderScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -340 : 340, behavior: "smooth" });
+  }
 
   const locations = config?.locations ?? [];
   const cities = Array.from(new Set(locations.map((l) => l.city))).sort();
@@ -336,6 +377,120 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── Featured Cars Slider ── */}
+      {(sliderLoading || (sliderData?.settings.isSectionActive && sliderData.items.length > 0)) && (
+        <section className="py-20 px-4" style={{ background: "hsl(211,55%,6%)" }}>
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                {sliderLoading ? (
+                  <>
+                    <div className="h-9 w-72 rounded-lg bg-white/5 animate-pulse mb-3" />
+                    <div className="h-4 w-96 rounded bg-white/5 animate-pulse" />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+                      {sliderData?.settings.sectionTitle}
+                    </h2>
+                    {sliderData?.settings.sectionSubtitle && (
+                      <p className="text-muted-foreground max-w-xl">
+                        {sliderData.settings.sectionSubtitle}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Nav arrows */}
+              {!sliderLoading && (sliderData?.items.length ?? 0) > 1 && (
+                <div className="hidden sm:flex gap-2 flex-shrink-0 ml-6">
+                  <button
+                    onClick={() => scrollSlider("left")}
+                    className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    aria-label="Previous"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => scrollSlider("right")}
+                    className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+                    aria-label="Next"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Slider track */}
+            {sliderLoading ? (
+              <div className="flex gap-5 overflow-hidden">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex-shrink-0 w-[300px] sm:w-[340px] h-[420px] rounded-2xl bg-white/5 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div
+                ref={sliderScrollRef}
+                className="flex gap-5 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {sliderData?.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex-shrink-0 w-[300px] sm:w-[340px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col"
+                    style={{ background: "hsl(211,55%,9%)" }}
+                  >
+                    {/* Car image */}
+                    <div className="relative w-full h-48 overflow-hidden bg-white/5">
+                      {item.imageUrl ? (
+                        <img
+                          src={toStorageSrc(item.imageUrl)}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Car className="w-16 h-16 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {item.badgeText && (
+                        <span className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                          {item.badgeText}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Card body */}
+                    <div className="flex flex-col flex-1 p-5 gap-3">
+                      <div>
+                        <h3 className="text-white font-bold text-lg leading-tight">{item.title}</h3>
+                        {item.subtitle && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{item.subtitle}</p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 mt-auto">
+                        <span className="text-primary font-bold text-xl">{item.displayPriceText}</span>
+                      </div>
+
+                      <Link
+                        href="/booking"
+                        className="w-full text-center bg-primary hover:bg-accent text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm"
+                      >
+                        {item.ctaLabel ?? "Book Now"}
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── Why Tbilisicars ── */}
       <section className="py-20 px-4">

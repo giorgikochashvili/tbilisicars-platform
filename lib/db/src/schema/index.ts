@@ -16,3 +16,4 @@ export * from "./reviews";
 export * from "./settings";
 export * from "./audit";
 export * from "./parking";
+export * from "./homepage-slider";
