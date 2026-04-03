@@ -1,8 +1,8 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { db, adminsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { NotFoundError, ForbiddenError } from "../lib/errors.js";
+import { ForbiddenError } from "../lib/errors.js";
 import {
   listAdminTasks,
   getAdminTask,
@@ -14,15 +14,15 @@ import {
   listTaskActivity,
   getMyTasksSummary,
   listAdminsForTasks,
+  type UpdateTaskInput,
 } from "../services/admin-tasks.service.js";
 
 const router = Router();
 
 // ─── Helper: resolve staff scope ──────────────────────────────────────────────
-// Admins and managers have full access. Rental agents / service_managers
-// are scoped to their own tasks only.
+// Admins and managers have full access. Rental agents are scoped to own tasks.
 
-async function resolveScope(req: any): Promise<{ isFullAccess: boolean; adminId: number }> {
+async function resolveScope(req: Request): Promise<{ isFullAccess: boolean; adminId: number }> {
   const adminId = req.session.adminId as number;
   const rows = await db
     .select({ adminRole: adminsTable.adminRole, canManageTasks: adminsTable.canManageTasks })
@@ -63,14 +63,14 @@ router.get("/admin/tasks", requireAdmin, async (req, res) => {
     search: q.search,
     status: q.status,
     priority: q.priority,
-    assigneeId: q.assigneeId ? parseInt(q.assigneeId) : undefined,
-    creatorId: q.creatorId ? parseInt(q.creatorId) : undefined,
-    dueState: q.dueState as any,
+    assigneeId: q.assigneeId ? parseInt(q.assigneeId, 10) : undefined,
+    creatorId: q.creatorId ? parseInt(q.creatorId, 10) : undefined,
+    dueState: q.dueState as "overdue" | "today" | "upcoming" | undefined,
     dateFrom: q.dateFrom,
     dateTo: q.dateTo,
     myId: isFullAccess ? undefined : adminId,
-    page: q.page ? parseInt(q.page) : 1,
-    limit: q.limit ? parseInt(q.limit) : 50,
+    page: q.page ? parseInt(q.page, 10) : 1,
+    limit: q.limit ? parseInt(q.limit, 10) : 50,
   });
 
   res.json(result);
@@ -85,7 +85,19 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
     throw new ForbiddenError("Only admins and managers can create tasks");
   }
 
-  const body = req.body as any;
+  const body = req.body as {
+    title?: unknown;
+    description?: unknown;
+    assignedToId?: unknown;
+    priority?: unknown;
+    status?: unknown;
+    progressPercent?: unknown;
+    startDate?: unknown;
+    dueDate?: unknown;
+    relatedType?: unknown;
+    relatedId?: unknown;
+  };
+
   if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
     res.status(400).json({ error: "title is required" });
     return;
@@ -93,15 +105,17 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
 
   const task = await createAdminTask({
     title: body.title.trim(),
-    description: body.description ?? null,
-    assignedToId: body.assignedToId ?? null,
-    priority: body.priority ?? "Medium",
-    status: body.status ?? "To Do",
-    progressPercent: typeof body.progressPercent === "number" ? Math.min(100, Math.max(0, body.progressPercent)) : 0,
-    startDate: body.startDate ?? null,
-    dueDate: body.dueDate ?? null,
-    relatedType: body.relatedType ?? null,
-    relatedId: body.relatedId ?? null,
+    description: typeof body.description === "string" ? body.description : null,
+    assignedToId: typeof body.assignedToId === "number" ? body.assignedToId : null,
+    priority: typeof body.priority === "string" ? body.priority : "Medium",
+    status: typeof body.status === "string" ? body.status : "To Do",
+    progressPercent: typeof body.progressPercent === "number"
+      ? Math.min(100, Math.max(0, body.progressPercent))
+      : 0,
+    startDate: typeof body.startDate === "string" ? body.startDate : null,
+    dueDate: typeof body.dueDate === "string" ? body.dueDate : null,
+    relatedType: typeof body.relatedType === "string" ? body.relatedType : null,
+    relatedId: typeof body.relatedId === "number" ? body.relatedId : null,
     createdById: adminId,
   });
 
@@ -111,7 +125,7 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id ─────────────────────────────────────────────────
 
 router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess, adminId } = await resolveScope(req);
 
   const task = await getAdminTask(id, isFullAccess ? undefined : adminId);
@@ -127,26 +141,50 @@ router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── PATCH /api/admin/tasks/:id ───────────────────────────────────────────────
 
 router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess, adminId } = await resolveScope(req);
-  const body = req.body as any;
 
-  // Staff can only update status, progress; not reassign or retitle
-  const input: any = {};
+  const body = req.body as {
+    title?: unknown;
+    description?: unknown;
+    assignedToId?: unknown;
+    priority?: unknown;
+    status?: unknown;
+    progressPercent?: unknown;
+    startDate?: unknown;
+    dueDate?: unknown;
+    relatedType?: unknown;
+    relatedId?: unknown;
+  };
+
+  const input: UpdateTaskInput = {};
+
   if (isFullAccess) {
     if (body.title !== undefined) input.title = String(body.title).trim();
-    if (body.description !== undefined) input.description = body.description ?? null;
-    if (body.assignedToId !== undefined) input.assignedToId = body.assignedToId ?? null;
-    if (body.priority !== undefined) input.priority = body.priority;
-    if (body.startDate !== undefined) input.startDate = body.startDate ?? null;
-    if (body.dueDate !== undefined) input.dueDate = body.dueDate ?? null;
-    if (body.relatedType !== undefined) input.relatedType = body.relatedType ?? null;
-    if (body.relatedId !== undefined) input.relatedId = body.relatedId ?? null;
+    if (body.description !== undefined) {
+      input.description = typeof body.description === "string" ? body.description : null;
+    }
+    if (body.assignedToId !== undefined) {
+      input.assignedToId = typeof body.assignedToId === "number" ? body.assignedToId : null;
+    }
+    if (body.priority !== undefined) input.priority = String(body.priority);
+    if (body.startDate !== undefined) {
+      input.startDate = typeof body.startDate === "string" ? body.startDate : null;
+    }
+    if (body.dueDate !== undefined) {
+      input.dueDate = typeof body.dueDate === "string" ? body.dueDate : null;
+    }
+    if (body.relatedType !== undefined) {
+      input.relatedType = typeof body.relatedType === "string" ? body.relatedType : null;
+    }
+    if (body.relatedId !== undefined) {
+      input.relatedId = typeof body.relatedId === "number" ? body.relatedId : null;
+    }
   }
-  // Both staff and full-access can change status and progress
-  if (body.status !== undefined) input.status = body.status;
+  if (body.status !== undefined) input.status = String(body.status);
   if (body.progressPercent !== undefined) {
-    input.progressPercent = Math.min(100, Math.max(0, parseInt(body.progressPercent)));
+    const raw = Number(body.progressPercent);
+    input.progressPercent = Math.min(100, Math.max(0, isNaN(raw) ? 0 : raw));
   }
 
   const updated = await updateAdminTask(id, input, adminId, isFullAccess ? undefined : adminId);
@@ -156,7 +194,7 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── DELETE /api/admin/tasks/:id ──────────────────────────────────────────────
 
 router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess } = await resolveScope(req);
 
   if (!isFullAccess) {
@@ -170,9 +208,9 @@ router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id/comments ────────────────────────────────────────
 
 router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess, adminId } = await resolveScope(req);
-  await getAdminTask(id, isFullAccess ? undefined : adminId); // auth check
+  await getAdminTask(id, isFullAccess ? undefined : adminId);
   const comments = await listTaskComments(id);
   res.json(comments);
 });
@@ -180,11 +218,11 @@ router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 // ─── POST /api/admin/tasks/:id/comments ───────────────────────────────────────
 
 router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess, adminId } = await resolveScope(req);
-  await getAdminTask(id, isFullAccess ? undefined : adminId); // auth check
+  await getAdminTask(id, isFullAccess ? undefined : adminId);
 
-  const body = req.body as any;
+  const body = req.body as { body?: unknown };
   if (!body.body || typeof body.body !== "string" || !body.body.trim()) {
     res.status(400).json({ error: "comment body is required" });
     return;
@@ -197,9 +235,9 @@ router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id/activity ────────────────────────────────────────
 
 router.get("/admin/tasks/:id/activity", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id, 10);
   const { isFullAccess, adminId } = await resolveScope(req);
-  await getAdminTask(id, isFullAccess ? undefined : adminId); // auth check
+  await getAdminTask(id, isFullAccess ? undefined : adminId);
   const activity = await listTaskActivity(id);
   res.json(activity);
 });

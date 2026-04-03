@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { format, isPast, isToday } from "date-fns";
@@ -142,8 +142,8 @@ const CREDS: RequestInit = { credentials: "include" };
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...CREDS, ...init });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error((err as any).error ?? `HTTP ${res.status}`);
+    const err = await res.json().catch(() => ({ error: "Request failed" })) as { error?: string };
+    throw new Error(err.error ?? `HTTP ${res.status}`);
   }
   return res.json();
 }
@@ -239,17 +239,17 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
     }
     setSaving(true);
     try {
-      const body: any = {
+      const body = {
         title: form.title.trim(),
         description: form.description || null,
-        assignedToId: form.assignedToId ? parseInt(form.assignedToId) : null,
+        assignedToId: form.assignedToId ? parseInt(form.assignedToId, 10) : null,
         priority: form.priority,
         status: form.status,
         progressPercent: Math.min(100, Math.max(0, Number(form.progressPercent))),
         startDate: form.startDate || null,
         dueDate: form.dueDate || null,
         relatedType: form.relatedType || null,
-        relatedId: form.relatedId ? parseInt(form.relatedId) : null,
+        relatedId: form.relatedId ? parseInt(form.relatedId, 10) : null,
       };
 
       if (isEdit) {
@@ -269,8 +269,8 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
       }
       onSaved();
       onClose();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -434,8 +434,8 @@ function TaskDetailDrawer({
       refetch();
       onChanged();
       toast({ title: "Status updated" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     }
   };
 
@@ -449,8 +449,8 @@ function TaskDetailDrawer({
       });
       refetch();
       onChanged();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     }
   };
 
@@ -466,8 +466,8 @@ function TaskDetailDrawer({
       setCommentText("");
       refetch();
       toast({ title: "Comment added" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     } finally {
       setSendingComment(false);
     }
@@ -480,8 +480,8 @@ function TaskDetailDrawer({
       toast({ title: "Task deleted" });
       onChanged();
       onClose();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     }
   };
 
@@ -716,11 +716,19 @@ export default function TasksPage() {
     dateTo: "",
   });
 
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("assignee") === "me") {
+      setFilters((f) => ({ ...f, assigneeId: String(user.id) }));
+    }
+  }, [user]);
+
   const isFullAccess = useMemo(() => {
     if (!user) return false;
-    return (user as any).adminRole === "admin" ||
-      (user as any).adminRole === "regional_manager" ||
-      (user as any).adminRole === "service_manager";
+    return user.adminRole === "admin" ||
+      user.adminRole === "regional_manager" ||
+      user.adminRole === "service_manager";
   }, [user]);
 
   const { data: adminsData } = useQuery<AdminOption[]>({
@@ -760,7 +768,7 @@ export default function TasksPage() {
 
   // Derived stat counts
   const allCount = total;
-  const myCount = tasks.filter((t) => user && t.assignedToId === (user as any).id).length;
+  const myCount = tasks.filter((t) => user && t.assignedToId === user.id).length;
   const overdueCount = tasks.filter(isOverdue).length;
   const dueTodayCount = tasks.filter(isDueToday).length;
   const completedCount = tasks.filter((t) => t.status === "Done").length;
@@ -770,12 +778,13 @@ export default function TasksPage() {
   const sorted = useMemo(() => {
     const arr = [...tasks];
     arr.sort((a, b) => {
-      let va: any = (a as any)[sortField];
-      let vb: any = (b as any)[sortField];
+      const va = (a as Record<string, unknown>)[sortField];
+      const vb = (b as Record<string, unknown>)[sortField];
       if (va == null) return 1;
       if (vb == null) return -1;
-      if (typeof va === "string") { va = va.toLowerCase(); vb = vb.toLowerCase(); }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      const vaStr = typeof va === "string" ? va.toLowerCase() : va;
+      const vbStr = typeof vb === "string" ? vb.toLowerCase() : vb;
+      const cmp = vaStr < vbStr ? -1 : vaStr > vbStr ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -831,7 +840,7 @@ export default function TasksPage() {
           value={myCount}
           icon={User}
           colorClass="bg-blue-500/10 text-blue-400"
-          onClick={() => user && setFilters((f) => ({ ...f, assigneeId: String((user as any).id) }))}
+          onClick={() => user && setFilters((f) => ({ ...f, assigneeId: String(user.id) }))}
           isLoading={tasksQuery.isLoading}
         />
         <StatCard

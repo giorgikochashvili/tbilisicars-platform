@@ -1,5 +1,5 @@
 import { db, tasksTable, taskCommentsTable, taskActivityLogTable, adminsTable } from "@workspace/db";
-import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne } from "drizzle-orm";
+import { SQL, and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, ne } from "drizzle-orm";
 import { NotFoundError, ForbiddenError } from "../lib/errors.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -77,48 +77,48 @@ export async function listAdminTasks(filter: ListTasksFilter) {
   const limit = Math.min(100, Math.max(1, filter.limit ?? 50));
   const offset = (page - 1) * limit;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: SQL[] = [];
 
   // Scope staff to own tasks
   if (filter.myId !== undefined) {
-    conditions.push(eq(tasksTable.assignedToId, filter.myId) as any);
+    conditions.push(eq(tasksTable.assignedToId, filter.myId));
   }
 
   if (filter.search) {
-    conditions.push(ilike(tasksTable.title, `%${filter.search}%`) as any);
+    conditions.push(ilike(tasksTable.title, `%${filter.search}%`));
   }
   if (filter.status) {
-    conditions.push(eq(tasksTable.status, filter.status) as any);
+    conditions.push(eq(tasksTable.status, filter.status));
   }
   if (filter.priority) {
-    conditions.push(eq(tasksTable.priority, filter.priority) as any);
+    conditions.push(eq(tasksTable.priority, filter.priority));
   }
   if (filter.assigneeId) {
-    conditions.push(eq(tasksTable.assignedToId, filter.assigneeId) as any);
+    conditions.push(eq(tasksTable.assignedToId, filter.assigneeId));
   }
   if (filter.creatorId) {
-    conditions.push(eq(tasksTable.createdById, filter.creatorId) as any);
+    conditions.push(eq(tasksTable.createdById, filter.creatorId));
   }
   if (filter.dateFrom) {
-    conditions.push(gte(tasksTable.createdAt, new Date(filter.dateFrom)) as any);
+    conditions.push(gte(tasksTable.createdAt, new Date(filter.dateFrom)));
   }
   if (filter.dateTo) {
-    conditions.push(lte(tasksTable.createdAt, new Date(filter.dateTo + "T23:59:59Z")) as any);
+    conditions.push(lte(tasksTable.createdAt, new Date(filter.dateTo + "T23:59:59Z")));
   }
   if (filter.dueState === "overdue") {
-    conditions.push(lt(tasksTable.dueDate, new Date()) as any);
-    conditions.push(ne(tasksTable.status, "Done") as any);
-    conditions.push(ne(tasksTable.status, "Canceled") as any);
+    conditions.push(lt(tasksTable.dueDate, new Date()));
+    conditions.push(ne(tasksTable.status, "Done"));
+    conditions.push(ne(tasksTable.status, "Canceled"));
   } else if (filter.dueState === "today") {
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-    conditions.push(gte(tasksTable.dueDate, todayStart) as any);
-    conditions.push(lte(tasksTable.dueDate, todayEnd) as any);
+    conditions.push(gte(tasksTable.dueDate, todayStart));
+    conditions.push(lte(tasksTable.dueDate, todayEnd));
   } else if (filter.dueState === "upcoming") {
-    conditions.push(gte(tasksTable.dueDate, new Date()) as any);
+    conditions.push(gte(tasksTable.dueDate, new Date()));
   }
 
-  const where = conditions.length > 0 ? and(...conditions as any) : undefined;
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [rows, totalRows] = await Promise.all([
     db
@@ -245,18 +245,34 @@ export async function createAdminTask(input: CreateTaskInput) {
 
 // ─── Update task ───────────────────────────────────────────────────────────────
 
+type TaskUpdateFields = {
+  updatedAt?: Date;
+  title?: string;
+  description?: string | null;
+  priority?: string;
+  assignedToId?: number | null;
+  status?: string;
+  progressPercent?: number;
+  completedAt?: Date | null;
+  startDate?: Date | null;
+  dueDate?: Date | null;
+  relatedType?: string | null;
+  relatedId?: number | null;
+};
+
 export async function updateAdminTask(id: number, input: UpdateTaskInput, actorId: number, scopeToAdminId?: number) {
   const existing = await getAdminTask(id, scopeToAdminId);
 
-  const updates: Record<string, any> = { updatedAt: new Date() };
+  const updates: TaskUpdateFields = { updatedAt: new Date() };
   const activities: Array<{ action: string; from: string | null; to: string | null }> = [];
 
   if (input.title !== undefined && input.title !== existing.title) {
     updates.title = input.title;
     activities.push({ action: "title_changed", from: existing.title, to: input.title });
   }
-  if (input.description !== undefined) {
+  if (input.description !== undefined && input.description !== existing.description) {
     updates.description = input.description;
+    activities.push({ action: "description_changed", from: null, to: null });
   }
   if (input.priority !== undefined && input.priority !== existing.priority) {
     activities.push({ action: "priority_changed", from: existing.priority, to: input.priority });
@@ -274,36 +290,46 @@ export async function updateAdminTask(id: number, input: UpdateTaskInput, actorI
     newStatus = input.status;
   }
 
-  // progressPercent logic: Done → force 100
-  let newProgress = existing.progressPercent;
+  // completedAt: set when transitioning TO Done, clear when transitioning AWAY from Done
   if (newStatus === "Done") {
-    newProgress = 100;
     updates.progressPercent = 100;
     if (!existing.completedAt) {
       updates.completedAt = new Date();
-      activities.push({ action: "completed", from: null, to: new Date().toISOString() });
+      activities.push({ action: "completed", from: null, to: updates.completedAt.toISOString() });
     }
-  } else if (input.progressPercent !== undefined && input.progressPercent !== existing.progressPercent) {
-    newProgress = input.progressPercent;
-    activities.push({ action: "progress_changed", from: String(existing.progressPercent), to: String(input.progressPercent) });
-    updates.progressPercent = input.progressPercent;
-    // Clear completedAt if un-completing
-    if (existing.completedAt && newStatus !== "Done") {
+  } else {
+    if (existing.status === "Done" && existing.completedAt) {
       updates.completedAt = null;
+    }
+    if (input.progressPercent !== undefined && input.progressPercent !== existing.progressPercent) {
+      activities.push({ action: "progress_changed", from: String(existing.progressPercent), to: String(input.progressPercent) });
+      updates.progressPercent = input.progressPercent;
     }
   }
 
   if (input.startDate !== undefined) {
-    updates.startDate = input.startDate ? new Date(input.startDate) : null;
+    const newVal = input.startDate ?? null;
+    const oldVal = existing.startDate ? existing.startDate.slice(0, 10) : null;
+    if (newVal !== oldVal) {
+      updates.startDate = newVal ? new Date(newVal) : null;
+      activities.push({ action: "start_date_changed", from: oldVal, to: newVal });
+    }
   }
   if (input.dueDate !== undefined) {
-    updates.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+    const newVal = input.dueDate ?? null;
+    const oldVal = existing.dueDate ? existing.dueDate.slice(0, 10) : null;
+    if (newVal !== oldVal) {
+      updates.dueDate = newVal ? new Date(newVal) : null;
+      activities.push({ action: "due_date_changed", from: oldVal, to: newVal });
+    }
   }
-  if (input.relatedType !== undefined) {
+  if (input.relatedType !== undefined && input.relatedType !== existing.relatedType) {
     updates.relatedType = input.relatedType ?? null;
+    activities.push({ action: "related_changed", from: existing.relatedType, to: input.relatedType ?? null });
   }
-  if (input.relatedId !== undefined) {
+  if (input.relatedId !== undefined && input.relatedId !== existing.relatedId) {
     updates.relatedId = input.relatedId ?? null;
+    activities.push({ action: "related_changed", from: String(existing.relatedId ?? ""), to: String(input.relatedId ?? "") });
   }
 
   if (Object.keys(updates).length > 1) {

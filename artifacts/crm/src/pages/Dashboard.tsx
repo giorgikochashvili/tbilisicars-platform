@@ -984,7 +984,7 @@ export default function Dashboard() {
         </h2>
         <Card
           className="border border-border/40 bg-card/60 cursor-pointer hover:border-primary/40 hover:bg-card/80 transition-all duration-200 max-w-sm"
-          onClick={() => navigate("/tasks")}
+          onClick={() => navigate("/tasks?assignee=me")}
         >
           <CardContent className="pt-4 pb-3 px-5">
             {myTasksSummaryQuery.isLoading ? (

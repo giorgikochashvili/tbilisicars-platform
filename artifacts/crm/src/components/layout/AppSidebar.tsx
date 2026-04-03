@@ -25,7 +25,7 @@ type PermKey = keyof AdminProfile | null;
 
 const navItems: Array<{ title: string; url: string; icon: React.ElementType; permissionKey: PermKey }> = [
   { title: "Dashboard",       url: "/dashboard",      icon: LayoutDashboard,  permissionKey: null },
-  { title: "Tasks",           url: "/tasks",           icon: ClipboardList,    permissionKey: null },
+  { title: "Tasks",           url: "/tasks",           icon: ClipboardList,    permissionKey: "canManageTasks" },
   { title: "Bookings",        url: "/bookings",        icon: CalendarDays,     permissionKey: "canManageBookings" },
   { title: "Fleet",           url: "/fleet",           icon: Car,              permissionKey: "canManageVehicles" },
   { title: "Fleet Calendar",  url: "/fleet-calendar",  icon: GanttChart,       permissionKey: "canViewCalendar" },
