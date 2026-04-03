@@ -441,7 +441,11 @@ export default function Home() {
                 {sliderData?.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex-shrink-0 w-[300px] sm:w-[340px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
+                    onKeyDown={(e) => e.key === "Enter" && navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
+                    className="flex-shrink-0 w-[300px] sm:w-[340px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col cursor-pointer"
                     style={{ background: "hsl(211,55%,9%)" }}
                   >
                     {/* Car image */}
@@ -477,12 +481,16 @@ export default function Home() {
                         <span className="text-primary font-bold text-xl">{item.displayPriceText}</span>
                       </div>
 
-                      <Link
-                        href="/booking"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/booking?vehicleModelId=${item.vehicleModelId}`);
+                        }}
                         className="w-full text-center bg-primary hover:bg-accent text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm"
                       >
                         {item.ctaLabel ?? "Book Now"}
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 ))}
