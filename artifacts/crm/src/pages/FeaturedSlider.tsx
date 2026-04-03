@@ -38,8 +38,8 @@ async function apiFetch(url: string, opts?: RequestInit) {
     ...opts,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as any).error ?? `Request failed (${res.status})`);
+    const body = await res.json().catch(() => ({ error: undefined })) as { error?: string };
+    throw new Error(body.error ?? `Request failed (${res.status})`);
   }
   return res.json();
 }
@@ -71,6 +71,29 @@ interface VehicleModel {
   id: number;
   name: string;
   brand: string;
+}
+
+interface RawVehicleModel {
+  id: number;
+  name: string;
+  brandName?: string;
+  brand?: { id: number; name: string | null; logoUrl?: string | null } | null;
+}
+
+interface MutationError {
+  message: string;
+}
+
+interface SliderItemPayload {
+  title: string;
+  subtitle: string | null;
+  badgeText: string | null;
+  displayPriceText: string;
+  ctaLabel: string | null;
+  imageUrl: string;
+  vehicleModelId: number;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 const EMPTY_FORM = {
@@ -105,12 +128,12 @@ export default function FeaturedSliderPage() {
 
   // ─── Vehicle models query (for selector) ─────────────────────────────────────
 
-  const { data: modelsRaw } = useQuery<any[]>({
+  const { data: modelsRaw } = useQuery<RawVehicleModel[]>({
     queryKey: ["admin-fleet-models-for-slider"],
     queryFn: () => apiFetch(`${API}/admin/fleet/models`),
   });
 
-  const models: VehicleModel[] = (modelsRaw ?? []).map((m: any) => ({
+  const models: VehicleModel[] = (modelsRaw ?? []).map((m) => ({
     id: m.id,
     name: m.name,
     brand: m.brand?.name ?? m.brandName ?? "",
@@ -132,15 +155,14 @@ export default function FeaturedSliderPage() {
 
   const [settingsForm, setSettingsForm] = useState<SliderSettings | null>(null);
 
-  // Sync settings form from query data when loaded
-  if (settings && !settingsForm) {
-    setSettingsForm(settings);
-  }
+  useEffect(() => {
+    if (settings) setSettingsForm(settings);
+  }, [settings]);
 
   // ─── Mutations ────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: SliderItemPayload) =>
       apiFetch(`${API}/admin/featured-slider`, {
         method: "POST",
         body: JSON.stringify(data),
@@ -150,13 +172,13 @@ export default function FeaturedSliderPage() {
       toast({ title: "Item created" });
       setModalOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: MutationError) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
+    mutationFn: ({ id, data }: { id: number; data: SliderItemPayload }) =>
       apiFetch(`${API}/admin/featured-slider/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
@@ -166,7 +188,7 @@ export default function FeaturedSliderPage() {
       toast({ title: "Item updated" });
       setModalOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: MutationError) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
@@ -179,7 +201,7 @@ export default function FeaturedSliderPage() {
       toast({ title: "Item deleted" });
       setDeleteTarget(null);
     },
-    onError: (err: any) => {
+    onError: (err: MutationError) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
@@ -193,7 +215,7 @@ export default function FeaturedSliderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["featured-slider-items"] });
     },
-    onError: (err: any) => {
+    onError: (err: MutationError) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
@@ -209,7 +231,7 @@ export default function FeaturedSliderPage() {
       setSettingsForm(updated);
       toast({ title: "Settings saved" });
     },
-    onError: (err: any) => {
+    onError: (err: MutationError) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
@@ -226,7 +248,7 @@ export default function FeaturedSliderPage() {
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
       });
       if (!metaRes.ok) throw new Error("Failed to get upload URL");
-      const { uploadURL, objectPath } = await metaRes.json();
+      const { uploadURL, objectPath } = await metaRes.json() as { uploadURL: string; objectPath: string };
       const putRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
@@ -235,8 +257,9 @@ export default function FeaturedSliderPage() {
       if (!putRes.ok) throw new Error("File upload failed");
       setForm((f) => ({ ...f, imageUrl: objectPath }));
       toast({ title: "Image uploaded" });
-    } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
     } finally {
       setImageUploading(false);
     }
@@ -283,7 +306,7 @@ export default function FeaturedSliderPage() {
       toast({ title: "Vehicle model is required", variant: "destructive" });
       return;
     }
-    const payload = {
+    const payload: SliderItemPayload = {
       title: form.title.trim(),
       subtitle: form.subtitle.trim() || null,
       badgeText: form.badgeText.trim() || null,
