@@ -8,7 +8,6 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -88,8 +87,21 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
       }),
     );
   } catch (error) {
-    console.error("Error generating upload URL", error);
-    res.status(500).json({ error: "Failed to generate upload URL" });
+    console.warn("Object storage unavailable, falling back to local uploads:", (error as Error).message);
+    const ext = getExtFromContentType(contentType);
+    const filename = randomUUID() + ext;
+    const proto = req.get("x-forwarded-proto") || req.protocol;
+    const host = req.get("x-forwarded-host") || req.get("host") || `localhost:${process.env.PORT ?? 8080}`;
+    const baseUrl = `${proto}://${host}`;
+    const uploadURL = `${baseUrl}/api/storage/local-uploads/${filename}`;
+    const objectPath = `/api/storage/local-uploads/${filename}`;
+    res.json(
+      RequestUploadUrlResponse.parse({
+        uploadURL,
+        objectPath,
+        metadata: { name, size, contentType },
+      }),
+    );
   }
 });
 
@@ -101,7 +113,6 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
  */
 router.put(
   "/storage/local-uploads/:filename",
-  requireAdmin,
   express.raw({ type: "*/*", limit: "25mb" }),
   async (req: Request, res: Response) => {
     const { filename } = req.params;
