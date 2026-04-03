@@ -776,7 +776,7 @@ export default function TasksPage() {
     if (filters.dateTo) p.set("dateTo", filters.dateTo);
     p.set("limit", "200");
     return p.toString();
-  }, [filters, effectiveAssigneeId]);
+  }, [filters, effectiveAssigneeId, user, search]);
 
   const tasksQuery = useQuery<{ tasks: TaskListItem[]; total: number }>({
     queryKey: ["tasks", filters, effectiveAssigneeId],
