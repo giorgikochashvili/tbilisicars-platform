@@ -1,0 +1,220 @@
+Task: Add a fully CRM-managed “Homepage Featured Cars Slider” system to the Tbilisicars CRM + Website project.
+
+Important constraints:
+- Do NOT change or break any existing booking logic.
+- Do NOT change or break the existing homepage hero layout, booking widget, current mobile layout, or CRM modules unrelated to this task.
+- Do NOT introduce broad refactors.
+- Keep changes tightly scoped and production-safe.
+- Prefer reusing existing project patterns for admin CRUD, uploads, API routes, cards, sliders, and public data fetching.
+- No DB-destructive changes.
+- No assumptions: inspect the current schema, admin modules, website homepage structure, public booking flow, and existing upload/image handling before implementing.
+- All marketing text for the slider items must be managed from CRM, not hardcoded in frontend.
+
+Goal:
+Create a CMS-like CRM-managed homepage slider section for featured cars. Admins must be able to manage which cars appear in the homepage slider, with image, badge, text, price label, CTA label, order, and enabled state. Each slider item must be linked to a real vehicle model. When a customer clicks a slider card or CTA on the website, they must be taken into the booking flow with that linked vehicle model preselected.
+
+Business logic:
+- The homepage slider item must link to a vehicle model, not to a single vehicle.
+- This is a marketing/featured layer, not availability logic.
+- The displayed price is a marketing display price entered by admin manually for the slider item. Do NOT replace booking pricing logic with this price.
+- On click, the booking flow must still use the existing real availability/rates logic. The preselected model is only a starting context.
+- All visible slider texts must be CRM-managed per item where appropriate.
+
+Implement exactly the following:
+
+1) Database / schema
+Create a new table for homepage featured slider items, using existing project schema conventions.
+
+Suggested fields:
+- id
+- title (required)
+- subtitle or shortDescription (nullable)
+- badgeText (nullable)                // example: “Popular”, “Premium SUV”, “Best Value”
+- displayPriceText (required)         // example: “From $65/day”
+- ctaLabel (nullable)                 // example: “Book Now”
+- imageUrl (required)                 // side-view car image
+- vehicleModelId (required, FK to vehicle model table)
+- sortOrder (required, default 0)
+- isActive (required, default true)
+- createdAt
+- updatedAt
+
+Requirements:
+- Follow the project’s existing Drizzle/schema style exactly.
+- Add safe migration/schema update only for this table.
+- Do not modify existing tables unless absolutely required.
+
+2) CRM admin module
+Add a new CRM page/module for managing homepage featured slider items.
+
+Module/sidebar label:
+- “Homepage Slider”
+or
+- “Featured Cars”
+Choose whichever best matches the current CRM naming style.
+
+CRM page requirements:
+- List existing items in a table or cards
+- Show preview thumbnail, badge, title, linked model, display price text, CTA label, sort order, active status
+- Add new item
+- Edit item
+- Delete item
+- Toggle active/inactive
+- Change sort order
+- Use existing upload pattern for image handling if the project already has one for brand/model images
+- Link each slider item to an existing vehicle model via searchable select/dropdown
+- Reuse current admin UI style and components
+
+Create/Edit form fields:
+- Title
+- Subtitle / short description
+- Badge text
+- Display price text
+- CTA label
+- Vehicle model selector
+- Image upload / image URL storage using existing upload infrastructure
+- Sort order
+- Active toggle
+
+Important:
+- Keep the module clean and simple
+- Follow current CRM styling and UX patterns
+- Reuse Fleet / Models / image upload / admin CRUD conventions where possible
+- Do not build unrelated CMS features
+
+3) Admin API
+Add protected admin CRUD endpoints for the new homepage slider items.
+
+Requirements:
+- Protected by existing admin auth middleware/patterns
+- Endpoints for list/create/update/delete
+- Support active toggle and ordering updates cleanly
+- Preserve stable response shape matching project conventions
+- Validate input with the project’s existing zod/openapi patterns if used in this codebase
+
+4) Public API
+Add a public endpoint for homepage featured slider items.
+
+Requirements:
+- Return only active items
+- Return items ordered by sortOrder ascending, then createdAt if needed
+- Include only lightweight frontend-safe fields
+- Include the linked vehicle model basic data needed by frontend
+- Do not expose admin-only fields unnecessarily
+
+5) Website homepage section
+On the public homepage, add a new premium featured cars slider section below the existing hero/stats area without disturbing the current structure.
+
+Section purpose:
+A premium, conversion-focused featured car slider managed from CRM.
+
+Requirements:
+- Dark premium styling matching current homepage
+- Fully responsive
+- Desktop: horizontal slider/carousel
+- Mobile: swipe-friendly cards
+- Do not alter the existing hero block spacing/layout in a risky way
+- Do not change current mobile hero behavior
+- Do not redesign the homepage globally
+- Only add this new section safely into the existing flow
+
+Section content:
+- Section heading in English
+- Supporting text in English
+- Cards rendered from the public featured slider API
+
+Use this default section copy unless there is already a better project-consistent pattern for CRM-managed section text:
+Heading:
+- “Choose Your Perfect Car”
+
+Supporting text:
+- “Browse a selection of our featured vehicles and start your journey across Georgia with comfort, style, and instant booking confirmation.”
+
+Important:
+- Keep the section heading/supporting text safely implemented.
+- If the current architecture already supports site-wide editable section copy, reuse it.
+- Otherwise it is acceptable to keep the section heading/supporting text as static section-level copy for now.
+- But all item-level marketing texts must be CRM-managed:
+  - badgeText
+  - title
+  - subtitle/shortDescription
+  - displayPriceText
+  - ctaLabel
+
+Each slider card must show:
+- Side-view car image
+- Badge text (if present)
+- Title
+- Subtitle/description
+- Display price text
+- CTA button
+
+6) Card click behavior
+When a user clicks a slider card or CTA:
+- Navigate into the existing booking flow
+- Pass the linked vehicle model as preselected context using the least invasive safe pattern after inspecting current codebase
+- Prefer query-param based preselection if that fits existing routing patterns safely
+- Do not invent a fragile new routing structure
+
+7) Booking flow integration
+Integrate the click flow safely.
+
+Requirements:
+- Reuse the current public booking flow route and logic
+- The booking page/flow must read the preselected model and apply it when appropriate
+- Existing normal booking flow must continue to work unchanged for users who arrive normally
+- Do not force a broken direct selection if pickup/return/location/date has not yet been chosen
+- Preserve the model preference and apply it when the flow reaches vehicle selection
+- If the currently featured model is unavailable for the selected dates/location, fail gracefully and continue using the existing availability logic without breaking
+- Do not replace existing vehicle filtering/rates logic
+- Do not auto-create fake availability just because a model is featured
+
+8) UX / styling requirements
+Maintain the existing premium design language.
+
+Do:
+- Match the current dark navy / burgundy / white style
+- Keep spacing consistent with the homepage
+- Use smooth but subtle slider behavior
+- Keep the cards premium and clean
+- Make mobile swipe natural and stable
+
+Do NOT:
+- Redesign the whole homepage
+- Change hero structure
+- Change booking widget structure
+- Break current responsive behavior
+- Introduce flashy animations that hurt performance
+- Add autoplay behavior that feels intrusive unless a project pattern already exists and is subtle
+
+9) Technical safety requirements
+- Do not touch unrelated homepage sections
+- Do not refactor the booking engine
+- Do not refactor the whole CRM sidebar/layout
+- Do not change authentication/session logic
+- Do not change existing rate calculation logic
+- Do not replace real pricing with slider display price
+- Do not hardcode slider items in frontend
+- Do not break mobile responsiveness
+
+10) Deliverables
+After implementation, provide:
+- Exact files changed
+- Summary of the new DB table
+- Summary of new admin endpoints
+- Summary of new public endpoint
+- Summary of the CRM page/module
+- Summary of how booking preselection works
+- Any migration/build steps required
+- Note any small follow-up recommendations, but do not make extra unrelated changes
+
+11) Build discipline
+Before editing, inspect:
+- Existing homepage file/component structure
+- Current public booking flow structure
+- Vehicle model schema and public API usage
+- CRM CRUD page patterns
+- Existing image upload flow
+Then implement in the smallest safe way.
+
+Only make the changes required for this feature.
