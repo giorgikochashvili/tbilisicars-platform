@@ -309,7 +309,10 @@ export async function updateAdminTask(id: number, input: UpdateTaskInput, actorI
 
   if (input.startDate !== undefined) {
     const newVal = input.startDate ?? null;
-    const oldVal = existing.startDate ? existing.startDate.slice(0, 10) : null;
+    const rawStart = existing.startDate;
+    const oldVal = rawStart
+      ? (rawStart instanceof Date ? rawStart : new Date(rawStart)).toISOString().slice(0, 10)
+      : null;
     if (newVal !== oldVal) {
       updates.startDate = newVal ? new Date(newVal) : null;
       activities.push({ action: "start_date_changed", from: oldVal, to: newVal });
@@ -317,7 +320,10 @@ export async function updateAdminTask(id: number, input: UpdateTaskInput, actorI
   }
   if (input.dueDate !== undefined) {
     const newVal = input.dueDate ?? null;
-    const oldVal = existing.dueDate ? existing.dueDate.slice(0, 10) : null;
+    const rawDue = existing.dueDate;
+    const oldVal = rawDue
+      ? (rawDue instanceof Date ? rawDue : new Date(rawDue)).toISOString().slice(0, 10)
+      : null;
     if (newVal !== oldVal) {
       updates.dueDate = newVal ? new Date(newVal) : null;
       activities.push({ action: "due_date_changed", from: oldVal, to: newVal });

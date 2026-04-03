@@ -31,6 +31,7 @@ async function resolveScope(req: Request): Promise<{ isFullAccess: boolean; admi
     .limit(1);
   const admin = rows[0];
   if (!admin) throw new ForbiddenError();
+  if (!admin.canManageTasks) throw new ForbiddenError("Tasks access is not enabled for your account");
   const isFullAccess =
     admin.adminRole === "admin" ||
     admin.adminRole === "regional_manager" ||
@@ -41,14 +42,15 @@ async function resolveScope(req: Request): Promise<{ isFullAccess: boolean; admi
 // ─── GET /api/admin/tasks/my-summary ──────────────────────────────────────────
 
 router.get("/admin/tasks/my-summary", requireAdmin, async (req, res) => {
-  const adminId = req.session.adminId as number;
+  const { adminId } = await resolveScope(req);
   const summary = await getMyTasksSummary(adminId);
   res.json(summary);
 });
 
 // ─── GET /api/admin/tasks/assignees ───────────────────────────────────────────
 
-router.get("/admin/tasks/assignees", requireAdmin, async (_req, res) => {
+router.get("/admin/tasks/assignees", requireAdmin, async (req, res) => {
+  await resolveScope(req);
   const admins = await listAdminsForTasks();
   res.json(admins);
 });
