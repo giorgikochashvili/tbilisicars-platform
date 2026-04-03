@@ -82,7 +82,6 @@ interface TaskDetail extends TaskListItem {
 interface AdminOption {
   id: number;
   fullName: string;
-  email: string;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────

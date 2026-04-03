@@ -74,18 +74,33 @@ router.get("/admin/tasks", requireAdmin, async (req, res) => {
   const { isFullAccess, adminId } = await resolveScope(req);
   const q = req.query as Record<string, string | undefined>;
 
+  const assigneeId = q.assigneeId ? parseInt(q.assigneeId, 10) : undefined;
+  const creatorId = q.creatorId ? parseInt(q.creatorId, 10) : undefined;
+  const page = q.page ? parseInt(q.page, 10) : 1;
+  const limit = q.limit ? parseInt(q.limit, 10) : 50;
+
+  if (assigneeId !== undefined && isNaN(assigneeId)) {
+    res.status(400).json({ error: "assigneeId must be a number" }); return;
+  }
+  if (creatorId !== undefined && isNaN(creatorId)) {
+    res.status(400).json({ error: "creatorId must be a number" }); return;
+  }
+  if (isNaN(page) || isNaN(limit)) {
+    res.status(400).json({ error: "page and limit must be numbers" }); return;
+  }
+
   const result = await listAdminTasks({
     search: q.search,
     status: q.status,
     priority: q.priority,
-    assigneeId: q.assigneeId ? parseInt(q.assigneeId, 10) : undefined,
-    creatorId: q.creatorId ? parseInt(q.creatorId, 10) : undefined,
+    assigneeId,
+    creatorId,
     dueState: q.dueState as "overdue" | "today" | "upcoming" | undefined,
     dateFrom: q.dateFrom,
     dateTo: q.dateTo,
     myId: isFullAccess ? undefined : adminId,
-    page: q.page ? parseInt(q.page, 10) : 1,
-    limit: q.limit ? parseInt(q.limit, 10) : 50,
+    page,
+    limit,
   });
 
   res.json(result);
@@ -153,6 +168,7 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
 
 router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
 
   const task = await getAdminTask(id, isFullAccess ? undefined : adminId);
@@ -169,6 +185,7 @@ router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
 
 router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
 
   const body = req.body as {
@@ -232,6 +249,7 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
 
 router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
 
   if (!isFullAccess) {
@@ -259,6 +277,7 @@ router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
 
 router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
   const comments = await listTaskComments(id);
@@ -269,6 +288,7 @@ router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 
 router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
 
@@ -286,6 +306,7 @@ router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 
 router.get("/admin/tasks/:id/activity", requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
   const activity = await listTaskActivity(id);

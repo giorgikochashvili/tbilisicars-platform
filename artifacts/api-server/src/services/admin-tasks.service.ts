@@ -478,7 +478,7 @@ export async function getMyTasksSummary(adminId: number) {
 
 export async function listAdminsForTasks() {
   return db
-    .select({ id: adminsTable.id, fullName: adminsTable.fullName, email: adminsTable.email })
+    .select({ id: adminsTable.id, fullName: adminsTable.fullName })
     .from(adminsTable)
     .where(eq(adminsTable.isActive, true))
     .orderBy(asc(adminsTable.fullName));
