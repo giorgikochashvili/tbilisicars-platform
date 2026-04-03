@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { format, isPast, isToday } from "date-fns";
@@ -743,15 +743,13 @@ export default function TasksPage() {
     dateTo: "",
   });
 
-  useEffect(() => {
-    if (!user) return;
-    const params = new URLSearchParams(search);
-    const newAssigneeId = params.get("assignee") === "me" ? String(user.id) : "all";
-    setFilters((f) => {
-      if (f.assigneeId === newAssigneeId) return f;
-      return { ...f, assigneeId: newAssigneeId };
-    });
-  }, [search, user]);
+  // Derive effective assignee synchronously from URL — no async effect needed.
+  // If ?assignee=me is present and user is loaded, the URL takes precedence.
+  // Otherwise the user's manual filter selection (filters.assigneeId) is used.
+  const assigneeFromUrl = user && new URLSearchParams(search).get("assignee") === "me"
+    ? String(user.id)
+    : null;
+  const effectiveAssigneeId = assigneeFromUrl ?? filters.assigneeId;
 
   const isFullAccess = useMemo(() => {
     if (!user) return false;
@@ -771,17 +769,17 @@ export default function TasksPage() {
     if (filters.search) p.set("search", filters.search);
     if (filters.status && filters.status !== "all") p.set("status", filters.status);
     if (filters.priority && filters.priority !== "all") p.set("priority", filters.priority);
-    if (filters.assigneeId && filters.assigneeId !== "all") p.set("assigneeId", filters.assigneeId);
+    if (effectiveAssigneeId !== "all") p.set("assigneeId", effectiveAssigneeId);
     if (filters.creatorId && filters.creatorId !== "all") p.set("creatorId", filters.creatorId);
     if (filters.dueState && filters.dueState !== "all") p.set("dueState", filters.dueState);
     if (filters.dateFrom) p.set("dateFrom", filters.dateFrom);
     if (filters.dateTo) p.set("dateTo", filters.dateTo);
     p.set("limit", "200");
     return p.toString();
-  }, [filters]);
+  }, [filters, effectiveAssigneeId]);
 
   const tasksQuery = useQuery<{ tasks: TaskListItem[]; total: number }>({
-    queryKey: ["tasks", filters],
+    queryKey: ["tasks", filters, effectiveAssigneeId],
     queryFn: () => apiFetch(`${BASE}/admin/tasks?${buildQueryParams()}`),
     staleTime: 15_000,
   });
@@ -932,7 +930,7 @@ export default function TasksPage() {
             </Select>
             {isFullAccess && (
               <>
-                <Select value={filters.assigneeId} onValueChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}>
+                <Select value={effectiveAssigneeId} onValueChange={(v) => setFilters((f) => ({ ...f, assigneeId: v }))}>
                   <SelectTrigger className="h-8 text-sm w-40"><SelectValue placeholder="Assignee" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All assignees</SelectItem>
