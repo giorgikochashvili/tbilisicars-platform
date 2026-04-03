@@ -761,7 +761,13 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {filteredModels.map((m) => {
+            {(form.vehicleModelId
+              ? [
+                  ...filteredModels.filter((m) => String(m.id) === form.vehicleModelId),
+                  ...filteredModels.filter((m) => String(m.id) !== form.vehicleModelId),
+                ]
+              : filteredModels
+            ).map((m) => {
               const selected = String(form.vehicleModelId) === String(m.id);
               const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
               const cur = m.price_currency ?? "EUR";

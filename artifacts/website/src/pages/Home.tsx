@@ -454,7 +454,7 @@ export default function Home() {
                         <img
                           src={toStorageSrc(item.imageUrl)}
                           alt={item.title}
-                          className="w-full h-full object-cover object-center group-hover:brightness-110 transition-all duration-500"
+                          className="w-full h-full object-contain object-center group-hover:brightness-110 transition-all duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
