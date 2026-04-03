@@ -1,0 +1,75 @@
+#16 - Tasks Filter Fix + Progress Bar Upgrade
+
+Implement this task with minimal, safe edits. Do not refactor unrelated code and do not touch backend logic.
+
+What to fix
+
+1) Assignee filter bug in CRM Tasks
+Current issue:
+The Tasks page reads `?assignee=me` from the URL using `window.location.search` inside an effect that only depends on `user`. When navigating from `/crm/tasks?assignee=me` to `/crm/tasks`, the component can stay mounted, `user` does not change, and the effect does not re-run. The assignee filter stays stuck on the current user.
+
+Required fix:
+- In `artifacts/crm/src/pages/Tasks.tsx`, replace the current `window.location.search` + `[user]` effect pattern with Wouter `useSearch()`
+- Make the assignee filter reactive to URL query string changes
+- Behavior must be:
+  - `/crm/tasks` → assignee filter resets to `"all"` and UI shows `All assignees`
+  - `/crm/tasks?assignee=me` → assignee filter becomes current `user.id`
+- This must work:
+  - on first page load
+  - on refresh
+  - when navigating between Dashboard widget and sidebar without unmounting the page
+- Do not break any other filters
+- Do not create URL/state effect loops
+- Do not modify backend requests or task ownership logic
+
+2) Upgrade task progress bar styling
+Current issue:
+The shadcn `<Progress>` used for task progress looks flat and weak in the dark CRM design.
+
+Required fix:
+- In `artifacts/crm/src/pages/Tasks.tsx`, replace task-progress `<Progress>` usage with a small local custom component, e.g. `TaskProgressBar`
+- Keep it local to Tasks page only; do not create a global shared component unless truly necessary
+- Use div-based markup for track + fill + label
+- Clamp value safely between 0 and 100
+- Show numeric percentage label
+- Styling should feel premium in the dark CRM theme:
+  - refined dark track
+  - rounded fill
+  - smooth width transition
+  - elegant color, no harsh neon tones
+
+Color logic:
+- 0% → muted/dark
+- 1–39% → warm amber
+- 40–79% → active blue
+- 80–99% → positive emerald
+- 100% → success green
+
+3) Replace all task progress render points
+Use the new `TaskProgressBar` in:
+- task table progress column
+- task detail drawer progress section
+
+Remove old task-only `<Progress>` usage in those places only.
+
+Out of scope
+- Backend task logic
+- Task creation flow
+- Dashboard navigation behavior
+- Any unrelated CRM components/pages
+
+Dashboard note
+- Do not change Dashboard behavior unless absolutely necessary
+- `/crm/tasks?assignee=me` from the Dashboard widget must continue working as-is
+
+Relevant file
+- `artifacts/crm/src/pages/Tasks.tsx`
+
+Acceptance
+- Opening `/crm/tasks` from sidebar always shows all tasks
+- Assignee filter visibly shows `All assignees`
+- Opening `/crm/tasks?assignee=me` shows only current user tasks
+- Navigating between those two URL states works correctly without manual reset
+- Refresh respects the current URL state
+- Task table and detail drawer both show upgraded premium color-coded progress bars
+- No regressions in task filtering, counts, creation, or drawer behavior

@@ -1,0 +1,80 @@
+#16 - Tasks Page Default Assignee Filter Fix + Progress Bar Visual Upgrade
+
+What & Why
+The new CRM Tasks module is working and tasks are being created/saved correctly, but the Tasks page is confusing because the assignee filter is effectively defaulting to "me" in some flows. This makes users think tasks are missing when they are actually assigned to other team members.
+
+Also, the current Tasks progress bar styling is too flat and weak visually. It should look cleaner and more premium, similar in quality to the Fuel Level bar styling already used elsewhere in the CRM. Progress should communicate state better through refined color and polish.
+
+The correct UX is:
+- Opening the Tasks module normally from the sidebar must show all tasks by default
+- The assignee filter must default to "All assignees"
+- Only when entering from the Dashboard "My Tasks" widget should the page prefilter to the current logged-in user
+- Task progress bars should be visually improved to feel premium, clear, and consistent with the CRM dark UI
+
+Done looks like
+- Opening /crm/tasks from the sidebar shows all tasks by default
+- Assignee filter UI defaults to "All assignees"
+- Existing tasks assigned to other staff are visible immediately on normal page load
+- Clicking Dashboard "My Tasks" still opens /tasks?assignee=me and correctly filters to the current user
+- Refreshing the normal Tasks page does not silently reapply "me" unless assignee=me exists in the URL
+- Progress bars in the Tasks table and relevant task views look visually upgraded and closer in polish to the Fuel Level bar style
+- Progress uses color meaningfully instead of a dull flat bar
+- No regression in task list, filters, counts, or dashboard widget behavior
+
+Tasks
+1) Fix Tasks page default assignee filter behavior
+- Inspect Tasks page filter-state initialization logic
+- Remove any default assignee=currentUser behavior for normal page entry
+- Make assignee filter default to empty/all state unless URL query explicitly contains assignee=me or a specific assignee id
+- Keep Dashboard widget navigation behavior unchanged: it should still navigate to /tasks?assignee=me
+- Ensure the assignee dropdown label shows "All assignees" when no assignee filter is active
+- Ensure task list query params sent to backend do not include assigneeId unless a filter is actually selected
+- Ensure stats/cards and table data remain aligned with the visible filter state
+
+2) Upgrade task progress bar styling
+- Improve the visual styling of the Tasks progress bar in the table and any matching task detail usage
+- Use the Fuel Level bar as visual inspiration only; do not copy unrelated logic
+- Keep the progress bar elegant, compact, premium, and clean in the current dark CRM design
+- Improve fill color, contrast, track styling, radius, spacing, and readability
+- Progress must remain easy to read at a glance with the numeric % still visible
+
+3) Progress color behavior
+Apply meaningful progress colors so the bar feels alive and informative:
+- 0% → muted / inactive dark style
+- 1–39% → warm low-progress tone
+- 40–79% → stronger active mid-progress tone
+- 80–99% → high-progress positive tone
+- 100% → completed/success tone
+
+The exact shades should fit the current CRM palette and look refined, not loud or cheap.
+Avoid ugly harsh neon colors.
+Keep it premium and consistent with the dark UI.
+
+4) Visual consistency
+- Match existing CRM spacing, border radius, glow/shadow restraint, typography, and dark theme
+- Do not oversize the progress bar
+- Do not break mobile/table layout
+- Do not alter unrelated table columns or task logic
+
+Constraints
+- Do not change backend task ownership logic
+- Do not change task creation logic
+- Do not break Dashboard "My Tasks" widget behavior
+- Do not alter existing layout structure beyond what is necessary for this fix
+- Keep the fix scoped to Tasks filter initialization, query-param handling, and progress bar visual styling
+
+Relevant files
+- artifacts/crm/src/pages/Tasks.tsx
+- artifacts/crm/src/pages/Dashboard.tsx
+- any shared task query hook/util if used
+- any shared Progress component used by Tasks only if safe
+
+Verify
+- /crm/tasks shows all tasks by default
+- assignee dropdown shows All assignees by default
+- /crm/tasks?assignee=me shows only current user tasks
+- removing the query param returns to all tasks
+- refresh keeps expected behavior based on URL
+- progress bars visually improve in table
+- progress colors change correctly by percentage range
+- no regression in task creation, filtering, or layout
