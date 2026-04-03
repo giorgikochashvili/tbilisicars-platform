@@ -1,6 +1,6 @@
 import { Router, Request } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
-import { db, adminsTable } from "@workspace/db";
+import { db, adminsTable, auditLogsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { ForbiddenError } from "../lib/errors.js";
 import {
@@ -18,6 +18,19 @@ import {
 } from "../services/admin-tasks.service.js";
 
 const router = Router();
+
+const VALID_STATUSES = ["To Do", "In Progress", "Waiting", "Done", "Canceled"] as const;
+const VALID_PRIORITIES = ["Low", "Medium", "High", "Urgent"] as const;
+type TaskStatus = (typeof VALID_STATUSES)[number];
+type TaskPriority = (typeof VALID_PRIORITIES)[number];
+
+function isValidStatus(v: unknown): v is TaskStatus {
+  return typeof v === "string" && (VALID_STATUSES as readonly string[]).includes(v);
+}
+
+function isValidPriority(v: unknown): v is TaskPriority {
+  return typeof v === "string" && (VALID_PRIORITIES as readonly string[]).includes(v);
+}
 
 // ─── Helper: resolve staff scope ──────────────────────────────────────────────
 // Admins and managers have full access. Rental agents are scoped to own tasks.
@@ -105,12 +118,24 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
     return;
   }
 
+  const priority = body.priority !== undefined ? body.priority : "Medium";
+  if (!isValidPriority(priority)) {
+    res.status(400).json({ error: `priority must be one of: ${VALID_PRIORITIES.join(", ")}` });
+    return;
+  }
+
+  const status = body.status !== undefined ? body.status : "To Do";
+  if (!isValidStatus(status)) {
+    res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(", ")}` });
+    return;
+  }
+
   const task = await createAdminTask({
     title: body.title.trim(),
     description: typeof body.description === "string" ? body.description : null,
     assignedToId: typeof body.assignedToId === "number" ? body.assignedToId : null,
-    priority: typeof body.priority === "string" ? body.priority : "Medium",
-    status: typeof body.status === "string" ? body.status : "To Do",
+    priority,
+    status,
     progressPercent: typeof body.progressPercent === "number"
       ? Math.min(100, Math.max(0, body.progressPercent))
       : 0,
@@ -127,7 +152,7 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id ─────────────────────────────────────────────────
 
 router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   const { isFullAccess, adminId } = await resolveScope(req);
 
   const task = await getAdminTask(id, isFullAccess ? undefined : adminId);
@@ -143,7 +168,7 @@ router.get("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── PATCH /api/admin/tasks/:id ───────────────────────────────────────────────
 
 router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   const { isFullAccess, adminId } = await resolveScope(req);
 
   const body = req.body as {
@@ -159,6 +184,16 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
     relatedId?: unknown;
   };
 
+  if (body.priority !== undefined && !isValidPriority(body.priority)) {
+    res.status(400).json({ error: `priority must be one of: ${VALID_PRIORITIES.join(", ")}` });
+    return;
+  }
+
+  if (body.status !== undefined && !isValidStatus(body.status)) {
+    res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(", ")}` });
+    return;
+  }
+
   const input: UpdateTaskInput = {};
 
   if (isFullAccess) {
@@ -169,7 +204,7 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
     if (body.assignedToId !== undefined) {
       input.assignedToId = typeof body.assignedToId === "number" ? body.assignedToId : null;
     }
-    if (body.priority !== undefined) input.priority = String(body.priority);
+    if (body.priority !== undefined) input.priority = body.priority as TaskPriority;
     if (body.startDate !== undefined) {
       input.startDate = typeof body.startDate === "string" ? body.startDate : null;
     }
@@ -183,7 +218,7 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
       input.relatedId = typeof body.relatedId === "number" ? body.relatedId : null;
     }
   }
-  if (body.status !== undefined) input.status = String(body.status);
+  if (body.status !== undefined) input.status = body.status as TaskStatus;
   if (body.progressPercent !== undefined) {
     const raw = Number(body.progressPercent);
     input.progressPercent = Math.min(100, Math.max(0, isNaN(raw) ? 0 : raw));
@@ -196,12 +231,25 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── DELETE /api/admin/tasks/:id ──────────────────────────────────────────────
 
 router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { isFullAccess } = await resolveScope(req);
+  const id = parseInt(String(req.params.id), 10);
+  const { isFullAccess, adminId } = await resolveScope(req);
 
   if (!isFullAccess) {
     throw new ForbiddenError("Only admins and managers can delete tasks");
   }
+
+  const task = await getAdminTask(id);
+
+  await db.insert(auditLogsTable).values({
+    actorId: adminId,
+    entityType: "task",
+    entityId: id,
+    entityRef: task.title,
+    action: "delete",
+    summary: `Task "${task.title}" deleted`,
+    beforeData: { title: task.title, status: task.status, assignedToId: task.assignedToId },
+    afterData: null,
+  });
 
   await deleteAdminTask(id);
   res.json({ message: "Task deleted" });
@@ -210,7 +258,7 @@ router.delete("/admin/tasks/:id", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id/comments ────────────────────────────────────────
 
 router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
   const comments = await listTaskComments(id);
@@ -220,7 +268,7 @@ router.get("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 // ─── POST /api/admin/tasks/:id/comments ───────────────────────────────────────
 
 router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
 
@@ -237,7 +285,7 @@ router.post("/admin/tasks/:id/comments", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/tasks/:id/activity ────────────────────────────────────────
 
 router.get("/admin/tasks/:id/activity", requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   const { isFullAccess, adminId } = await resolveScope(req);
   await getAdminTask(id, isFullAccess ? undefined : adminId);
   const activity = await listTaskActivity(id);
