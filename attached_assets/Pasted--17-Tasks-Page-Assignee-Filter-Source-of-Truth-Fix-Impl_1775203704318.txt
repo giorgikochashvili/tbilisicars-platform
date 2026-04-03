@@ -1,0 +1,54 @@
+#17 - Tasks Page Assignee Filter – Source-of-Truth Fix
+
+Implement this as a precise follow-up to Task #16. Keep edits minimal and only in `artifacts/crm/src/pages/Tasks.tsx`.
+
+Problem
+The current effect-based sync from `useSearch()` into `filters.assigneeId` is still unreliable. On plain `/crm/tasks`, the assignee dropdown can still show the current user (`Main Admin`) instead of `All assignees`.
+
+Root cause
+The URL preset logic should not rely on `useEffect`. The effective assignee filter must be derived synchronously from the current URL during render, so the address bar is the immediate source of truth.
+
+Required fix
+
+1) Remove the effect-based URL sync
+- Remove the `useEffect` that reads `search` and calls `setFilters` for assignee preset sync.
+- Do not keep any other fallback logic that auto-writes current `user.id` into assignee filter on plain `/crm/tasks`.
+
+2) Derive assignee preset synchronously from `useSearch()`
+- Read the current query string from Wouter `useSearch()`
+- Parse whether `assignee=me` is present
+
+Derive values synchronously in render:
+- if URL has `assignee=me` and `user` exists → effectiveAssigneeId must be `String(user.id)`
+- if URL does NOT have any `assignee` preset from URL → plain `/crm/tasks` must resolve to `"all"` for the URL-driven preset case
+
+Important:
+- `/crm/tasks` must immediately show `All assignees`
+- `/crm/tasks?assignee=me` must immediately show the current user
+- Navigating between those two URLs while component stays mounted must always switch correctly
+- Refresh must also respect the current URL instantly
+
+3) Apply effectiveAssigneeId consistently
+Use the derived effective assignee value in:
+- the assignee `<Select value={...}>`
+- task query param building / `buildQueryParams()`
+- any task-fetch logic that currently depends on `filters.assigneeId` for the URL preset behavior
+
+4) Preserve manual interaction behavior
+- Normal manual selection from the assignee dropdown must still work
+- The “My Tasks” stat card interaction inside the Tasks page must still select the current user normally
+- Do not break any other filters
+
+Do not change
+- Backend
+- Dashboard widget behavior
+- Any unrelated task logic
+- Any other CRM page
+
+Acceptance
+1. Open `/crm/tasks` directly → dropdown immediately shows `All assignees`
+2. Open `/crm/tasks?assignee=me` → dropdown immediately shows current user
+3. Navigate between both URLs without unmounting → always updates correctly
+4. Refresh both URLs → each keeps correct state
+5. Manual assignee selection still works normally
+6. No regressions in counts, task creation, drawer, or other filters
