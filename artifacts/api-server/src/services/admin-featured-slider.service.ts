@@ -6,6 +6,7 @@ import {
   vehicleModelTable,
 } from "@workspace/db";
 import { eq, asc, and } from "drizzle-orm";
+import { NotFoundError } from "../lib/errors.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ export async function getSliderItem(id: number) {
   const rows = await modelJoin().where(
     eq(homepageFeaturedSliderTable.id, id),
   );
-  if (!rows[0]) throw Object.assign(new Error("Slider item not found"), { status: 404 });
+  if (!rows[0]) throw new NotFoundError("Slider item not found");
   return rows[0];
 }
 
