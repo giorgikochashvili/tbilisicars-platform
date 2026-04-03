@@ -4,7 +4,6 @@ import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
 import {
   listSliderItems,
-  getSliderItem,
   createSliderItem,
   updateSliderItem,
   deleteSliderItem,

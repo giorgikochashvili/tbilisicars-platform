@@ -5,7 +5,7 @@ import {
   brandTable,
   vehicleModelTable,
 } from "@workspace/db";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
