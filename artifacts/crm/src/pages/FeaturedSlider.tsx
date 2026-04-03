@@ -245,14 +245,14 @@ export default function FeaturedSliderPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
       });
       if (!metaRes.ok) throw new Error("Failed to get upload URL");
       const { uploadURL, objectPath } = await metaRes.json() as { uploadURL: string; objectPath: string };
       const putRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
-        headers: { "Content-Type": file.type },
+        headers: { "Content-Type": file.type || "image/jpeg" },
       });
       if (!putRes.ok) throw new Error("File upload failed");
       setForm((f) => ({ ...f, imageUrl: objectPath }));
