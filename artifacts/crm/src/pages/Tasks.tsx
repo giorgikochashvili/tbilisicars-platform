@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { format, isPast, isToday } from "date-fns";
 import {
   ClipboardList, Plus, RefreshCw, ChevronUp, ChevronDown,
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -145,6 +145,34 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(err.error ?? `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+// ─── Task Progress Bar ─────────────────────────────────────────────────────────
+
+function getProgressColor(pct: number): { fill: string; glow: string } {
+  if (pct === 0)   return { fill: "bg-white/10",       glow: "" };
+  if (pct < 40)    return { fill: "bg-amber-500/80",   glow: "shadow-[0_0_6px_0px_rgba(245,158,11,0.35)]" };
+  if (pct < 80)    return { fill: "bg-blue-500/85",    glow: "shadow-[0_0_6px_0px_rgba(59,130,246,0.4)]" };
+  if (pct < 100)   return { fill: "bg-emerald-500/85", glow: "shadow-[0_0_6px_0px_rgba(16,185,129,0.4)]" };
+  return              { fill: "bg-green-500",           glow: "shadow-[0_0_8px_0px_rgba(34,197,94,0.45)]" };
+}
+
+function TaskProgressBar({ value, compact = false }: { value: number; compact?: boolean }) {
+  const pct = Math.min(100, Math.max(0, value));
+  const { fill, glow } = getProgressColor(pct);
+  return (
+    <div className={cn("flex items-center gap-2", compact ? "w-full" : "")}>
+      <div className={cn("relative rounded-full overflow-hidden bg-white/[0.06] border border-white/[0.07]", compact ? "h-1.5 flex-1" : "h-2 flex-1")}>
+        <div
+          className={cn("absolute inset-y-0 left-0 rounded-full transition-all duration-500", fill, glow)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={cn("font-medium tabular-nums text-right shrink-0", compact ? "text-[10px] text-muted-foreground w-7" : "text-[11px] text-primary/90 w-8")}>
+        {pct}%
+      </span>
+    </div>
+  );
 }
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────────
@@ -571,11 +599,10 @@ function TaskDetailDrawer({
 
                 {/* Progress */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Progress</p>
-                    <span className="text-xs font-bold text-primary">{task.progressPercent}%</span>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Progress</p>
+                  <div className="mb-3">
+                    <TaskProgressBar value={task.progressPercent} />
                   </div>
-                  <Progress value={task.progressPercent} className="h-2 mb-2" />
                   <div className="flex gap-1 flex-wrap">
                     {[0, 25, 50, 75, 100].map((v) => (
                       <Button
@@ -696,6 +723,7 @@ function TaskDetailDrawer({
 export default function TasksPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -717,11 +745,13 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (!user) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("assignee") === "me") {
-      setFilters((f) => ({ ...f, assigneeId: String(user.id) }));
-    }
-  }, [user]);
+    const params = new URLSearchParams(search);
+    const newAssigneeId = params.get("assignee") === "me" ? String(user.id) : "all";
+    setFilters((f) => {
+      if (f.assigneeId === newAssigneeId) return f;
+      return { ...f, assigneeId: newAssigneeId };
+    });
+  }, [search, user]);
 
   const isFullAccess = useMemo(() => {
     if (!user) return false;
@@ -1034,11 +1064,8 @@ export default function TasksPage() {
                             {task.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={task.progressPercent} className="h-1.5 w-16" />
-                            <span className="text-[10px] text-muted-foreground">{task.progressPercent}%</span>
-                          </div>
+                        <TableCell className="w-28">
+                          <TaskProgressBar value={task.progressPercent} compact />
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
                           {formatDate(task.startDate)}
