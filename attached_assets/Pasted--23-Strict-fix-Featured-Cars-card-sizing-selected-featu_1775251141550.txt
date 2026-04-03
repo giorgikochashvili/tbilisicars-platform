@@ -1,0 +1,157 @@
+#23 - Strict fix: Featured Cars card sizing + selected featured car first on Booking page
+
+Read carefully and follow exactly.
+This task is NOT a redesign.
+This task is NOT a refactor.
+This task is NOT a logic rewrite.
+
+Only make the two exact improvements below, in the smallest safe way.
+
+==================================================
+TASK 1 — FIX THE ACTUAL RENDERED FEATURED CARS CARD SIZE
+==================================================
+
+Problem
+The previous card sizing change did not visibly apply.
+The Featured Cars cards on the homepage are still too narrow for side-view vehicle images.
+The image still appears too dominant inside the card.
+
+Goal
+Make the actual rendered Featured Cars cards wider and slightly reduce the image area so side-view car PNGs fit naturally.
+
+Files to inspect first
+- artifacts/website/src/pages/Home.tsx
+
+Hard rules
+- Change ONLY the actual rendered Featured Cars card JSX/classes.
+- Do NOT change parent sections unless required for the card row to still scroll correctly.
+- Do NOT change hero section.
+- Do NOT change other homepage sections.
+- Do NOT change Featured Cars API usage.
+- Do NOT change click/navigation logic.
+- Do NOT create new components.
+- Do NOT refactor unrelated code.
+
+Apply these exact changes to the Featured Cars card markup:
+1. Card width:
+   Replace:
+   - w-[300px] sm:w-[340px]
+   With:
+   - w-[340px] sm:w-[400px]
+
+2. Image wrapper height:
+   Replace:
+   - h-48
+   With:
+   - h-44
+
+3. Image element:
+   Ensure the featured image uses all of these:
+   - w-full
+   - h-full
+   - object-contain
+   - object-center
+
+4. Image wrapper:
+   Ensure it keeps:
+   - overflow-hidden
+
+5. Hover behavior:
+   Remove any image zoom/scale hover effect from the featured car image.
+   Do NOT enlarge the image on hover.
+   If any hover effect remains, it must be subtle and must not affect layout or image size.
+
+6. Image background:
+   Keep the image area dark/clean so transparent PNG side-view cars look good.
+   Do NOT redesign the card colors.
+
+Verification for Task 1
+After editing, verify in the actual rendered JSX that:
+- the card class includes: w-[340px] sm:w-[400px]
+- the image wrapper includes: h-44
+- the image includes: object-contain object-center
+
+==================================================
+TASK 2 — ON BOOKING PAGE, SHOW THE CLICKED FEATURED CAR FIRST
+==================================================
+
+Problem
+When the user clicks a Featured Car CTA, the homepage already navigates into the booking flow with a vehicleModelId in the URL.
+However, on the Booking page, the selected vehicle should appear first in the available vehicle cards/list when it exists in the current results.
+
+Goal
+When vehicleModelId is present in the URL and matches one of the currently available vehicle models/cards, that matching item must be rendered first in the list.
+This is a UI ordering improvement only.
+Do NOT change business logic.
+
+Files to inspect first
+- artifacts/website/src/pages/Booking.tsx
+
+Hard rules
+- Do NOT change route structure.
+- Do NOT change how vehicleModelId is read from the URL, unless it is broken.
+- Do NOT change search logic.
+- Do NOT change availability logic.
+- Do NOT change pricing logic.
+- Do NOT change insurance/payment logic.
+- Do NOT inject fake vehicles.
+- Do NOT duplicate the selected vehicle.
+- Do NOT mutate source data in a risky way if a derived display array is enough.
+- Do NOT rewrite the booking engine.
+- Do NOT change any unrelated step of the booking flow.
+
+Required implementation
+1. Find the exact place where the available vehicle models/cards are prepared for rendering in Booking.tsx.
+2. If vehicleModelId exists in the URL and a matching available item exists in the currently rendered results:
+   - render that matching item first
+   - keep all remaining items after it in their original relative order
+3. If no matching available item exists:
+   - leave the result list unchanged
+   - do not error
+   - do not force-select unavailable data
+4. Keep the existing selected/highlighted state behavior intact.
+5. Apply this as a minimal view-layer ordering change only.
+
+Preferred implementation pattern
+- derive a new display array for rendering
+- selected match first
+- others after
+- original source array remains logically intact unless there is already a safe derived array pattern in the file
+
+Verification for Task 2
+After editing, verify:
+- with vehicleModelId present and a matching available result, that matching vehicle renders first
+- without vehicleModelId, the booking page order remains unchanged
+- with vehicleModelId present but no matching available result, the page behaves exactly as before
+
+==================================================
+ABSOLUTE DO-NOT-TOUCH LIST
+==================================================
+
+Do NOT change:
+- CRM Featured Cars module
+- upload logic
+- database schema
+- admin API
+- public Featured Cars API
+- homepage hero
+- other homepage sections
+- booking availability engine
+- booking pricing engine
+- insurance logic
+- payment logic
+- existing routing structure
+- any unrelated UI components
+
+==================================================
+OUTPUT REQUIREMENTS
+==================================================
+
+After implementation, report only:
+1. Exact files changed
+2. Exact className change made in Home.tsx
+3. Exact place in Booking.tsx where the display-order logic was applied
+4. Confirmation that no business logic, pricing logic, availability logic, API contracts, or DB schema were changed
+
+If you discover that the previous card-size change did not apply because it edited the wrong JSX block, fix the real rendered Featured Cars card block only.
+Do not make any extra changes beyond this task.
