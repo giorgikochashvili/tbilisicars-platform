@@ -170,8 +170,8 @@ export async function extractVoucherFromImage(
     });
 
     const raw = response.choices[0]?.message?.content ?? "";
-    const extracted = parseExtractionJson(raw, warnings);
-    return resolveAndBuildResult(extracted, warnings, false);
+    const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
+    return resolveAndBuildResult(extracted, warnings, parseFailed);
   } catch (err) {
     console.error("[voucher-import] AI image extraction error:", err);
     warnings.push("AI extraction failed — please fill in details manually.");
@@ -196,8 +196,8 @@ export async function extractVoucherFromText(pdfText: string): Promise<ExtractRe
     });
 
     const raw = response.choices[0]?.message?.content ?? "";
-    const extracted = parseExtractionJson(raw, warnings);
-    return resolveAndBuildResult(extracted, warnings, false);
+    const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
+    return resolveAndBuildResult(extracted, warnings, parseFailed);
   } catch (err) {
     console.error("[voucher-import] AI text extraction error:", err);
     warnings.push("AI extraction failed — please fill in details manually.");
@@ -205,17 +205,26 @@ export async function extractVoucherFromText(pdfText: string): Promise<ExtractRe
   }
 }
 
-function parseExtractionJson(raw: string, warnings: string[]): ExtractedVoucherData {
+function parseExtractionJson(
+  raw: string,
+  warnings: string[],
+): { data: ExtractedVoucherData; parseFailed: boolean } {
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       warnings.push("Could not parse AI response — please fill in details manually.");
-      return {};
+      return { data: {}, parseFailed: true };
     }
-    return JSON.parse(jsonMatch[0]) as ExtractedVoucherData;
+    const data = JSON.parse(jsonMatch[0]) as ExtractedVoucherData;
+    const hasAnyValue = Object.values(data).some((v) => v != null && v !== "");
+    if (!hasAnyValue) {
+      warnings.push("AI returned empty extraction — please fill in details manually.");
+      return { data: {}, parseFailed: true };
+    }
+    return { data, parseFailed: false };
   } catch {
     warnings.push("Could not parse AI response — please fill in details manually.");
-    return {};
+    return { data: {}, parseFailed: true };
   }
 }
 
