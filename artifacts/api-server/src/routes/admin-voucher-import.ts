@@ -6,6 +6,9 @@
  * POST /api/admin/voucher-import/confirm       — save booking with reservation code
  */
 
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
@@ -17,6 +20,23 @@ import {
   checkVoucherDuplicate,
   confirmVoucherImport,
 } from "../services/admin-voucher-import.service.js";
+
+const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
+
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "application/pdf": ".pdf",
+};
+
+async function storeVoucherFile(buffer: Buffer, mimeType: string): Promise<string> {
+  const ext = MIME_TO_EXT[mimeType] ?? ".bin";
+  const filename = randomUUID() + ext;
+  await fs.promises.mkdir(LOCAL_UPLOADS_DIR, { recursive: true });
+  await fs.promises.writeFile(path.join(LOCAL_UPLOADS_DIR, filename), buffer);
+  return `/api/storage/local-uploads/${filename}`;
+}
 
 const router: IRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -45,10 +65,18 @@ router.post(
       return;
     }
 
+    // Store the uploaded file for audit/dedup tracking
+    let objectPath: string | null = null;
+    try {
+      objectPath = await storeVoucherFile(file.buffer, mimeType);
+    } catch (storageErr) {
+      console.warn("[voucher-import] File storage failed (non-fatal):", storageErr);
+    }
+
     if (isImage) {
       const base64 = file.buffer.toString("base64");
       const result = await extractVoucherFromImage(base64, mimeType);
-      res.json(result);
+      res.json({ ...result, objectPath });
       return;
     }
 
@@ -69,19 +97,22 @@ router.post(
         result.warnings.unshift(
           "This appears to be a scanned PDF. Text could not be extracted — AI used the raw file instead. Review extracted fields carefully.",
         );
-        res.json(result);
+        res.json({ ...result, objectPath });
         return;
       }
 
       const result = await extractVoucherFromText(text);
-      res.json(result);
+      res.json({ ...result, objectPath });
     } catch (err) {
       console.error("[voucher-import] PDF parse error:", err);
       res.json({
         extracted: {},
         warnings: ["Could not read PDF content. Please fill in all booking details manually."],
         extractionFailed: true,
-        unresolvedFields: ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"],
+        unresolvedFields: ["contactFullName", "pickupLocation", "dropoffLocation", "pickupDatetime", "dropoffDatetime"],
+        resolvedPickupLocationId: null,
+        resolvedDropoffLocationId: null,
+        objectPath,
       });
     }
   },

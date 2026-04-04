@@ -23,8 +23,7 @@ export interface ExtractedVoucherData {
   broker?: string | null;
 }
 
-// Fields that are required for the confirm step — used to populate unresolvedFields[]
-const REQUIRED_FIELDS: Array<keyof ExtractedVoucherData> = [
+const REQUIRED_RAW_FIELDS: Array<keyof ExtractedVoucherData> = [
   "contactFullName",
   "pickupLocationHint",
   "dropoffLocationHint",
@@ -37,6 +36,51 @@ export interface ExtractResult {
   warnings: string[];
   extractionFailed: boolean;
   unresolvedFields: string[];
+  resolvedPickupLocationId: number | null;
+  resolvedDropoffLocationId: number | null;
+}
+
+// ─── Server-side location normalization ────────────────────────────────────────
+
+type LocationRow = { id: number; name: string; city: string | null; reservationCodePrefix: string | null };
+
+let _locationCache: LocationRow[] | null = null;
+let _locationCacheTs = 0;
+const CACHE_TTL_MS = 60_000;
+
+async function getActiveLocations(): Promise<LocationRow[]> {
+  const now = Date.now();
+  if (_locationCache && now - _locationCacheTs < CACHE_TTL_MS) return _locationCache;
+  _locationCache = await db
+    .select({
+      id: locationTable.id,
+      name: locationTable.name,
+      city: locationTable.city,
+      reservationCodePrefix: locationTable.reservationCodePrefix,
+    })
+    .from(locationTable)
+    .where(eq(locationTable.isActive, true));
+  _locationCacheTs = now;
+  return _locationCache;
+}
+
+function normalizeLocationHint(hint: string | null | undefined, locations: LocationRow[]): number | null {
+  if (!hint) return null;
+  const lower = hint.toLowerCase().trim();
+  // Exact name match
+  let match = locations.find((l) => l.name.toLowerCase() === lower);
+  if (match) return match.id;
+  // Name contains hint or hint contains name
+  match = locations.find(
+    (l) => l.name.toLowerCase().includes(lower) || lower.includes(l.name.toLowerCase()),
+  );
+  if (match) return match.id;
+  // City match
+  match = locations.find((l) => l.city && l.city.toLowerCase() === lower);
+  if (match) return match.id;
+  match = locations.find((l) => l.city && (l.city.toLowerCase().includes(lower) || lower.includes(l.city.toLowerCase())));
+  if (match) return match.id;
+  return null;
 }
 
 // ─── AI Extraction ─────────────────────────────────────────────────────────────
@@ -65,8 +109,35 @@ Rules:
 - Do NOT invent data — only extract what is clearly visible
 - Return ONLY the JSON object, no markdown, no explanation`;
 
-function computeUnresolvedFields(extracted: ExtractedVoucherData): string[] {
-  return REQUIRED_FIELDS.filter((f) => !extracted[f]);
+async function resolveAndBuildResult(
+  extracted: ExtractedVoucherData,
+  warnings: string[],
+  extractionFailed: boolean,
+): Promise<ExtractResult> {
+  const locations = await getActiveLocations();
+  const resolvedPickupLocationId = normalizeLocationHint(extracted.pickupLocationHint, locations);
+  const resolvedDropoffLocationId = normalizeLocationHint(
+    extracted.dropoffLocationHint ?? extracted.pickupLocationHint,
+    locations,
+  );
+
+  const unresolvedFields: string[] = [];
+  for (const f of REQUIRED_RAW_FIELDS) {
+    if (!extracted[f]) {
+      unresolvedFields.push(String(f));
+    }
+  }
+  if (!resolvedPickupLocationId) unresolvedFields.push("pickupLocation");
+  if (!resolvedDropoffLocationId) unresolvedFields.push("dropoffLocation");
+
+  return {
+    extracted,
+    warnings,
+    extractionFailed,
+    unresolvedFields: [...new Set(unresolvedFields)],
+    resolvedPickupLocationId,
+    resolvedDropoffLocationId,
+  };
 }
 
 export async function extractVoucherFromImage(
@@ -86,10 +157,7 @@ export async function extractVoucherFromImage(
           content: [
             {
               type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
-                detail: "high",
-              },
+              image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: "high" },
             },
             { type: "text", text: "Extract the booking data from this voucher image." },
           ],
@@ -99,21 +167,11 @@ export async function extractVoucherFromImage(
 
     const raw = response.choices[0]?.message?.content ?? "";
     const extracted = parseExtractionJson(raw, warnings);
-    return {
-      extracted,
-      warnings,
-      extractionFailed: false,
-      unresolvedFields: computeUnresolvedFields(extracted),
-    };
+    return resolveAndBuildResult(extracted, warnings, false);
   } catch (err) {
     console.error("[voucher-import] AI image extraction error:", err);
     warnings.push("AI extraction failed — please fill in details manually.");
-    return {
-      extracted: {},
-      warnings,
-      extractionFailed: true,
-      unresolvedFields: REQUIRED_FIELDS as string[],
-    };
+    return resolveAndBuildResult({}, warnings, true);
   }
 }
 
@@ -135,21 +193,11 @@ export async function extractVoucherFromText(pdfText: string): Promise<ExtractRe
 
     const raw = response.choices[0]?.message?.content ?? "";
     const extracted = parseExtractionJson(raw, warnings);
-    return {
-      extracted,
-      warnings,
-      extractionFailed: false,
-      unresolvedFields: computeUnresolvedFields(extracted),
-    };
+    return resolveAndBuildResult(extracted, warnings, false);
   } catch (err) {
     console.error("[voucher-import] AI text extraction error:", err);
     warnings.push("AI extraction failed — please fill in details manually.");
-    return {
-      extracted: {},
-      warnings,
-      extractionFailed: true,
-      unresolvedFields: REQUIRED_FIELDS as string[],
-    };
+    return resolveAndBuildResult({}, warnings, true);
   }
 }
 
@@ -160,8 +208,7 @@ function parseExtractionJson(raw: string, warnings: string[]): ExtractedVoucherD
       warnings.push("Could not parse AI response — please fill in details manually.");
       return {};
     }
-    const parsed = JSON.parse(jsonMatch[0]);
-    return parsed as ExtractedVoucherData;
+    return JSON.parse(jsonMatch[0]) as ExtractedVoucherData;
   } catch {
     warnings.push("Could not parse AI response — please fill in details manually.");
     return {};
@@ -172,8 +219,7 @@ function parseExtractionJson(raw: string, warnings: string[]): ExtractedVoucherD
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
-  existingBookingId?: number;
-  matchedOn?: string;
+  warnings: string[];
 }
 
 export async function checkVoucherDuplicate(params: {
@@ -185,6 +231,8 @@ export async function checkVoucherDuplicate(params: {
   pickupLocationId?: number | null;
 }): Promise<DuplicateCheckResult> {
   const { externalReservationCode, voucherImportRef, contactPhone, contactEmail, pickupDatetime, pickupLocationId } = params;
+  const warnings: string[] = [];
+  let isDuplicate = false;
 
   // 1. Exact external reservation code match
   if (externalReservationCode) {
@@ -192,37 +240,31 @@ export async function checkVoucherDuplicate(params: {
       .select({ id: bookingTable.id })
       .from(bookingTable)
       .where(
-        and(
-          eq(bookingTable.externalReservationCode, externalReservationCode),
-          isNull(bookingTable.deletedAt),
-        ),
+        and(eq(bookingTable.externalReservationCode, externalReservationCode), isNull(bookingTable.deletedAt)),
       )
       .limit(1);
-
     if (rows[0]) {
-      return { isDuplicate: true, existingBookingId: rows[0].id, matchedOn: "externalReservationCode" };
+      isDuplicate = true;
+      warnings.push(`Booking #${rows[0].id} already exists with this voucher reference code.`);
     }
   }
 
   // 2. Voucher import ref match (file identity)
-  if (voucherImportRef) {
+  if (!isDuplicate && voucherImportRef) {
     const rows = await db
       .select({ id: bookingTable.id })
       .from(bookingTable)
       .where(
-        and(
-          eq(bookingTable.voucherImportRef, voucherImportRef),
-          isNull(bookingTable.deletedAt),
-        ),
+        and(eq(bookingTable.voucherImportRef, voucherImportRef), isNull(bookingTable.deletedAt)),
       )
       .limit(1);
-
     if (rows[0]) {
-      return { isDuplicate: true, existingBookingId: rows[0].id, matchedOn: "voucherImportRef" };
+      isDuplicate = true;
+      warnings.push(`Booking #${rows[0].id} was already created from this file.`);
     }
   }
 
-  // 3. Soft check: same phone/email + same pickup location + same pickup day (±1 hour window)
+  // 3. Soft check: same phone/email + same pickup location + same pickup day (±1 hour)
   if (pickupDatetime && pickupLocationId && (contactPhone || contactEmail)) {
     const pickupDate = new Date(pickupDatetime);
     const windowStart = new Date(pickupDate.getTime() - 60 * 60 * 1000);
@@ -247,11 +289,14 @@ export async function checkVoucherDuplicate(params: {
       .limit(1);
 
     if (rows[0]) {
-      return { isDuplicate: true, existingBookingId: rows[0].id, matchedOn: "contactAndPickupTime" };
+      warnings.push(
+        `Possible duplicate: Booking #${rows[0].id} has the same contact and pickup time at this location.`,
+      );
+      isDuplicate = isDuplicate || true;
     }
   }
 
-  return { isDuplicate: false };
+  return { isDuplicate, warnings };
 }
 
 // ─── Reservation Code Generation ───────────────────────────────────────────────
@@ -342,7 +387,7 @@ export async function confirmVoucherImport(
     reservationCode,
     externalReservationCode: data.externalReservationCode,
     voucherImportRef: data.voucherImportRef,
-  } as any);
+  });
 
   logAudit({
     actorId,

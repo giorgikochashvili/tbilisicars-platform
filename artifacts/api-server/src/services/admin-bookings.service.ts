@@ -487,6 +487,9 @@ export async function createAdminBooking(data: {
   dropoffAddress?: string | null;
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
   paymentStatus?: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
+  reservationCode?: string | null;
+  externalReservationCode?: string | null;
+  voucherImportRef?: string | null;
 }) {
   const pickupDate = new Date(data.pickupDatetime);
   const dropoffDate = new Date(data.dropoffDatetime);

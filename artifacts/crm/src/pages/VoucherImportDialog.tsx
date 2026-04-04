@@ -260,7 +260,7 @@ export default function VoucherImportDialog({
   const [isConfirming, setIsConfirming] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [unresolvedFields, setUnresolvedFields] = useState<string[]>([]);
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [successData, setSuccessData] = useState<{
     bookingId: number;
@@ -279,7 +279,7 @@ export default function VoucherImportDialog({
     setIsConfirming(false);
     setWarnings([]);
     setUnresolvedFields([]);
-    setDuplicateWarning(null);
+    setDuplicateWarnings([]);
     setForm(EMPTY_FORM);
     setSuccessData(null);
     setSelectedFileName(null);
@@ -308,10 +308,8 @@ export default function VoucherImportDialog({
         });
         if (res.ok) {
           const dup = await res.json();
-          if (dup.isDuplicate) {
-            setDuplicateWarning(
-              `This voucher may already be imported (Booking #${dup.existingBookingId}, matched on: ${dup.matchedOn}). Review carefully before confirming.`,
-            );
+          if (dup.isDuplicate && dup.warnings?.length) {
+            setDuplicateWarnings(dup.warnings);
           }
         }
       } catch {
@@ -326,8 +324,6 @@ export default function VoucherImportDialog({
       setSelectedFileName(file.name);
       setIsExtracting(true);
 
-      const importRef = `${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}-${Date.now()}`;
-
       const formData = new FormData();
       formData.append("file", file);
 
@@ -335,6 +331,9 @@ export default function VoucherImportDialog({
       let extractWarnings: string[] = [];
       let extractionFailed = false;
       let unresolved: string[] = [];
+      let resolvedPickupLocationId: number | null = null;
+      let resolvedDropoffLocationId: number | null = null;
+      let objectPath: string | null = null;
 
       try {
         const response = await fetch(`${API_BASE}/api/admin/voucher-import/extract`, {
@@ -349,22 +348,29 @@ export default function VoucherImportDialog({
           extractWarnings = json.warnings ?? [];
           extractionFailed = json.extractionFailed ?? false;
           unresolved = json.unresolvedFields ?? [];
+          resolvedPickupLocationId = json.resolvedPickupLocationId ?? null;
+          resolvedDropoffLocationId = json.resolvedDropoffLocationId ?? null;
+          objectPath = json.objectPath ?? null;
         } else {
           extractWarnings = ["Failed to extract data from file. Please fill in details manually."];
           extractionFailed = true;
-          unresolved = ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"];
+          unresolved = ["contactFullName", "pickupLocation", "dropoffLocation", "pickupDatetime", "dropoffDatetime"];
         }
       } catch {
         extractWarnings = ["Network error during extraction. Please fill in details manually."];
         extractionFailed = true;
-        unresolved = ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"];
+        unresolved = ["contactFullName", "pickupLocation", "dropoffLocation", "pickupDatetime", "dropoffDatetime"];
       }
 
       const mapped = extractedToForm(extracted, locations, models);
+      // Server-resolved location IDs take precedence over client-side guessing
+      if (resolvedPickupLocationId) mapped.pickupLocationId = String(resolvedPickupLocationId);
+      if (resolvedDropoffLocationId) mapped.dropoffLocationId = String(resolvedDropoffLocationId);
+
       const newForm: FormState = {
         ...EMPTY_FORM,
         ...mapped,
-        voucherImportRef: importRef,
+        voucherImportRef: objectPath ?? "",
       };
 
       setForm(newForm);
@@ -382,7 +388,7 @@ export default function VoucherImportDialog({
 
       runDuplicateCheck({
         externalReservationCode: mapped.externalReservationCode || undefined,
-        voucherImportRef: importRef,
+        voucherImportRef: objectPath || undefined,
         contactPhone: mapped.contactPhone || undefined,
         contactEmail: mapped.contactEmail || undefined,
         pickupDatetime: pickupDt,
@@ -569,11 +575,15 @@ export default function VoucherImportDialog({
         {/* ── Step 2: Review ────────────────────────────────────────────────── */}
         {step === "review" && (
           <div className="space-y-4">
-            {/* Duplicate warning */}
-            {duplicateWarning && (
-              <div className="flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5 text-sm text-orange-500">
-                <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{duplicateWarning}</span>
+            {/* Duplicate warnings */}
+            {duplicateWarnings.length > 0 && (
+              <div className="flex flex-col gap-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5 text-sm text-orange-500">
+                {duplicateWarnings.map((w, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{w}</span>
+                  </div>
+                ))}
               </div>
             )}
 
