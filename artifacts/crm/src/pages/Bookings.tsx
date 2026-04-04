@@ -1093,6 +1093,11 @@ export default function BookingsPage() {
         onOpenChange={setIsVoucherImportOpen}
         locations={allLocations}
         models={allModels}
+        brands={allBrands}
+        onOpenBookingDetail={(bookingId) => {
+          setIsVoucherImportOpen(false);
+          setDetailBookingId(bookingId);
+        }}
       />
     </div>
   );

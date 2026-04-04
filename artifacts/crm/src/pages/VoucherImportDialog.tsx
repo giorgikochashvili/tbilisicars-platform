@@ -28,6 +28,7 @@ import {
   ChevronRight,
   TriangleAlert,
   X,
+  ExternalLink,
 } from "lucide-react";
 
 interface Location {
@@ -35,6 +36,11 @@ interface Location {
   name: string;
   city?: string;
   reservationCodePrefix?: string | null;
+}
+
+interface Brand {
+  id: number;
+  name: string;
 }
 
 interface VehicleModel {
@@ -49,6 +55,8 @@ interface VoucherImportDialogProps {
   onOpenChange: (open: boolean) => void;
   locations: Location[];
   models: VehicleModel[];
+  brands: Brand[];
+  onOpenBookingDetail: (bookingId: number) => void;
 }
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -85,6 +93,7 @@ interface FormState {
   pickupTime: string;
   dropoffDate: string;
   dropoffTime: string;
+  brandId: string;
   vehicleModelId: string;
   totalAmount: string;
   currency: string;
@@ -101,10 +110,7 @@ function parseIsoDate(iso: string | null | undefined): { date: string; time: str
   try {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return { date: "", time: "10:00" };
-    return {
-      date: format(d, "yyyy-MM-dd"),
-      time: format(d, "HH:mm"),
-    };
+    return { date: format(d, "yyyy-MM-dd"), time: format(d, "HH:mm") };
   } catch {
     return { date: "", time: "10:00" };
   }
@@ -122,28 +128,41 @@ function guessLocation(hint: string | null | undefined, locations: Location[]): 
   return match ? String(match.id) : "";
 }
 
-function guessModel(hint: string | null | undefined, models: VehicleModel[]): string {
-  if (!hint) return "";
+function guessModel(hint: string | null | undefined, models: VehicleModel[]): { brandId: string; modelId: string } {
+  if (!hint) return { brandId: "", modelId: "" };
   const lower = hint.toLowerCase();
-  const match = models.find((m) => m.name.toLowerCase().includes(lower) || lower.includes(m.name.toLowerCase()));
-  return match ? String(match.id) : "";
+  const match = models.find(
+    (m) => m.name.toLowerCase().includes(lower) || lower.includes(m.name.toLowerCase()),
+  );
+  if (!match) return { brandId: "", modelId: "" };
+  const brandId = match.brandId?.toString() ?? match.brand?.id?.toString() ?? "";
+  return { brandId, modelId: String(match.id) };
 }
 
-function extractedToForm(extracted: ExtractedData, locations: Location[], models: VehicleModel[]): Partial<FormState> {
+function extractedToForm(
+  extracted: ExtractedData,
+  locations: Location[],
+  models: VehicleModel[],
+): Partial<FormState> {
   const pickup = parseIsoDate(extracted.pickupDatetime);
   const dropoff = parseIsoDate(extracted.dropoffDatetime);
+  const { brandId, modelId } = guessModel(extracted.vehicleModelHint, models);
 
   return {
     contactFullName: extracted.contactFullName ?? "",
     contactEmail: extracted.contactEmail ?? "",
     contactPhone: extracted.contactPhone ?? "",
     pickupLocationId: guessLocation(extracted.pickupLocationHint, locations),
-    dropoffLocationId: guessLocation(extracted.dropoffLocationHint ?? extracted.pickupLocationHint, locations),
+    dropoffLocationId: guessLocation(
+      extracted.dropoffLocationHint ?? extracted.pickupLocationHint,
+      locations,
+    ),
     pickupDate: pickup.date,
     pickupTime: pickup.time,
     dropoffDate: dropoff.date,
     dropoffTime: dropoff.time,
-    vehicleModelId: guessModel(extracted.vehicleModelHint, models),
+    brandId,
+    vehicleModelId: modelId,
     totalAmount: extracted.totalAmount ?? "",
     currency: extracted.currency ?? "GEL",
     notes: extracted.notes ?? "",
@@ -162,6 +181,7 @@ const EMPTY_FORM: FormState = {
   pickupTime: "10:00",
   dropoffDate: "",
   dropoffTime: "10:00",
+  brandId: "",
   vehicleModelId: "",
   totalAmount: "",
   currency: "GEL",
@@ -206,10 +226,7 @@ function DateField({
               mode="single"
               selected={selected}
               onSelect={(d) => {
-                if (d) {
-                  onDateChange(format(d, "yyyy-MM-dd"));
-                  setOpen(false);
-                }
+                if (d) { onDateChange(format(d, "yyyy-MM-dd")); setOpen(false); }
               }}
               autoFocus
             />
@@ -235,11 +252,14 @@ export default function VoucherImportDialog({
   onOpenChange,
   locations,
   models,
+  brands,
+  onOpenBookingDetail,
 }: VoucherImportDialogProps) {
   const [step, setStep] = useState<"upload" | "review" | "success">("upload");
   const [isExtracting, setIsExtracting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [unresolvedFields, setUnresolvedFields] = useState<string[]>([]);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [successData, setSuccessData] = useState<{
@@ -258,6 +278,7 @@ export default function VoucherImportDialog({
     setIsExtracting(false);
     setIsConfirming(false);
     setWarnings([]);
+    setUnresolvedFields([]);
     setDuplicateWarning(null);
     setForm(EMPTY_FORM);
     setSuccessData(null);
@@ -269,12 +290,42 @@ export default function VoucherImportDialog({
     onOpenChange(v);
   };
 
+  const runDuplicateCheck = useCallback(
+    async (params: {
+      externalReservationCode?: string;
+      voucherImportRef?: string;
+      contactPhone?: string;
+      contactEmail?: string;
+      pickupDatetime?: string;
+      pickupLocationId?: number;
+    }) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/voucher-import/duplicate-check`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        if (res.ok) {
+          const dup = await res.json();
+          if (dup.isDuplicate) {
+            setDuplicateWarning(
+              `This voucher may already be imported (Booking #${dup.existingBookingId}, matched on: ${dup.matchedOn}). Review carefully before confirming.`,
+            );
+          }
+        }
+      } catch {
+        // duplicate check failure is non-blocking
+      }
+    },
+    [],
+  );
+
   const processFile = useCallback(
     async (file: File) => {
       setSelectedFileName(file.name);
       setIsExtracting(true);
 
-      // Generate a simple import ref from filename + timestamp
       const importRef = `${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}-${Date.now()}`;
 
       const formData = new FormData();
@@ -282,6 +333,8 @@ export default function VoucherImportDialog({
 
       let extracted: ExtractedData = {};
       let extractWarnings: string[] = [];
+      let extractionFailed = false;
+      let unresolved: string[] = [];
 
       try {
         const response = await fetch(`${API_BASE}/api/admin/voucher-import/extract`, {
@@ -294,56 +347,59 @@ export default function VoucherImportDialog({
           const json = await response.json();
           extracted = json.extracted ?? {};
           extractWarnings = json.warnings ?? [];
+          extractionFailed = json.extractionFailed ?? false;
+          unresolved = json.unresolvedFields ?? [];
         } else {
           extractWarnings = ["Failed to extract data from file. Please fill in details manually."];
+          extractionFailed = true;
+          unresolved = ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"];
         }
       } catch {
         extractWarnings = ["Network error during extraction. Please fill in details manually."];
+        extractionFailed = true;
+        unresolved = ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"];
       }
 
       const mapped = extractedToForm(extracted, locations, models);
-      setForm((prev) => ({
-        ...prev,
+      const newForm: FormState = {
+        ...EMPTY_FORM,
         ...mapped,
         voucherImportRef: importRef,
-        externalReservationCode: mapped.externalReservationCode ?? prev.externalReservationCode,
-      }));
+      };
+
+      setForm(newForm);
       setWarnings(extractWarnings);
+      setUnresolvedFields(unresolved);
       setIsExtracting(false);
       setStep("review");
 
-      // Check duplicate after transitioning to review
-      if (mapped.externalReservationCode || importRef) {
-        try {
-          const dupRes = await fetch(`${API_BASE}/api/admin/voucher-import/duplicate-check`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              externalReservationCode: mapped.externalReservationCode || null,
-              voucherImportRef: importRef,
-            }),
-          });
-          if (dupRes.ok) {
-            const dup = await dupRes.json();
-            if (dup.isDuplicate) {
-              setDuplicateWarning(
-                `This voucher may already be imported (Booking #${dup.existingBookingId}). Review carefully before confirming.`,
-              );
-            }
-          }
-        } catch {
-          // duplicate check failure is non-blocking
-        }
-      }
+      // Async duplicate check
+      const pickupLocId = mapped.pickupLocationId ? parseInt(mapped.pickupLocationId) : undefined;
+      const pickupDt =
+        mapped.pickupDate && mapped.pickupTime
+          ? new Date(`${mapped.pickupDate}T${mapped.pickupTime}:00`).toISOString()
+          : undefined;
+
+      runDuplicateCheck({
+        externalReservationCode: mapped.externalReservationCode || undefined,
+        voucherImportRef: importRef,
+        contactPhone: mapped.contactPhone || undefined,
+        contactEmail: mapped.contactEmail || undefined,
+        pickupDatetime: pickupDt,
+        pickupLocationId: pickupLocId,
+      });
     },
-    [locations, models],
+    [locations, models, runDuplicateCheck],
   );
 
   const handleFileSelect = (file: File) => {
     const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
     if (!allowed.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|pdf)$/i)) {
-      toast({ title: "Unsupported file", description: "Please upload a JPEG, PNG, WebP, or PDF file.", variant: "destructive" });
+      toast({
+        title: "Unsupported file",
+        description: "Please upload a JPEG, PNG, WebP, or PDF file.",
+        variant: "destructive",
+      });
       return;
     }
     processFile(file);
@@ -364,6 +420,15 @@ export default function VoucherImportDialog({
 
   const selectedPickupLocation = locations.find((l) => String(l.id) === form.pickupLocationId);
   const pickupHasPrefix = !!selectedPickupLocation?.reservationCodePrefix;
+
+  const filteredModels =
+    form.brandId && form.brandId !== "any"
+      ? models.filter(
+          (m) =>
+            m.brandId?.toString() === form.brandId ||
+            m.brand?.id?.toString() === form.brandId,
+        )
+      : models;
 
   const requiredFieldsMissing =
     !form.contactFullName.trim() ||
@@ -405,7 +470,11 @@ export default function VoucherImportDialog({
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Unknown error" }));
-        toast({ title: "Import failed", description: err.error || "Failed to create booking", variant: "destructive" });
+        toast({
+          title: "Import failed",
+          description: err.error || "Failed to create booking",
+          variant: "destructive",
+        });
         setIsConfirming(false);
         return;
       }
@@ -418,8 +487,12 @@ export default function VoucherImportDialog({
       });
       setStep("success");
       queryClient.invalidateQueries();
-    } catch (err) {
-      toast({ title: "Network error", description: "Could not reach server. Please try again.", variant: "destructive" });
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach server. Please try again.",
+        variant: "destructive",
+      });
       setIsConfirming(false);
     }
   };
@@ -496,21 +569,29 @@ export default function VoucherImportDialog({
         {/* ── Step 2: Review ────────────────────────────────────────────────── */}
         {step === "review" && (
           <div className="space-y-4">
-            {/* Warnings */}
-            {(warnings.length > 0 || duplicateWarning) && (
-              <div className="space-y-2">
-                {duplicateWarning && (
-                  <div className="flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5 text-sm text-orange-500">
-                    <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{duplicateWarning}</span>
-                  </div>
-                )}
-                {warnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 text-sm text-amber-600">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{w}</span>
-                  </div>
-                ))}
+            {/* Duplicate warning */}
+            {duplicateWarning && (
+              <div className="flex items-start gap-2 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2.5 text-sm text-orange-500">
+                <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{duplicateWarning}</span>
+              </div>
+            )}
+
+            {/* Extraction warnings */}
+            {warnings.map((w, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 text-sm text-amber-600">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{w}</span>
+              </div>
+            ))}
+
+            {/* Unresolved fields notice */}
+            {unresolvedFields.length > 0 && (
+              <div className="flex items-start gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2.5 text-sm text-blue-400">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Could not extract: {unresolvedFields.join(", ")}. Please fill these in before confirming.
+                </span>
               </div>
             )}
 
@@ -519,8 +600,7 @@ export default function VoucherImportDialog({
               <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-500">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  The selected pickup location has no reservation code prefix configured.
-                  Please set a prefix in Locations settings, or choose a different location.
+                  The selected pickup location has no reservation code prefix. Configure a prefix in Locations settings before importing.
                 </span>
               </div>
             )}
@@ -564,7 +644,10 @@ export default function VoucherImportDialog({
                 <Label className="text-xs">
                   Pickup Location <span className="text-destructive">*</span>
                 </Label>
-                <Select value={form.pickupLocationId} onValueChange={(v) => setField("pickupLocationId", v)}>
+                <Select
+                  value={form.pickupLocationId}
+                  onValueChange={(v) => setField("pickupLocationId", v)}
+                >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="Select location…" />
                   </SelectTrigger>
@@ -584,7 +667,10 @@ export default function VoucherImportDialog({
                 <Label className="text-xs">
                   Dropoff Location <span className="text-destructive">*</span>
                 </Label>
-                <Select value={form.dropoffLocationId} onValueChange={(v) => setField("dropoffLocationId", v)}>
+                <Select
+                  value={form.dropoffLocationId}
+                  onValueChange={(v) => setField("dropoffLocationId", v)}
+                >
                   <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder="Select location…" />
                   </SelectTrigger>
@@ -615,20 +701,45 @@ export default function VoucherImportDialog({
               />
             </div>
 
-            {/* Vehicle model */}
-            <div className="grid gap-1.5">
-              <Label className="text-xs">Vehicle Model</Label>
-              <Select value={form.vehicleModelId || "none"} onValueChange={(v) => setField("vehicleModelId", v === "none" ? "" : v)}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Select model (optional)…" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Not specified</SelectItem>
-                  {models.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Brand + Model (brand-filtered) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Brand</Label>
+                <Select
+                  value={form.brandId || "any"}
+                  onValueChange={(v) => {
+                    setField("brandId", v === "any" ? "" : v);
+                    setField("vehicleModelId", "");
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Any brand…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any brand</SelectItem>
+                    {brands.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Vehicle Model</Label>
+                <Select
+                  value={form.vehicleModelId || "none"}
+                  onValueChange={(v) => setField("vehicleModelId", v === "none" ? "" : v)}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Not specified…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not specified</SelectItem>
+                    {filteredModels.map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Amount + Currency */}
@@ -645,9 +756,7 @@ export default function VoucherImportDialog({
               <div className="grid gap-1.5">
                 <Label className="text-xs">Currency</Label>
                 <Select value={form.currency} onValueChange={(v) => setField("currency", v)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="GEL">GEL</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
@@ -658,9 +767,7 @@ export default function VoucherImportDialog({
               <div className="grid gap-1.5">
                 <Label className="text-xs">Status</Label>
                 <Select value={form.status} onValueChange={(v) => setField("status", v)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="CONFIRMED">Confirmed</SelectItem>
@@ -674,9 +781,7 @@ export default function VoucherImportDialog({
               <div className="grid gap-1.5">
                 <Label className="text-xs">Payment Status</Label>
                 <Select value={form.paymentStatus} onValueChange={(v) => setField("paymentStatus", v)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UNPAID">Unpaid</SelectItem>
                     <SelectItem value="HALF">Partial</SelectItem>
@@ -730,9 +835,7 @@ export default function VoucherImportDialog({
             </div>
             <div className="text-center">
               <p className="font-semibold text-lg">Booking Created</p>
-              <p className="text-muted-foreground text-sm mt-1">
-                {successData.contactFullName}
-              </p>
+              <p className="text-muted-foreground text-sm mt-1">{successData.contactFullName}</p>
             </div>
             <div className="flex items-center gap-3 bg-card border border-border/40 rounded-xl px-5 py-4">
               <div className="text-center">
@@ -747,6 +850,17 @@ export default function VoucherImportDialog({
                 <p className="font-bold text-base">#{successData.bookingId}</p>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                handleClose(false);
+                onOpenBookingDetail(successData.bookingId);
+              }}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open Booking Detail
+            </Button>
           </div>
         )}
 
@@ -759,17 +873,10 @@ export default function VoucherImportDialog({
 
           {step === "review" && (
             <>
-              <Button
-                variant="outline"
-                onClick={() => { reset(); }}
-                disabled={isConfirming}
-              >
+              <Button variant="outline" onClick={() => reset()} disabled={isConfirming}>
                 <X className="w-4 h-4 mr-1.5" /> Start Over
               </Button>
-              <Button
-                onClick={handleConfirm}
-                disabled={confirmDisabled}
-              >
+              <Button onClick={handleConfirm} disabled={confirmDisabled}>
                 {isConfirming ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing…</>
                 ) : (
@@ -781,12 +888,8 @@ export default function VoucherImportDialog({
 
           {step === "success" && (
             <>
-              <Button variant="outline" onClick={() => reset()}>
-                Import Another
-              </Button>
-              <Button onClick={() => handleClose(false)}>
-                Done
-              </Button>
+              <Button variant="outline" onClick={() => reset()}>Import Another</Button>
+              <Button onClick={() => handleClose(false)}>Done</Button>
             </>
           )}
         </DialogFooter>

@@ -10,6 +10,7 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
+import { ValidationError } from "../lib/errors.js";
 import {
   extractVoucherFromImage,
   extractVoucherFromText,
@@ -57,11 +58,10 @@ router.post(
       const pdfModule = await import("pdf-parse");
       const pdfParse = (pdfModule as any).default ?? pdfModule;
       const parsed = await pdfParse(file.buffer);
-      const text = parsed.text?.trim() ?? "";
+      const text = (parsed.text ?? "").trim();
 
       if (text.length < 30) {
-        // Likely a scanned PDF — fall back to image vision using first page as PNG
-        // We don't have a PDF-to-image library; send what we have with a warning
+        // Likely a scanned PDF — fall back to image vision
         const result = await extractVoucherFromImage(
           file.buffer.toString("base64"),
           "application/pdf",
@@ -77,10 +77,11 @@ router.post(
       res.json(result);
     } catch (err) {
       console.error("[voucher-import] PDF parse error:", err);
-      // Never block — return empty extraction with warning
       res.json({
         extracted: {},
         warnings: ["Could not read PDF content. Please fill in all booking details manually."],
+        extractionFailed: true,
+        unresolvedFields: ["contactFullName", "pickupLocationHint", "dropoffLocationHint", "pickupDatetime", "dropoffDatetime"],
       });
     }
   },
@@ -89,12 +90,30 @@ router.post(
 // ─── POST /api/admin/voucher-import/duplicate-check ──────────────────────────
 
 router.post("/admin/voucher-import/duplicate-check", ...canManage, async (req, res) => {
-  const { externalReservationCode, voucherImportRef } = req.body as {
+  const {
+    externalReservationCode,
+    voucherImportRef,
+    contactPhone,
+    contactEmail,
+    pickupDatetime,
+    pickupLocationId,
+  } = req.body as {
     externalReservationCode?: string | null;
     voucherImportRef?: string | null;
+    contactPhone?: string | null;
+    contactEmail?: string | null;
+    pickupDatetime?: string | null;
+    pickupLocationId?: number | null;
   };
 
-  const result = await checkVoucherDuplicate(externalReservationCode, voucherImportRef);
+  const result = await checkVoucherDuplicate({
+    externalReservationCode,
+    voucherImportRef,
+    contactPhone,
+    contactEmail,
+    pickupDatetime,
+    pickupLocationId,
+  });
   res.json(result);
 });
 
@@ -142,31 +161,38 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
     return;
   }
 
-  const actorId = req.session.adminId!;
+  try {
+    const actorId = req.session.adminId!;
+    const result = await confirmVoucherImport(
+      {
+        contactFullName: contactFullName.trim(),
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+        pickupLocationId: pickupLocId,
+        dropoffLocationId: dropoffLocId,
+        pickupDatetime,
+        dropoffDatetime,
+        vehicleModelId: vehicleModelId ? parseInt(String(vehicleModelId), 10) : null,
+        totalAmount: totalAmount || null,
+        currency: currency || "GEL",
+        notes: notes || null,
+        broker: broker || null,
+        externalReservationCode: externalReservationCode || null,
+        voucherImportRef: voucherImportRef || null,
+        status: status || "CONFIRMED",
+        paymentStatus: paymentStatus || "PREPAID",
+      },
+      actorId,
+    );
 
-  const result = await confirmVoucherImport(
-    {
-      contactFullName: contactFullName.trim(),
-      contactEmail: contactEmail || null,
-      contactPhone: contactPhone || null,
-      pickupLocationId: pickupLocId,
-      dropoffLocationId: dropoffLocId,
-      pickupDatetime,
-      dropoffDatetime,
-      vehicleModelId: vehicleModelId ? parseInt(String(vehicleModelId), 10) : null,
-      totalAmount: totalAmount || null,
-      currency: currency || "GEL",
-      notes: notes || null,
-      broker: broker || null,
-      externalReservationCode: externalReservationCode || null,
-      voucherImportRef: voucherImportRef || null,
-      status: status || "CONFIRMED",
-      paymentStatus: paymentStatus || "PREPAID",
-    },
-    actorId,
-  );
-
-  res.status(201).json(result);
+    res.status(201).json(result);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: (err as Error).message });
+      return;
+    }
+    throw err;
+  }
 });
 
 export default router;
