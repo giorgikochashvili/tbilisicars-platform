@@ -19,6 +19,7 @@ export interface ExtractedVoucherData {
   totalAmount?: string | null;
   currency?: string | null;
   externalReservationCode?: string | null;
+  flightNumber?: string | null;
   notes?: string | null;
   broker?: string | null;
 }
@@ -100,6 +101,7 @@ Return a JSON object with these fields (all optional/nullable):
 - totalAmount: string — numeric total amount as string
 - currency: string — 3-letter currency code (e.g. GEL, USD, EUR)
 - externalReservationCode: string — voucher/booking reference from the document
+- flightNumber: string — flight number (e.g. TK248, W64420) from arrival/departure info or notes
 - notes: string — any other relevant info
 - broker: string — travel agency or broker name if present
 
@@ -361,6 +363,7 @@ export interface ConfirmVoucherImportData {
   totalAmount?: string | null;
   currency?: string | null;
   notes?: string | null;
+  flightNumber?: string | null;
   broker?: string | null;
   externalReservationCode?: string | null;
   voucherImportRef?: string | null;
@@ -375,6 +378,10 @@ export async function confirmVoucherImport(
 ) {
   const reservationCode = await generateReservationCode(data.pickupLocationId);
 
+  // Merge flightNumber into notes since the bookings table has no separate flight_number column in V1
+  const flightPrefix = data.flightNumber ? `Flight: ${data.flightNumber}` : null;
+  const mergedNotes = [flightPrefix, data.notes].filter(Boolean).join("\n") || null;
+
   const booking = await createAdminBooking({
     contactFullName: data.contactFullName,
     contactEmail: data.contactEmail,
@@ -386,7 +393,7 @@ export async function confirmVoucherImport(
     vehicleModelId: data.vehicleModelId,
     totalAmount: data.totalAmount,
     currency: data.currency,
-    notes: data.notes,
+    notes: mergedNotes,
     broker: data.broker,
     source: "voucher",
     status: data.status ?? "CONFIRMED",

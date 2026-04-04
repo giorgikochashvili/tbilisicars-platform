@@ -25,6 +25,7 @@ export async function createAdminLocation(data: {
   longitude?: string | null;
   locationType?: "meet_and_greet" | "rental_office";
   isActive?: boolean;
+  reservationCodePrefix?: string | null;
 }) {
   const [row] = await db.insert(locationTable).values(data as any).returning();
   return row!;
@@ -41,6 +42,7 @@ export async function updateAdminLocation(
     longitude: string | null;
     locationType: "meet_and_greet" | "rental_office";
     isActive: boolean;
+    reservationCodePrefix: string | null;
   }>,
 ) {
   const [row] = await db

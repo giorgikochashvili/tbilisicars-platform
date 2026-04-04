@@ -79,6 +79,7 @@ interface ExtractedData {
   totalAmount?: string | null;
   currency?: string | null;
   externalReservationCode?: string | null;
+  flightNumber?: string | null;
   notes?: string | null;
   broker?: string | null;
 }
@@ -98,6 +99,7 @@ interface FormState {
   totalAmount: string;
   currency: string;
   notes: string;
+  flightNumber: string;
   broker: string;
   externalReservationCode: string;
   voucherImportRef: string;
@@ -166,6 +168,7 @@ function extractedToForm(
     totalAmount: extracted.totalAmount ?? "",
     currency: extracted.currency ?? "GEL",
     notes: extracted.notes ?? "",
+    flightNumber: extracted.flightNumber ?? "",
     broker: extracted.broker ?? "",
     externalReservationCode: extracted.externalReservationCode ?? "",
   };
@@ -186,6 +189,7 @@ const EMPTY_FORM: FormState = {
   totalAmount: "",
   currency: "GEL",
   notes: "",
+  flightNumber: "",
   broker: "",
   externalReservationCode: "",
   voucherImportRef: "",
@@ -465,6 +469,7 @@ export default function VoucherImportDialog({
         totalAmount: form.totalAmount || null,
         currency: form.currency || "GEL",
         notes: form.notes || null,
+        flightNumber: form.flightNumber || null,
         broker: form.broker || null,
         externalReservationCode: form.externalReservationCode || null,
         voucherImportRef: form.voucherImportRef || null,
@@ -817,15 +822,26 @@ export default function VoucherImportDialog({
               </div>
             </div>
 
-            {/* External Ref */}
-            <div className="grid gap-1.5">
-              <Label className="text-xs">External Reservation Code</Label>
-              <Input
-                value={form.externalReservationCode}
-                onChange={(e) => setField("externalReservationCode", e.target.value)}
-                placeholder="Voucher reference number from document"
-                className="h-9 text-sm"
-              />
+            {/* External Ref + Flight Number */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label className="text-xs">External Reservation Code</Label>
+                <Input
+                  value={form.externalReservationCode}
+                  onChange={(e) => setField("externalReservationCode", e.target.value)}
+                  placeholder="Voucher reference number from document"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Flight Number</Label>
+                <Input
+                  value={form.flightNumber}
+                  onChange={(e) => setField("flightNumber", e.target.value)}
+                  placeholder="e.g. TK248, W64420"
+                  className="h-9 text-sm"
+                />
+              </div>
             </div>
 
             {/* Notes */}

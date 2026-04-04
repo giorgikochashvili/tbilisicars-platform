@@ -468,6 +468,7 @@ export const CreateAdminLocationBody = zod.object({
   longitude: zod.string().optional(),
   locationType: zod.enum(["meet_and_greet", "rental_office"]),
   isActive: zod.boolean().optional(),
+  reservationCodePrefix: zod.string().max(10).optional(),
 });
 
 /**
@@ -508,6 +509,7 @@ export const UpdateAdminLocationBody = zod.object({
   longitude: zod.string().optional(),
   locationType: zod.enum(["meet_and_greet", "rental_office"]).optional(),
   isActive: zod.boolean().optional(),
+  reservationCodePrefix: zod.string().max(10).nullable().optional(),
 });
 
 export const UpdateAdminLocationResponse = zod.object({
