@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-client-react";
 import { formatBookingAmount } from "@/lib/utils";
 import BookingDetail from "./BookingDetail";
+import VoucherImportDialog from "./VoucherImportDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -188,6 +189,7 @@ export default function BookingsPage() {
   const [bookingIdSearch, setBookingIdSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const [isVoucherImportOpen, setIsVoucherImportOpen] = useState(false);
   const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [booking, setBooking] = useState(EMPTY_BOOKING);
@@ -480,9 +482,14 @@ export default function BookingsPage() {
           </h2>
           <p className="text-muted-foreground">Manage reservations, deliveries, and returns</p>
         </div>
-        <Button className="shadow-sm hover-elevate" onClick={openNewBooking}>
-          <Plus className="w-4 h-4 mr-2" /> New Booking
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="shadow-sm" onClick={() => setIsVoucherImportOpen(true)}>
+            <FileUp className="w-4 h-4 mr-2" /> Import Voucher
+          </Button>
+          <Button className="shadow-sm hover-elevate" onClick={openNewBooking}>
+            <Plus className="w-4 h-4 mr-2" /> New Booking
+          </Button>
+        </div>
       </div>
 
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
@@ -1080,6 +1087,13 @@ export default function BookingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VoucherImportDialog
+        open={isVoucherImportOpen}
+        onOpenChange={setIsVoucherImportOpen}
+        locations={allLocations}
+        models={allModels}
+      />
     </div>
   );
 }

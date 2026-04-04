@@ -6,6 +6,10 @@ This pnpm workspace monorepo, built with TypeScript, aims to develop a comprehen
 
 The business vision is to provide a seamless digital experience for both customers and administrators, enhancing efficiency and customer satisfaction in the car rental market. The system is designed to be scalable, maintaining a clear separation of concerns across its different applications and shared libraries.
 
+## Key Features
+
+- **AI Voucher Import** (Task #21): `POST /api/admin/voucher-import/{extract,duplicate-check,confirm}`. Uploads image/PDF vouchers, runs GPT-4o vision/text extraction, displays 3-step review dialog in CRM Bookings page. Generates per-location reservation codes (e.g. TBS-8001) stored in `reservation_code_sequence` table. New booking fields: `reservation_code`, `external_reservation_code`, `voucher_import_ref`. New location field: `reservation_code_prefix`. Requires `multer` + `pdf-parse` in api-server.
+
 ## User Preferences
 
 The user prefers a clean, consistent coding style across the monorepo, leveraging TypeScript for strong typing and maintainability. Iterative development is preferred, with a focus on well-defined architectural patterns. The user expects clear and concise communication regarding any proposed changes or architectural decisions.

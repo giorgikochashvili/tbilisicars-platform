@@ -31,6 +31,8 @@ export const locationTable = pgTable(
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
     locationType: locationTypeEnum("location_type").notNull().default("meet_and_greet"),
     isActive: boolean("is_active").notNull().default(true),
+    // Prefix used to generate reservation codes (e.g. "TBS", "KUT", "BAT")
+    reservationCodePrefix: varchar("reservation_code_prefix", { length: 10 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

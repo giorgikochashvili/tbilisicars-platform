@@ -125,6 +125,10 @@ export const bookingTable = pgTable(
     pickupAddress: varchar("pickup_address", { length: 500 }),
     dropoffType: varchar("dropoff_type", { length: 20 }),
     dropoffAddress: varchar("dropoff_address", { length: 500 }),
+    // Voucher / reservation code fields (added for AI booking importer)
+    reservationCode: varchar("reservation_code", { length: 30 }),
+    externalReservationCode: varchar("external_reservation_code", { length: 100 }),
+    voucherImportRef: varchar("voucher_import_ref", { length: 200 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -257,6 +261,18 @@ export const bookingHandoverTable = pgTable(
     index("idx_booking_handover_booking_id").on(t.bookingId),
     index("idx_booking_handover_type").on(t.handoverType),
   ],
+);
+
+// ─── Reservation Code Sequence ────────────────────────────────────────────────
+// Per-prefix auto-increment counter used by the AI voucher importer to generate
+// unique reservation codes (e.g. TBS-8001, TBS-8002, ...).
+
+export const reservationCodeSequenceTable = pgTable(
+  "reservation_code_sequence",
+  {
+    prefix: varchar("prefix", { length: 10 }).primaryKey(),
+    nextVal: integer("next_val").notNull().default(8001),
+  },
 );
 
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
