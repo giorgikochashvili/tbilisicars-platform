@@ -1,0 +1,52 @@
+Revise the plan with these exact corrections before Build. Keep the feature scope the same. Do not expand scope. Only tighten safety and precision.
+
+# Required corrections
+
+1. **No silent fallback prefix**
+   If pickup location has no configured reservation code prefix, do NOT generate a fallback like `TBC`.
+   Instead:
+
+* block final confirm/create
+* show a clear validation error in the review step:
+  “Pickup location has no reservation code prefix configured.”
+  This must be treated as a configuration issue, not silently auto-fixed.
+
+2. **Extraction failure must still allow manual review flow**
+   If AI extraction fails partially or fully:
+
+* do NOT stop the workflow at upload
+* still move the user into the Review/Edit step
+* keep the uploaded file reference/objectPath
+* prefill whatever was extracted
+* leave unknown fields empty
+* show a warning that extraction failed or was partial
+  This feature must still support operator-driven manual booking creation from the uploaded voucher.
+
+3. **Prefix mapping must prefer normalized location data**
+   Do not rely only on fragile name-matching like “Airport”, “Downtown”, “Hotel”.
+   Use existing normalized location records / city / location type / location metadata if available in the project.
+   Name-matching may be used only as a one-time idempotent backfill for existing rows where prefix is null.
+   The exact supported prefixes remain:
+
+* TBI, TBD, TBH
+* KUT, KTD, KTH
+* BAT, BATD, BATH
+
+4. **Reservation Manager access must be explicitly preserved**
+   This feature is for:
+
+* Admin
+* Reservation Manager
+  Do not assume current middleware automatically allows Reservation Manager.
+  Check existing permission/role logic and implement access so Reservation Manager can use the feature safely, without opening it to unrelated roles.
+
+5. **PDF parsing dependency must be handled explicitly**
+   Do not leave PDF parsing as an ambiguous “check first” step.
+   If `pdf-parse` is not already available, add the minimal dependency required for PDF text extraction for this feature.
+   If PDF text extraction still fails for a specific file, fall back to partial/manual review flow, not total failure.
+
+6. **Confirm step must require valid pickup location selection**
+   Internal reservationCode generation must only happen after the operator has a valid normalized pickup location selected.
+   Do not generate reservationCode from raw location text.
+
+Keep everything else in the plan unchanged. Return the revised plan only.
