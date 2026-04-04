@@ -2744,6 +2744,9 @@ components:
           enum: [meet_and_greet, rental_office]
         isActive:
           type: boolean
+        reservationCodePrefix:
+          type: ["string", "null"]
+          description: Short prefix used to generate reservation codes (e.g. TBS, KUT, BAT)
         createdAt:
           type: string
           format: date-time
@@ -4127,6 +4130,18 @@ components:
           type: string
         deposit:
           type: string
+        reservationCode:
+          type: string
+          nullable: true
+          description: Auto-generated reservation code (leave null to auto-generate)
+        externalReservationCode:
+          type: string
+          nullable: true
+          description: Voucher or reference code from the external system
+        voucherImportRef:
+          type: string
+          nullable: true
+          description: Object storage path of the uploaded voucher file
       required:
         - contactFullName
         - pickupLocationId

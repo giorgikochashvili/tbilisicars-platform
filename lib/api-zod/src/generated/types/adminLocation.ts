@@ -22,6 +22,8 @@ export interface AdminLocation {
   longitude?: string | null;
   locationType: AdminLocationLocationType;
   isActive: boolean;
+  /** @nullable */
+  reservationCodePrefix?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

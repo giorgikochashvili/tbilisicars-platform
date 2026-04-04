@@ -448,6 +448,7 @@ export const ListAdminLocationsResponseItem = zod.object({
   longitude: zod.string().nullish(),
   locationType: zod.enum(["meet_and_greet", "rental_office"]),
   isActive: zod.boolean(),
+  reservationCodePrefix: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -486,6 +487,7 @@ export const GetAdminLocationResponse = zod.object({
   longitude: zod.string().nullish(),
   locationType: zod.enum(["meet_and_greet", "rental_office"]),
   isActive: zod.boolean(),
+  reservationCodePrefix: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -518,6 +520,7 @@ export const UpdateAdminLocationResponse = zod.object({
   longitude: zod.string().nullish(),
   locationType: zod.enum(["meet_and_greet", "rental_office"]),
   isActive: zod.boolean(),
+  reservationCodePrefix: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1848,6 +1851,9 @@ export const CreateAdminBookingBody = zod.object({
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
+  reservationCode: zod.string().nullish(),
+  externalReservationCode: zod.string().nullish(),
+  voucherImportRef: zod.string().nullish(),
 });
 
 /**

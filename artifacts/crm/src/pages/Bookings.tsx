@@ -10,6 +10,7 @@ import {
   useListAdminModels,
   useListAdminVehicles,
   useListLocations,
+  useListAdminLocations,
 } from "@workspace/api-client-react";
 import { formatBookingAmount } from "@/lib/utils";
 import BookingDetail from "./BookingDetail";
@@ -244,6 +245,7 @@ export default function BookingsPage() {
   }, [booking.vehicleModelId]);
   const { data: vehicleData } = useListAdminVehicles(vehicleQueryParams, reqOpts);
   const { data: locations } = useListLocations(reqOpts);
+  const { data: adminLocations } = useListAdminLocations(reqOpts);
 
   const statusMutation = useUpdateAdminBookingStatus(reqOpts);
   const createMutation = useCreateAdminBooking(reqOpts);
@@ -253,6 +255,7 @@ export default function BookingsPage() {
   const meta = (data as any)?.meta;
   const allVehicles = (vehicleData as any)?.data || [];
   const allLocations = (locations as any) || [];
+  const allAdminLocations = (adminLocations as any) || [];
   const allModels = (models as any) || [];
   const allBrands = (brands as any) || [];
   const allCustomers = (customers as any)?.data || [];
@@ -1091,7 +1094,7 @@ export default function BookingsPage() {
       <VoucherImportDialog
         open={isVoucherImportOpen}
         onOpenChange={setIsVoucherImportOpen}
-        locations={allLocations}
+        locations={allAdminLocations}
         models={allModels}
         brands={allBrands}
         onOpenBookingDetail={(bookingId) => {
