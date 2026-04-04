@@ -2,13 +2,13 @@ import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -515,19 +515,19 @@ export default function VoucherImportDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={handleClose}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
             Import Voucher
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             {step === "upload" && "Upload a voucher image or PDF to automatically extract booking details."}
             {step === "review" && "Review and edit the extracted details before saving."}
             {step === "success" && "Booking created successfully."}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {/* Step indicators */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
@@ -923,8 +923,8 @@ export default function VoucherImportDialog({
               <Button onClick={() => handleClose(false)}>Done</Button>
             </>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

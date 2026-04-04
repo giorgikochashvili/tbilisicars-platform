@@ -1,153 +1,104 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Migration: 0001_location_prefix_backfill
 -- Purpose:   Idempotent ONE-TIME seeding of reservation_code_prefix for
---            existing location rows where the prefix is not yet set.
+--            existing location rows that match known named patterns.
+--
+-- IMPORTANT: Only rows matching explicit patterns below are updated.
+--            Rows that do not match are left with NULL and must be configured
+--            by an admin via the CRM Locations Settings page.
 --
 -- Prefix mapping per spec:
---   Tbilisi  — TBI (Airport / International), TBD (Downtown), TBH (Hotel)
---   Kutaisi  — KUT (Airport / International), KTD (Downtown), KTH (Hotel)
---   Batumi   — BAT (Airport / International), BATD (Downtown), BATH (Hotel)
+--   Tbilisi  — TBI (Airport/International), TBD (Downtown/City Center), TBH (Hotel)
+--   Kutaisi  — KUT (Airport/International), KTD (Downtown/City Center), KTH (Hotel)
+--   Batumi   — BAT (Airport/International), BATD (Downtown/City Center), BATH (Hotel)
 --
 -- Safety:    Every UPDATE is guarded with WHERE reservation_code_prefix IS NULL
---            so re-running this script on an already-backfilled database is safe.
---
--- Important: After this backfill, operators MUST maintain the prefix field via
---            the CRM Locations Settings page. This script covers only historical
---            rows and is not a substitute for proper location configuration.
+--            so re-running this script is always safe (idempotent).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── Tbilisi Airport / International Airport → TBI ────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'TBI'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'tbilisi'
   AND (
-    LOWER(city) = 'tbilisi'
-    AND (
-      LOWER(name) LIKE '%airport%'
-      OR LOWER(name) LIKE '%international%'
-      OR LOWER(name) LIKE '%tbi%'
-    )
+    LOWER(name) LIKE '%airport%'
+    OR LOWER(name) LIKE '%international%'
   );
 
 -- ── Tbilisi Downtown / City Center → TBD ─────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'TBD'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'tbilisi'
   AND (
-    LOWER(city) = 'tbilisi'
-    AND (
-      LOWER(name) LIKE '%downtown%'
-      OR LOWER(name) LIKE '%city center%'
-      OR LOWER(name) LIKE '%centre%'
-      OR LOWER(name) LIKE '%tbd%'
-    )
+    LOWER(name) LIKE '%downtown%'
+    OR LOWER(name) LIKE '%city center%'
+    OR LOWER(name) LIKE '%city centre%'
   );
 
 -- ── Tbilisi Hotel → TBH ──────────────────────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'TBH'
 WHERE reservation_code_prefix IS NULL
-  AND (
-    LOWER(city) = 'tbilisi'
-    AND (
-      LOWER(name) LIKE '%hotel%'
-      OR LOWER(name) LIKE '%tbh%'
-    )
-  );
-
--- ── Tbilisi (remaining / unclassified) → TBI (airport is primary) ─────────────
--- Any remaining Tbilisi location without a prefix gets TBI as the default
-UPDATE location
-SET reservation_code_prefix = 'TBI'
-WHERE reservation_code_prefix IS NULL
-  AND LOWER(city) = 'tbilisi';
+  AND LOWER(city) = 'tbilisi'
+  AND LOWER(name) LIKE '%hotel%';
 
 -- ── Kutaisi Airport / International Airport → KUT ────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'KUT'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'kutaisi'
   AND (
-    LOWER(city) = 'kutaisi'
-    AND (
-      LOWER(name) LIKE '%airport%'
-      OR LOWER(name) LIKE '%international%'
-      OR LOWER(name) LIKE '%kut%'
-    )
+    LOWER(name) LIKE '%airport%'
+    OR LOWER(name) LIKE '%international%'
   );
 
 -- ── Kutaisi Downtown / City Center → KTD ─────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'KTD'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'kutaisi'
   AND (
-    LOWER(city) = 'kutaisi'
-    AND (
-      LOWER(name) LIKE '%downtown%'
-      OR LOWER(name) LIKE '%city center%'
-      OR LOWER(name) LIKE '%centre%'
-      OR LOWER(name) LIKE '%ktd%'
-    )
+    LOWER(name) LIKE '%downtown%'
+    OR LOWER(name) LIKE '%city center%'
+    OR LOWER(name) LIKE '%city centre%'
   );
 
 -- ── Kutaisi Hotel → KTH ──────────────────────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'KTH'
 WHERE reservation_code_prefix IS NULL
-  AND (
-    LOWER(city) = 'kutaisi'
-    AND (
-      LOWER(name) LIKE '%hotel%'
-      OR LOWER(name) LIKE '%kth%'
-    )
-  );
-
--- ── Kutaisi (remaining / unclassified) → KUT (airport is primary) ─────────────
-UPDATE location
-SET reservation_code_prefix = 'KUT'
-WHERE reservation_code_prefix IS NULL
-  AND LOWER(city) = 'kutaisi';
+  AND LOWER(city) = 'kutaisi'
+  AND LOWER(name) LIKE '%hotel%';
 
 -- ── Batumi Airport / International Airport → BAT ─────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'BAT'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'batumi'
   AND (
-    LOWER(city) = 'batumi'
-    AND (
-      LOWER(name) LIKE '%airport%'
-      OR LOWER(name) LIKE '%international%'
-      OR LOWER(name) LIKE '%bat%'
-    )
+    LOWER(name) LIKE '%airport%'
+    OR LOWER(name) LIKE '%international%'
   );
 
 -- ── Batumi Downtown / City Center → BATD ─────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'BATD'
 WHERE reservation_code_prefix IS NULL
+  AND LOWER(city) = 'batumi'
   AND (
-    LOWER(city) = 'batumi'
-    AND (
-      LOWER(name) LIKE '%downtown%'
-      OR LOWER(name) LIKE '%city center%'
-      OR LOWER(name) LIKE '%centre%'
-      OR LOWER(name) LIKE '%batd%'
-    )
+    LOWER(name) LIKE '%downtown%'
+    OR LOWER(name) LIKE '%city center%'
+    OR LOWER(name) LIKE '%city centre%'
   );
 
 -- ── Batumi Hotel → BATH ───────────────────────────────────────────────────────
 UPDATE location
 SET reservation_code_prefix = 'BATH'
 WHERE reservation_code_prefix IS NULL
-  AND (
-    LOWER(city) = 'batumi'
-    AND (
-      LOWER(name) LIKE '%hotel%'
-      OR LOWER(name) LIKE '%bath%'
-    )
-  );
+  AND LOWER(city) = 'batumi'
+  AND LOWER(name) LIKE '%hotel%';
 
--- ── Batumi (remaining / unclassified) → BAT (airport is primary) ──────────────
-UPDATE location
-SET reservation_code_prefix = 'BAT'
-WHERE reservation_code_prefix IS NULL
-  AND LOWER(city) = 'batumi';
+-- Rows that do not match any pattern above will remain NULL.
+-- Admins must configure those locations manually via CRM → Locations Settings.

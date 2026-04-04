@@ -232,7 +232,7 @@ export async function checkVoucherDuplicate(params: {
   pickupDatetime?: string | null;
   pickupLocationId?: number | null;
 }): Promise<DuplicateCheckResult> {
-  const { externalReservationCode, voucherImportRef, contactPhone, contactEmail, pickupDatetime, pickupLocationId } = params;
+  const { externalReservationCode, voucherImportRef, contactPhone, contactEmail, pickupDatetime } = params;
   const warnings: string[] = [];
   let isDuplicate = false;
 
@@ -266,11 +266,11 @@ export async function checkVoucherDuplicate(params: {
     }
   }
 
-  // 3. Soft check: same phone/email + same pickup location + same pickup day (±1 hour)
-  if (pickupDatetime && pickupLocationId && (contactPhone || contactEmail)) {
+  // 3. Soft check: same phone/email + similar pickup datetime (±2 hours, no location constraint)
+  if (pickupDatetime && (contactPhone || contactEmail)) {
     const pickupDate = new Date(pickupDatetime);
-    const windowStart = new Date(pickupDate.getTime() - 60 * 60 * 1000);
-    const windowEnd = new Date(pickupDate.getTime() + 60 * 60 * 1000);
+    const windowStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+    const windowEnd = new Date(pickupDate.getTime() + 2 * 60 * 60 * 1000);
 
     const contactConditions = [];
     if (contactPhone) contactConditions.push(eq(bookingTable.contactPhone, contactPhone));
@@ -282,7 +282,6 @@ export async function checkVoucherDuplicate(params: {
       .where(
         and(
           or(...contactConditions)!,
-          eq(bookingTable.pickupLocationId, pickupLocationId),
           gte(bookingTable.pickupDatetime, windowStart),
           lte(bookingTable.pickupDatetime, windowEnd),
           isNull(bookingTable.deletedAt),
@@ -292,7 +291,7 @@ export async function checkVoucherDuplicate(params: {
 
     if (rows[0]) {
       warnings.push(
-        `Possible duplicate: Booking #${rows[0].id} has the same contact and pickup time at this location.`,
+        `Possible duplicate: Booking #${rows[0].id} has the same contact info and a similar pickup time.`,
       );
       isDuplicate = isDuplicate || true;
     }
