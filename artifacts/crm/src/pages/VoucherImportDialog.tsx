@@ -445,6 +445,7 @@ export default function VoucherImportDialog({
     !form.dropoffLocationId ||
     !form.pickupDate ||
     !form.dropoffDate ||
+    !form.brandId ||
     !form.vehicleModelId;
 
   const confirmDisabled = requiredFieldsMissing || !pickupHasPrefix || isConfirming;
@@ -719,19 +720,18 @@ export default function VoucherImportDialog({
             {/* Brand + Model (brand-filtered) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs">Brand</Label>
+                <Label className="text-xs">Brand <span className="text-red-500">*</span></Label>
                 <Select
-                  value={form.brandId || "any"}
+                  value={form.brandId || ""}
                   onValueChange={(v) => {
-                    setField("brandId", v === "any" ? "" : v);
+                    setField("brandId", v);
                     setField("vehicleModelId", "");
                   }}
                 >
                   <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Any brand…" />
+                    <SelectValue placeholder="Select brand…" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">Any brand</SelectItem>
                     {brands.map((b) => (
                       <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
                     ))}
@@ -739,7 +739,7 @@ export default function VoucherImportDialog({
                 </Select>
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-xs">Vehicle Model</Label>
+                <Label className="text-xs">Vehicle Model <span className="text-red-500">*</span></Label>
                 <Select
                   value={form.vehicleModelId || "none"}
                   onValueChange={(v) => setField("vehicleModelId", v === "none" ? "" : v)}

@@ -1,5 +1,5 @@
 import { db, bookingTable, locationTable, reservationCodeSequenceTable } from "@workspace/db";
-import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { createAdminBooking } from "./admin-bookings.service.js";
 import { logAudit } from "./audit.service.js";
@@ -318,26 +318,32 @@ export async function generateReservationCode(pickupLocationId: number): Promise
   }
 
   return await db.transaction(async (tx) => {
-    const seqRows = await tx
+    // Safe concurrent first-row creation:
+    // 1. INSERT ... ON CONFLICT DO NOTHING — safe if another concurrent request already inserted
+    // 2. SELECT FOR UPDATE — guarantees we hold a lock on the single row before incrementing
+    // 3. UPDATE nextVal + RETURNING — atomic allocation
+    await tx
+      .insert(reservationCodeSequenceTable)
+      .values({ prefix, nextVal: 8001 })
+      .onConflictDoNothing();
+
+    const [seqRow] = await tx
       .select({ nextVal: reservationCodeSequenceTable.nextVal })
       .from(reservationCodeSequenceTable)
       .where(eq(reservationCodeSequenceTable.prefix, prefix))
       .for("update");
 
-    let nextVal: number;
-
-    if (seqRows.length === 0) {
-      await tx.insert(reservationCodeSequenceTable).values({ prefix, nextVal: 8002 });
-      nextVal = 8001;
-    } else {
-      nextVal = seqRows[0]!.nextVal;
-      await tx
-        .update(reservationCodeSequenceTable)
-        .set({ nextVal: nextVal + 1 })
-        .where(eq(reservationCodeSequenceTable.prefix, prefix));
+    if (!seqRow) {
+      throw new Error(`Failed to initialize sequence for prefix "${prefix}"`);
     }
 
-    return `${prefix}${nextVal}`;
+    const allocated = seqRow.nextVal;
+    await tx
+      .update(reservationCodeSequenceTable)
+      .set({ nextVal: sql`${reservationCodeSequenceTable.nextVal} + 1` })
+      .where(eq(reservationCodeSequenceTable.prefix, prefix));
+
+    return `${prefix}${allocated}`;
   });
 }
 

@@ -112,7 +112,10 @@ router.post(
     try {
       // pdf-parse exports differ between ESM/CJS builds — use flexible destructuring
       const pdfModule = await import("pdf-parse");
-      const pdfParse = (pdfModule as any).default ?? pdfModule;
+      // pdf-parse uses CJS `export =` so the callable may be under `.default` in ESM interop
+      type PdfParseFn = (buf: Buffer) => Promise<{ text: string }>;
+      const pdfParse: PdfParseFn =
+        (pdfModule as { default?: PdfParseFn }).default ?? (pdfModule as unknown as PdfParseFn);
       const parsed = await pdfParse(file.buffer);
       const text = (parsed.text ?? "").trim();
 
