@@ -11,11 +11,12 @@ export interface ExtractedVoucherData {
   contactFullName?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
-  pickupLocationHint?: string | null;
-  dropoffLocationHint?: string | null;
+  pickupLocationRaw?: string | null;
+  dropoffLocationRaw?: string | null;
   pickupDatetime?: string | null;
   dropoffDatetime?: string | null;
-  vehicleModelHint?: string | null;
+  brandRaw?: string | null;
+  modelRaw?: string | null;
   totalAmount?: string | null;
   currency?: string | null;
   externalReservationCode?: string | null;
@@ -26,8 +27,8 @@ export interface ExtractedVoucherData {
 
 const REQUIRED_RAW_FIELDS: Array<keyof ExtractedVoucherData> = [
   "contactFullName",
-  "pickupLocationHint",
-  "dropoffLocationHint",
+  "pickupLocationRaw",
+  "dropoffLocationRaw",
   "pickupDatetime",
   "dropoffDatetime",
 ];
@@ -93,11 +94,12 @@ Return a JSON object with these fields (all optional/nullable):
 - contactFullName: string — customer's full name
 - contactEmail: string — customer email
 - contactPhone: string — customer phone number
-- pickupLocationHint: string — pickup city or location name as written on voucher
-- dropoffLocationHint: string — dropoff city or location name (if different, else same as pickup)
+- pickupLocationRaw: string — pickup city or location name exactly as written on voucher
+- dropoffLocationRaw: string — dropoff city or location name (if different, else same as pickup)
 - pickupDatetime: string — ISO 8601 datetime if determinable (YYYY-MM-DDTHH:mm:00)
 - dropoffDatetime: string — ISO 8601 datetime if determinable
-- vehicleModelHint: string — car model or category
+- brandRaw: string — car brand/make as written on voucher (e.g. Toyota, Mercedes)
+- modelRaw: string — car model/category as written on voucher (e.g. Corolla, Economy)
 - totalAmount: string — numeric total amount as string
 - currency: string — 3-letter currency code (e.g. GEL, USD, EUR)
 - externalReservationCode: string — voucher/booking reference from the document
@@ -117,9 +119,9 @@ async function resolveAndBuildResult(
   extractionFailed: boolean,
 ): Promise<ExtractResult> {
   const locations = await getActiveLocations();
-  const resolvedPickupLocationId = normalizeLocationHint(extracted.pickupLocationHint, locations);
+  const resolvedPickupLocationId = normalizeLocationHint(extracted.pickupLocationRaw, locations);
   const resolvedDropoffLocationId = normalizeLocationHint(
-    extracted.dropoffLocationHint ?? extracted.pickupLocationHint,
+    extracted.dropoffLocationRaw ?? extracted.pickupLocationRaw,
     locations,
   );
 
@@ -312,10 +314,7 @@ export async function generateReservationCode(pickupLocationId: number): Promise
 
   const prefix = locRows[0]?.reservationCodePrefix;
   if (!prefix) {
-    throw new ValidationError(
-      `Pickup location (id=${pickupLocationId}) has no reservation code prefix configured. ` +
-        `Please set a prefix in Locations settings before importing.`,
-    );
+    throw new ValidationError("Pickup location has no reservation code prefix configured.");
   }
 
   return await db.transaction(async (tx) => {

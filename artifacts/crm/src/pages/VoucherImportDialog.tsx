@@ -71,11 +71,12 @@ interface ExtractedData {
   contactFullName?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
-  pickupLocationHint?: string | null;
-  dropoffLocationHint?: string | null;
+  pickupLocationRaw?: string | null;
+  dropoffLocationRaw?: string | null;
   pickupDatetime?: string | null;
   dropoffDatetime?: string | null;
-  vehicleModelHint?: string | null;
+  brandRaw?: string | null;
+  modelRaw?: string | null;
   totalAmount?: string | null;
   currency?: string | null;
   externalReservationCode?: string | null;
@@ -130,7 +131,12 @@ function guessLocation(hint: string | null | undefined, locations: Location[]): 
   return match ? String(match.id) : "";
 }
 
-function guessModel(hint: string | null | undefined, models: VehicleModel[]): { brandId: string; modelId: string } {
+function guessModel(
+  brandRaw: string | null | undefined,
+  modelRaw: string | null | undefined,
+  models: VehicleModel[],
+): { brandId: string; modelId: string } {
+  const hint = [brandRaw, modelRaw].filter(Boolean).join(" ").trim();
   if (!hint) return { brandId: "", modelId: "" };
   const lower = hint.toLowerCase();
   const match = models.find(
@@ -148,15 +154,15 @@ function extractedToForm(
 ): Partial<FormState> {
   const pickup = parseIsoDate(extracted.pickupDatetime);
   const dropoff = parseIsoDate(extracted.dropoffDatetime);
-  const { brandId, modelId } = guessModel(extracted.vehicleModelHint, models);
+  const { brandId, modelId } = guessModel(extracted.brandRaw, extracted.modelRaw, models);
 
   return {
     contactFullName: extracted.contactFullName ?? "",
     contactEmail: extracted.contactEmail ?? "",
     contactPhone: extracted.contactPhone ?? "",
-    pickupLocationId: guessLocation(extracted.pickupLocationHint, locations),
+    pickupLocationId: guessLocation(extracted.pickupLocationRaw, locations),
     dropoffLocationId: guessLocation(
-      extracted.dropoffLocationHint ?? extracted.pickupLocationHint,
+      extracted.dropoffLocationRaw ?? extracted.pickupLocationRaw,
       locations,
     ),
     pickupDate: pickup.date,
@@ -895,7 +901,7 @@ export default function VoucherImportDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        <SheetFooter className="gap-2 sm:gap-2 mt-4">
           {step === "upload" && (
             <Button variant="outline" onClick={() => handleClose(false)}>
               Cancel
