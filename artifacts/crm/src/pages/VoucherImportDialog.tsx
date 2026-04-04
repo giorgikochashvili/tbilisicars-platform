@@ -261,6 +261,7 @@ export default function VoucherImportDialog({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [unresolvedFields, setUnresolvedFields] = useState<string[]>([]);
   const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([]);
+  const [extractedDraft, setExtractedDraft] = useState<ExtractedData | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [successData, setSuccessData] = useState<{
     bookingId: number;
@@ -280,6 +281,7 @@ export default function VoucherImportDialog({
     setWarnings([]);
     setUnresolvedFields([]);
     setDuplicateWarnings([]);
+    setExtractedDraft(null);
     setForm(EMPTY_FORM);
     setSuccessData(null);
     setSelectedFileName(null);
@@ -351,6 +353,7 @@ export default function VoucherImportDialog({
           resolvedPickupLocationId = json.resolvedPickupLocationId ?? null;
           resolvedDropoffLocationId = json.resolvedDropoffLocationId ?? null;
           objectPath = json.objectPath ?? null;
+          setExtractedDraft(extracted);
         } else {
           extractWarnings = ["Failed to extract data from file. Please fill in details manually."];
           extractionFailed = true;
@@ -441,7 +444,8 @@ export default function VoucherImportDialog({
     !form.pickupLocationId ||
     !form.dropoffLocationId ||
     !form.pickupDate ||
-    !form.dropoffDate;
+    !form.dropoffDate ||
+    !form.vehicleModelId;
 
   const confirmDisabled = requiredFieldsMissing || !pickupHasPrefix || isConfirming;
 
@@ -456,7 +460,7 @@ export default function VoucherImportDialog({
         dropoffLocationId: parseInt(form.dropoffLocationId),
         pickupDatetime: new Date(`${form.pickupDate}T${form.pickupTime}:00`).toISOString(),
         dropoffDatetime: new Date(`${form.dropoffDate}T${form.dropoffTime}:00`).toISOString(),
-        vehicleModelId: form.vehicleModelId ? parseInt(form.vehicleModelId) : null,
+        vehicleModelId: parseInt(form.vehicleModelId),
         totalAmount: form.totalAmount || null,
         currency: form.currency || "GEL",
         notes: form.notes || null,
@@ -465,6 +469,7 @@ export default function VoucherImportDialog({
         voucherImportRef: form.voucherImportRef || null,
         status: form.status,
         paymentStatus: form.paymentStatus,
+        extractedDraft: extractedDraft ?? null,
       };
 
       const res = await fetch(`${API_BASE}/api/admin/voucher-import/confirm`, {

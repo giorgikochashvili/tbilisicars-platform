@@ -351,7 +351,7 @@ export interface ConfirmVoucherImportData {
   dropoffLocationId: number;
   pickupDatetime: string;
   dropoffDatetime: string;
-  vehicleModelId?: number | null;
+  vehicleModelId: number;
   totalAmount?: string | null;
   currency?: string | null;
   notes?: string | null;
@@ -365,6 +365,7 @@ export interface ConfirmVoucherImportData {
 export async function confirmVoucherImport(
   data: ConfirmVoucherImportData,
   actorId: number,
+  extractedDraft?: ExtractedVoucherData | null,
 ) {
   const reservationCode = await generateReservationCode(data.pickupLocationId);
 
@@ -397,10 +398,12 @@ export async function confirmVoucherImport(
     action: "voucher_import",
     summary: `Voucher imported → reservation code ${reservationCode}`,
     afterData: {
+      bookingId: booking.id,
       reservationCode,
       externalReservationCode: data.externalReservationCode ?? null,
       voucherImportRef: data.voucherImportRef ?? null,
       contactFullName: data.contactFullName,
+      extractedDraft: extractedDraft ?? null,
     },
   });
 

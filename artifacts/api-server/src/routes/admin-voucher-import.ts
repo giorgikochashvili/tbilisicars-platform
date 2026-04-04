@@ -14,6 +14,7 @@ import multer from "multer";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
 import { ValidationError } from "../lib/errors.js";
+import { ObjectStorageService } from "../lib/objectStorage.js";
 import {
   extractVoucherFromImage,
   extractVoucherFromText,
@@ -22,6 +23,7 @@ import {
 } from "../services/admin-voucher-import.service.js";
 
 const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
+const objectStorageService = new ObjectStorageService();
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -30,8 +32,34 @@ const MIME_TO_EXT: Record<string, string> = {
   "application/pdf": ".pdf",
 };
 
+/**
+ * Store the uploaded voucher file using the existing storage infrastructure:
+ * - When PRIVATE_OBJECT_DIR is configured: request a presigned PUT URL from GCS,
+ *   then PUT the buffer to it, then return the normalised objectPath.
+ * - Fallback: write directly to the local-uploads directory (same path format
+ *   as the /storage/uploads/request-url local fallback).
+ */
 async function storeVoucherFile(buffer: Buffer, mimeType: string): Promise<string> {
   const ext = MIME_TO_EXT[mimeType] ?? ".bin";
+
+  if (process.env.PRIVATE_OBJECT_DIR) {
+    try {
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: buffer,
+        headers: { "Content-Type": mimeType },
+      });
+      const internalPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      return internalPath.startsWith("/objects/")
+        ? `/api/storage${internalPath}`
+        : internalPath;
+    } catch (err) {
+      console.warn("[voucher-import] GCS upload failed, falling back to local:", err);
+    }
+  }
+
+  // Local filesystem fallback (mirrors /storage/uploads/request-url local path)
   const filename = randomUUID() + ext;
   await fs.promises.mkdir(LOCAL_UPLOADS_DIR, { recursive: true });
   await fs.promises.writeFile(path.join(LOCAL_UPLOADS_DIR, filename), buffer);
@@ -168,6 +196,7 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
     voucherImportRef,
     status,
     paymentStatus,
+    extractedDraft,
   } = req.body;
 
   if (!contactFullName || typeof contactFullName !== "string" || !contactFullName.trim()) {
@@ -192,6 +221,12 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
     return;
   }
 
+  const vehicleModelIdParsed = vehicleModelId ? parseInt(String(vehicleModelId), 10) : NaN;
+  if (isNaN(vehicleModelIdParsed) || vehicleModelIdParsed <= 0) {
+    res.status(400).json({ error: "vehicleModelId is required and must be a valid vehicle model" });
+    return;
+  }
+
   try {
     const actorId = req.session.adminId!;
     const result = await confirmVoucherImport(
@@ -203,7 +238,7 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
         dropoffLocationId: dropoffLocId,
         pickupDatetime,
         dropoffDatetime,
-        vehicleModelId: vehicleModelId ? parseInt(String(vehicleModelId), 10) : null,
+        vehicleModelId: vehicleModelIdParsed,
         totalAmount: totalAmount || null,
         currency: currency || "GEL",
         notes: notes || null,
@@ -214,6 +249,7 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
         paymentStatus: paymentStatus || "PREPAID",
       },
       actorId,
+      extractedDraft ?? null,
     );
 
     res.status(201).json(result);
