@@ -1,0 +1,9 @@
+# Ignore all runtime-uploaded files; only checked-in seed assets are tracked.
+*
+!.gitignore
+!car-*.png
+!car-*.jpg
+!logo-*.png
+!logo-*.jpg
+!hyundai-*.jpg
+!toyota-*.jpg
