@@ -151,7 +151,7 @@ router.post(
         const { base64: pngBase64, mimeType: pngMime } = await pdfFirstPageToPng(file.buffer);
         const result = await extractVoucherFromImage(pngBase64, pngMime);
         result.warnings.unshift(
-          "This appears to be a scanned PDF. Text could not be extracted — AI used the raw file instead. Review extracted fields carefully.",
+          "This appears to be a scanned PDF. Text could not be extracted — AI analysed a rendered page image instead. Review extracted fields carefully.",
         );
         res.json({ ...result, objectPath });
         return;
