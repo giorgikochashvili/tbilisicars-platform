@@ -1,18 +1,22 @@
 import OpenAI from "openai";
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_BASE_URL must be set. Did you forget to provision the OpenAI AI integration?",
+const replitBaseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+const replitKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+const directKey = process.env.OPENAI_API_KEY;
+
+const replitProxyActive =
+  Boolean(replitBaseURL) &&
+  Boolean(replitKey) &&
+  !String(replitKey).startsWith("_DUMMY_");
+
+if (!replitProxyActive && !directKey) {
+  console.warn(
+    "[openai-client] No usable OpenAI credentials found. " +
+    "Set OPENAI_API_KEY, or activate the Replit OpenAI AI Integration. " +
+    "AI features will fail until a valid key is provided.",
   );
 }
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_API_KEY must be set. Did you forget to provision the OpenAI AI integration?",
-  );
-}
-
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+export const openai = replitProxyActive
+  ? new OpenAI({ apiKey: replitKey!, baseURL: replitBaseURL! })
+  : new OpenAI({ apiKey: directKey ?? "not-configured" });
