@@ -1,0 +1,76 @@
+Audit the current implementation of the AI Booking Importer (Voucher Import feature) and determine whether real AI extraction is actually implemented and working.
+
+Do NOT change any code. This is a read-only analysis task.
+
+# Goals
+
+1. Determine if OpenAI (or any AI provider) is actually called during voucher extraction.
+2. Verify whether image and PDF files are truly sent to an AI model for parsing.
+3. Identify why extraction currently returns empty fields (extractionFailed).
+
+# What to check
+
+1. **Backend service implementation**
+   Locate:
+
+* artifacts/api-server/src/services/admin-voucher-import.service.ts
+
+Check:
+
+* Is there a real call to OpenAI (or any AI provider)?
+* Look for usage of:
+
+  * lib/integrations-openai-ai-server client
+  * chat.completions / responses.create / similar
+* If found, confirm:
+
+  * which model is used (e.g. GPT-4o, vision model, etc.)
+  * what payload is sent (image base64, PDF text, etc.)
+
+2. **Image handling (critical)**
+   If voucher is an image:
+
+* Is the file converted to base64 and passed to the AI model?
+* Or is only a filename / path sent (which would NOT work)?
+
+3. **PDF handling**
+
+* Is pdf-parse actually used?
+* If not installed, confirm whether PDF extraction is effectively disabled.
+
+4. **Error handling**
+
+* Does the service catch AI errors and silently return extractionFailed: true?
+* Are real errors being swallowed instead of logged?
+
+5. **Environment variables**
+   Check whether the AI client depends on:
+
+* API key
+* base URL
+
+Confirm:
+
+* which environment variables are required
+* whether missing env would cause extraction to always fail
+
+6. **Execution path**
+   Trace the flow:
+   POST /api/admin/voucher-import/extract →
+   service →
+   AI call (or not)
+
+Confirm whether the AI call is actually reached or skipped.
+
+# Output format
+
+Return a clear structured report:
+
+* AI Extraction Status: (IMPLEMENTED / PARTIAL / NOT IMPLEMENTED)
+* Is OpenAI actually called? (YES / NO)
+* Image extraction working? (YES / NO / BROKEN)
+* PDF extraction working? (YES / NO / NOT CONFIGURED)
+* Root cause of failure (very specific)
+* Required fixes (minimal, precise)
+
+Be very explicit and technical. Do not assume — verify from code.
