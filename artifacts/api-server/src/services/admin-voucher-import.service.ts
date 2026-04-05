@@ -178,7 +178,6 @@ export async function extractVoucherFromImage(
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 1024,
-      response_format: { type: "json_object" }, // ✅ აქაც
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
         {
@@ -203,8 +202,10 @@ export async function extractVoucherFromImage(
     const raw = response.choices[0]?.message?.content ?? "";
     const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
     return resolveAndBuildResult(extracted, warnings, parseFailed);
-  } catch (err) {
-    console.error("[voucher-import] AI image extraction error:", err);
+  } catch (err: unknown) {
+    const status = (err as { status?: number })?.status;
+    const message = (err as { message?: string })?.message;
+    console.error(`[voucher-import] AI image extraction error status=${status ?? "?"} message=${message ?? String(err)}`);
     warnings.push("AI extraction failed — please fill in details manually.");
     return resolveAndBuildResult({}, warnings, true);
   }
@@ -219,7 +220,6 @@ export async function extractVoucherFromText(
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 1024,
-      response_format: { type: "json_object" }, // ✅ დაამატე ეს ხაზი
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
         {
@@ -232,8 +232,10 @@ export async function extractVoucherFromText(
     const raw = response.choices[0]?.message?.content ?? "";
     const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
     return resolveAndBuildResult(extracted, warnings, parseFailed);
-  } catch (err) {
-    console.error("[voucher-import] AI text extraction error:", err);
+  } catch (err: unknown) {
+    const status = (err as { status?: number })?.status;
+    const message = (err as { message?: string })?.message;
+    console.error(`[voucher-import] AI text extraction error status=${status ?? "?"} message=${message ?? String(err)}`);
     warnings.push("AI extraction failed — please fill in details manually.");
     return resolveAndBuildResult({}, warnings, true);
   }
