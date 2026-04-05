@@ -59,7 +59,7 @@ interface VoucherImportDialogProps {
   onOpenBookingDetail: (bookingId: number) => void;
 }
 
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const API_BASE = "";
 
 const TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
   const h = Math.floor(i / 4).toString().padStart(2, "0");
