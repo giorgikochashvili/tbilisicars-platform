@@ -8,8 +8,12 @@
 
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { randomUUID } from "crypto";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { Router, type IRouter } from "express";
+
 import multer from "multer";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
@@ -22,8 +26,32 @@ import {
   confirmVoucherImport,
 } from "../services/admin-voucher-import.service.js";
 
+const execFileAsync = promisify(execFile);
+
 const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
 const objectStorageService = new ObjectStorageService();
+
+/**
+ * Convert the first page of a PDF buffer to a PNG using `pdftoppm`.
+ * Returns { base64, mimeType } ready for the OpenAI vision API.
+ */
+async function pdfFirstPageToPng(pdfBuffer: Buffer): Promise<{ base64: string; mimeType: string }> {
+  const tmpDir = os.tmpdir();
+  const uid = randomUUID();
+  const pdfPath = path.join(tmpDir, `vc_${uid}.pdf`);
+  const pngPrefix = path.join(tmpDir, `vc_${uid}_page`);
+
+  await fs.promises.writeFile(pdfPath, pdfBuffer);
+  try {
+    await execFileAsync("pdftoppm", ["-r", "150", "-png", "-l", "1", pdfPath, pngPrefix]);
+    const pngPath = `${pngPrefix}-1.png`;
+    const pngBuffer = await fs.promises.readFile(pngPath);
+    await fs.promises.unlink(pngPath).catch(() => {});
+    return { base64: pngBuffer.toString("base64"), mimeType: "image/png" };
+  } finally {
+    await fs.promises.unlink(pdfPath).catch(() => {});
+  }
+}
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -108,23 +136,20 @@ router.post(
       return;
     }
 
-    // PDF: try pdf-parse text extraction
+    // PDF: try pdf-parse v2 text extraction
     try {
-      // pdf-parse exports differ between ESM/CJS builds — use flexible destructuring
-      const pdfModule = await import("pdf-parse");
-      // pdf-parse uses CJS `export =` so the callable may be under `.default` in ESM interop
-      type PdfParseFn = (buf: Buffer) => Promise<{ text: string }>;
-      const pdfParse: PdfParseFn =
-        (pdfModule as { default?: PdfParseFn }).default ?? (pdfModule as unknown as PdfParseFn);
-      const parsed = await pdfParse(file.buffer);
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new (PDFParse as new (opts: { data: Buffer }) => { getText: () => Promise<{ text: string }> })({ data: file.buffer });
+      const parsed = await parser.getText();
       const text = (parsed.text ?? "").trim();
+      // Count meaningful alphanumeric characters — page markers like "-- 1 of 2 --"
+      // produce raw text that is too short or contains no real booking data
+      const meaningfulChars = (text.match(/[a-zA-Z0-9]/g) ?? []).length;
 
-      if (text.length < 30) {
-        // Likely a scanned PDF — fall back to image vision
-        const result = await extractVoucherFromImage(
-          file.buffer.toString("base64"),
-          "application/pdf",
-        );
+      if (meaningfulChars < 50) {
+        // Likely a scanned/image-only PDF — convert first page to PNG then use vision AI
+        const { base64: pngBase64, mimeType: pngMime } = await pdfFirstPageToPng(file.buffer);
+        const result = await extractVoucherFromImage(pngBase64, pngMime);
         result.warnings.unshift(
           "This appears to be a scanned PDF. Text could not be extracted — AI used the raw file instead. Review extracted fields carefully.",
         );
