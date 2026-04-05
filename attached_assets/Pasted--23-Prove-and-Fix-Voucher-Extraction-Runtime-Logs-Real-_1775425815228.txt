@@ -1,0 +1,139 @@
+#23 - Prove and Fix Voucher Extraction — Runtime Logs + Real Voucher Test
+
+What & Why
+Voucher extraction still returns extractionFailed: true after the previous credentials fix. The actual runtime failure point is still not proven. We need narrow targeted logs and a self-test with a REAL voucher image/PDF against the exact same API process used by Replit Preview.
+
+Current confirmed symptom
+- CRM → Bookings → Import Voucher
+- Upload succeeds
+- UI moves to Review
+- But Review still shows:
+  "Failed to extract data from file. Please fill in details manually."
+- unresolved fields remain empty:
+  contactFullName, pickupLocation, dropoffLocation, pickupDatetime, dropoffDatetime
+- manual fallback works
+- do NOT assume whether the failure is:
+  (a) OpenAI request throwing,
+  (b) OpenAI request succeeding but returning unusable content,
+  (c) parser failure,
+  (d) stale runtime/build/workspace linkage,
+  (e) Preview not hitting the same API process being inspected
+
+Absolute rules
+- Do NOT assume the cause
+- Do NOT make speculative fixes first
+- Do NOT redesign architecture
+- Do NOT modify booking creation logic
+- Do NOT modify DB schema
+- Do NOT modify unrelated UI
+- Do NOT use a CRM form screenshot as the AI test file
+- If no real voucher file exists, STOP and ask for the exact file path instead of guessing
+- Keep endpoint contract and manual fallback behavior unchanged
+- Apply only the smallest confirmed fix after runtime proof
+
+Files in scope
+- artifacts/api-server/src/routes/admin-voucher-import.ts
+- artifacts/api-server/src/services/admin-voucher-import.service.ts
+- lib/integrations-openai-ai-server/src/client.ts
+- any workflow/run config directly affecting Preview → API routing
+- artifacts/crm/vite.config.ts if and only if needed to prove Preview API target
+
+Phase 1 — Prove Preview → API runtime alignment first
+Before any conclusion:
+1. Confirm Replit Preview CRM requests are hitting the same API process/port being debugged.
+2. Prove this from runtime evidence, not assumption.
+3. If Preview is not hitting the expected API process, identify the actual process/port/path and fix only that mismatch.
+
+Phase 2 — Add narrow temporary runtime logs only in voucher extraction flow
+Add temporary logs tagged with [voucher-import] and nowhere else.
+
+Required logs:
+1. Before OpenAI call
+- credential path selected: Replit proxy or direct OPENAI_API_KEY
+- baseURL used
+- model used
+- mimeType
+- base64 length
+
+2. After successful OpenAI response
+- whether choices[0].message.content exists
+- content type/shape if relevant
+- raw content length
+- first 300 chars of raw content
+
+3. In parseExtractionJson
+- regex matched or not
+- JSON.parse success/failure
+- non-null key count in parsed object
+
+4. In catch
+- err.name
+- err.status
+- err.message
+- err.response?.data if available
+
+Do not add noisy global logging.
+
+Phase 3 — Real self-test only
+Use a REAL voucher / reservation confirmation image or PDF with visible booking text:
+- customer name
+- pickup date/time
+- dropoff date/time
+- pickup/dropoff location
+
+If no such file exists in workspace:
+STOP and ask me for the exact file path or file upload.
+
+Then:
+1. hit the extraction endpoint against the actual running API process
+2. capture the actual server logs
+3. prove the exact failure point from those logs
+
+Do not stop at “likely cause”.
+Do not stop at static code reasoning.
+
+Phase 4 — Apply only the confirmed minimal fix
+Only after logs prove the failure point:
+- implement the smallest safe fix
+- preserve manual fallback
+- preserve response shape
+- preserve route/auth/upload flow
+- do not touch unrelated modules
+
+Possible categories may include, but are not limited to:
+- stale workspace/build/runtime not using latest code
+- unsupported OpenAI/proxy option
+- wrong credentials path at runtime
+- wrong model/runtime compatibility
+- content returned in a shape parser does not handle
+- parser failure on valid returned content
+
+But do NOT choose one until logs prove it.
+
+Phase 5 — Re-test and clean up
+After the fix:
+1. re-run the real voucher test
+2. confirm extractionFailed: false
+3. confirm extracted fields are populated when visible
+4. partial nulls are acceptable only for genuinely unreadable fields
+5. remove temporary debug logs
+6. keep only minimal permanent error logging
+
+Done looks like
+- exact runtime failure point proven from logs
+- Preview confirmed to hit the same API process being debugged
+- real voucher upload returns extractionFailed: false
+- extracted fields populate when visible on the voucher
+- manual fallback still works for unreadable files
+- no unrelated regressions
+
+Return format
+Return a short exact report with:
+1. confirmed runtime failure point
+2. whether Preview/API mismatch existed
+3. exact file(s) changed
+4. exact minimal fix applied
+5. why this fix is safe
+6. what temporary logs were added and then removed
+7. exact verification steps used
+8. exact sample successful response shape
