@@ -1,4 +1,9 @@
-import { db, bookingTable, locationTable, reservationCodeSequenceTable } from "@workspace/db";
+import {
+  db,
+  bookingTable,
+  locationTable,
+  reservationCodeSequenceTable,
+} from "@workspace/db";
 import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { createAdminBooking } from "./admin-bookings.service.js";
@@ -44,7 +49,12 @@ export interface ExtractResult {
 
 // ─── Server-side location normalization ────────────────────────────────────────
 
-type LocationRow = { id: number; name: string; city: string | null; reservationCodePrefix: string | null };
+type LocationRow = {
+  id: number;
+  name: string;
+  city: string | null;
+  reservationCodePrefix: string | null;
+};
 
 let _locationCache: LocationRow[] | null = null;
 let _locationCacheTs = 0;
@@ -52,7 +62,8 @@ const CACHE_TTL_MS = 60_000;
 
 async function getActiveLocations(): Promise<LocationRow[]> {
   const now = Date.now();
-  if (_locationCache && now - _locationCacheTs < CACHE_TTL_MS) return _locationCache;
+  if (_locationCache && now - _locationCacheTs < CACHE_TTL_MS)
+    return _locationCache;
   _locationCache = await db
     .select({
       id: locationTable.id,
@@ -66,7 +77,10 @@ async function getActiveLocations(): Promise<LocationRow[]> {
   return _locationCache;
 }
 
-function normalizeLocationHint(hint: string | null | undefined, locations: LocationRow[]): number | null {
+function normalizeLocationHint(
+  hint: string | null | undefined,
+  locations: LocationRow[],
+): number | null {
   if (!hint) return null;
   const lower = hint.toLowerCase().trim();
   // Exact name match
@@ -74,13 +88,20 @@ function normalizeLocationHint(hint: string | null | undefined, locations: Locat
   if (match) return match.id;
   // Name contains hint or hint contains name
   match = locations.find(
-    (l) => l.name.toLowerCase().includes(lower) || lower.includes(l.name.toLowerCase()),
+    (l) =>
+      l.name.toLowerCase().includes(lower) ||
+      lower.includes(l.name.toLowerCase()),
   );
   if (match) return match.id;
   // City match
   match = locations.find((l) => l.city && l.city.toLowerCase() === lower);
   if (match) return match.id;
-  match = locations.find((l) => l.city && (l.city.toLowerCase().includes(lower) || lower.includes(l.city.toLowerCase())));
+  match = locations.find(
+    (l) =>
+      l.city &&
+      (l.city.toLowerCase().includes(lower) ||
+        lower.includes(l.city.toLowerCase())),
+  );
   if (match) return match.id;
   return null;
 }
@@ -119,7 +140,10 @@ async function resolveAndBuildResult(
   extractionFailed: boolean,
 ): Promise<ExtractResult> {
   const locations = await getActiveLocations();
-  const resolvedPickupLocationId = normalizeLocationHint(extracted.pickupLocationRaw, locations);
+  const resolvedPickupLocationId = normalizeLocationHint(
+    extracted.pickupLocationRaw,
+    locations,
+  );
   const resolvedDropoffLocationId = normalizeLocationHint(
     extracted.dropoffLocationRaw ?? extracted.pickupLocationRaw,
     locations,
@@ -154,6 +178,7 @@ export async function extractVoucherFromImage(
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 1024,
+      response_format: { type: "json_object" }, // ✅ აქაც
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
         {
@@ -161,9 +186,15 @@ export async function extractVoucherFromImage(
           content: [
             {
               type: "image_url",
-              image_url: { url: `data:${mimeType};base64,${base64Image}`, detail: "high" },
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+                detail: "high",
+              },
             },
-            { type: "text", text: "Extract the booking data from this voucher image." },
+            {
+              type: "text",
+              text: "Extract the booking data from this voucher image.",
+            },
           ],
         },
       ],
@@ -179,13 +210,16 @@ export async function extractVoucherFromImage(
   }
 }
 
-export async function extractVoucherFromText(pdfText: string): Promise<ExtractResult> {
+export async function extractVoucherFromText(
+  pdfText: string,
+): Promise<ExtractResult> {
   const warnings: string[] = [];
 
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 1024,
+      response_format: { type: "json_object" }, // ✅ დაამატე ეს ხაზი
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
         {
@@ -212,18 +246,24 @@ function parseExtractionJson(
   try {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      warnings.push("Could not parse AI response — please fill in details manually.");
+      warnings.push(
+        "Could not parse AI response — please fill in details manually.",
+      );
       return { data: {}, parseFailed: true };
     }
     const data = JSON.parse(jsonMatch[0]) as ExtractedVoucherData;
     const hasAnyValue = Object.values(data).some((v) => v != null && v !== "");
     if (!hasAnyValue) {
-      warnings.push("AI returned empty extraction — please fill in details manually.");
+      warnings.push(
+        "AI returned empty extraction — please fill in details manually.",
+      );
       return { data: {}, parseFailed: true };
     }
     return { data, parseFailed: false };
   } catch {
-    warnings.push("Could not parse AI response — please fill in details manually.");
+    warnings.push(
+      "Could not parse AI response — please fill in details manually.",
+    );
     return { data: {}, parseFailed: true };
   }
 }
@@ -243,7 +283,13 @@ export async function checkVoucherDuplicate(params: {
   pickupDatetime?: string | null;
   pickupLocationId?: number | null;
 }): Promise<DuplicateCheckResult> {
-  const { externalReservationCode, voucherImportRef, contactPhone, contactEmail, pickupDatetime } = params;
+  const {
+    externalReservationCode,
+    voucherImportRef,
+    contactPhone,
+    contactEmail,
+    pickupDatetime,
+  } = params;
   const warnings: string[] = [];
   let isDuplicate = false;
 
@@ -253,12 +299,17 @@ export async function checkVoucherDuplicate(params: {
       .select({ id: bookingTable.id })
       .from(bookingTable)
       .where(
-        and(eq(bookingTable.externalReservationCode, externalReservationCode), isNull(bookingTable.deletedAt)),
+        and(
+          eq(bookingTable.externalReservationCode, externalReservationCode),
+          isNull(bookingTable.deletedAt),
+        ),
       )
       .limit(1);
     if (rows[0]) {
       isDuplicate = true;
-      warnings.push(`Booking #${rows[0].id} already exists with this voucher reference code.`);
+      warnings.push(
+        `Booking #${rows[0].id} already exists with this voucher reference code.`,
+      );
     }
   }
 
@@ -268,12 +319,17 @@ export async function checkVoucherDuplicate(params: {
       .select({ id: bookingTable.id })
       .from(bookingTable)
       .where(
-        and(eq(bookingTable.voucherImportRef, voucherImportRef), isNull(bookingTable.deletedAt)),
+        and(
+          eq(bookingTable.voucherImportRef, voucherImportRef),
+          isNull(bookingTable.deletedAt),
+        ),
       )
       .limit(1);
     if (rows[0]) {
       isDuplicate = true;
-      warnings.push(`Booking #${rows[0].id} was already created from this file.`);
+      warnings.push(
+        `Booking #${rows[0].id} was already created from this file.`,
+      );
     }
   }
 
@@ -284,8 +340,10 @@ export async function checkVoucherDuplicate(params: {
     const windowEnd = new Date(pickupDate.getTime() + 2 * 60 * 60 * 1000);
 
     const contactConditions = [];
-    if (contactPhone) contactConditions.push(eq(bookingTable.contactPhone, contactPhone));
-    if (contactEmail) contactConditions.push(eq(bookingTable.contactEmail, contactEmail));
+    if (contactPhone)
+      contactConditions.push(eq(bookingTable.contactPhone, contactPhone));
+    if (contactEmail)
+      contactConditions.push(eq(bookingTable.contactEmail, contactEmail));
 
     const rows = await db
       .select({ id: bookingTable.id })
@@ -314,7 +372,9 @@ export async function checkVoucherDuplicate(params: {
 // ─── Reservation Code Generation ───────────────────────────────────────────────
 // Format: PREFIX + sequence number (e.g. TBS8001) — no separator
 
-export async function generateReservationCode(pickupLocationId: number): Promise<string> {
+export async function generateReservationCode(
+  pickupLocationId: number,
+): Promise<string> {
   const locRows = await db
     .select({ reservationCodePrefix: locationTable.reservationCodePrefix })
     .from(locationTable)
@@ -323,7 +383,9 @@ export async function generateReservationCode(pickupLocationId: number): Promise
 
   const prefix = locRows[0]?.reservationCodePrefix;
   if (!prefix) {
-    throw new ValidationError("Pickup location has no reservation code prefix configured.");
+    throw new ValidationError(
+      "Pickup location has no reservation code prefix configured.",
+    );
   }
 
   return await db.transaction(async (tx) => {
@@ -374,7 +436,13 @@ export interface ConfirmVoucherImportData {
   broker?: string | null;
   externalReservationCode?: string | null;
   voucherImportRef?: string | null;
-  status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
+  status?:
+    | "PENDING"
+    | "CONFIRMED"
+    | "DELIVERED"
+    | "RETURNED"
+    | "CANCELED"
+    | "NO_SHOW";
   paymentStatus?: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
 }
 
@@ -386,8 +454,11 @@ export async function confirmVoucherImport(
   const reservationCode = await generateReservationCode(data.pickupLocationId);
 
   // Merge flightNumber into notes since the bookings table has no separate flight_number column in V1
-  const flightPrefix = data.flightNumber ? `Flight: ${data.flightNumber}` : null;
-  const mergedNotes = [flightPrefix, data.notes].filter(Boolean).join("\n") || null;
+  const flightPrefix = data.flightNumber
+    ? `Flight: ${data.flightNumber}`
+    : null;
+  const mergedNotes =
+    [flightPrefix, data.notes].filter(Boolean).join("\n") || null;
 
   const booking = await createAdminBooking({
     contactFullName: data.contactFullName,
