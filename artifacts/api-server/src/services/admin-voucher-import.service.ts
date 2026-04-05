@@ -174,10 +174,6 @@ export async function extractVoucherFromImage(
 ): Promise<ExtractResult> {
   const warnings: string[] = [];
 
-  // Operational log: shows credential path and payload size for debugging extraction issues.
-  const usingDirectKey = (process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "").startsWith("_DUMMY_");
-  console.log(`[voucher-import] image-extract via=${usingDirectKey ? "direct" : "proxy"} mimeType=${mimeType} b64len=${base64Image.length}`);
-
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -220,8 +216,6 @@ export async function extractVoucherFromText(
   pdfText: string,
 ): Promise<ExtractResult> {
   const warnings: string[] = [];
-
-  console.log(`[voucher-import] text-extract textLen=${pdfText.length}`);
 
   try {
     const response = await openai.chat.completions.create({
