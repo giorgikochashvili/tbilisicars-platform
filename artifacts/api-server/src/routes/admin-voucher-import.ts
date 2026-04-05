@@ -34,6 +34,7 @@ const objectStorageService = new ObjectStorageService();
 /**
  * Convert the first page of a PDF buffer to a PNG using `pdftoppm`.
  * Returns { base64, mimeType } ready for the OpenAI vision API.
+ * Throws if pdftoppm is unavailable — callers should fall back to manual input.
  */
 async function pdfFirstPageToPng(pdfBuffer: Buffer): Promise<{ base64: string; mimeType: string }> {
   const tmpDir = os.tmpdir();
@@ -43,7 +44,10 @@ async function pdfFirstPageToPng(pdfBuffer: Buffer): Promise<{ base64: string; m
 
   await fs.promises.writeFile(pdfPath, pdfBuffer);
   try {
-    await execFileAsync("pdftoppm", ["-r", "150", "-png", "-l", "1", pdfPath, pngPrefix]);
+    await execFileAsync("pdftoppm", ["-r", "150", "-png", "-l", "1", pdfPath, pngPrefix]).catch((err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT") throw new Error("pdftoppm is not available in this environment — scanned PDF cannot be converted to image");
+      throw err;
+    });
     const pngPath = `${pngPrefix}-1.png`;
     const pngBuffer = await fs.promises.readFile(pngPath);
     await fs.promises.unlink(pngPath).catch(() => {});
