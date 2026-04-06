@@ -1700,7 +1700,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         </div>
 
         {/* Your Account card */}
-        {result.generatedPassword ? (
+        {result.generatedPassword != null && result.generatedPassword !== "" ? (
           <div className="bg-card border border-primary/30 rounded-xl p-5 mb-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-3 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5" />
