@@ -275,7 +275,7 @@ export default function VoucherImportDialog({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [successData, setSuccessData] = useState<{
     bookingId: number;
-    reservationCode: string;
+    reservationCode: string | null;
     contactFullName: string;
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -878,7 +878,7 @@ export default function VoucherImportDialog({
               <div className="text-center">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Reservation Code</p>
                 <Badge variant="outline" className="text-base font-mono px-4 py-1.5 border-primary/40 text-primary">
-                  {successData.reservationCode}
+                  {successData.reservationCode ?? "No code"}
                 </Badge>
               </div>
               <div className="w-px h-10 bg-border/60" />
