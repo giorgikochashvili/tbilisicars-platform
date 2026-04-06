@@ -1734,13 +1734,19 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           </div>
         ) : result.generatedPassword === null ? (
           <div className="bg-card border border-border rounded-xl p-4 mb-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5" />
-              Your Account
+              Existing Account
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Log in with your existing account credentials to view your bookings and documents.
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              This email is already registered in our system. Use your existing password to access your booking cabinet.
             </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
+            >
+              Log in to my cabinet →
+            </Link>
           </div>
         ) : null}
 

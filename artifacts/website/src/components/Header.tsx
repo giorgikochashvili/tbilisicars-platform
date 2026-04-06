@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown, User, Shield } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -13,10 +13,23 @@ const NAV_LINKS = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [location] = useLocation();
+  const loginMenuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (href: string) =>
     href === "/" ? location === "/" : location.startsWith(href);
+
+  useEffect(() => {
+    if (!loginOpen) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (loginMenuRef.current && !loginMenuRef.current.contains(e.target as Node)) {
+        setLoginOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [loginOpen]);
 
   return (
     <header className="sticky top-0 z-50">
@@ -56,14 +69,51 @@ export default function Header() {
               ))}
             </nav>
 
-            {/* Book Now CTA + mobile burger */}
+            {/* Book Now CTA + Log in dropdown + mobile burger */}
             <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="hidden sm:inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
-                Log in
-              </Link>
+              {/* Login dropdown (desktop) */}
+              <div className="relative hidden sm:block" ref={loginMenuRef}>
+                <button
+                  onClick={() => setLoginOpen((v) => !v)}
+                  className="inline-flex items-center gap-1.5 border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  aria-haspopup="true"
+                  aria-expanded={loginOpen}
+                >
+                  Log in
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-150 ${loginOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {loginOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[hsl(211,55%,11%)] border border-border rounded-xl shadow-2xl overflow-hidden z-50">
+                    <Link
+                      href="/login"
+                      onClick={() => setLoginOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 text-sm text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <User className="w-4 h-4 shrink-0 text-primary" />
+                      <div>
+                        <div className="font-medium text-white/90">Customer Log in</div>
+                        <div className="text-xs text-muted-foreground/70 mt-0.5">View your bookings</div>
+                      </div>
+                    </Link>
+                    <div className="border-t border-border/60" />
+                    <a
+                      href="/crm/login"
+                      onClick={() => setLoginOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 text-sm text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <Shield className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium text-white/90">Staff Log in</div>
+                        <div className="text-xs text-muted-foreground/70 mt-0.5">Operations portal</div>
+                      </div>
+                    </a>
+                  </div>
+                )}
+              </div>
+
               <Link
                 href="/booking"
                 className="hidden sm:inline-flex items-center gap-2 bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
@@ -100,17 +150,31 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-center border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-3 rounded-lg transition-colors"
-              >
-                Log in
-              </Link>
+
+              {/* Mobile login options — two explicit rows */}
+              <div className="border-t border-border/60 mt-1 pt-1 flex flex-col gap-1">
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-3 rounded-lg transition-colors"
+                >
+                  <User className="w-4 h-4 text-primary shrink-0" />
+                  Customer Log in
+                </Link>
+                <a
+                  href="/crm/login"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 border border-white/10 hover:border-white/30 text-muted-foreground/70 hover:text-white text-sm font-medium px-4 py-3 rounded-lg transition-colors"
+                >
+                  <Shield className="w-4 h-4 shrink-0" />
+                  Staff Log in
+                </a>
+              </div>
+
               <Link
                 href="/booking"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-center bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-3 rounded-lg transition-colors"
+                className="flex items-center justify-center bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-3 rounded-lg transition-colors mt-1"
               >
                 Book Now
               </Link>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff, Shield } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Login() {
@@ -108,6 +108,9 @@ export default function Login() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p className="mt-1.5 text-xs text-muted-foreground/50">
+                Forgot your password? Recovery is coming soon.
+              </p>
             </div>
 
             {/* Submit */}
@@ -126,13 +129,23 @@ export default function Login() {
           </form>
 
           {/* Footer */}
-          <div className="mt-6 pt-5 border-t border-border text-center">
+          <div className="mt-6 pt-5 border-t border-border space-y-3 text-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account yet?{" "}
               <Link href="/booking" className="text-primary hover:underline font-medium">
                 Make a booking
               </Link>{" "}
               — your account is created automatically.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Are you a staff member?{" "}
+              <a
+                href="/crm/login"
+                className="inline-flex items-center gap-1 text-muted-foreground hover:text-white font-medium transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Staff Log in
+              </a>
             </p>
           </div>
         </div>
