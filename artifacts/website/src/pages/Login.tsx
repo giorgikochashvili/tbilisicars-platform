@@ -31,8 +31,12 @@ export default function Login() {
       if (res.ok) {
         navigate("/");
       } else {
-        const body = await res.json().catch(() => ({}));
-        setError((body as any).error ?? "Invalid email or password. Please try again.");
+        const body: unknown = await res.json().catch(() => ({}));
+        const errorMsg =
+          body !== null && typeof body === "object" && "error" in body && typeof (body as { error: unknown }).error === "string"
+            ? (body as { error: string }).error
+            : "Invalid email or password. Please try again.";
+        setError(errorMsg);
       }
     } catch {
       setError("Unable to connect. Please check your connection and try again.");
