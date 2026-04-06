@@ -271,7 +271,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
             <span class="acct-label">Sign in at</span>
             <span class="acct-value"><a href="https://tbilisicars.com/login" style="color:#e05c72;">tbilisicars.com/login</a></span>
           </div>
-          <p class="acct-note">We created this account automatically using your booking email. You can change your password after signing in.</p>
+          <p class="acct-note">We created this account automatically using your booking email. You can change your password from your cabinet.</p>
         </div>` : ""}
 
         <div class="info-box">
@@ -335,7 +335,7 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
   Email:    ${toEmail}
   Password: ${generatedPassword}
   Sign in:  https://tbilisicars.com/login
-  (You can change your password after signing in.)
+  (You can change your password from your cabinet.)
 
 ` : ""}CONTACT US
   Tbilisi / Batumi: +995 557 37 63 63
@@ -372,7 +372,7 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
       html,
       text,
       ...(pdfBuffer != null
-        ? { attachments: [{ filename: `tbilisicars-${reference}.pdf`, content: pdfBuffer }] }
+        ? { attachments: [{ filename: `booking-voucher-${reference}.pdf`, content: pdfBuffer }] }
         : {}),
     });
   } catch (err) {
