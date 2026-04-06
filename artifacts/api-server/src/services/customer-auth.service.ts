@@ -5,6 +5,7 @@
  * Plain-text passwords are NEVER logged or stored.
  */
 import bcrypt from "bcryptjs";
+import { randomInt } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, userTable } from "@workspace/db";
 import { NotFoundError, UnauthorizedError } from "../lib/errors.js";
@@ -14,14 +15,13 @@ const PASSWORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
 const PASSWORD_LENGTH = 6;
 
 /**
- * Generate a 6-character alphanumeric password.
- * Not cryptographically strong but adequate for an auto-generated starter password
- * that customers are encouraged to change from their cabinet.
+ * Generate a 6-character alphanumeric password using Node's crypto.randomInt
+ * so each character is picked from a cryptographically secure source.
  */
 export function generateCustomerPassword(): string {
   let result = "";
   for (let i = 0; i < PASSWORD_LENGTH; i++) {
-    result += PASSWORD_CHARS[Math.floor(Math.random() * PASSWORD_CHARS.length)];
+    result += PASSWORD_CHARS[randomInt(PASSWORD_CHARS.length)];
   }
   return result;
 }
@@ -50,30 +50,45 @@ export async function upsertCustomerByEmail(params: {
   fullName: string;
   phone?: string | null;
 }): Promise<{ user: typeof userTable.$inferSelect; generatedPassword: string | null }> {
-  const existing = await db
-    .select()
-    .from(userTable)
-    .where(eq(userTable.email, params.email))
-    .limit(1);
-
-  if (existing[0]) {
-    return { user: existing[0], generatedPassword: null };
-  }
-
   const plainPassword = generateCustomerPassword();
   const passwordHash = await hashCustomerPassword(plainPassword);
 
-  const [newUser] = await db
-    .insert(userTable)
-    .values({
-      email: params.email,
-      fullName: params.fullName,
-      phone: params.phone ?? null,
-      passwordHash,
-    })
-    .returning();
+  try {
+    const [inserted] = await db
+      .insert(userTable)
+      .values({
+        email: params.email,
+        fullName: params.fullName,
+        phone: params.phone ?? null,
+        passwordHash,
+      })
+      .returning();
 
-  return { user: newUser!, generatedPassword: plainPassword };
+    return { user: inserted!, generatedPassword: plainPassword };
+  } catch (err: unknown) {
+    // PostgreSQL unique_violation code '23505' — email already exists.
+    // Drizzle wraps the PG error, so the code lives on err.cause.
+    const pgCode =
+      err &&
+      typeof err === "object" &&
+      "cause" in err &&
+      err.cause &&
+      typeof err.cause === "object" &&
+      "code" in err.cause
+        ? (err.cause as { code?: string }).code
+        : undefined;
+
+    if (pgCode === "23505") {
+      const [existing] = await db
+        .select()
+        .from(userTable)
+        .where(eq(userTable.email, params.email))
+        .limit(1);
+
+      return { user: existing!, generatedPassword: null };
+    }
+    throw err;
+  }
 }
 
 /**
