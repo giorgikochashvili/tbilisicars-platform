@@ -458,7 +458,7 @@ export default function VoucherImportDialog({
     !form.brandId ||
     !form.vehicleModelId;
 
-  const confirmDisabled = requiredFieldsMissing || !pickupHasPrefix || isConfirming;
+  const confirmDisabled = requiredFieldsMissing || isConfirming;
 
   const handleConfirm = async () => {
     setIsConfirming(true);
@@ -622,12 +622,12 @@ export default function VoucherImportDialog({
               </div>
             )}
 
-            {/* No-prefix warning */}
+            {/* No-prefix informational note */}
             {form.pickupLocationId && !pickupHasPrefix && (
-              <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-500">
+              <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 text-sm text-amber-600">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  The selected pickup location has no reservation code prefix. Configure a prefix in Locations settings before importing.
+                  The selected pickup location has no reservation code prefix. The booking will be created without an internal reservation code.
                 </span>
               </div>
             )}

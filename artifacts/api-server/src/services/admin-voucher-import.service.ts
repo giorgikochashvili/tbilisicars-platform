@@ -8,7 +8,6 @@ import { and, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { createAdminBooking } from "./admin-bookings.service.js";
 import { logAudit } from "./audit.service.js";
-import { ValidationError } from "../lib/errors.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -378,7 +377,7 @@ export async function checkVoucherDuplicate(params: {
 
 export async function generateReservationCode(
   pickupLocationId: number,
-): Promise<string> {
+): Promise<string | null> {
   const locRows = await db
     .select({ reservationCodePrefix: locationTable.reservationCodePrefix })
     .from(locationTable)
@@ -387,9 +386,7 @@ export async function generateReservationCode(
 
   const prefix = locRows[0]?.reservationCodePrefix;
   if (!prefix) {
-    throw new ValidationError(
-      "Pickup location has no reservation code prefix configured.",
-    );
+    return null;
   }
 
   return await db.transaction(async (tx) => {
@@ -489,12 +486,14 @@ export async function confirmVoucherImport(
     actorId,
     entityType: "booking",
     entityId: booking.id,
-    entityRef: reservationCode,
+    entityRef: reservationCode ?? null,
     action: "voucher_import",
-    summary: `Voucher imported → reservation code ${reservationCode}`,
+    summary: reservationCode
+      ? `Voucher imported → reservation code ${reservationCode}`
+      : `Voucher imported → no reservation code (location has no prefix)`,
     afterData: {
       bookingId: booking.id,
-      reservationCode,
+      reservationCode: reservationCode ?? null,
       externalReservationCode: data.externalReservationCode ?? null,
       voucherImportRef: data.voucherImportRef ?? null,
       contactFullName: data.contactFullName,
