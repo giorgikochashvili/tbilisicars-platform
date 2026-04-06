@@ -377,7 +377,7 @@ function FuelBar({ level }: { level: number }) {
 function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "dropoff" }) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <div>
           <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
             <Calendar className="w-3 h-3" /> Action Time
@@ -1100,9 +1100,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-        <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto overflow-x-hidden w-full">
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-[760px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl flex items-center gap-2">
+            <DialogTitle className="font-display text-xl flex flex-wrap items-center gap-2">
               Booking #{bookingId}
               {booking?.status && (
                 <Badge variant="outline" className="text-[10px] font-bold uppercase">
@@ -1123,7 +1123,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
           {/* Document generation + action buttons */}
           {!loadingBooking && booking && (
-            <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30">
+            <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30 min-w-0">
               {onEditBooking && (
                 <Button
                   size="sm"
@@ -1217,7 +1217,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
                 {!isOverviewEditing ? (
                   /* Read-only view */
-                  <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Customer</div>
                       <div className="font-medium">{booking.customer?.fullName || booking.contactFullName || "—"}</div>
@@ -1290,7 +1290,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 ) : (
                   /* Edit form */
                   <div className="p-4 space-y-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                       {/* Price + Currency */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Booking Price</Label>
@@ -1395,7 +1395,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 title="Payment Summary"
                 icon={<CreditCard className="w-3.5 h-3.5" />}
               >
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <SummaryCard
                     label="Total Paid"
                     value={summary ? fmtOrig(summary.totalPaidOriginal ?? summary.totalPaid) : fmtOrig(0)}
@@ -1533,7 +1533,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       No payments recorded yet.
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-border/40 overflow-hidden overflow-x-auto">
+                    <div className="rounded-lg border border-border/40 overflow-x-auto">
                       <Table>
                         <TableHeader className="bg-muted/30">
                           <TableRow className="border-border/40 hover:bg-transparent">
