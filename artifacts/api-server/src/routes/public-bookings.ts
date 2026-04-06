@@ -622,6 +622,7 @@ router.post("/public/bookings", async (req, res) => {
     pickupLocationId: Number(body.pickupLocationId),
     dropoffLocationId: Number(body.dropoffLocationId),
     rentalDays,
+    generatedPassword: generatedPassword ?? null,
   };
 
   setImmediate(() => {
@@ -672,6 +673,8 @@ router.post("/public/bookings", async (req, res) => {
           promoCode: emailParams.promoCode,
           discountAmount: emailDiscountAmount,
           currency: emailParams.currency,
+          generatedPassword: emailParams.generatedPassword,
+          attachPdfVoucher: true,
         });
       } catch (err) {
         console.error("[email] Failed to prepare/send confirmation:", err);

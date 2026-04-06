@@ -4,6 +4,7 @@
  * If RESEND_API_KEY is not set, emails are silently skipped.
  */
 import { Resend } from "resend";
+import { generateBookingVoucherPdf } from "./pdf-voucher.service.js";
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -83,6 +84,8 @@ export interface BookingConfirmationEmailParams {
   promoCode?: string;
   discountAmount?: number | null;
   currency?: string;
+  generatedPassword?: string | null;
+  attachPdfVoucher?: boolean;
 }
 
 export async function sendBookingConfirmationEmail(params: BookingConfirmationEmailParams): Promise<void> {
@@ -99,6 +102,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     nationality, age,
     estimatedTotal, baseTotal, promoCode, discountAmount,
     currency = "GEL",
+    generatedPassword,
+    attachPdfVoucher = false,
   } = params;
 
   const fromAddress = process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
@@ -185,6 +190,14 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .contact-section { background: #0d1b2a; border-radius: 10px; padding: 16px 20px; }
     .contact-section p { margin: 0 0 8px; font-size: 13px; color: #94a3b8; }
     .contact-section a { color: #e05c72; text-decoration: none; }
+    .account-box { background: rgba(30,58,95,0.35); border: 1px solid #2d5a8e; border-left: 3px solid #e05c72; border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; }
+    .account-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #e05c72; margin-bottom: 10px; font-weight: 700; }
+    .account-box .acct-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(45,90,142,0.4); font-size: 13px; gap: 12px; }
+    .account-box .acct-row:last-of-type { border-bottom: none; }
+    .account-box .acct-label { color: #94a3b8; flex-shrink: 0; }
+    .account-box .acct-value { color: #e2e8f0; font-weight: 600; text-align: right; }
+    .account-box .pw-value { color: #e05c72; font-family: monospace; font-size: 15px; font-weight: 700; letter-spacing: 2px; }
+    .account-box .acct-note { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(45,90,142,0.4); }
     .footer { text-align: center; padding: 20px 28px; font-size: 12px; color: #475569; }
     .footer a { color: #64748b; }
   </style>
@@ -243,6 +256,24 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <p>${esc(pickupInstructions)}</p>
         </div>
 
+        ${generatedPassword != null && generatedPassword !== "" ? `
+        <div class="account-box">
+          <div class="box-title">Your Account</div>
+          <div class="acct-row">
+            <span class="acct-label">Email</span>
+            <span class="acct-value">${esc(toEmail)}</span>
+          </div>
+          <div class="acct-row">
+            <span class="acct-label">Password</span>
+            <span class="pw-value">${esc(generatedPassword)}</span>
+          </div>
+          <div class="acct-row">
+            <span class="acct-label">Sign in at</span>
+            <span class="acct-value"><a href="https://tbilisicars.com/login" style="color:#e05c72;">tbilisicars.com/login</a></span>
+          </div>
+          <p class="acct-note">We created this account automatically using your booking email. You can change your password after signing in.</p>
+        </div>` : ""}
+
         <div class="info-box">
           <strong>What happens next?</strong><br/>
           Our team will review your request and send a confirmation within a few hours. If you have a flight arriving soon, please contact us directly so we can ensure your car is ready on time.
@@ -300,13 +331,38 @@ WHAT HAPPENS NEXT?
   Our team will review your request and send a confirmation within a few hours.
   If you have a flight arriving soon, please contact us directly.
 
-CONTACT US
+${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
+  Email:    ${toEmail}
+  Password: ${generatedPassword}
+  Sign in:  https://tbilisicars.com/login
+  (You can change your password after signing in.)
+
+` : ""}CONTACT US
   Tbilisi / Batumi: +995 557 37 63 63
   Kutaisi: +995 595 28 66 00
   Email: reservations@tbilisicars.com
 
 © 2026 Tbilisicars — Premium Car Rental in Georgia
 `.trim();
+
+  // ── Optional PDF voucher attachment ─────────────────────────────────────────
+  let pdfBuffer: Buffer | undefined;
+  if (attachPdfVoucher) {
+    try {
+      pdfBuffer = await generateBookingVoucherPdf({
+        toName, toEmail, reference, vehicle,
+        pickupLocation, dropoffLocation,
+        pickupDatetime, dropoffDatetime,
+        extras, insurancePlan, paymentMethod,
+        flightNumber, nationality, age,
+        estimatedTotal, baseTotal,
+        promoCode, discountAmount,
+        currency, generatedPassword,
+      });
+    } catch (pdfErr) {
+      console.error("[email] PDF generation failed — sending without attachment:", pdfErr);
+    }
+  }
 
   try {
     await resend.emails.send({
@@ -315,6 +371,9 @@ CONTACT US
       subject: `Booking Request Received: ${reference} — ${vehicle}`,
       html,
       text,
+      ...(pdfBuffer != null
+        ? { attachments: [{ filename: `tbilisicars-${reference}.pdf`, content: pdfBuffer }] }
+        : {}),
     });
   } catch (err) {
     console.error("[email] Failed to send booking confirmation:", err);
