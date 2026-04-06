@@ -27,22 +27,30 @@ export const rateTable = pgTable(
     // Self-referential FK to rate.id — plain integer to avoid circular TypeScript inference.
     // The FK constraint (ON DELETE SET NULL) is enforced at the DB layer.
     parentRateId: integer("parent_rate_id"),
+    // Unused in pricing resolution — reserved for future compound-rate logic.
     incrementType: varchar("increment_type", { length: 20 }),
+    // Unused in pricing resolution — reserved for future compound-rate logic.
     incrementValue: numeric("increment_value", { precision: 10, scale: 2 }),
     validFrom: date("valid_from").notNull(),
     validUntil: date("valid_until").notNull(),
     minDays: integer("min_days").default(2),
     maxDays: integer("max_days").default(300),
+    // Unused in pricing resolution — reserved for future mileage policy enforcement.
     unlimitedKm: boolean("unlimited_km").default(true),
+    // Unused in pricing resolution — reserved for future role-based rate editing.
     editableBy: varchar("editable_by", { length: 50 }).default("all"),
     isActive: boolean("is_active").default(true),
     rateType: varchar("rate_type", { length: 20 }).default("web"),
+    // Unused in pricing resolution — reserved for future agreement-level price modifiers.
     priceModifierName: varchar("price_modifier_name", { length: 100 }),
+    // Unused in pricing resolution — reserved for future agreement-level price modifiers.
     priceModifierType: varchar("price_modifier_type", { length: 20 }),
+    // Unused in pricing resolution — reserved for future agreement-level price modifiers.
     priceModifierValue: numeric("price_modifier_value", {
       precision: 10,
       scale: 2,
     }),
+    // Unused in pricing resolution — reserved for future agreement-level price modifiers.
     priceModifierAppliesToAgreementOnly: boolean(
       "price_modifier_applies_to_agreement_only",
     ).default(false),
@@ -106,6 +114,7 @@ export const ratedayrangeTable = pgTable(
 
 // ─── Rate Hour Range ──────────────────────────────────────────────────────────
 // Hour-based pricing ranges for short rentals.
+// Unused in pricing resolution — reserved for future short-term (hourly) rental support.
 
 export const ratehourrangeTable = pgTable(
   "ratehourrange",
@@ -124,6 +133,7 @@ export const ratehourrangeTable = pgTable(
 
 // ─── Rate Km Range ────────────────────────────────────────────────────────────
 // Mileage-based pricing tiers within a rate.
+// Unused in pricing resolution — reserved for future mileage-based pricing support.
 
 export const ratekmrangeTable = pgTable(
   "ratekmrange",

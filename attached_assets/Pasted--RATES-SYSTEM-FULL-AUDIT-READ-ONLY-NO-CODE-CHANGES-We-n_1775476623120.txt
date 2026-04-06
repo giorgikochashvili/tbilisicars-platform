@@ -1,0 +1,308 @@
+# RATES SYSTEM FULL AUDIT — READ ONLY, NO CODE CHANGES
+
+We need a **deep read-only audit** of the current Rates/Pricing system in the Tbilisicars CRM&WEB monorepo.
+
+## Critical instruction
+
+This is **NOT** a build task and **NOT** a refactor task.
+Do **NOT** change any code.
+Do **NOT** generate patches.
+Do **NOT** propose speculative architecture as if it already exists.
+First, inspect the real codebase and produce a factual audit report based only on what is currently implemented.
+
+We are preparing this pricing system for a future where:
+
+* website pricing must display correctly and predictably
+* CRM staff must be able to manage rates without confusion
+* date-based and period-based pricing must be exact
+* future broker pricing, partner pricing, channel pricing, and API integrations can fit into the architecture cleanly
+
+We already worked on rates before, but something still does **not** sit correctly. We need a precise audit of what exists now.
+
+---
+
+# Audit goals
+
+Produce a full report answering:
+
+## 1) Current pricing architecture
+
+Identify and explain the real current architecture of the Rates system across:
+
+* database schema
+* backend services
+* API routes
+* CRM UI
+* website/public pricing flow
+* any shared contracts/zod/api client layers
+
+Map the exact flow:
+
+* where rates are created
+* how they are stored
+* how they are queried
+* how they are resolved for a booking/search
+* how they are shown on the website
+* how they are shown/edited in CRM
+
+---
+
+## 2) Data model audit
+
+Find all tables/enums/types related to pricing, including but not limited to things like:
+
+* rates
+* parent rates
+* child rates
+* day ranges
+* seasonal pricing
+* pricing periods
+* currency fields
+* source/channel type
+* broker/web/manual distinctions
+* location-specific pricing
+* model-specific pricing
+* extras/promotions interaction
+* one-way fee interaction
+* inherited pricing logic if present
+
+For each relevant table/enum/type, explain:
+
+* purpose
+* key columns
+* relationships
+* whether the structure is normalized or fragile
+* whether the structure is future-ready for broker/API integrations
+
+Do not just list names — explain how they are actually used in code.
+
+---
+
+## 3) CRM Rates behavior audit
+
+Inspect the CRM Rates module carefully.
+
+Answer:
+
+* What exact rate entities can staff create today?
+* What is the real workflow in the CRM UI?
+* Is it Parent Rate -> Add Model -> add period prices?
+* Is it row-based tier entry?
+* Are date periods supported?
+* Are overlapping rates supported?
+* Is inheritance working?
+* Are child rates preferred over parent rates?
+* Are WEB and BROKER rates separated in the UI and backend?
+* Is the UX aligned with the business intent, or is it technically working but conceptually wrong?
+
+Point to the actual components/pages/hooks/functions involved.
+
+---
+
+## 4) Website/public pricing behavior audit
+
+Inspect how the website gets pricing and displays it.
+
+Answer precisely:
+
+* Which route/service computes website booking price?
+* What inputs affect the result?
+* How are pickup/dropoff dates interpreted?
+* How are booking days counted?
+* How are day-range tiers applied?
+* How are seasonal/date-bound periods applied?
+* How is the final price chosen if multiple candidate rates match?
+* What happens if overlapping pricing periods exist?
+* What happens if no exact rate exists?
+* Is location filtering applied correctly?
+* Is model filtering applied correctly?
+* Does the website show the exact resolved price or only partial/base info?
+* Is the displayed price guaranteed to match backend booking calculation?
+
+We care especially about **correct price display by period/date range**.
+
+---
+
+## 5) Price resolution engine audit
+
+This is the most important part.
+
+Find the real server-side pricing resolution logic and explain step-by-step:
+
+* input parameters
+* filtering logic
+* priority order
+* fallback order
+* tie-breaking rules
+* date overlap logic
+* day-range selection logic
+* location/model/source selection logic
+* promotion application order
+* one-way fee application order
+* currency handling
+
+We need a deterministic description like:
+
+1. find eligible rates by X
+2. prefer Y over Z
+3. match booking duration to tier
+4. apply seasonal period selection rule
+5. apply adjustments
+6. return final object
+
+If this logic is split across multiple files, reconstruct the full flow.
+
+---
+
+## 6) Broker/API readiness audit
+
+Evaluate whether the current pricing architecture is truly ready for future:
+
+* brokers
+* B2B partners
+* affiliate pricing
+* channel manager integrations
+* external API consumers
+* negotiated contract pricing
+* source-specific rate selection
+
+Answer:
+
+* What parts are already reusable/flexible?
+* What parts will block broker/channel integrations?
+* What assumptions are currently too “WEB-only” or too “manual-CRM-only”?
+* Is there a clean concept of pricing source/channel?
+* Can different channels have different visibility/priority without hacks?
+* Can future API clients request a quote deterministically?
+
+Be concrete and code-grounded.
+
+---
+
+## 7) Exact mismatch / risk audit
+
+Identify the real mismatches between current implementation and intended business logic.
+
+We suspect something is “not sitting right.”
+Find and explain issues such as:
+
+* conceptual mismatch between UI and backend model
+* pricing periods not modeled cleanly
+* tier structure not matching operational needs
+* fragile overlap behavior
+* unclear inheritance
+* hidden assumptions
+* website display not matching final booking pricing
+* pricing entities that cannot scale to broker/channel use
+* confusing staff workflow
+* duplicated logic in multiple places
+* weak fallback rules
+* dangerous ambiguity
+
+Separate:
+
+* confirmed issues
+* likely issues
+* unclear areas needing targeted follow-up
+
+Do not exaggerate. Be precise.
+
+---
+
+## 8) Read-only recommendations
+
+After the audit, provide a **recommended target architecture** at a high level only.
+No code changes yet.
+
+Structure the recommendation as:
+
+* what to keep
+* what to change
+* what to simplify
+* what to separate
+* what to standardize
+* what should become the source of truth
+* what the ideal priority order should be for rate resolution
+* what the ideal data model should support for future broker/API integrations
+
+Do not jump into implementation yet.
+
+---
+
+# Required output format
+
+Return the answer in this exact structure:
+
+## A. Executive Summary
+
+Short summary of overall state of the rates system.
+
+## B. Files Inspected
+
+List all relevant files inspected, grouped by:
+
+* DB
+* API/backend
+* CRM
+* Website
+* shared libs/contracts
+
+## C. Current Architecture
+
+Explain the real current architecture.
+
+## D. Data Model Findings
+
+Tables/enums/types and how they are used.
+
+## E. CRM Rates Findings
+
+How CRM actually works today.
+
+## F. Website Pricing Findings
+
+How website/public price resolution works today.
+
+## G. Price Resolution Flow
+
+Step-by-step deterministic resolution flow.
+
+## H. Broker/API Readiness Assessment
+
+What is ready and what is not.
+
+## I. Confirmed Issues
+
+Only issues proven from the code.
+
+## J. Likely Issues / Risk Areas
+
+Potential problems that look probable but need confirmation.
+
+## K. Recommended Target Direction
+
+High-level future-safe direction.
+
+## L. Final Verdict
+
+Answer plainly:
+
+* Is the current rates system structurally sound?
+* Is it accurate enough for exact period-based website pricing?
+* Is it ready for future broker/API/channel integrations?
+* What is the single biggest design weakness right now?
+
+---
+
+# Important working rules
+
+* Read-only only
+* No code edits
+* No patches
+* No speculative implementation claims
+* No generic theory dump
+* Base everything on the actual code in this repo
+* Quote function names, files, schemas, and route names precisely
+* If something is unclear, say it is unclear
+* Prefer accuracy over completeness
+* We want an audit, not a motivational summary

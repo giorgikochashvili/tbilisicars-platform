@@ -1249,7 +1249,7 @@ export default function RatesPage() {
               </div>
               {isChild && parent && (
                 <span className="text-[11px] text-muted-foreground">
-                  inherits from{" "}
+                  seasonal override of{" "}
                   <span className="font-medium text-foreground/70">{parent.name}</span>
                 </span>
               )}
@@ -1273,11 +1273,21 @@ export default function RatesPage() {
               {rate.tiers?.length ?? 0}
             </Badge>
           </TableCell>
-          <TableCell>
+          <TableCell onClick={(e) => e.stopPropagation()}>
             <Switch
               checked={rate.isActive ?? false}
-              disabled
               className="data-[state=checked]:bg-emerald-500"
+              onCheckedChange={(val) => {
+                updateMutation.mutate(
+                  { id: rate.id, data: { isActive: val } },
+                  {
+                    onSuccess: () =>
+                      toast({ title: val ? "Rate activated" : "Rate deactivated" }),
+                    onError: () =>
+                      toast({ title: "Error", description: "Failed to update rate status", variant: "destructive" }),
+                  },
+                );
+              }}
             />
           </TableCell>
           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -1439,7 +1449,7 @@ export default function RatesPage() {
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Add Rate Plan</DialogTitle>
             <DialogDescription>
-              Choose whether to create a standalone parent rate or a child override that inherits from an existing parent.
+              Choose whether to create a standalone parent rate or a seasonal override. Prices are copied from the parent at creation — future changes to the parent do not automatically update the override.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-4">
@@ -1480,7 +1490,11 @@ export default function RatesPage() {
         <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              {editingRate ? "Edit Rate Plan" : "Add Parent Rate Plan"}
+              {editingRate
+                ? editingRate.parentRateId != null
+                  ? "Edit Child Rate"
+                  : "Edit Rate Plan"
+                : "Add Parent Rate Plan"}
             </DialogTitle>
             <DialogDescription>
               {editingRate
@@ -1607,7 +1621,7 @@ export default function RatesPage() {
               <GitBranch className="w-5 h-5 text-violet-500" /> Add Child Rate
             </DialogTitle>
             <DialogDescription>
-              A child rate inherits from a parent and starts with a copy of its tiers. Adjust prices before saving.
+              A seasonal override. Prices are copied from the selected parent at creation time — future changes to the parent do not automatically update this rate. Adjust prices before saving.
             </DialogDescription>
           </DialogHeader>
 

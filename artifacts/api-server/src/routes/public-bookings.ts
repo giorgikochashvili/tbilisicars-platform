@@ -7,7 +7,13 @@ import { pool } from "@workspace/db";
 import { createAdminBooking } from "../services/admin-bookings.service.js";
 import { db, bookingextraTable } from "@workspace/db";
 import { sendBookingConfirmationEmail } from "../services/email.service.js";
-import { calculateChargeableDays } from "../lib/pricing.js";
+import {
+  calculateChargeableDays,
+  resolveRateTier,
+  computeExtrasTotal,
+  applyPromoDiscount,
+} from "../lib/pricing.js";
+import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
 
 const router: IRouter = Router();
@@ -38,6 +44,8 @@ router.get("/public/booking-config", async (req, res) => {
     !isNaN(new Date(dropoffDt).getTime());
 
   // Shared price lateral — identical across all four query variants.
+  // Only WEB rates that are currently valid contribute to the "from" price;
+  // broker rates and expired/future rates are excluded.
   const priceLateral = `
     LEFT JOIN LATERAL (
       SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
@@ -45,6 +53,9 @@ router.get("/public/booking-config", async (req, res) => {
       JOIN rate r ON r.id = rt.rate_id
       WHERE rt.vehicle_model_id = vm.id
         AND r.is_active = true
+        AND (r.rate_type = 'web' OR r.rate_type IS NULL)
+        AND r.valid_from::date <= CURRENT_DATE
+        AND r.valid_until::date >= CURRENT_DATE
       ORDER BY rt.price_per_day ASC
       LIMIT 1
     ) price_info ON true`;
@@ -285,48 +296,32 @@ router.post("/public/quote", async (req, res) => {
   const days = calculateChargeableDays(pickupDate, dropoffDate);
   const pickupDateStr = pickupDate.toISOString().slice(0, 10);
 
-  // Resolve best active rate tier for this vehicle model + dates + duration.
-  // Prefer child rates (parent_rate_id IS NOT NULL) over parent rates.
-  // Exclude broker rates; treat legacy null rate_type as WEB.
-  const { rows: tierRows } = await pool.query(
-    `SELECT rt.id AS tier_id, rt.rate_id, rt.price_per_day, rt.currency,
-            r.name AS rate_name, r.valid_from, r.valid_until
-     FROM ratetier rt
-     JOIN rate r ON r.id = rt.rate_id
-     WHERE rt.vehicle_model_id = $1
-       AND r.is_active = true
-       AND (r.rate_type = 'web' OR r.rate_type IS NULL)
-       AND r.valid_from::date <= $2::date
-       AND r.valid_until::date >= $2::date
-       AND rt.from_days <= $3
-       AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= $3)
-     ORDER BY
-       (CASE WHEN r.parent_rate_id IS NOT NULL THEN 1 ELSE 0 END) DESC,
-       r.valid_from DESC,
-       rt.from_days DESC
-     LIMIT 1`,
-    [body.vehicleModelId, pickupDateStr, days],
-  );
-
-  const tier = tierRows[0] ?? null;
-  const basePricePerDay: number | null = tier ? Number(tier.price_per_day) : null;
-  const baseCurrency: string | null = tier ? (tier.currency as string) : null;
+  // Resolve best active WEB rate tier (shared function — also used by POST /public/bookings).
+  const tier = await resolveRateTier(pool, body.vehicleModelId, pickupDateStr, days);
+  const basePricePerDay: number | null = tier ? tier.pricePerDay : null;
+  const baseCurrency: string | null = tier ? tier.currency : null;
   const baseTotal: number | null = basePricePerDay !== null ? basePricePerDay * days : null;
 
+  // Fetch extras with pricing_type and max_days for accurate calculation.
   let extrasTotal = 0;
   if (body.extras && body.extras.length > 0) {
     const extraIds = body.extras.map((e) => e.extraId);
     const { rows: extraRows } = await pool.query(
-      `SELECT id, price FROM extra WHERE id = ANY($1) AND is_active = true`,
+      `SELECT id, price, pricing_type, max_days FROM extra WHERE id = ANY($1) AND is_active = true`,
       [extraIds],
     );
-    const extraPriceMap = new Map(extraRows.map((r: any) => [r.id, Number(r.price)]));
-    for (const item of body.extras) {
-      const price = extraPriceMap.get(item.extraId);
-      if (price != null) {
-        extrasTotal += price * item.quantity * days;
-      }
-    }
+    const extraMap = new Map<number, { price: number; pricingType: string; maxDays: number | null }>(
+      extraRows.map((r: { id: number; price: string; pricing_type: string; max_days: number | null }) => [
+        r.id,
+        { price: Number(r.price), pricingType: r.pricing_type, maxDays: r.max_days != null ? Number(r.max_days) : null },
+      ]),
+    );
+    const lineItems: ExtraLineItem[] = body.extras.flatMap((item) => {
+      const ex = extraMap.get(item.extraId);
+      if (!ex) return [];
+      return [{ price: ex.price, pricingType: ex.pricingType as "per_day" | "per_trip", maxDays: ex.maxDays, quantity: item.quantity }];
+    });
+    extrasTotal = computeExtrasTotal(lineItems, days);
   }
 
   let promoDiscountType: string | null = null;
@@ -346,14 +341,12 @@ router.post("/public/quote", async (req, res) => {
       promoDiscountType = promoRows[0].discount_type as string;
       promoDiscountValue = Number(promoRows[0].discount_value);
       if (baseTotal !== null) {
-        discountAmount = promoDiscountType === "percentage"
-          ? Math.round(baseTotal * (promoDiscountValue / 100) * 100) / 100
-          : Math.min(promoDiscountValue, baseTotal);
+        discountAmount = applyPromoDiscount(baseTotal, promoDiscountType, promoDiscountValue);
       }
     }
   }
 
-  // One-way fee: only when pickup and dropoff differ and both are provided
+  // One-way fee: only when pickup and dropoff differ and both are provided.
   let oneWayFee: number | undefined;
   const pickupLocId = body.pickupLocationId ? Number(body.pickupLocationId) : null;
   const dropoffLocId = body.dropoffLocationId ? Number(body.dropoffLocationId) : null;
@@ -367,7 +360,7 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  // Price order: base rental → promo (rental only) → one-way fee added last
+  // Price order: base rental → promo discount (rental only) → extras → one-way fee.
   const rentalAfterPromo: number | null = baseTotal !== null
     ? Math.max(0, baseTotal - (discountAmount ?? 0))
     : null;
@@ -378,9 +371,9 @@ router.post("/public/quote", async (req, res) => {
   return res.json({
     quotable: baseTotal !== null,
     days,
-    rateId: tier?.rate_id ?? null,
-    rateTierId: tier?.tier_id ?? null,
-    rateName: tier?.rate_name ?? null,
+    rateId: tier?.rateId ?? null,
+    rateTierId: tier?.tierId ?? null,
+    rateName: tier?.rateName ?? null,
     basePricePerDay,
     baseCurrency,
     baseTotal,
@@ -493,31 +486,40 @@ router.post("/public/bookings", async (req, res) => {
   }
 
   const rentalDays = calculateChargeableDays(pickupDate, dropoffDate);
-  let extrasTotal = 0;
-  const validatedExtras: Array<{ extraId: number; quantity: number; price: number; name: string; pricingType: string }> = [];
+  // Fetch extras with pricing_type and max_days for correct per_day vs per_trip calculation.
+  const validatedExtras: Array<{ extraId: number; quantity: number; price: number; name: string; pricingType: string; maxDays: number | null }> = [];
   if (body.extras && body.extras.length > 0) {
     const extraIds = body.extras.map((e) => e.extraId);
     const { rows: extraRows } = await pool.query(
-      `SELECT id, name, price, pricing_type FROM extra WHERE id = ANY($1) AND is_active = true`,
+      `SELECT id, name, price, pricing_type, max_days FROM extra WHERE id = ANY($1) AND is_active = true`,
       [extraIds],
     );
-    const extraMap = new Map<number, { price: number; name: string; pricingType: string }>(
-      extraRows.map((r: any) => [r.id as number, { price: Number(r.price), name: String(r.name), pricingType: String(r.pricing_type) }]),
+    const extraMap = new Map<number, { price: number; name: string; pricingType: string; maxDays: number | null }>(
+      extraRows.map((r: { id: number; name: string; price: string; pricing_type: string; max_days: number | null }) => [
+        r.id,
+        { price: Number(r.price), name: r.name, pricingType: r.pricing_type, maxDays: r.max_days != null ? Number(r.max_days) : null },
+      ]),
     );
     for (const item of body.extras) {
       const ex = extraMap.get(item.extraId);
       if (ex != null) {
-        // NOTE: extrasTotal always uses rentalDays to match the /public/quote behavior
-        extrasTotal += ex.price * item.quantity * rentalDays;
-        validatedExtras.push({ extraId: item.extraId, quantity: item.quantity, price: ex.price, name: ex.name, pricingType: ex.pricingType });
+        validatedExtras.push({ extraId: item.extraId, quantity: item.quantity, price: ex.price, name: ex.name, pricingType: ex.pricingType, maxDays: ex.maxDays });
       }
     }
   }
 
+  const extrasLineItems: ExtraLineItem[] = validatedExtras.map((e) => ({
+    price: e.price,
+    pricingType: e.pricingType as "per_day" | "per_trip",
+    maxDays: e.maxDays,
+    quantity: e.quantity,
+  }));
+  const extrasTotal = computeExtrasTotal(extrasLineItems, rentalDays);
+
   const contactFullName = `${body.firstName!.trim()} ${body.lastName!.trim()}`;
   const currency = body.currency ?? "GEL";
 
-  // Resolve one-way fee server-side — do NOT trust client-supplied value
+  // Resolve one-way fee server-side — do NOT trust client-supplied value.
   let resolvedOneWayFee: number | null = null;
   if (body.pickupLocationId && body.dropoffLocationId &&
       Number(body.pickupLocationId) !== Number(body.dropoffLocationId)) {
@@ -530,8 +532,33 @@ router.post("/public/bookings", async (req, res) => {
     }
   }
 
-  const totalAmount: string | null = body.resolvedTotal != null
-    ? String(body.resolvedTotal)
+  // Resolve rate server-side — do NOT trust client-submitted resolvedTotal / resolvedRateId.
+  const pickupDateStr = pickupDate.toISOString().slice(0, 10);
+  const resolvedTier = await resolveRateTier(pool, Number(body.vehicleModelId), pickupDateStr, rentalDays);
+  const serverBaseRate: number | null = resolvedTier ? resolvedTier.pricePerDay : null;
+  const serverBaseTotal: number | null = serverBaseRate !== null ? serverBaseRate * rentalDays : null;
+
+  // If the client had a rate at quote time but the server can no longer find one
+  // (e.g. rate expired between quote and submit), flag it in booking notes for staff.
+  let rateExpiredNote: string | null = null;
+  if (resolvedTier === null && (body.resolvedRateId != null || body.resolvedRateTierId != null)) {
+    rateExpiredNote = "[RATE EXPIRED AT BOOKING TIME — re-check pricing with staff]";
+  }
+
+  let serverDiscountAmount: number | null = null;
+  if (serverBaseTotal !== null && promoDiscountType && promoDiscountValue !== null) {
+    serverDiscountAmount = applyPromoDiscount(serverBaseTotal, promoDiscountType, promoDiscountValue);
+  }
+
+  const rentalAfterPromo = serverBaseTotal !== null
+    ? Math.max(0, serverBaseTotal - (serverDiscountAmount ?? 0))
+    : null;
+  const serverEstimatedTotal: number | null = rentalAfterPromo !== null
+    ? rentalAfterPromo + extrasTotal + (resolvedOneWayFee ?? 0)
+    : null;
+
+  const totalAmount: string | null = serverEstimatedTotal !== null
+    ? String(serverEstimatedTotal)
     : extrasTotal > 0
       ? String(extrasTotal)
       : null;
@@ -553,6 +580,9 @@ router.post("/public/bookings", async (req, res) => {
       ? `${combinedNotes}\n\n${websiteBlock}`
       : websiteBlock;
   }
+  if (rateExpiredNote) {
+    combinedNotes = combinedNotes ? `${combinedNotes}\n\n${rateExpiredNote}` : rateExpiredNote;
+  }
 
   const booking = await createAdminBooking({
     customerId: customerUser.id,
@@ -571,9 +601,9 @@ router.post("/public/bookings", async (req, res) => {
     source: "website",
     status: "PENDING",
     paymentStatus: "UNPAID",
-    rateId: body.resolvedRateId ?? null,
-    rateTierId: body.resolvedRateTierId ?? null,
-    baseRate: body.resolvedBaseRate != null ? String(body.resolvedBaseRate) : null,
+    rateId: resolvedTier?.rateId ?? null,
+    rateTierId: resolvedTier?.tierId ?? null,
+    baseRate: serverBaseRate !== null ? String(serverBaseRate) : null,
     oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
   });
 
@@ -604,8 +634,6 @@ router.post("/public/bookings", async (req, res) => {
       name: e.name,
       quantity: e.quantity,
       pricePerUnit: e.price,
-      // pricingType kept for label display only; cost is always price × qty × days
-      // to match the /public/quote behavior and avoid total mismatch
       pricingType: e.pricingType,
     })),
     insurancePlan: body.insurancePlan?.trim() || undefined,
@@ -613,8 +641,9 @@ router.post("/public/bookings", async (req, res) => {
     flightNumber: body.flightNumber?.trim() || undefined,
     nationality: body.nationality?.trim() || undefined,
     age: body.age?.trim() || undefined,
-    estimatedTotal: body.resolvedTotal ?? null,
-    resolvedBaseRate: body.resolvedBaseRate ?? null,
+    estimatedTotal: serverEstimatedTotal,
+    resolvedBaseRate: serverBaseRate,
+    discountAmount: serverDiscountAmount,
     promoCode: body.promoCode?.trim() || undefined,
     promoDiscountType,
     promoDiscountValue,
@@ -644,14 +673,6 @@ router.post("/public/bookings", async (req, res) => {
           ? emailParams.resolvedBaseRate * emailParams.rentalDays
           : null;
 
-        const emailDiscountAmount: number | null = (() => {
-          if (!emailParams.promoDiscountType || emailParams.promoDiscountValue == null || baseTotal == null) return null;
-          if (emailParams.promoDiscountType === "percentage") {
-            return Math.round(baseTotal * (emailParams.promoDiscountValue / 100) * 100) / 100;
-          }
-          return Math.min(emailParams.promoDiscountValue, baseTotal);
-        })();
-
         await sendBookingConfirmationEmail({
           toEmail: emailParams.toEmail,
           toName: emailParams.toName,
@@ -671,7 +692,7 @@ router.post("/public/bookings", async (req, res) => {
           estimatedTotal: emailParams.estimatedTotal,
           baseTotal,
           promoCode: emailParams.promoCode,
-          discountAmount: emailDiscountAmount,
+          discountAmount: emailParams.discountAmount,
           currency: emailParams.currency,
           generatedPassword: emailParams.generatedPassword,
           attachPdfVoucher: true,
