@@ -1,0 +1,204 @@
+Tbilisicars CRM&WEB project update.
+
+Important:
+- This project is already fully built and working in Replit.
+- The codebase has been built incrementally and carefully.
+- Do NOT re-architect unrelated parts.
+- Do NOT break existing booking, CRM, voucher, pricing, upload, auth, dashboard, or import logic.
+- Make only the scoped improvements below.
+- Be precise, production-safe, and defensive.
+- Avoid assumptions. Inspect the existing code paths first, then implement only what is required.
+- Preserve the current premium dark design language and mobile responsiveness.
+- The goal is improvement and polish, not disruption.
+
+CURRENT STATE TO RESPECT
+1. Customer auth backend foundation already exists.
+2. New bookings with a brand-new email create a customer account and show a generated password on the confirmation page.
+3. Existing emails do NOT get a new password, which is correct and must remain unchanged.
+4. A customer login page already exists.
+5. Website header already has a “Log in” entry.
+6. Staff login entry is still missing from the public-side auth UX.
+7. We do NOT want to work on email delivery, forgot-password backend, or full customer cabinet features in this task.
+8. We only want to improve the auth UX and navigation flow safely.
+
+CRITICAL GLOBAL REQUIREMENT — DO NOT BREAK WHAT ALREADY WORKS
+- Do NOT change the existing new-account password generation behavior.
+- Do NOT overwrite passwords for existing customer accounts.
+- Do NOT change booking creation business logic beyond the scoped UX improvements.
+- Do NOT change CRM/admin auth logic except exposing a safe public entry to staff login if needed.
+- Do NOT touch voucher import logic, pricing engine, handovers, dashboard logic, or unrelated modules.
+- Keep all current flows stable.
+
+CRITICAL GLOBAL REQUIREMENT — MOBILE-FIRST
+Everything implemented in this task MUST remain fully clean and responsive on mobile.
+Requirements:
+1. No layout breaking on 320px–768px.
+2. No overlap.
+3. No horizontal scroll.
+4. Buttons and links must be touch-friendly.
+5. Forms, login cards, menus, and helper messages must remain polished on small screens.
+6. Desktop layout must also remain premium and balanced.
+
+GOAL
+Polish the existing public auth experience by:
+- improving existing-customer messaging,
+- adding a proper staff login entry,
+- making the public login UX more intuitive,
+- and doing all this without changing the underlying working logic.
+
+SCOPE A — HEADER LOGIN ENTRY UPGRADE
+Inspect the current website header implementation and improve the “Log in” experience.
+
+Requirements:
+1. Keep “Book Now” exactly as the main CTA.
+2. Keep the current “Log in” entry, but improve its behavior so it cleanly supports both:
+   - Customer Log in
+   - Staff Log in
+3. Use the safest, cleanest UX pattern based on the current codebase.
+4. Preferred direction:
+   - Clicking “Log in” opens a small polished dropdown / popover / menu / modal with two options:
+     - Customer Log in
+     - Staff Log in
+5. If the current architecture makes a dropdown unsafe, use the next cleanest option:
+   - “Log in” goes to a dedicated login choice page with the two options.
+6. Staff Log in must route cleanly into the existing CRM/admin login route/path already used by the project.
+7. Do NOT create a second admin auth system.
+8. The design must remain premium, understated, and fully responsive.
+
+SCOPE B — CUSTOMER LOGIN PAGE POLISH
+Inspect the current customer login page and improve it carefully.
+
+Requirements:
+1. Keep it customer-focused.
+2. Preserve the current premium dark style.
+3. Add a clear secondary path for staff users:
+   - example: “Are you a staff member? Staff Log in”
+4. This staff link must point to the real existing CRM/admin login route.
+5. Improve the page wording if needed so it feels cleaner and more trustworthy.
+6. Do NOT add forgot-password backend logic in this task.
+7. If appropriate, you may add a small placeholder text like:
+   - “Forgot password? This feature is coming soon.”
+   but ONLY if it improves clarity and does not create confusion.
+8. Do not overbuild — keep the page simple and polished.
+
+SCOPE C — EXISTING CUSTOMER UX ON BOOKING CONFIRMATION
+This is very important.
+
+Current behavior is technically correct:
+- new email → password shown
+- existing email → no new password shown
+
+We must now improve the existing-customer messaging without changing the underlying logic.
+
+Requirements:
+1. Inspect the booking confirmation page.
+2. When generatedPassword is present:
+   - keep the existing “Your Account” card behavior working
+   - preserve email + generated password + copy action + cabinet note
+3. When generatedPassword is null (existing account case):
+   - replace the generic message with a more helpful, polished message
+   - clearly explain that this email already exists in the system
+   - clearly tell the user to use their existing password
+4. The wording should be professional, friendly, and calm — not alarming.
+5. The UI should remain visually balanced and mobile-safe.
+6. Do NOT generate or reset passwords in this branch.
+7. Do NOT add hidden logic changes here — this is UX polish only.
+
+Target meaning for the existing-account message:
+- “This email is already registered in our system.”
+- “Use your existing password to access your booking.”
+- optionally mention that password recovery may be added later, but do not promise unsupported behavior.
+
+SCOPE D — OPTIONAL LIGHT EMAIL AWARENESS IN BOOKING FLOW
+Only do this if it can be implemented safely without adding fragile complexity.
+
+Inspect the booking flow and decide whether a LIGHTWEIGHT email-awareness hint can be added safely.
+
+Safe examples:
+1. A subtle note after email entry if the email appears to already exist:
+   - “This email is already registered. You can log in later to view your bookings.”
+2. Or a passive hint near the login/cabinet messaging.
+
+Rules:
+- This must be non-blocking.
+- This must not interrupt booking.
+- This must not add risky async race-condition behavior.
+- If this cannot be done safely within the current architecture, SKIP it.
+- If skipped, explain clearly in the audit/plan why it was skipped.
+
+SCOPE E — STAFF LOGIN ENTRY IN PUBLIC AUTH FLOW
+Add a safe and explicit staff login path in the public-facing auth UX.
+
+Requirements:
+1. Staff members must have a clear route from the website into CRM/admin login.
+2. Reuse the existing CRM/admin login page/path.
+3. Do NOT build a duplicate staff auth screen.
+4. Public auth UI should now make it obvious that:
+   - customers log in to their booking cabinet
+   - staff log in to CRM
+5. The visual hierarchy must remain elegant and not cluttered.
+
+SCOPE F — COPY / TEXT POLISH
+Improve wording where necessary, but keep it concise and premium.
+
+Do not use robotic or overly technical language.
+Preferred qualities:
+- professional
+- friendly
+- reassuring
+- conversion-safe
+- concise
+
+SCOPE G — NON-REGRESSION REQUIREMENTS
+This is critical:
+1. Do NOT break:
+   - booking creation
+   - generated password for new users
+   - existing-account protection
+   - customer login
+   - admin login
+   - CRM routes
+   - website routes
+2. Do NOT break mobile layout.
+3. Do NOT break confirmation page rendering.
+4. Do NOT break SPA navigation.
+5. Do NOT add console errors.
+6. Do NOT introduce overlapping modals/menus.
+7. Do NOT make the header messy.
+
+IMPLEMENTATION METHOD
+1. First inspect the current code paths for:
+   - website header
+   - customer login page
+   - booking confirmation page
+   - existing customer/account messaging
+   - CRM/admin login route/path
+2. Reuse existing structures wherever possible.
+3. Prefer minimal, surgical edits.
+4. Avoid duplicate components or duplicate auth flows.
+5. Keep any new conditional UI simple and explicit.
+6. If there are multiple possible UX implementations, choose the safest one that best preserves the existing system.
+
+DELIVERABLE FORMAT
+Return the result in this structure:
+1. Audit summary — what existing auth-related codepaths were found
+2. Exact implementation plan
+3. Files to modify
+4. Then implement the changes
+5. Final verification checklist covering:
+   - header log in behavior
+   - customer login page
+   - staff login entry
+   - existing customer confirmation message
+   - new customer confirmation card still working
+   - mobile layout validation
+   - no CRM/admin regression
+   - no booking flow regression
+
+IMPORTANT:
+- Do NOT skip the audit step.
+- Do NOT assume route names or auth architecture — inspect first.
+- Do NOT touch email delivery logic in this task.
+- Do NOT implement full forgot-password.
+- Do NOT add risky complexity.
+- Improve carefully and move the product forward without destabilizing it.
