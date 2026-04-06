@@ -59,6 +59,12 @@ export default function Header() {
             {/* Book Now CTA + mobile burger */}
             <div className="flex items-center gap-3">
               <Link
+                href="/login"
+                className="hidden sm:inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
                 href="/booking"
                 className="hidden sm:inline-flex items-center gap-2 bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
               >
@@ -95,9 +101,16 @@ export default function Header() {
                 </Link>
               ))}
               <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center border border-white/20 hover:border-white/40 text-muted-foreground hover:text-white text-sm font-medium px-4 py-3 rounded-lg transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
                 href="/booking"
                 onClick={() => setOpen(false)}
-                className="mt-2 flex items-center justify-center bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-3 rounded-lg transition-colors"
+                className="flex items-center justify-center bg-primary hover:bg-accent text-white text-sm font-semibold px-4 py-3 rounded-lg transition-colors"
               >
                 Book Now
               </Link>

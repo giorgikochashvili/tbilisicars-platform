@@ -12,6 +12,7 @@ import Privacy from "./pages/Privacy";
 import Locations from "./pages/Locations";
 import Services from "./pages/Services";
 import Booking from "./pages/Booking";
+import Login from "./pages/Login";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/locations" component={Locations} />
                 <Route path="/services" component={Services} />
                 <Route path="/booking" component={Booking} />
+                <Route path="/login" component={Login} />
                 <Route component={NotFound} />
               </Switch>
             </main>

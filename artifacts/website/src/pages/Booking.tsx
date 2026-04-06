@@ -57,6 +57,7 @@ interface BookingResult {
   pickupDatetime: string; dropoffDatetime: string;
   pickupLocationId?: number;
   message: string;
+  generatedPassword?: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1150,7 +1151,13 @@ function Step4({ form, setForm, onNext, onBack }: {
           <div><FieldLabel required>Last Name</FieldLabel><Inp value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><FieldLabel required>Email Address</FieldLabel><Inp type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
+          <div>
+            <FieldLabel required>Email Address</FieldLabel>
+            <Inp type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              Use your real email address so you can receive your booking confirmation, voucher, and securely access your personal booking cabinet.
+            </p>
+          </div>
           <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
         </div>
       </div>
@@ -1691,6 +1698,51 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           {form.paymentMethod && <SummaryRow label="Payment Method" value={form.paymentMethod} />}
           {form.notes && <SummaryRow label="Notes" value={form.notes} />}
         </div>
+
+        {/* Your Account card */}
+        {result.generatedPassword ? (
+          <div className="bg-card border border-primary/30 rounded-xl p-5 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-3 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              Your Account
+            </div>
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+              We created a booking cabinet for you. Use these credentials to view your bookings and documents.
+            </p>
+            <div className="space-y-3">
+              <div className="flex justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Email</span>
+                <span className="text-sm font-medium text-white">{form.email}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-muted-foreground">Password</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-mono font-semibold text-white tracking-widest">{result.generatedPassword}</span>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(result.generatedPassword!).catch(() => {})}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded border border-border hover:border-primary/40"
+                  >
+                    <Copy className="w-3 h-3" /> Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+              You can change your password from your cabinet.
+            </p>
+          </div>
+        ) : result.generatedPassword === null ? (
+          <div className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              Your Account
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Log in with your existing account credentials to view your bookings and documents.
+            </p>
+          </div>
+        ) : null}
 
         {/* Pickup instructions */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
