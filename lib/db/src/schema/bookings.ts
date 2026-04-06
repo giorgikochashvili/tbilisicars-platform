@@ -225,6 +225,8 @@ export const bookingphotoTable = pgTable(
       .references(() => bookingTable.id, { onDelete: "cascade" }),
     photoUrl: varchar("photo_url", { length: 500 }),
     photoType: bookingPhotoTypeEnum("photo_type").notNull().default("GENERAL"),
+    // Nullable — set when the photo is archived (30-day lifecycle, migration 0003)
+    photoArchivedAt: timestamp("photo_archived_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

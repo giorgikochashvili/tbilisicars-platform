@@ -27,6 +27,7 @@ import {
 import {
   createHandover,
   getHandoversForBooking,
+  schedulePhotoLifecycle,
 } from "../services/admin-handovers.service.js";
 import { logAudit, bookingRef } from "../services/audit.service.js";
 
@@ -330,6 +331,7 @@ router.post("/admin/bookings/:id/dropoff", requireAdmin, async (req, res) => {
     notes: notes ?? null,
     photoUrls: photoUrls ?? [],
   });
+  schedulePhotoLifecycle(id, "DROPOFF");
   logAudit({
     actorId: req.session.adminId ?? null,
     entityType: "booking",

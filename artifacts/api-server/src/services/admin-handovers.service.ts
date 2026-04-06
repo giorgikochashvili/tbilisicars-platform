@@ -94,6 +94,21 @@ export async function createHandover(data: {
   return handover;
 }
 
+/**
+ * Extension point for post-dropoff photo lifecycle scheduling.
+ * Currently a stub — logs a debug message for DROPOFF handovers.
+ * Future work will trigger: compression queue → 30-day archive →
+ * object storage migration. See PHOTO_LIFECYCLE.md for the full spec.
+ */
+export function schedulePhotoLifecycle(
+  bookingId: number,
+  handoverType: "PICKUP" | "DROPOFF",
+): void {
+  if (handoverType === "DROPOFF") {
+    console.debug(`[photo-lifecycle] bookingId=${bookingId} scheduled`);
+  }
+}
+
 export async function getHandoversForBooking(bookingId: number) {
   // Fetch handovers with performer name via JOIN on admins
   const handoverRows = await db
