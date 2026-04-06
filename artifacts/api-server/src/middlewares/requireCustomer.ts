@@ -1,20 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import { UnauthorizedError } from "../lib/errors.js";
 
-declare module "express-session" {
-  interface SessionData {
-    userId?: number;
-    adminId?: number;
-    customerId?: number;
-  }
-}
-
-export function requireAuth(
+export async function requireCustomer(
   req: Request,
   _res: Response,
   next: NextFunction,
-): void {
-  if (!req.session.userId) {
+): Promise<void> {
+  if (!req.session.customerId) {
     throw new UnauthorizedError();
   }
   next();

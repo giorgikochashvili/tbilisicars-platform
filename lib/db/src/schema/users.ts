@@ -14,6 +14,8 @@ import { z } from "zod/v4";
 // ─── User (Customer) ──────────────────────────────────────────────────────────
 // email became nullable in migration 021. The original constraint was a partial
 // unique index (WHERE email IS NOT NULL), which we replicate with .where() below.
+// passwordHash added for customer self-service login (bcryptjs, rounds=12).
+// Nullable — existing rows have no password; admin-created rows also leave it null.
 
 export const userTable = pgTable(
   "user",
@@ -26,6 +28,7 @@ export const userTable = pgTable(
     passportId: varchar("passport_id", { length: 100 }),
     drivingLicense: varchar("driving_license", { length: 100 }),
     notes: text("notes"),
+    passwordHash: varchar("password_hash", { length: 255 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

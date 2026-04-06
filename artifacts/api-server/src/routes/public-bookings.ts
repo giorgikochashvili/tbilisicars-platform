@@ -8,6 +8,7 @@ import { createAdminBooking } from "../services/admin-bookings.service.js";
 import { db, bookingextraTable } from "@workspace/db";
 import { sendBookingConfirmationEmail } from "../services/email.service.js";
 import { calculateChargeableDays } from "../lib/pricing.js";
+import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
 
 const router: IRouter = Router();
 
@@ -453,6 +454,18 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Invalid email address"] });
   }
 
+  // ── Customer account upsert ────────────────────────────────────────────────
+  // Resolve (or create) the customer account identified by email.
+  // For new accounts: a 6-char alphanumeric password is generated, hashed,
+  // and stored. The plain-text value is captured here for the response only.
+  // For existing accounts: no password change; generatedPassword = null.
+  const contactFullNameEarly = `${body.firstName!.trim()} ${body.lastName!.trim()}`;
+  const { user: customerUser, generatedPassword } = await upsertCustomerByEmail({
+    email: body.email!.trim().toLowerCase(),
+    fullName: contactFullNameEarly,
+    phone: body.phone?.trim() ?? null,
+  });
+
   const { rows: modelRows } = await pool.query(
     `SELECT vm.id, br.name AS brand, vm.name AS model
      FROM vehicle_model vm
@@ -542,12 +555,10 @@ router.post("/public/bookings", async (req, res) => {
   }
 
   const booking = await createAdminBooking({
+    customerId: customerUser.id,
     contactFullName,
     contactEmail: body.email!.trim(),
     contactPhone: body.phone!.trim(),
-    customerEmail: body.email!.trim(),
-    customerPhone: body.phone!.trim(),
-    customerFullName: contactFullName,
     pickupLocationId: Number(body.pickupLocationId),
     dropoffLocationId: Number(body.dropoffLocationId),
     pickupDatetime: body.pickupDatetime!,
@@ -678,6 +689,7 @@ router.post("/public/bookings", async (req, res) => {
     pickupLocationId: body.pickupLocationId,
     status: "PENDING",
     message: "Your booking request has been received. We will confirm shortly.",
+    generatedPassword,
   });
 });
 
