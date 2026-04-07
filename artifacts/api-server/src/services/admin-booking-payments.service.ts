@@ -193,41 +193,45 @@ export async function addBookingPayment(input: AddPaymentInput) {
       ? amount
       : amount;
 
-  let accountingEntryId: number | null = null;
+  const { payment } = await db.transaction(async (tx) => {
+    let accountingEntryId: number | null = null;
 
-  const acctMapping = PAYMENT_TYPE_ACCOUNTING[paymentType];
-  if (acctMapping) {
-    const [entry] = await db
-      .insert(accountingEntriesTable)
+    const acctMapping = PAYMENT_TYPE_ACCOUNTING[paymentType];
+    if (acctMapping) {
+      const [entry] = await tx
+        .insert(accountingEntriesTable)
+        .values({
+          type: acctMapping.type,
+          category: acctMapping.category,
+          amount: String(amount),
+          currency: currency as "GEL" | "USD" | "EUR",
+          convertedGel: String(convertedGel),
+          entryDate: paymentDate,
+          notes: notes ?? null,
+          relatedBookingId: bookingId,
+          adminId: adminId ?? null,
+        })
+        .returning({ id: accountingEntriesTable.id });
+      accountingEntryId = entry.id;
+    }
+
+    const [payment] = await tx
+      .insert(bookingPaymentTable)
       .values({
-        type: acctMapping.type,
-        category: acctMapping.category,
+        bookingId,
+        paymentType,
         amount: String(amount),
         currency: currency as "GEL" | "USD" | "EUR",
         convertedGel: String(convertedGel),
-        entryDate: paymentDate,
+        paymentDate,
+        method,
         notes: notes ?? null,
-        relatedBookingId: bookingId,
-        adminId: adminId ?? null,
+        accountingEntryId,
       })
-      .returning({ id: accountingEntriesTable.id });
-    accountingEntryId = entry.id;
-  }
+      .returning();
 
-  const [payment] = await db
-    .insert(bookingPaymentTable)
-    .values({
-      bookingId,
-      paymentType,
-      amount: String(amount),
-      currency: currency as "GEL" | "USD" | "EUR",
-      convertedGel: String(convertedGel),
-      paymentDate,
-      method,
-      notes: notes ?? null,
-      accountingEntryId,
-    })
-    .returning();
+    return { payment };
+  });
 
   const summary = await getBookingPaymentSummary(bookingId);
 
@@ -248,15 +252,17 @@ export async function deleteBookingPayment(bookingId: number, paymentId: number)
     throw new NotFoundError(`Payment ${paymentId} not found on booking ${bookingId}`);
   }
 
-  if (existing.accountingEntryId) {
-    await db
-      .delete(accountingEntriesTable)
-      .where(eq(accountingEntriesTable.id, existing.accountingEntryId));
-  }
+  await db.transaction(async (tx) => {
+    if (existing.accountingEntryId) {
+      await tx
+        .delete(accountingEntriesTable)
+        .where(eq(accountingEntriesTable.id, existing.accountingEntryId));
+    }
 
-  await db
-    .delete(bookingPaymentTable)
-    .where(eq(bookingPaymentTable.id, paymentId));
+    await tx
+      .delete(bookingPaymentTable)
+      .where(eq(bookingPaymentTable.id, paymentId));
+  });
 
   const summary = await getBookingPaymentSummary(bookingId);
 

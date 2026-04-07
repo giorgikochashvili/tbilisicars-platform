@@ -1,0 +1,90 @@
+# Fix #2 — Wrap booking payment mutations in DB transactions
+
+Project context:
+This is a live production PNPM monorepo project named Tbilisicars CRM&WEB. The project is already built and running. Do not rewrite architecture. Apply only a narrow backend fix in the existing codebase.
+
+File to change:
+`artifacts/api-server/src/services/admin-booking-payments.service.ts`
+
+Problem:
+Two functions in this file perform multi-step database mutations without transactions:
+
+1. `addBookingPayment`
+
+* inserts into `accountingEntriesTable`
+* inserts into `bookingPaymentTable`
+* then updates payment status
+
+2. `deleteBookingPayment`
+
+* deletes related `accountingEntriesTable` row
+* deletes `bookingPaymentTable` row
+* then updates payment status
+
+If the process stops or fails between DB operations, accounting and payment data can become inconsistent.
+
+What must be changed:
+
+## 1) Update `addBookingPayment`
+
+Wrap the accounting entry insert and booking payment insert in a single:
+`db.transaction(async (tx) => { ... })`
+
+Inside the transaction:
+
+* use `tx.insert(...)` instead of `db.insert(...)`
+* preserve all existing field values exactly
+* preserve existing `PAYMENT_TYPE_ACCOUNTING` mapping logic exactly
+* preserve handling of:
+
+  * `amount`
+  * `currency`
+  * `convertedGel`
+  * `paymentDate`
+  * `method`
+  * `notes`
+  * `adminId`
+  * `bookingId`
+* keep the same return shape as before
+
+Outside the transaction, after it succeeds:
+
+* keep `getBookingPaymentSummary(bookingId)`
+* keep `updateBookingPaymentStatus(bookingId, summary)`
+
+Do not move those two into the transaction unless absolutely required by the existing code structure.
+
+## 2) Update `deleteBookingPayment`
+
+Wrap these deletes in a single:
+`db.transaction(async (tx) => { ... })`
+
+Inside the transaction:
+
+* if `existing.accountingEntryId` exists, delete the related accounting entry with `tx.delete(...)`
+* delete the payment row with `tx.delete(...)`
+
+Outside the transaction, after it succeeds:
+
+* keep the existing summary refresh / payment status update logic exactly as it is
+
+Important constraints:
+
+* Change only this file
+* Change only these two functions
+* Do not refactor unrelated code
+* Do not change business logic
+* Do not change response or return shapes
+* Do not change summary calculation logic
+* Do not change payment status logic
+* Do not change any other functions in this file
+* Keep the code TypeScript-safe and build-safe
+
+Verification:
+After the change, send back the full updated code for:
+
+* `addBookingPayment`
+* `deleteBookingPayment`
+
+Please change only this and do not touch unrelated code.
+After the change, send back the full updated functions for review.
