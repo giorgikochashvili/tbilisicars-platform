@@ -1,0 +1,148 @@
+Full system status update — Tbilisicars CRM&WEB (post-fix snapshot)
+
+We have completed the full critical security + correctness fix batch and additional stability work. Below is the current system state.
+
+────────────────────────
+
+1. Critical fixes (Claude batch — COMPLETED)
+   ────────────────────────
+
+2. SQL injection fix
+
+* artifacts/api-server/src/routes/admin-alerts.ts
+
+2. Payment transaction safety
+
+* addBookingPayment wrapped in transaction
+* deleteBookingPayment wrapped in transaction
+* artifacts/api-server/src/services/admin-booking-payments.service.ts
+
+3. Storage access protection
+
+* GET /storage/objects/* now requires admin auth
+* artifacts/api-server/src/routes/storage.ts
+
+4. CORS hardening
+
+* removed origin: true
+* implemented strict allowlist via CORS_ORIGINS env
+* artifacts/api-server/src/app.ts
+
+5. Rate limiting
+
+* admin login limiter
+* customer login limiter
+* public bookings limiter
+* artifacts/api-server/src/app.ts
+
+6. Promo schema alignment
+
+* maxUsage → maxUses
+* currentUsage → timesUsed
+* removed perUserLimit
+* artifacts/api-server/src/services/admin-promos.service.ts
+
+7. Promo maxUses enforcement (critical fix)
+
+* fully transaction-safe implementation
+* SELECT ... FOR UPDATE row locking
+* timesUsed increment + booking insert + extras insert in same transaction
+* no possible path where discounted booking succeeds without consuming a usage slot
+* artifacts/api-server/src/routes/public-bookings.ts
+
+This fix has been independently audited and is:
+
+* race-condition safe
+* rollback safe
+* transactionally correct
+
+────────────────────────
+2. Additional fixes and improvements (non-Claude batch)
+────────────────────────
+
+* Express session stabilization
+
+  * proper cookie config (httpOnly, sameSite=lax, secure in production)
+  * trust proxy enabled for nginx
+  * session persistence verified via connect-pg-simple
+
+* Auth flow reliability
+
+  * fixed cases where login returned 200 but session cookie was missing
+  * verified /api/auth/admin/me works correctly
+
+* Nginx routing fixes
+
+  * correct /crm/ alias handling
+  * fixed trailing slash issues
+  * fixed /api proxy behavior
+  * fixed /storage uploads routing via /api/storage
+
+* Storage system normalization
+
+  * unified storage paths (local + objects)
+  * consistent /api/storage prefix handling
+  * removed localhost-based URLs in upload flow
+
+* Frontend/CRM stability fixes
+
+  * dashboard rendering issues fixed
+  * login redirect issues fixed
+  * upload flows stabilized (logos, images)
+
+* Build reliability
+
+  * consistent build process using pnpm filters
+  * environment-dependent builds (PORT, BASE_PATH)
+  * PM2 process stability confirmed
+
+────────────────────────
+3. Infrastructure state
+────────────────────────
+
+* Hosting: DigitalOcean droplet
+* Process manager: PM2
+* Reverse proxy: Nginx
+* Database: PostgreSQL (local)
+* Monorepo: PNPM workspaces
+
+Deployment flow:
+git pull → pnpm install → build api → build crm → build website → pm2 restart
+
+────────────────────────
+4. Security posture (current)
+────────────────────────
+
+Now protected against:
+
+* SQL injection (admin-alerts)
+* unsafe CORS (allowlist enforced)
+* unauthenticated storage access
+* login brute force (rate limiting)
+* promo abuse (maxUses fully enforced)
+* partial DB writes (transactions in payments & promo flow)
+
+────────────────────────
+5. Known constraints (not blockers)
+────────────────────────
+
+* Promo discount value is computed before transaction (possible stale read if admin edits promo mid-request)
+* This does not affect correctness of maxUses enforcement
+
+────────────────────────
+6. Current status
+────────────────────────
+
+* Critical fix batch: COMPLETE
+* System is stable and consistent
+* Ready for production deploy + smoke testing
+
+Next step:
+
+* deploy with correct CORS_ORIGINS
+* run post-deploy validation
+* proceed to next audit / scaling / resilience phase
+
+────────────────────────
+END OF REPORT
+────────────────────────
