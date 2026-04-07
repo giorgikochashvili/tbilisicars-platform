@@ -14,6 +14,10 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 
   // ── 1. PICKUP TODAY ─────────────────────────────────────────────────────────
   if (!type || type === "PICKUP_TODAY") {
+    const params: string[] = [];
+    const regionClause = region && region !== "all"
+      ? `AND l.city = $${params.push(region)}`
+      : "";
     const { rows } = await pool.query(`
       SELECT
         b.id AS booking_id,
@@ -32,9 +36,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       WHERE b.pickup_datetime::date = CURRENT_DATE
         AND b.status IN ('PENDING', 'CONFIRMED')
         AND b.deleted_at IS NULL
-        ${region && region !== "all" ? `AND l.city = '${region.replace(/'/g, "''")}'` : ""}
+        ${regionClause}
       ORDER BY b.pickup_datetime ASC
-    `);
+    `, params);
     for (const r of rows) {
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
       const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
@@ -55,6 +59,10 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 
   // ── 2. DROPOFF TODAY ────────────────────────────────────────────────────────
   if (!type || type === "DROPOFF_TODAY") {
+    const params: string[] = [];
+    const regionClause = region && region !== "all"
+      ? `AND l.city = $${params.push(region)}`
+      : "";
     const { rows } = await pool.query(`
       SELECT
         b.id AS booking_id,
@@ -72,9 +80,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       WHERE b.dropoff_datetime::date = CURRENT_DATE
         AND b.status IN ('CONFIRMED', 'DELIVERED')
         AND b.deleted_at IS NULL
-        ${region && region !== "all" ? `AND l.city = '${region.replace(/'/g, "''")}'` : ""}
+        ${regionClause}
       ORDER BY b.dropoff_datetime ASC
-    `);
+    `, params);
     for (const r of rows) {
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
       const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
@@ -95,6 +103,10 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 
   // ── 3. OVERDUE RETURN ───────────────────────────────────────────────────────
   if (!type || type === "OVERDUE") {
+    const params: string[] = [];
+    const regionClause = region && region !== "all"
+      ? `AND l.city = $${params.push(region)}`
+      : "";
     const { rows } = await pool.query(`
       SELECT
         b.id AS booking_id,
@@ -113,9 +125,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       WHERE b.dropoff_datetime < NOW()
         AND b.status NOT IN ('RETURNED', 'CANCELED', 'NO_SHOW')
         AND b.deleted_at IS NULL
-        ${region && region !== "all" ? `AND l.city = '${region.replace(/'/g, "''")}'` : ""}
+        ${regionClause}
       ORDER BY b.dropoff_datetime ASC
-    `);
+    `, params);
     for (const r of rows) {
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
       const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
@@ -138,6 +150,10 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 
   // ── 4. BOOKING CONFLICT ─────────────────────────────────────────────────────
   if (!type || type === "CONFLICT") {
+    const params: string[] = [];
+    const regionClause = region && region !== "all"
+      ? `AND l.city = $${params.push(region)}`
+      : "";
     const { rows } = await pool.query(`
       SELECT DISTINCT ON (b1.vehicle_id)
         b1.vehicle_id,
@@ -159,9 +175,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
         AND b1.pickup_datetime < b2.dropoff_datetime
         AND b1.dropoff_datetime > b2.pickup_datetime
         AND b1.deleted_at IS NULL AND b2.deleted_at IS NULL
-        ${region && region !== "all" ? `AND l.city = '${region.replace(/'/g, "''")}'` : ""}
+        ${regionClause}
       ORDER BY b1.vehicle_id, b1.id
-    `);
+    `, params);
     for (const r of rows) {
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
       const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
@@ -191,8 +207,9 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       : type === "SERVICE_OVERDUE" ? "WHERE severity = 'SERVICE_OVERDUE'"
       : "";
 
+    const params: string[] = [];
     const regionFilter = region && region !== "all"
-      ? `AND l.city = '${region.replace(/'/g, "''")}'`
+      ? `AND l.city = $${params.push(region)}`
       : "";
 
     const { rows } = await pool.query(`
@@ -252,7 +269,7 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
       SELECT * FROM best
       ${severityFilter}
       ORDER BY sev_rank ASC, vehicle_id ASC
-    `);
+    `, params);
 
     for (const r of rows) {
       const label = r.vehicle_label?.trim() || "Unassigned vehicle";
