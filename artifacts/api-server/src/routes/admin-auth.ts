@@ -21,9 +21,22 @@ router.post("/auth/admin/login", async (req, res) => {
   res.json(AdminLoginResponse.parse(admin));
 });
 
-router.post("/auth/admin/logout", async (req, res) => {
-  await logoutAdmin(req.session);
-  res.json(AdminLogoutResponse.parse({ message: "Logged out" }));
+router.post("/auth/admin/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("[logout] session destroy error:", err);
+      return res.status(500).json({ message: "Logout failed" });
+    }
+
+    res.clearCookie("connect.sid", {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return res.json({ message: "Logged out" });
+  });
 });
 
 router.get("/auth/admin/me", requireAdmin, async (req, res) => {

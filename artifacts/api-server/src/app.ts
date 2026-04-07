@@ -25,14 +25,22 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
-const allowedOrigins = process.env.CORS_ORIGINS?.split(",") ?? [];
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  : null;
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
+
+    if (!allowedOrigins || allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true,

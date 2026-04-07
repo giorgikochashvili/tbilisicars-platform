@@ -23,15 +23,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [isError, setLocation]);
 
-  const logout = () => {
-    fetch("/api/auth/admin/logout", {
-      method: "POST",
-      credentials: "include",
-    })
-      .catch((err) => console.error("[logout] request failed:", err))
-      .finally(() => {
-        window.location.href = "/crm/login";
+  const logout = async () => {
+    try {
+      const res = await fetch("/api/auth/admin/logout", {
+        method: "POST",
+        credentials: "include",
       });
+
+      if (res.ok) {
+        window.location.href = "/crm/login";
+      } else {
+        console.error("[logout] server error:", res.status, res.statusText);
+      }
+    } catch (err) {
+      console.error("[logout] request failed:", err);
+    }
   };
 
   return (
