@@ -73,6 +73,7 @@ const bookingRateLimit = rateLimit({
 });
 
 app.use("/api/auth/admin/login", loginRateLimit);
+app.use("/api/auth/customer/login", loginRateLimit);
 app.use("/api/public/bookings", bookingRateLimit);
 
 app.use("/api", router);
