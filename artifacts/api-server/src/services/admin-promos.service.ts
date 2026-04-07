@@ -22,12 +22,11 @@ export async function createAdminPromo(data: {
   discountType: "percentage" | "fixed";
   discountValue: string;
   minRentalDays?: number | null;
-  maxUsage?: number | null;
-  currentUsage?: number;
+  maxUses?: number | null;
+  timesUsed?: number;
   validFrom: string;
   validUntil: string;
   isActive?: boolean;
-  perUserLimit?: number | null;
 }) {
   const [row] = await db.insert(promoTable).values(data as any).returning();
   return row!;
@@ -41,12 +40,11 @@ export async function updateAdminPromo(
     discountType: "percentage" | "fixed";
     discountValue: string;
     minRentalDays: number | null;
-    maxUsage: number | null;
-    currentUsage: number;
+    maxUses: number | null;
+    timesUsed: number;
     validFrom: string;
     validUntil: string;
     isActive: boolean;
-    perUserLimit: number | null;
   }>,
 ) {
   const [row] = await db
