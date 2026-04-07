@@ -4,8 +4,8 @@
  */
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
-import { createAdminBooking } from "../services/admin-bookings.service.js";
-import { db, bookingextraTable } from "@workspace/db";
+import { db, bookingextraTable, bookingTable, promoTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { sendBookingConfirmationEmail } from "../services/email.service.js";
 import {
   calculateChargeableDays,
@@ -474,15 +474,20 @@ router.post("/public/bookings", async (req, res) => {
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
   if (body.promoCode) {
-    const { rows: promoRows } = await pool.query(
-      `SELECT id, discount_type, discount_value FROM promo WHERE code = $1 AND active = true LIMIT 1`,
+    const { rows: preRows } = await pool.query(
+      `SELECT discount_type, discount_value, max_uses, times_used, active FROM promo WHERE code = $1 LIMIT 1`,
       [body.promoCode.trim().toUpperCase()],
     );
-    if (promoRows[0]) {
-      discount = String(promoRows[0].discount_value);
-      promoDiscountType = String(promoRows[0].discount_type);
-      promoDiscountValue = Number(promoRows[0].discount_value);
+    const pre = preRows[0];
+    if (!pre || !pre.active) {
+      return res.status(422).json({ errors: ["Invalid or inactive promo code"] });
     }
+    if (pre.max_uses !== null && pre.times_used >= pre.max_uses) {
+      return res.status(422).json({ errors: ["Promo code has reached its usage limit"] });
+    }
+    discount = String(pre.discount_value);
+    promoDiscountType = String(pre.discount_type);
+    promoDiscountValue = Number(pre.discount_value);
   }
 
   const rentalDays = calculateChargeableDays(pickupDate, dropoffDate);
@@ -584,41 +589,79 @@ router.post("/public/bookings", async (req, res) => {
     combinedNotes = combinedNotes ? `${combinedNotes}\n\n${rateExpiredNote}` : rateExpiredNote;
   }
 
-  const booking = await createAdminBooking({
-    customerId: customerUser.id,
-    contactFullName,
-    contactEmail: body.email!.trim(),
-    contactPhone: body.phone!.trim(),
-    pickupLocationId: Number(body.pickupLocationId),
-    dropoffLocationId: Number(body.dropoffLocationId),
-    pickupDatetime: body.pickupDatetime!,
-    dropoffDatetime: body.dropoffDatetime!,
-    vehicleModelId: Number(body.vehicleModelId),
-    currency,
-    discount,
-    totalAmount,
-    notes: combinedNotes,
-    source: "website",
-    status: "PENDING",
-    paymentStatus: "UNPAID",
-    rateId: resolvedTier?.rateId ?? null,
-    rateTierId: resolvedTier?.tierId ?? null,
-    baseRate: serverBaseRate !== null ? String(serverBaseRate) : null,
-    oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
-  });
+  let bookingId: number;
+  try {
+    ({ bookingId } = await db.transaction(async (tx) => {
+      if (body.promoCode) {
+        const [promoRow] = await tx
+          .select({ id: promoTable.id, maxUses: promoTable.maxUses, timesUsed: promoTable.timesUsed })
+          .from(promoTable)
+          .where(eq(promoTable.code, body.promoCode.trim().toUpperCase()))
+          .for("update");
 
-  if (validatedExtras.length > 0) {
-    await db.insert(bookingextraTable).values(
-      validatedExtras.map((e) => ({
-        bookingId: booking.id,
-        extraId: e.extraId,
-        quantity: e.quantity,
-        priceAtBooking: String(e.price),
-      })),
-    );
+        if (!promoRow) {
+          throw new Error("PROMO_INVALID");
+        }
+        if (promoRow.maxUses !== null && (promoRow.timesUsed ?? 0) >= promoRow.maxUses) {
+          throw new Error("PROMO_EXHAUSTED");
+        }
+
+        await tx
+          .update(promoTable)
+          .set({ timesUsed: sql`COALESCE(${promoTable.timesUsed}, 0) + 1` })
+          .where(eq(promoTable.id, promoRow.id));
+      }
+
+      const [row] = await tx
+        .insert(bookingTable)
+        .values({
+          userId: customerUser.id,
+          contactFullName,
+          contactEmail: body.email!.trim(),
+          contactPhone: body.phone!.trim(),
+          pickupLocationId: Number(body.pickupLocationId),
+          dropoffLocationId: Number(body.dropoffLocationId),
+          pickupDatetime: pickupDate,
+          dropoffDatetime: dropoffDate,
+          vehicleModelId: Number(body.vehicleModelId),
+          currency,
+          discount,
+          totalAmount,
+          notes: combinedNotes,
+          source: "website" as const,
+          status: "PENDING" as const,
+          paymentStatus: "UNPAID" as const,
+          rateId: resolvedTier?.rateId ?? null,
+          rateTierId: resolvedTier?.tierId ?? null,
+          baseRate: serverBaseRate !== null ? String(serverBaseRate) : null,
+          oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
+        })
+        .returning({ id: bookingTable.id });
+
+      if (validatedExtras.length > 0) {
+        await tx.insert(bookingextraTable).values(
+          validatedExtras.map((e) => ({
+            bookingId: row!.id,
+            extraId: e.extraId,
+            quantity: e.quantity,
+            priceAtBooking: String(e.price),
+          })),
+        );
+      }
+
+      return { bookingId: row!.id };
+    }));
+  } catch (err) {
+    if (err instanceof Error && err.message === "PROMO_EXHAUSTED") {
+      return res.status(422).json({ errors: ["Promo code has reached its usage limit"] });
+    }
+    if (err instanceof Error && err.message === "PROMO_INVALID") {
+      return res.status(422).json({ errors: ["Invalid or inactive promo code"] });
+    }
+    throw err;
   }
 
-  const reference = `TC-${String(booking.id).padStart(5, "0")}`;
+  const reference = `TC-${String(bookingId).padStart(5, "0")}`;
   const vehicleName = `${modelRows[0]!.brand} ${modelRows[0]!.model}`;
 
   // Send confirmation email — entire prep is non-blocking; a failure here
@@ -705,7 +748,7 @@ router.post("/public/bookings", async (req, res) => {
 
   return res.status(201).json({
     success: true,
-    bookingId: booking.id,
+    bookingId,
     reference,
     vehicle: vehicleName,
     pickupDatetime: body.pickupDatetime,
