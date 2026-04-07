@@ -1,0 +1,202 @@
+PROJECT CONTEXT:
+This is a LIVE production system (Tbilisicars CRM & WEB).
+Monorepo: React (CRM) + Express API + PostgreSQL (Drizzle).
+
+STRICT RULES:
+- DO NOT refactor architecture
+- DO NOT modify working flows
+- DO NOT rename fields or change schema
+- DO NOT break booking lifecycle
+- ONLY apply minimal, targeted fixes described below
+
+---
+
+OBJECTIVE:
+Fix operational inconsistencies between:
+- Booking lifecycle
+- Vehicle status
+- TBS AIR PARKING
+
+Root issue:
+createAdminBooking does NOT apply vehicle side-effects after insert.
+
+---
+
+========================
+FIX 1 + FIX 2 (BACKEND)
+========================
+
+TARGET FILE:
+artifacts/api-server/src/services/admin-bookings.service.ts
+
+TASK:
+Inside createAdminBooking (AFTER successful INSERT of booking):
+
+IF initial booking status is one of:
+- DELIVERED
+- RETURNED
+- CANCELED
+- NO_SHOW
+
+THEN:
+Call existing function:
+applyAdminBookingStatus(row.id, data.status)
+
+IMPORTANT:
+- DO NOT duplicate logic
+- DO NOT manually update vehicle.status
+- DO NOT touch parking logic directly
+- applyAdminBookingStatus already handles:
+  → vehicle.status sync
+  → parking removal (removeFromParkingByVehicle)
+
+GOAL:
+Ensure create flow behaves same as PATCH /status and pickup flow
+
+---
+
+========================
+FIX 3 (BACKEND SUPPORT)
+========================
+
+Expose dropoff location city in booking response
+
+TARGET FILE:
+admin-bookings.service.ts
+
+TASK:
+
+1. Update bookingRowSelect:
+   - join/select dropoffLoc.city
+
+2. Update mapToBookingRow:
+   - include city in dropoffLocation object
+
+FINAL STRUCTURE:
+dropoffLocation: {
+  id,
+  name,
+  code,
+  city   <-- ADD THIS
+}
+
+IMPORTANT:
+- NO schema changes
+- Only extend existing response
+
+---
+
+========================
+FIX 3 (FRONTEND)
+========================
+
+TARGET FILE:
+artifacts/crm/src/pages/BookingDetail.tsx
+
+TASK:
+Extend Drop Off flow AFTER successful handover
+
+LOCATION:
+Inside handleHandoverSubmit()
+
+AFTER successful dropoff API response:
+
+IF:
+- booking.dropoffLocation.city === "Tbilisi"
+AND
+- booking.dropoffLocation.name includes "airport" (case-insensitive)
+AND
+- booking.vehicleId exists
+
+THEN:
+Open a modal/dialog with options:
+- TERMINAL
+- OUT
+- FREE
+- SKIP
+
+---
+
+ON SELECT:
+POST to:
+POST /api/admin/parking
+
+BODY:
+{
+  vehicleId: booking.vehicleId,
+  zone: selectedZone
+}
+
+---
+
+ON SKIP:
+- Do nothing
+- Do NOT block dropoff
+- Do NOT show error
+
+---
+
+ERROR HANDLING:
+- If parking API fails → show toast
+- DO NOT rollback dropoff
+- DO NOT block UI
+
+---
+
+UI RULES:
+- Small modal (non-intrusive)
+- Must not break existing layout
+- Must not interfere with mobile flow
+
+---
+
+========================
+GLOBAL SAFETY RULES
+========================
+
+DO NOT CHANGE:
+- PATCH /status logic
+- Pickup flow
+- Existing parking service
+- Booking schema
+- Vehicle schema
+
+DO NOT ADD:
+- new statuses
+- new DB tables
+- new architecture
+
+ONLY:
+- Extend createAdminBooking
+- Extend API response
+- Add frontend modal step
+
+---
+
+========================
+EXPECTED RESULT
+========================
+
+1. Booking created with DELIVERED:
+   → vehicle.status becomes RENTED
+   → vehicle removed from parking
+
+2. Pick Up:
+   → behavior unchanged (already correct)
+
+3. Drop Off at Tbilisi Airport:
+   → parking selector appears
+   → vehicle assigned to selected zone
+
+4. Drop Off elsewhere:
+   → no changes
+
+5. No regressions
+6. Build passes cleanly
+
+---
+
+FINAL CHECK:
+- TypeScript: 0 errors
+- No broken API routes
+- No UI crashes

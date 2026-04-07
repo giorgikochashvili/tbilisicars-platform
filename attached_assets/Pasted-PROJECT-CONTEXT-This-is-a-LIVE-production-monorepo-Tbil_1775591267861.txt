@@ -1,0 +1,137 @@
+PROJECT CONTEXT:
+This is a LIVE production monorepo (Tbilisicars CRM & WEB).
+Stack: React (CRM) + Express API + PostgreSQL (Drizzle).
+DO NOT break existing booking logic.
+DO NOT refactor unrelated code.
+DO NOT change architecture.
+ONLY implement the following operational consistency fixes.
+
+---
+
+GOAL:
+Fix inconsistencies between Bookings, Vehicle Status, and TBS AIR PARKING.
+
+These fixes must be additive and safe.
+
+---
+
+FIX 1 — Booking → Vehicle Status Sync (CRITICAL)
+
+Problem:
+Manually created bookings that are marked as DELIVERED do NOT update vehicle live status.
+Fleet Live Status becomes incorrect.
+
+Required behavior:
+When a booking reaches operational "picked up / active rental" state:
+- The assigned vehicle MUST be considered RENTED (not available)
+
+When a booking is DELIVERED:
+- If this represents an active rental, vehicle.status MUST be updated accordingly
+
+Implementation rules:
+- Use existing booking lifecycle (DO NOT invent new statuses)
+- Ensure vehicle.status is synchronized when:
+  → Pick Up is completed
+  → OR booking becomes operationally active
+- Fleet Live Status MUST reflect real vehicle usage
+
+IMPORTANT:
+Do NOT rely only on booking.status string.
+Use the same logic already used in successful rental flows.
+
+---
+
+FIX 2 — Parking Auto-Remove on Pick Up
+
+Problem:
+Vehicles remain in TBS AIR PARKING even after they are picked up.
+
+Required behavior:
+When Pick Up is completed:
+- If vehicle exists in ANY TBS AIR PARKING zone:
+  → TERMINAL
+  → OUT
+  → FREE
+- It MUST be automatically removed from parking
+
+Implementation:
+- Hook into Pick Up completion logic
+- Remove vehicle from parking table / state
+- This must be automatic (no UI interaction)
+
+IMPORTANT:
+- Only affect TBS AIR PARKING (Tbilisi Airport)
+- Do NOT touch other future parking systems
+
+---
+
+FIX 3 — Drop Off → Parking Assignment (TBS Airport only)
+
+Problem:
+Parking assignment is manual and disconnected from Drop Off workflow.
+
+Required behavior:
+When Drop Off is completed AND:
+- dropoff location = Tbilisi International Airport
+
+Then:
+- Prompt staff with parking selection:
+  → TERMINAL
+  → OUT
+  → FREE
+  → (optional: skip)
+
+After selection:
+- Vehicle MUST be added to selected parking zone automatically
+
+Implementation:
+- Extend existing Drop Off modal/form
+- Add a final step (non-breaking UI addition)
+- Save selection and insert into parking system
+
+IMPORTANT:
+- Only trigger for Tbilisi Airport
+- Must NOT block Drop Off if skipped
+- Must NOT break existing Drop Off flow
+
+---
+
+GLOBAL RULES:
+
+1. DO NOT break:
+   - Booking creation
+   - Booking status transitions
+   - Vehicle assignment logic
+   - Dashboard rendering
+
+2. DO NOT:
+   - Rename fields
+   - Change DB schema unless absolutely necessary
+   - Introduce new architecture
+
+3. KEEP:
+   - Existing API routes intact
+   - Existing UI structure intact
+   - Changes minimal and targeted
+
+4. ENSURE:
+   - Fleet Live Status becomes accurate
+   - Parking always reflects real vehicle state
+   - No duplicate or ghost vehicles in parking
+
+---
+
+EXPECTED RESULT:
+
+- Vehicles automatically:
+  ✔ leave parking on Pick Up
+  ✔ appear as rented in Fleet Live Status
+  ✔ re-enter parking correctly on Drop Off (TBS Airport only)
+
+System becomes operationally consistent.
+
+---
+
+AFTER IMPLEMENTATION:
+- Build must pass with zero errors
+- No regression in CRM flows

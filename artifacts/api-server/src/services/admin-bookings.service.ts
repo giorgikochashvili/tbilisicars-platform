@@ -74,6 +74,7 @@ const bookingRowSelect = {
   pickupLocationName: pickupLoc.name,
   dropoffLocationId: dropoffLoc.id,
   dropoffLocationName: dropoffLoc.name,
+  dropoffLocationCity: dropoffLoc.city,
   partnerId: partnerTable.id,
   partnerName: partnerTable.name,
 } as const;
@@ -132,6 +133,7 @@ type BookingRowFlat = {
   pickupLocationName: string;
   dropoffLocationId: number;
   dropoffLocationName: string;
+  dropoffLocationCity: string | null;
   partnerId: number | null;
   partnerName: string | null;
 };
@@ -169,7 +171,7 @@ function mapToBookingRow(row: BookingRowFlat) {
     vehicleModelName: row.bookingVehicleModelName ?? null,
     vehicleModelBrandName: row.bookingVehicleBrandName ?? null,
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
-    dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
+    dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName, city: row.dropoffLocationCity },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
   };
 }
@@ -538,6 +540,16 @@ export async function createAdminBooking(data: {
       dropoffDatetime: dropoffDate,
     } as any)
     .returning();
+
+  const initialStatus = data.status;
+  if (
+    initialStatus === "DELIVERED" ||
+    initialStatus === "RETURNED" ||
+    initialStatus === "CANCELED" ||
+    initialStatus === "NO_SHOW"
+  ) {
+    await applyAdminBookingStatus(row!.id, initialStatus);
+  }
 
   return getAdminBooking(row!.id);
 }

@@ -38,6 +38,7 @@ import {
   ImageIcon,
   Pencil,
   ExternalLink,
+  ParkingSquare,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -771,6 +772,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   // Handover modal state
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showDropoffModal, setShowDropoffModal] = useState(false);
+  const [showParkingZoneModal, setShowParkingZoneModal] = useState(false);
+  const [parkingVehicleId, setParkingVehicleId] = useState<number | null>(null);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
   const [savingHandover, setSavingHandover] = useState(false);
 
@@ -981,6 +984,11 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       return;
     }
 
+    // Capture before API call — state may change after fetchBooking()
+    const dropoffVehicleId = booking?.vehicleId ?? null;
+    const dropoffLocCity: string | null = booking?.dropoffLocation?.city ?? null;
+    const dropoffLocName: string = booking?.dropoffLocation?.name ?? "";
+
     setSavingHandover(true);
     try {
       const actionAt = new Date(`${handoverForm.actionDate}T${handoverForm.actionTime}:00`).toISOString();
@@ -1007,6 +1015,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       setHandoverForm(EMPTY_HANDOVER);
       fetchBooking();
       fetchHandovers();
+
+      // Fix 3: After TBS Airport dropoff, prompt for parking zone assignment
+      if (
+        type === "dropoff" &&
+        dropoffVehicleId !== null &&
+        dropoffLocCity === "Tbilisi" &&
+        dropoffLocName.toLowerCase().includes("airport")
+      ) {
+        setParkingVehicleId(dropoffVehicleId);
+        setShowParkingZoneModal(true);
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
       throw e; // rethrow so HandoverModal does not clear files on API failure
@@ -1809,6 +1828,51 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 </Button>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* TBS Airport parking zone picker — appears after Drop Off at Tbilisi International Airport */}
+      <Dialog open={showParkingZoneModal} onOpenChange={(v) => { if (!v) setShowParkingZoneModal(false); }}>
+        <DialogContent className="sm:max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ParkingSquare className="w-4 h-4 text-blue-400" />
+              TBS AIR PARKING
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Vehicle returned to Tbilisi Airport. Assign a parking zone or skip.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2 pt-1">
+            {(["TERMINAL", "OUT", "FREE"] as const).map((zone) => (
+              <Button
+                key={zone}
+                variant="outline"
+                className="w-full justify-start text-sm h-10"
+                onClick={async () => {
+                  setShowParkingZoneModal(false);
+                  try {
+                    await apiFetch("/admin/parking", {
+                      method: "POST",
+                      body: JSON.stringify({ vehicleId: parkingVehicleId, zone }),
+                    });
+                    toast({ title: "Parking assigned", description: `Vehicle added to zone ${zone}.` });
+                  } catch (e: any) {
+                    toast({ title: "Parking assignment failed", description: e.message, variant: "destructive" });
+                  }
+                }}
+              >
+                {zone}
+              </Button>
+            ))}
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground text-sm h-9"
+              onClick={() => setShowParkingZoneModal(false)}
+            >
+              Skip
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
