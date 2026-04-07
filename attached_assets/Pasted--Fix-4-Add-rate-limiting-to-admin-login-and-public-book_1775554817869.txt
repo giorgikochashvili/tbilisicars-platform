@@ -1,0 +1,74 @@
+# Fix #4 — Add rate limiting to admin login and public booking endpoints
+
+Project context:
+This is a live production PNPM monorepo project named Tbilisicars CRM&WEB. The project is already built and running. Do not rewrite architecture. Apply only a narrow backend hardening fix in the existing codebase.
+
+Goal:
+Add targeted rate limiting to the two highest-risk public-facing endpoints:
+
+* admin login
+* public booking creation
+
+Files likely involved:
+
+* `artifacts/api-server/src/app.ts`
+* and only if absolutely necessary, the relevant route files already mounted under these paths
+
+Problem:
+The API currently has no rate limiting on:
+
+* `POST /api/auth/admin/login`
+* `POST /api/public/bookings`
+
+This leaves the system exposed to:
+
+* brute-force login attempts
+* booking spam
+* email/API abuse
+* unnecessary DB load
+
+What must be changed:
+
+1. Add `express-rate-limit` if it is not already installed and used.
+
+2. In `artifacts/api-server/src/app.ts`, add targeted rate limit middleware for these exact paths:
+
+* `/api/auth/admin/login`
+
+  * window: 15 minutes
+  * max: 10 requests per IP
+
+* `/api/public/bookings`
+
+  * window: 1 minute
+  * max: 5 requests per IP
+
+3. Apply the middleware in a way that protects these exact mounted paths without changing route structure.
+
+4. Keep the implementation minimal and production-safe.
+
+Important constraints:
+
+* Change only what is required for these two rate limits
+* Do not add a global app-wide limiter
+* Do not refactor unrelated middleware
+* Do not change route paths
+* Do not change login logic
+* Do not change booking logic
+* Do not change successful response shapes
+* Do not touch unrelated files unless absolutely required
+
+Rate limit response:
+
+* Use a simple JSON response message if configuration requires it
+* Keep it minimal and safe
+* Do not redesign API errors broadly
+
+Verification:
+After the change, send back:
+
+* the updated relevant portion of `artifacts/api-server/src/app.ts`
+* and any package/install change if one was required
+
+Please change only this and do not touch unrelated code.
+After the change, send back the updated code for review.

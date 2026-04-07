@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import rateLimit from "express-rate-limit";
 import { pool } from "@workspace/db";
 import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -54,6 +55,25 @@ seedSystemRoles().catch((err) => {
 app.get("/", (_req, res) => {
   res.redirect("/website/");
 });
+
+const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please try again later." },
+});
+
+const bookingRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many booking requests. Please try again later." },
+});
+
+app.use("/api/auth/admin/login", loginRateLimit);
+app.use("/api/public/bookings", bookingRateLimit);
 
 app.use("/api", router);
 app.use(errorHandler);
