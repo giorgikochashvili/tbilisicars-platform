@@ -45,7 +45,7 @@ function getMimeFromExt(ext: string): string {
  * Request a presigned URL for file upload.
  * Falls back to local file storage when PRIVATE_OBJECT_DIR is not configured.
  */
-router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
+router.post("/storage/uploads/request-url", requireAdmin, async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
