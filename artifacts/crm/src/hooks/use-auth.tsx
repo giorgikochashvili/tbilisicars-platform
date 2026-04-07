@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, ReactNode } from "react";
-import { useGetAdminMe, useAdminLogout, type AdminProfile } from "@workspace/api-client-react";
+import { useGetAdminMe, type AdminProfile } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 
 interface AuthContextType {
@@ -17,10 +17,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     request: { credentials: "include" }
   });
 
-  const { mutate: logoutMutate } = useAdminLogout({
-    request: { credentials: "include" }
-  });
-
   useEffect(() => {
     if (isError) {
       setLocation("/login");
@@ -28,12 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isError, setLocation]);
 
   const logout = () => {
-    logoutMutate(undefined, {
-      onSuccess: () => {
-        const base = import.meta.env.BASE_URL as string;
-        window.location.href = (base.endsWith("/") ? base : base + "/") + "login";
-      }
-    });
+    fetch("/api/auth/admin/logout", {
+      method: "POST",
+      credentials: "include",
+    })
+      .catch((err) => console.error("[logout] request failed:", err))
+      .finally(() => {
+        window.location.href = "/crm/login";
+      });
   };
 
   return (
