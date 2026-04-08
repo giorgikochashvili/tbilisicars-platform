@@ -176,8 +176,9 @@ function loadWidgetConfig(): WidgetConfig {
       ...((parsed.sections ?? {}) as Partial<Record<SectionKey, boolean>>),
     };
     // Restore stored order; append any newly added keys not yet in stored order
-    const storedOrder = ((parsed.sectionOrder ?? []) as SectionKey[])
+    const rawOrder = ((parsed.sectionOrder ?? []) as SectionKey[])
       .filter((k): k is SectionKey => DEFAULT_SECTION_ORDER.includes(k));
+    const storedOrder = rawOrder.filter((k, i) => rawOrder.indexOf(k) === i);
     const sectionOrder: SectionKey[] = [
       ...storedOrder,
       ...DEFAULT_SECTION_ORDER.filter((k) => !storedOrder.includes(k)),
