@@ -1,0 +1,105 @@
+Project: TBILISICARS CRM&WEB
+Context:
+This is a live monorepo already built in Replit. Do NOT refactor architecture. Do NOT redesign unrelated modules. Do NOT change existing booking, dashboard, or fleet logic outside the exact parking/dropoff scope below. Make only targeted, production-safe changes.
+
+Target:
+TBS AIR PARKING module + booking dropoff workflow integration for Tbilisi International Airport
+
+Primary goal:
+When a vehicle is dropped off at Tbilisi International Airport, staff must be required to choose a parking zone before completing the dropoff, and the vehicle must always be added to that zone even if the zone is already at capacity.
+
+Required changes:
+
+A) Require parking zone selection during Tbilisi Airport dropoff
+- In the booking dropoff flow, when the dropoff/return location is Tbilisi International Airport:
+  - require staff to choose a parking zone before dropoff can be completed
+  - available zones for now:
+    - TERMINAL
+    - OUT
+    - FREE
+- Dropoff completion must be blocked until one of these zones is selected
+- This requirement must apply only for Tbilisi International Airport dropoff, not for other locations
+
+B) Automatically add the vehicle to the selected parking zone after dropoff
+- Once the dropoff is completed successfully, the vehicle must be added to the selected TBS AIR PARKING zone automatically
+- Preserve the existing behavior where rented-out vehicles disappear from parking when they are picked up / delivered
+- Do not break existing parking auto-removal logic
+
+C) Capacity overflow must NOT block assignment
+Current issue:
+- TERMINAL at 5/5 FULL blocks adding a new vehicle
+- OUT at 10/10 blocks adding a new vehicle
+
+New required behavior:
+- TERMINAL and OUT must still accept additional vehicles beyond nominal capacity
+- Example:
+  - TERMINAL capacity 5, actual vehicles 6 → display 6/5
+  - OUT capacity 10, actual vehicles 11 → display 11/10
+- UI must show a clear overflow state such as:
+  - OVER CAPACITY
+  - OVERFLOW
+- Keep FULL if exactly at capacity, but once exceeded show a distinct over-capacity visual state
+- FREE remains unlimited and should never show capacity blocking
+
+D) Optional operational alert for overflow
+- If a zone exceeds its nominal capacity, surface an operational alert if the project already has a reasonable alerts pattern that can be reused
+- Do not build a large new alerts system in this task
+- Reuse existing alerts infrastructure if possible
+- If no clean reusable hook/service exists, leave a lightweight TODO comment instead of forcing a bad architecture change
+
+E) Support manual moving between parking zones
+- In the TBS AIR PARKING UI, staff must be able to move a parked vehicle from one zone to another:
+  - TERMINAL ↔ OUT ↔ FREE
+- Preferred UX:
+  - drag and drop on desktop
+- But this must also be usable on mobile / touch devices
+- If true drag-and-drop across desktop and touch can be implemented safely with existing libraries/patterns, do it
+- If not, implement a production-safe fallback that still feels fast and operationally usable, such as:
+  - a move action on each vehicle card with destination zone choices
+- Important:
+  - prioritize reliability and mobile usability over flashy interaction
+  - do not introduce a brittle drag-and-drop system that breaks touch devices
+
+F) Keep scope strict
+- Do not redesign the entire parking page
+- Do not add future city parking locations yet
+- Do not refactor unrelated booking detail sections
+- Do not change dashboard compact TBS AIR PARKING widget in this task
+- Only touch the files necessary for:
+  1. Tbilisi Airport dropoff zone requirement
+  2. automatic parking assignment
+  3. overflow behavior
+  4. safe zone-to-zone moving UI
+
+Implementation guidance:
+- First inspect the current parking data model, parking assignment flow, and booking dropoff completion flow
+- Reuse existing parking zone constants/types if they already exist
+- Reuse existing booking detail / dropoff modal patterns if present
+- Reuse existing mutation hooks/services/endpoints if possible
+- Make the smallest clean backend change necessary if the current API blocks overflow or lacks selected zone persistence
+- If backend validation currently rejects assignment above capacity, update that logic so overflow is allowed for TERMINAL and OUT
+- FREE should remain unlimited
+- Keep audit/history consistency where possible
+
+Edge cases:
+- Dropoff at non-Tbilisi-airport location → no parking zone required
+- Dropoff at Tbilisi airport with no selected zone → cannot complete
+- Adding above capacity must still succeed
+- Vehicle already assigned to another TBS zone and then moved → it should exist in only the new zone, not both
+- Delivered/rented vehicle should still disappear from parking automatically when active rental starts
+- Mobile users must still be able to change zones even if drag-and-drop is not ideal there
+
+Done looks like:
+- Dropoff at Tbilisi International Airport requires choosing TERMINAL / OUT / FREE
+- Completing dropoff automatically adds the car to the selected zone
+- TERMINAL and OUT can exceed nominal capacity and display e.g. 6/5 with over-capacity state
+- FREE remains unlimited
+- Staff can manually move vehicles between zones in a way that works on desktop and mobile
+- Existing pickup/removal behavior remains intact
+- No unrelated modules are redesigned
+
+At the end:
+1. List exactly which files were changed
+2. Explain whether you implemented true drag-and-drop or a safer mobile-friendly move fallback
+3. Explain exactly where overflow blocking was removed
+4. Mention any assumptions made about identifying “Tbilisi International Airport”
