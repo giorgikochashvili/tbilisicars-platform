@@ -1351,7 +1351,7 @@ function Step4({ form, setForm, onNext, onBack }: {
           <div>
             <FieldLabel>Age</FieldLabel>
             <Inp type="number" min="21" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 · Valid driving licence required</p>
+            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 · Valid driving licence required for at least 2 years</p>
           </div>
         </div>
         <div>
