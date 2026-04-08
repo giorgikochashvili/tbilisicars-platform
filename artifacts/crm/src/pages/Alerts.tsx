@@ -160,7 +160,7 @@ interface Summary {
 function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: AlertType) => void }) {
   const tiles = [
     { key: "OVERDUE" as AlertType, label: "Overdue Return", count: summary.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-5 h-5" /> },
-    { key: "DELIVERED_NO_PAYMENT" as AlertType, label: "Delivered no pmt", count: summary.deliveredNoPayment ?? 0, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <CreditCard className="w-5 h-5" /> },
+    { key: "DELIVERED_NO_PAYMENT" as AlertType, label: "Delivered bookings without payment record", count: summary.deliveredNoPayment ?? 0, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <CreditCard className="w-5 h-5" /> },
     { key: "CONFLICT" as AlertType, label: "Conflicts", count: summary.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-5 h-5" /> },
     { key: "PARKING_OVERFLOW" as AlertType, label: "Parking Over", count: summary.parkingOverflow ?? 0, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <ParkingCircle className="w-5 h-5" /> },
     { key: "SERVICE_OVERDUE" as AlertType, label: "Svc Overdue", count: summary.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-5 h-5" /> },
