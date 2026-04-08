@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import {
-  Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ArrowRight,
+  Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ChevronUp, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
   Lock, Copy, Package, Baby, Wifi, Clock,
 } from "lucide-react";
@@ -177,6 +177,145 @@ function extraIcon(name: string) {
   if (n.includes("insur") || n.includes("protect") || n.includes("cover"))
     return <Shield className="w-5 h-5" />;
   return <Package className="w-5 h-5" />;
+}
+
+// ─── Country list for nationality dropdown ────────────────────────────────────
+
+const COUNTRY_NAMES = [
+  "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia",
+  "Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan",
+  "Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde",
+  "Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros",
+  "Congo (Republic)","Congo (Democratic Republic)","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic",
+  "Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea",
+  "Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany",
+  "Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary",
+  "Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan",
+  "Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya",
+  "Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta",
+  "Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro",
+  "Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger",
+  "Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama",
+  "Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda",
+  "Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino",
+  "Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia",
+  "Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan",
+  "Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo",
+  "Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine",
+  "United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City",
+  "Venezuela","Vietnam","Yemen","Zambia","Zimbabwe",
+];
+
+function CountrySelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  useEffect(() => {
+    if (open) { setSearch(""); setTimeout(() => inputRef.current?.focus(), 0); }
+  }, [open]);
+
+  const filtered = search.trim()
+    ? COUNTRY_NAMES.filter((c) => c.toLowerCase().includes(search.toLowerCase()))
+    : COUNTRY_NAMES;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-left flex items-center justify-between gap-2 focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors"
+      >
+        <span className={value ? "text-foreground" : "text-muted-foreground"}>{value || "Select country…"}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full mt-1.5 w-full rounded-xl border border-border bg-card shadow-2xl overflow-hidden" style={{ maxHeight: 260 }}>
+          <div className="p-2 border-b border-border/50">
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search country…"
+              className="w-full rounded-lg bg-secondary/40 border border-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/60"
+            />
+          </div>
+          <div className="overflow-y-auto" style={{ maxHeight: 200 }}>
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">No match</p>
+            ) : filtered.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => { onChange(c); setOpen(false); }}
+                className={cn(
+                  "w-full text-left px-3 py-2 text-sm transition-colors",
+                  c === value ? "text-primary font-medium bg-primary/10" : "text-foreground hover:bg-primary/10 hover:text-white",
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Promo Code field (self-contained, used in Step 4) ────────────────────────
+
+function PromoField({ form, setForm }: { form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>> }) {
+  const [promoInput, setPromoInput] = useState(form.promoCode);
+  const [promoState, setPromoState] = useState<{ valid: boolean; msg: string } | null>(
+    form.promoCode ? { valid: true, msg: "" } : null
+  );
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  async function applyPromo() {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    try {
+      const data = await apiFetch("/api/public/validate-promo", { method: "POST", body: JSON.stringify({ code: promoInput.trim() }) });
+      setPromoState({ valid: data.valid, msg: data.error ?? "" });
+      if (data.valid) setForm((f) => ({ ...f, promoCode: promoInput.trim() }));
+    } catch { setPromoState({ valid: false, msg: "Unable to validate promo code" }); }
+    finally { setPromoLoading(false); }
+  }
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pb-2 border-b border-border/50">
+        <Copy className="w-3.5 h-3.5 text-primary" />
+        Promo Code
+      </div>
+      <div className="flex gap-2">
+        <Inp
+          value={promoInput}
+          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === "Enter" && applyPromo()}
+          disabled={promoState?.valid}
+          className="uppercase"
+          placeholder="Enter code…"
+        />
+        {promoState?.valid ? (
+          <Btn variant="outline" onClick={() => { setPromoInput(""); setPromoState(null); setForm((f) => ({ ...f, promoCode: "" })); }} className="shrink-0 text-destructive border-destructive/30">Remove</Btn>
+        ) : (
+          <Btn variant="outline" onClick={applyPromo} loading={promoLoading} className="shrink-0">Apply</Btn>
+        )}
+      </div>
+      {promoState && <p className={cn("text-xs mt-1.5", promoState.valid ? "text-green-400" : "text-destructive")}>{promoState.valid ? "Promo code applied!" : promoState.msg}</p>}
+    </div>
+  );
 }
 
 // ─── Primitive components ─────────────────────────────────────────────────────
@@ -541,6 +680,9 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
 }) {
   const [editSearch, setEditSearch] = useState(false);
   const [filters, setFilters] = useState({ category: "", transmission: "", seats: "", fuelType: "" });
+  const [openTrip, setOpenTrip] = useState(false);
+  const [openFilters, setOpenFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc">("default");
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
@@ -579,6 +721,18 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
       if (m.fuel_type == null || m.fuel_type !== filters.fuelType) return false;
     }
     return true;
+  }).slice().sort((a, b) => {
+    if (sortBy === "price_asc") {
+      const pa = a.min_price_per_day ? Number(a.min_price_per_day) : Infinity;
+      const pb = b.min_price_per_day ? Number(b.min_price_per_day) : Infinity;
+      return pa - pb;
+    }
+    if (sortBy === "price_desc") {
+      const pa = a.min_price_per_day ? Number(a.min_price_per_day) : -Infinity;
+      const pb = b.min_price_per_day ? Number(b.min_price_per_day) : -Infinity;
+      return pb - pa;
+    }
+    return 0;
   });
 
   function clearFilters() { setFilters({ category: "", transmission: "", seats: "", fuelType: "" }); }
@@ -608,37 +762,53 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
               onClose={editSearch && !needTrip ? () => setEditSearch(false) : undefined}
             />
           ) : (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-primary" /> Your Trip
-              </div>
-              <div className="space-y-2 text-sm mb-3">
-                <div className="flex items-center gap-1.5 text-primary font-medium">
-                  {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? ""}
-                  {form.dropoffLocationId !== form.pickupLocationId && (
-                    <><ArrowRight className="w-3.5 h-3.5 text-primary/60 mx-0.5" />{locations.find((l) => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
-                  )}
-                </div>
-                <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                  <Calendar className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <div>
-                    <div>{formatDT(form.pickupDatetime)}</div>
-                    <div className="text-primary/60">→ {formatDT(form.dropoffDatetime)}</div>
-                  </div>
-                </div>
-                {days > 0 && (
-                  <span className="inline-block bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
-                    {days} {days === 1 ? "day" : "days"}
-                  </span>
-                )}
-              </div>
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              {/* Collapsible header */}
               <button
                 type="button"
-                onClick={() => setEditSearch(true)}
-                className="w-full inline-flex items-center justify-center gap-1.5 text-xs text-primary border border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-lg px-3 py-2 transition-colors focus:outline-none"
+                onClick={() => setOpenTrip((p) => !p)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors"
               >
-                <Settings className="w-3.5 h-3.5" /> Edit Search
+                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-white font-medium normal-case tracking-normal text-sm truncate max-w-[160px]">
+                    {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? "Your Trip"}
+                    {days > 0 && <span className="ml-2 text-primary text-xs font-bold">· {days}d</span>}
+                  </span>
+                </div>
+                {openTrip ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
               </button>
+              {openTrip && (
+                <div className="px-4 pb-4 border-t border-border/40">
+                  <div className="space-y-2 text-sm mt-3 mb-3">
+                    <div className="flex items-center gap-1.5 text-primary font-medium">
+                      {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? ""}
+                      {form.dropoffLocationId !== form.pickupLocationId && (
+                        <><ArrowRight className="w-3.5 h-3.5 text-primary/60 mx-0.5" />{locations.find((l) => String(l.id) === form.dropoffLocationId)?.name ?? ""}</>
+                      )}
+                    </div>
+                    <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <div>
+                        <div>{formatDT(form.pickupDatetime)}</div>
+                        <div className="text-primary/60">→ {formatDT(form.dropoffDatetime)}</div>
+                      </div>
+                    </div>
+                    {days > 0 && (
+                      <span className="inline-block bg-primary/15 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+                        {days} {days === 1 ? "day" : "days"}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditSearch(true)}
+                    className="w-full inline-flex items-center justify-center gap-1.5 text-xs text-primary border border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-lg px-3 py-2 transition-colors focus:outline-none"
+                  >
+                    <Settings className="w-3.5 h-3.5" /> Edit Search
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -660,51 +830,67 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
 
           {/* 3. Filters — visible only when trip is confirmed and filter options exist */}
           {showFilters && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
-                {hasFilters && (
-                  <button type="button" onClick={clearFilters} className="text-xs text-primary hover:underline focus:outline-none">
-                    Clear all
-                  </button>
-                )}
-              </div>
-              <div className="space-y-3">
-                {categoryOptions.length > 0 && (
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Category</label>
-                    <Sel value={filters.category} onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}>
-                      <option value="">Any</option>
-                      {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </Sel>
-                  </div>
-                )}
-                {transmissionOptions.length > 0 && (
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Transmission</label>
-                    <Sel value={filters.transmission} onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}>
-                      <option value="">Any</option>
-                      {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
-                    </Sel>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Seats</label>
-                  <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
-                    <option value="">Any</option>
-                    {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-                  </Sel>
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setOpenFilters((p) => !p)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+                  {hasFilters && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-white text-[10px] font-bold">
+                      {[filters.category, filters.transmission, filters.seats, filters.fuelType].filter(Boolean).length}
+                    </span>
+                  )}
                 </div>
-                {fuelOptions.length > 0 && (
-                  <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
-                    <Sel value={filters.fuelType} onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}>
-                      <option value="">Any</option>
-                      {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
-                    </Sel>
+                {openFilters ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+              </button>
+              {openFilters && (
+                <div className="px-4 pb-4 border-t border-border/40">
+                  {hasFilters && (
+                    <button type="button" onClick={clearFilters} className="text-xs text-primary hover:underline focus:outline-none mt-2 mb-1 block">
+                      Clear all
+                    </button>
+                  )}
+                  <div className="space-y-3 mt-3">
+                    {categoryOptions.length > 0 && (
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Category</label>
+                        <Sel value={filters.category} onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}>
+                          <option value="">Any</option>
+                          {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </Sel>
+                      </div>
+                    )}
+                    {transmissionOptions.length > 0 && (
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Transmission</label>
+                        <Sel value={filters.transmission} onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}>
+                          <option value="">Any</option>
+                          {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
+                        </Sel>
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">Seats</label>
+                      <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
+                        <option value="">Any</option>
+                        {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                      </Sel>
+                    </div>
+                    {fuelOptions.length > 0 && (
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
+                        <Sel value={filters.fuelType} onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}>
+                          <option value="">Any</option>
+                          {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
+                        </Sel>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -712,8 +898,19 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
 
       {/* ── Right: vehicle list ──────────────────────────────────────────── */}
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">Choose Your Vehicle</h2>
-        <p className="text-muted-foreground text-sm mb-4">Select from our available fleet for your journey</p>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-white mb-0.5">Choose Your Vehicle</h2>
+            <p className="text-muted-foreground text-sm">Select from our available fleet for your journey</p>
+          </div>
+          {filteredModels.length > 1 && (
+            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")} className="!w-auto shrink-0 text-xs py-1.5 px-2.5">
+              <option value="default">Default</option>
+              <option value="price_asc">Price ↑</option>
+              <option value="price_desc">Price ↓</option>
+            </Sel>
+          )}
+        </div>
 
         {isRefetching ? (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
@@ -762,13 +959,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {(form.vehicleModelId
-              ? [
-                  ...filteredModels.filter((m) => String(m.id) === form.vehicleModelId),
-                  ...filteredModels.filter((m) => String(m.id) !== form.vehicleModelId),
-                ]
-              : filteredModels
-            ).map((m) => {
+            {filteredModels.map((m) => {
               const selected = String(form.vehicleModelId) === String(m.id);
               const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
               const cur = m.price_currency ?? "EUR";
@@ -896,9 +1087,6 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>;
   extras: Extra[]; onNext: () => void; onBack: () => void;
 }) {
-  const [promoInput, setPromoInput] = useState(form.promoCode);
-  const [promoState, setPromoState] = useState<{ valid: boolean; msg: string } | null>(null);
-  const [promoLoading, setPromoLoading] = useState(false);
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
 
   function toggleExtra(id: number) {
@@ -906,17 +1094,6 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       const exists = f.extras.find((e) => e.extraId === id);
       return exists ? { ...f, extras: f.extras.filter((e) => e.extraId !== id) } : { ...f, extras: [...f.extras, { extraId: id, quantity: 1 }] };
     });
-  }
-
-  async function applyPromo() {
-    if (!promoInput.trim()) return;
-    setPromoLoading(true);
-    try {
-      const data = await apiFetch("/api/public/validate-promo", { method: "POST", body: JSON.stringify({ code: promoInput.trim() }) });
-      setPromoState({ valid: data.valid, msg: data.error ?? "" });
-      if (data.valid) setForm((f) => ({ ...f, promoCode: promoInput.trim() }));
-    } catch { setPromoState({ valid: false, msg: "Unable to validate promo code" }); }
-    finally { setPromoLoading(false); }
   }
 
   const extrasRunningTotal = form.extras.reduce((sum, se) => {
@@ -947,15 +1124,15 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
             return (
               <button key={e.id} type="button" onClick={() => toggleExtra(e.id)}
                 className={cn(
-                  "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
+                  "w-full text-left rounded-xl border-2 p-3 transition-all duration-200",
                   selected
                     ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
                     : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10 hover:shadow-md hover:shadow-black/20"
                 )}>
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2.5">
                   {/* Icon */}
                   <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200",
+                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200",
                     selected ? "bg-primary/20 text-primary" : "bg-secondary/50 text-muted-foreground"
                   )}>
                     {extraIcon(e.name)}
@@ -1009,22 +1186,6 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
           <span className="text-sm font-bold text-white">+{extrasRunningTotal.toLocaleString()} {extrasCurrency}</span>
         </div>
       )}
-
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
-          <Copy className="w-3.5 h-3.5 text-primary" />
-          Promo Code
-        </div>
-        <div className="flex gap-2">
-          <Inp value={promoInput} onChange={(e) => setPromoInput(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && applyPromo()} disabled={promoState?.valid} className="uppercase" />
-          {promoState?.valid ? (
-            <Btn variant="outline" onClick={() => { setPromoInput(""); setPromoState(null); setForm((f) => ({ ...f, promoCode: "" })); }} className="shrink-0 text-destructive border-destructive/30">Remove</Btn>
-          ) : (
-            <Btn variant="outline" onClick={applyPromo} loading={promoLoading} className="shrink-0">Apply</Btn>
-          )}
-        </div>
-        {promoState && <p className={cn("text-xs mt-1.5", promoState.valid ? "text-green-400" : "text-destructive")}>{promoState.valid ? "Promo code applied!" : promoState.msg}</p>}
-      </div>
 
       <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
@@ -1158,7 +1319,21 @@ function Step4({ form, setForm, onNext, onBack }: {
               Use your real email address so you can receive your booking confirmation and voucher.
             </p>
           </div>
-          <div><FieldLabel required>Phone Number</FieldLabel><Inp type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+          <div>
+            <FieldLabel required>Phone Number</FieldLabel>
+            <Inp type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            {/* WhatsApp inline toggle */}
+            <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+              <Checkbox
+                checked={form.whatsAppOptIn}
+                onChange={() => setForm((f) => ({ ...f, whatsAppOptIn: !f.whatsAppOptIn }))}
+              />
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                Available on WhatsApp
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -1171,12 +1346,12 @@ function Step4({ form, setForm, onNext, onBack }: {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <FieldLabel>Nationality</FieldLabel>
-            <Inp value={form.nationality} onChange={(e) => setForm((f) => ({ ...f, nationality: e.target.value }))} />
+            <CountrySelect value={form.nationality} onChange={(v) => setForm((f) => ({ ...f, nationality: v }))} />
           </div>
           <div>
             <FieldLabel>Age</FieldLabel>
             <Inp type="number" min="21" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 years</p>
+            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 · Valid driving licence required</p>
           </div>
         </div>
         <div>
@@ -1195,31 +1370,15 @@ function Step4({ form, setForm, onNext, onBack }: {
           <MessageCircle className="w-3.5 h-3.5 text-primary" />
           Preferences
         </div>
-        <div className="mb-4">
+        <div>
           <FieldLabel>Special Requests / Notes</FieldLabel>
           <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
             className="w-full rounded-lg border border-input bg-secondary/40 px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/60 transition-colors" />
         </div>
-
-        {/* WhatsApp opt-in checkbox */}
-        <div className="mb-5">
-          <label className="flex items-start gap-3 cursor-pointer p-4 rounded-xl border border-border bg-secondary/20 hover:border-green-500/30 transition-colors">
-            <Checkbox
-              checked={form.whatsAppOptIn}
-              onChange={() => setForm((f) => ({ ...f, whatsAppOptIn: !f.whatsAppOptIn }))}
-            />
-            <div>
-              <div className="text-sm font-medium text-white flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-green-400" />
-                I can be reached via WhatsApp at my phone number
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Check this if our team can send you booking updates over WhatsApp. We'll use the phone number you provided above.
-              </p>
-            </div>
-          </label>
-        </div>
       </div>
+
+      {/* Promo Code */}
+      <PromoField form={form} setForm={setForm} />
 
       {/* Terms & Privacy */}
       <div className="mb-6 space-y-3">
@@ -1263,7 +1422,7 @@ const PRIMARY_PAYMENT_OPTIONS = [
 
 const OTHER_PAYMENT_METHODS = [
   "Cash", "Credit Card", "Debit Card", "Bank Transfer",
-  "Revolut", "Apple Pay", "Google Pay", "AMEX",
+  "Revolut", "Apple Pay", "Google Pay", "AMEX", "Other",
 ];
 
 function Step5({ form, setForm, onNext, onBack }: {
@@ -1714,19 +1873,6 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         {/* ── LEFT: scrollable content ── */}
         <div className="space-y-4 mb-4 lg:mb-0">
 
-          {/* Trip Details */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" />Trip Details</span>
-              <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
-            </div>
-            <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
-            <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
-            <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
-            <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
-            <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
-          </div>
-
           {/* Vehicle */}
           {model && (
             <div className="bg-card border border-border rounded-xl p-4">
@@ -1744,6 +1890,19 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               {model.transmission && <SummaryRow label="Transmission" value={transLabel(model.transmission) ?? ""} />}
             </div>
           )}
+
+          {/* Trip Details */}
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-primary" />Trip Details</span>
+              <button type="button" onClick={() => goToStep(1)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
+            </div>
+            <SummaryRow label="Pickup" value={`${pickupLoc?.name ?? "—"}, ${pickupLoc?.city ?? ""}`} />
+            <SummaryRow label="Drop-off" value={`${dropoffLoc?.name ?? "—"}, ${dropoffLoc?.city ?? ""}`} />
+            <SummaryRow label="Pickup date" value={formatDT(form.pickupDatetime)} />
+            <SummaryRow label="Return date" value={formatDT(form.dropoffDatetime)} />
+            <SummaryRow label="Duration" value={`${days} ${days === 1 ? "day" : "days"}`} />
+          </div>
 
           {/* Customer details */}
           <div className="bg-card border border-border rounded-xl p-4">
@@ -1997,6 +2156,7 @@ export default function Booking() {
 
   function next() { setStep((s) => s + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function back() { setStep((s) => s - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function goToStep(n: number) { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function reset() { setStep(1); setForm(getInitialForm()); }
 
   if (isLoading) return (
@@ -2019,17 +2179,10 @@ export default function Booking() {
   const locations = config?.locations ?? [];
   const extras = config?.extras ?? [];
 
-  const pageHeader = (
-    <div className="text-center mb-8">
-      <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Book Your Car</h1>
-      <p className="text-sm text-muted-foreground max-w-sm mx-auto">Complete the steps below to submit your reservation request.</p>
-    </div>
-  );
-
   // ── Step 1: dedicated layout — stepper above, true left-rail + vehicle grid ──
   if (step === 1) {
     return (
-      <div className="min-h-screen py-10 px-4">
+      <div className="min-h-screen py-6 px-4">
         <div className="mx-auto max-w-6xl">
           {/* Unified header card: title + subtitle + step progress row */}
           <div className="bg-card border border-border rounded-2xl px-6 pt-6 pb-4 mb-6">
@@ -2037,7 +2190,7 @@ export default function Booking() {
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Book Your Car</h1>
               <p className="text-sm text-muted-foreground">Complete the steps below to submit your reservation request.</p>
             </div>
-            <StepBar step={step} onGoTo={(n) => setStep(n)} />
+            <StepBar step={step} onGoTo={(n) => goToStep(n)} />
           </div>
           {/* Mobile collapsible pricing summary */}
           <div className="lg:hidden mb-4">
@@ -2061,14 +2214,12 @@ export default function Booking() {
   const showSidebar = step >= 2 && step <= 5;
 
   return (
-    <div className="min-h-screen py-10 px-4">
+    <div className="min-h-screen py-6 px-4">
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>
-        {pageHeader}
-
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>
           {/* Main step card */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 min-w-0">
-            <StepBar step={step} onGoTo={(n) => setStep(n)} />
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 min-w-0">
+            <StepBar step={step} onGoTo={(n) => goToStep(n)} />
 
             {/* Mobile collapsible summary (steps 2–5) */}
             {showSidebar && (
@@ -2089,7 +2240,7 @@ export default function Booking() {
                   extras={extras}
                   onBack={back}
                   onDone={reset}
-                  goToStep={setStep}
+                  goToStep={goToStep}
                 />
               )}
             </div>

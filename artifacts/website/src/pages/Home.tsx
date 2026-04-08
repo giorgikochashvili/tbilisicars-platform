@@ -228,7 +228,7 @@ export default function Home() {
     <div className="min-h-screen">
       {/* ── Hero ── */}
       <section
-        className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16 lg:py-6"
+        className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 lg:py-4"
         style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
       >
         {/* Subtle background radial accents */}
@@ -274,12 +274,12 @@ export default function Home() {
             <span className="text-primary">Georgia</span>
             <span className="text-white"> With Us</span>
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto mb-10 lg:mb-5">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto mb-6 lg:mb-4">
             Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance.
           </p>
 
           {/* Booking Widget */}
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 lg:p-5 shadow-2xl text-left max-w-3xl mx-auto">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-5 lg:p-4 shadow-2xl text-left max-w-3xl mx-auto">
             <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
               Choose Your Trip Details
@@ -367,7 +367,7 @@ export default function Home() {
           </div>
 
           {/* Stats strip */}
-          <div className="flex flex-wrap justify-center gap-6 mt-8 lg:mt-5">
+          <div className="flex flex-wrap justify-center gap-6 mt-6 lg:mt-4">
             {STATS.map((s) => (
               <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
                 <span className="text-2xl font-bold text-primary">{s.value}</span>
