@@ -91,9 +91,18 @@ const bookingRateLimit = rateLimit({
   message: { error: "Too many booking requests. Please try again later." },
 });
 
+const promoValidateRateLimit = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many promo validation attempts. Please try again later." },
+});
+
 app.use("/api/auth/admin/login", loginRateLimit);
 app.use("/api/auth/customer/login", loginRateLimit);
 app.use("/api/public/bookings", bookingRateLimit);
+app.use("/api/public/validate-promo", promoValidateRateLimit);
 
 app.use("/api", router);
 app.use(errorHandler);
