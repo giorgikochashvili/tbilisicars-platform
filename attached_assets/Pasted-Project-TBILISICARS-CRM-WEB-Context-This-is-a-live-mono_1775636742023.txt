@@ -1,0 +1,123 @@
+Project: TBILISICARS CRM&WEB
+Context:
+This is a live monorepo already built in Replit. Do NOT refactor architecture. Do NOT redesign unrelated CRM pages. Do NOT change pricing/business logic outside the specific booking UI/behavior fixes below. Make only targeted, production-safe changes.
+
+Target:
+CRM Bookings page + New Booking flow
+
+Goals:
+1. Improve Bookings filters date UI styling
+2. Hide amount/payment visuals for Canceled and No Show bookings
+3. Default new bookings to Confirmed instead of Pending
+4. Improve vehicle brand/model dropdown ordering
+5. Remove Pickup/Dropoff "Delivery Type" field and derive behavior from selected location
+6. Support hotel/downtown location-driven fields and voucher behavior safely
+
+Required changes:
+
+A) Bookings page date filter UI polish
+- Inspect the Bookings page date filter controls
+- Fix the visual design so the date inputs/pickers match the CRM dark theme and look consistent with the rest of the UI
+- Preserve current filtering behavior
+- This is a styling/UX cleanup, not a filter logic rewrite
+
+B) Amount section behavior for Canceled / No Show
+- On the Bookings list page, when booking status is:
+  - CANCELED
+  - NO_SHOW
+- The Amount section must not display:
+  - numeric amount
+  - payment status colors/badges
+- Instead show only:
+  - ---
+- This should apply cleanly in the table/list UI without breaking other statuses
+
+C) New Booking default status
+- In the New Booking flow, the default status for a newly created booking should be:
+  - Confirmed
+- Not Pending
+- This should affect the initial default only; staff must still be able to change status manually if needed
+
+D) Vehicle brand/model ordering
+- Across the booking-related vehicle selectors, prioritize the most common/popular fleet brands/models at the top
+- Prefer an existing reliable source of truth if available:
+  1. actual fleet counts by brand/model
+  2. existing manual sort field / priority field
+  3. fallback manual ordering if needed
+- Keep the rest of the options available
+- Do not break selection logic
+- Scope:
+  - at minimum fix New Booking vehicle-related dropdowns
+  - if the same shared selector is used elsewhere in booking flows, reuse the improvement there too
+
+E) Remove Delivery Type and use location-driven behavior
+- In New Booking:
+  - remove the Pickup "Delivery Type" field
+  - remove the Dropoff equivalent if present
+- Behavior must instead derive from the selected location
+
+F) Pickup/Dropoff location-driven fields
+Use selected location as the source of truth:
+
+1. Airport location
+- No extra hotel/manual delivery fields
+- Treat as airport behavior automatically
+
+2. Hotel location
+- Show the necessary extra fields for hotel handling, such as:
+  - hotel name / hotel number if that is how the current form is structured
+  - address field if needed by the existing voucher/output flow
+- Only show these extra inputs when a hotel-type location is selected
+
+3. Downtown / fixed office location
+- Use the fixed known location address already defined by the selected location
+- This fixed address should appear correctly in the voucher/output instead of asking the staff to choose a delivery type
+
+4. Apply the same principle symmetrically for Dropoff
+- Dropoff/return location should drive its own relevant fields and output behavior
+- Do not leave pickup logic fixed while dropoff still depends on an old delivery-type field
+
+Implementation guidance:
+- First inspect the existing booking form data model and determine:
+  - where status default is set
+  - where amount/payment cell rendering happens
+  - where date filters are styled
+  - where Delivery Type is stored/rendered
+  - how location records are represented (name/type/city/address/etc.)
+- Reuse existing location metadata if present
+- Prefer deriving behavior from actual location data rather than hardcoded text checks, if such metadata already exists
+- If hotel/downtown distinctions are currently represented only by names and not structured types, implement the smallest safe logic possible
+- Do not force a database migration unless absolutely necessary
+- Do not break voucher generation or booking detail rendering
+
+Edge cases:
+- Canceled and No Show must always show --- in Amount, even if historical payment data exists
+- Other statuses must continue to show the normal amount/payment visuals
+- Existing bookings with previously saved delivery type data should not crash the UI
+- Non-hotel locations should not show hotel-only fields
+- Staff must still be able to create bookings without confusion after Delivery Type removal
+
+Preserve scope:
+- Do not redesign the entire bookings page
+- Do not change pricing calculations
+- Do not change parking logic
+- Do not change fleet financial history in this task
+- Do not rewrite voucher architecture
+- Do not touch unrelated CRM modules
+
+Done looks like:
+- Bookings date filters look visually corrected in dark theme
+- Canceled / No Show rows show --- in Amount
+- New Booking defaults to Confirmed
+- Vehicle dropdown ordering is improved toward common fleet options first
+- Delivery Type field is removed from booking creation/edit flow where applicable
+- Pickup/Dropoff behavior now follows selected location type/metadata cleanly
+- Hotel-specific extra fields appear only when relevant
+- Downtown/fixed office addresses flow correctly to voucher/output
+
+At the end:
+1. List exactly which files were changed
+2. Explain where the default status was changed
+3. Explain how Canceled / No Show amount rendering is now handled
+4. Explain the final source of truth used for location-driven behavior
+5. Mention any assumptions made about hotel vs airport vs downtown detection
