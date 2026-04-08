@@ -10,6 +10,7 @@ import {
   Image, Upload, Download, MessageCircle, Trash2, Check
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
+import { formatBookingAmount } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import BookingDetail from "./BookingDetail";
 
@@ -411,7 +412,9 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                       {data.currentBooking.total_amount && (
                         <div>
                           <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Amount</div>
-                          <div className="font-mono font-bold">₾{parseFloat(data.currentBooking.total_amount).toFixed(2)}</div>
+                          <div className="font-mono font-bold">
+                            {formatBookingAmount(data.currentBooking.total_amount, data.currentBooking.currency)}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -604,6 +607,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                           <TableHead className="text-xs">Customer</TableHead>
                           <TableHead className="text-xs">Pickup</TableHead>
                           <TableHead className="text-xs">Dropoff</TableHead>
+                          <TableHead className="text-xs">Amount</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
                           <TableHead className="text-xs">Source</TableHead>
                           <TableHead className="w-8" />
@@ -619,6 +623,9 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                             </TableCell>
                             <TableCell className="text-xs">
                               {b.dropoff_datetime ? format(new Date(b.dropoff_datetime), "MMM d, yy") : "—"}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {b.total_amount ? formatBookingAmount(b.total_amount, b.currency) : "—"}
                             </TableCell>
                             <TableCell><BookingStatusBadge status={b.status} /></TableCell>
                             <TableCell>
