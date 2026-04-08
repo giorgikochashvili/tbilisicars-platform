@@ -77,7 +77,7 @@ const ALERT_CONFIG: Record<string, {
     priority: 0,
   },
   DELIVERED_NO_PAYMENT: {
-    label: "Delivered, no payment record",
+    label: "Delivered bookings without payment record",
     icon: <CreditCard className="w-3.5 h-3.5" />,
     badge: "bg-red-500/15 text-red-400 border-red-500/30",
     row: "border-l-2 border-l-red-500/60",
