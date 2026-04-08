@@ -232,6 +232,34 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  PAID:     "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  HALF:     "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  UNPAID:   "bg-red-500/10 text-red-400 border-red-500/20",
+  REFUNDED: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  PAID:     "Paid",
+  HALF:     "Partial",
+  UNPAID:   "Unpaid",
+  REFUNDED: "Refunded",
+};
+
+function PaymentStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "font-semibold tracking-wide text-[9px] uppercase shadow-none leading-none px-1 py-0",
+        PAYMENT_STATUS_COLORS[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20",
+      )}
+    >
+      {PAYMENT_STATUS_LABELS[status] ?? status}
+    </Badge>
+  );
+}
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({ title, value, icon: Icon, testId, isLoading, tooltip }: {
@@ -373,23 +401,65 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 const OPS_GRID = "grid-cols-[44px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.8fr)_80px_minmax(0,1fr)_56px]";
 const OPS_HEADERS = ["Ref", "Client", "Phone", "Vehicle", "Amount", "Route", "Time"] as const;
 
-function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick }: {
+function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick, dateStr, onPrevDate, onNextDate, isToday, onTodayDate }: {
   title: string;
   bookings?: BookingRow[];
   isLoading: boolean;
   emptyMessage: string;
   timeKey: "pickup" | "dropoff";
   onRowClick?: (id: number) => void;
+  dateStr?: string;
+  onPrevDate?: () => void;
+  onNextDate?: () => void;
+  isToday?: boolean;
+  onTodayDate?: () => void;
 }) {
   return (
     <Card className="flex flex-col border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden" style={{ maxHeight: "380px" }}>
-      <CardHeader className="border-b border-border/40 py-4 bg-background/50">
-        <CardTitle className="text-base font-bold flex items-center gap-3 font-display">
-          {title}
-          <Badge variant="secondary" className="bg-primary text-primary-foreground font-bold rounded-md px-2">
-            {bookings?.length ?? 0}
-          </Badge>
-        </CardTitle>
+      <CardHeader className="border-b border-border/40 py-3 bg-background/50">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base font-bold flex items-center gap-3 font-display">
+            {title}
+            <Badge variant="secondary" className="bg-primary text-primary-foreground font-bold rounded-md px-2">
+              {bookings?.length ?? 0}
+            </Badge>
+          </CardTitle>
+          {dateStr && (
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                onClick={onPrevDate}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-xs font-semibold text-foreground min-w-[108px] text-center">
+                {new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
+                  weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
+                })}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                onClick={onNextDate}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+              {!isToday && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[11px] text-primary hover:text-primary px-1.5"
+                  onClick={onTodayDate}
+                >
+                  Today
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </CardHeader>
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-card/30">
@@ -503,7 +573,10 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     <span className="text-xs text-muted-foreground italic">Unassigned</span>
                   )}
                 </div>
-                <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
+                  <PaymentStatusBadge status={b.paymentStatus} />
+                </div>
                 <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
                   <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
                   <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
@@ -539,10 +612,13 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     <span className="font-mono font-bold text-foreground/70">{routeTo}</span>
                   </span>
                 </div>
-                {/* Row 3: ref + amount */}
+                {/* Row 3: ref + amount + payment */}
                 <div className="flex items-center justify-between gap-2 min-w-0">
                   <span className="font-mono text-[9px] text-muted-foreground">#{b.id}</span>
-                  <span className="text-[10px] font-mono font-semibold text-foreground">{amountEl}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono font-semibold text-foreground">{amountEl}</span>
+                    <PaymentStatusBadge status={b.paymentStatus} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -862,7 +938,8 @@ export default function Dashboard() {
   const [region, setRegion] = useState<Region>(loadRegion);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(loadWidgetConfig);
-  const [selectedOpsDate, setSelectedOpsDate] = useState<string>(todayDateStr);
+  const [selectedPickupDate, setSelectedPickupDate] = useState<string>(todayDateStr);
+  const [selectedDropoffDate, setSelectedDropoffDate] = useState<string>(todayDateStr);
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
@@ -897,15 +974,35 @@ export default function Dashboard() {
     staleTime: 30_000,
   });
 
-  const todayQuery = useQuery<{ pickups: BookingRow[]; dropoffs: BookingRow[] }>({
-    queryKey: ["dashboard-today", city, selectedOpsDate],
+  const pickupQuery = useQuery<{ pickups: BookingRow[]; dropoffs: BookingRow[] }>({
+    queryKey: ["dashboard-today-pickups", city, selectedPickupDate],
     queryFn: () => {
-      const params = new URLSearchParams({ date: selectedOpsDate });
+      const params = new URLSearchParams({ date: selectedPickupDate });
       if (city) params.set("city", city);
       return fetchJson(`${BASE}/admin/dashboard/today?${params.toString()}`);
     },
     staleTime: 30_000,
   });
+
+  const dropoffQuery = useQuery<{ pickups: BookingRow[]; dropoffs: BookingRow[] }>({
+    queryKey: ["dashboard-today-dropoffs", city, selectedDropoffDate],
+    queryFn: () => {
+      const params = new URLSearchParams({ date: selectedDropoffDate });
+      if (city) params.set("city", city);
+      return fetchJson(`${BASE}/admin/dashboard/today?${params.toString()}`);
+    },
+    staleTime: 30_000,
+  });
+
+  const filteredPickups = useMemo(
+    () => (pickupQuery.data?.pickups ?? []).filter((b) => b.status !== "CANCELED" && b.status !== "NO_SHOW"),
+    [pickupQuery.data],
+  );
+
+  const filteredDropoffs = useMemo(
+    () => (dropoffQuery.data?.dropoffs ?? []).filter((b) => b.status !== "RETURNED" && b.status !== "CANCELED" && b.status !== "NO_SHOW"),
+    [dropoffQuery.data],
+  );
 
   const fleetQuery = useQuery<FleetSnapshot>({
     queryKey: ["dashboard-fleet-snapshot", city],
@@ -941,7 +1038,7 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
-  const hasError = summaryQuery.isError || todayQuery.isError || fleetQuery.isError;
+  const hasError = summaryQuery.isError || pickupQuery.isError || dropoffQuery.isError || fleetQuery.isError;
   const sc = widgetConfig.sections;
   const cc = widgetConfig.cards;
 
@@ -1085,60 +1182,35 @@ export default function Dashboard() {
       {/* Today's Operations */}
       {sc.todaysOperations && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
-            </h2>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedOpsDate((d) => shiftDate(d, -1))}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-xs font-semibold text-foreground min-w-[130px] text-center">
-                {new Date(selectedOpsDate + "T00:00:00Z").toLocaleDateString("en-GB", {
-                  weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
-                })}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedOpsDate((d) => shiftDate(d, 1))}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-              {selectedOpsDate !== todayDateStr() && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-primary hover:text-primary ml-1 px-2"
-                  onClick={() => setSelectedOpsDate(todayDateStr())}
-                >
-                  Today
-                </Button>
-              )}
-            </div>
-          </div>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+            <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
+          </h2>
           <div className="grid grid-cols-1 gap-5">
             <ActivityTable
               title="Pickups"
-              bookings={todayQuery.data?.pickups}
-              isLoading={todayQuery.isLoading}
-              emptyMessage="No pickups for this date."
+              bookings={filteredPickups}
+              isLoading={pickupQuery.isLoading}
+              emptyMessage="No pending pickups for this date."
               timeKey="pickup"
               onRowClick={(id) => setDetailBookingId(id)}
+              dateStr={selectedPickupDate}
+              onPrevDate={() => setSelectedPickupDate((d) => shiftDate(d, -1))}
+              onNextDate={() => setSelectedPickupDate((d) => shiftDate(d, 1))}
+              isToday={selectedPickupDate === todayDateStr()}
+              onTodayDate={() => setSelectedPickupDate(todayDateStr())}
             />
             <ActivityTable
               title="Dropoffs"
-              bookings={todayQuery.data?.dropoffs}
-              isLoading={todayQuery.isLoading}
-              emptyMessage="No dropoffs for this date."
+              bookings={filteredDropoffs}
+              isLoading={dropoffQuery.isLoading}
+              emptyMessage="No pending dropoffs for this date."
               timeKey="dropoff"
               onRowClick={(id) => setDetailBookingId(id)}
+              dateStr={selectedDropoffDate}
+              onPrevDate={() => setSelectedDropoffDate((d) => shiftDate(d, -1))}
+              onNextDate={() => setSelectedDropoffDate((d) => shiftDate(d, 1))}
+              isToday={selectedDropoffDate === todayDateStr()}
+              onTodayDate={() => setSelectedDropoffDate(todayDateStr())}
             />
           </div>
         </div>
