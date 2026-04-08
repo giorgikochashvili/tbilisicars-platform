@@ -1160,7 +1160,7 @@ export default function RatesPage() {
       }
 
       if (newRate?.id && childDayRanges.length > 0) {
-        await fetch(`/api/admin/rates/${newRate.id}/day-ranges`, {
+        const drResp = await fetch(`/api/admin/rates/${newRate.id}/day-ranges`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -1172,6 +1172,10 @@ export default function RatesPage() {
             })),
           }),
         });
+        if (!drResp.ok) {
+          const err = await drResp.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || "Failed to clone day ranges");
+        }
       }
 
       queryClient.invalidateQueries();
@@ -1631,7 +1635,18 @@ export default function RatesPage() {
       </Dialog>
 
       {/* ── Child rate modal ─────────────────────────────────────────────────── */}
-      <Dialog open={isChildModalOpen} onOpenChange={setIsChildModalOpen}>
+      <Dialog
+        open={isChildModalOpen}
+        onOpenChange={(open) => {
+          setIsChildModalOpen(open);
+          if (!open) {
+            setChildParentId("");
+            setChildFormData(BLANK_FORM);
+            setChildTiers([]);
+            setChildDayRanges([]);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl flex items-center gap-2">
