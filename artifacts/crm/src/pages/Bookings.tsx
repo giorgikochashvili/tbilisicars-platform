@@ -369,7 +369,7 @@ export default function BookingsPage() {
         const pid = String(bookingRow.pickupLocationId ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === pid);
         const name = loc?.name ?? bookingRow.pickupLocation?.name ?? "";
-        return name ? deriveLocationType(name) : "airport";
+        return deriveLocationType(name);
       })(),
       pickupAddress: bookingRow.pickupAddress || "",
       dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
@@ -379,7 +379,7 @@ export default function BookingsPage() {
         const did = String(bookingRow.dropoffLocationId ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === did);
         const name = loc?.name ?? bookingRow.dropoffLocation?.name ?? "";
-        return name ? deriveLocationType(name) : "airport";
+        return deriveLocationType(name);
       })(),
       dropoffAddress: bookingRow.dropoffAddress || "",
       totalAmount: bookingRow.totalAmount ?? "",
