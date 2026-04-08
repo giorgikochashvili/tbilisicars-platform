@@ -1,0 +1,137 @@
+Project: TBILISICARS CRM&WEB
+
+Context:
+This is a live monorepo already built in Replit. Multiple dashboard, bookings, parking, and fleet fixes are already completed and must be preserved. Do NOT revert any working behavior. Do NOT refactor architecture. Do NOT redesign unrelated dashboard modules. Apply only the targeted dashboard polish changes below.
+
+Target:
+CRM Dashboard
+
+Goals:
+1. Allow dashboard sections to be reordered from Customize
+2. Make dashboard render order follow Customize order
+3. Replace the large TBS AIR PARKING dashboard board with a compact operational card
+
+PRESERVE EXISTING WORKING BEHAVIOR
+- Dashboard Operations improvements must remain intact
+- Pickups/Dropoffs separate date controls must remain intact
+- Payment status in Operations must remain intact
+- Parking overflow logic must remain intact
+- Parking alerts must remain intact
+- TBS AIR PARKING page itself must remain untouched
+- Existing show/hide widget behavior in Customize must remain working
+
+---
+
+REQUIRED FIXES
+
+1) CUSTOMIZE REORDER
+Inspect the current dashboard Customize implementation and add a reliable section reorder mechanism.
+
+Preferred behavior:
+- inside Customize, each section can be moved up/down
+- use simple move-up / move-down controls unless true drag-and-drop is already trivially safe with existing project patterns
+- do NOT introduce risky drag-and-drop libraries unless already present and naturally used
+
+Reliability > visual complexity
+
+---
+
+2) DASHBOARD ORDER MUST FOLLOW CUSTOMIZE ORDER
+The order shown/edited in Customize must become the actual render order on the dashboard.
+
+Examples:
+- if My Tasks is moved below Fleet Status in Customize, it must render below Fleet Status on the dashboard
+- if TBS AIR PARKING is moved near the top, it must render there
+
+Important:
+- preserve section visibility toggles
+- preserve saved customize preferences if a persisted preference system already exists
+- changing order must not reset visibility
+- changing visibility must not reset order
+
+Use one clean source of truth for section order.
+
+---
+
+3) TBS AIR PARKING DASHBOARD WIDGET → COMPACT CARD
+The current dashboard parking widget is too large and board-like.
+
+Replace it with a compact summary card closer in feel/size to My Tasks.
+
+The new compact card must show:
+- TERMINAL count/status
+- OUT count/status
+- FREE count/status
+
+Display rules:
+- TERMINAL / OUT:
+  - show occupancy like 5/5, 6/5
+  - show FULL or OVER CAP clearly
+- FREE:
+  - show count only
+  - no artificial limit
+
+The dashboard widget must NOT contain:
+- large internal parking lists
+- board-style layout
+- drag/move controls
+- detailed parking management UI
+
+It should only be:
+- a compact operational summary
+- with a clear action button/link like:
+  - Open Parking
+  - View Parking
+
+---
+
+4) DATA SOURCE
+Reuse the existing dashboard parking summary data if already present.
+Do NOT add a new backend endpoint unless absolutely necessary.
+Do NOT duplicate parking business logic in the dashboard.
+
+---
+
+5) UI / UX REQUIREMENTS
+- Preserve CRM dark style
+- Keep card compact and readable
+- Avoid wasted vertical space
+- Mobile-friendly
+- Reorder controls in Customize must be easy to understand
+
+---
+
+6) EDGE CASES
+- Hidden widgets stay hidden even if reordered
+- Reorder must not duplicate sections
+- Reorder must work repeatedly
+- If parking data is unavailable, show clean fallback/empty state
+- Compact card must still clearly indicate OVER CAP state
+
+---
+
+7) SCOPE LIMITS
+Do NOT:
+- change TbsAirParking page logic
+- change parking zone assignment logic
+- change booking logic
+- redesign the full dashboard
+- touch unrelated CRM pages
+- introduce broad architecture changes
+
+---
+
+DONE LOOKS LIKE
+- Customize lets staff move sections up/down reliably
+- Dashboard render order follows Customize order
+- Visibility toggles still work
+- TBS AIR PARKING on dashboard is now a compact summary card
+- TERMINAL / OUT / FREE are still easy to understand
+- FULL / OVER CAP states are visible
+- No existing working dashboard features are broken
+
+At the end:
+1. List exactly which files were changed
+2. Explain how order is stored/applied
+3. Explain whether you used drag-and-drop or safer reorder controls
+4. Explain what data source the compact parking widget now uses
