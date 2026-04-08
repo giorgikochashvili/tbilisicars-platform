@@ -365,16 +365,18 @@ export default function BookingsPage() {
       pickupLocationId: bookingRow.pickupLocationId ? bookingRow.pickupLocationId.toString() : "",
       pickupDate: pickupDt ? format(pickupDt, "yyyy-MM-dd") : "",
       pickupTime: pickupDt ? format(pickupDt, "HH:mm") : "10:00",
-      pickupType: deriveLocationType(
-        allLocations.find((l: any) => l.id === bookingRow.pickupLocationId)?.name ?? ""
-      ),
+      pickupType: (() => {
+        const loc = allLocations.find((l: any) => l.id === bookingRow.pickupLocationId);
+        return loc ? deriveLocationType(loc.name) : "airport";
+      })(),
       pickupAddress: bookingRow.pickupAddress || "",
       dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
       dropoffDate: dropoffDt ? format(dropoffDt, "yyyy-MM-dd") : "",
       dropoffTime: dropoffDt ? format(dropoffDt, "HH:mm") : "10:00",
-      dropoffType: deriveLocationType(
-        allLocations.find((l: any) => l.id === bookingRow.dropoffLocationId)?.name ?? ""
-      ),
+      dropoffType: (() => {
+        const loc = allLocations.find((l: any) => l.id === bookingRow.dropoffLocationId);
+        return loc ? deriveLocationType(loc.name) : "airport";
+      })(),
       dropoffAddress: bookingRow.dropoffAddress || "",
       totalAmount: bookingRow.totalAmount ?? "",
       currency: bookingRow.currency || "GEL",
@@ -957,11 +959,17 @@ export default function BookingsPage() {
                   <SelectTrigger><SelectValue placeholder="Any brand…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any brand</SelectItem>
-                    {[...allBrands].sort((a: any, b: any) => {
-                      const aCount = allModels.filter((m: any) => (m.brandId ?? m.brand?.id) === a.id).length;
-                      const bCount = allModels.filter((m: any) => (m.brandId ?? m.brand?.id) === b.id).length;
-                      return bCount !== aCount ? bCount - aCount : a.name.localeCompare(b.name);
-                    }).map((b: any) => (
+                    {(() => {
+                      const modelCountByBrand = new Map<number, number>();
+                      for (const m of allModels) {
+                        const bid: number = m.brandId ?? m.brand?.id;
+                        if (bid != null) modelCountByBrand.set(bid, (modelCountByBrand.get(bid) ?? 0) + 1);
+                      }
+                      return [...allBrands].sort((a: any, b: any) => {
+                        const diff = (modelCountByBrand.get(b.id) ?? 0) - (modelCountByBrand.get(a.id) ?? 0);
+                        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+                      });
+                    })().map((b: any) => (
                       <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
