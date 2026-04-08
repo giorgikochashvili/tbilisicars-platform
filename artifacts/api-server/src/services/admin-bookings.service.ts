@@ -1,5 +1,6 @@
 import {
   db,
+  pool,
   bookingTable,
   userTable,
   vehicleTable,
@@ -354,8 +355,23 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
       .where(where),
   ]);
 
+  const mappedRows = rows.map(mapToBookingRow);
+
+  // Batch-fetch payment record counts for all booking IDs in this page
+  const paymentCountMap = new Map<number, number>();
+  if (mappedRows.length > 0) {
+    const ids = mappedRows.map((r) => r.id);
+    const { rows: countRows } = await pool.query<{ booking_id: number; cnt: number }>(
+      `SELECT booking_id, COUNT(*)::int AS cnt FROM booking_payment WHERE booking_id = ANY($1) GROUP BY booking_id`,
+      [ids],
+    );
+    for (const r of countRows) {
+      paymentCountMap.set(r.booking_id, r.cnt);
+    }
+  }
+
   return {
-    data: rows.map(mapToBookingRow),
+    data: mappedRows.map((r) => ({ ...r, paymentRecordCount: paymentCountMap.get(r.id) ?? 0 })),
     meta: { page, limit, total: totalRows[0]?.total ?? 0 },
   };
 }

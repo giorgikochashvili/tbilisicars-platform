@@ -323,6 +323,52 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
     }
   }
 
+  // ── DELIVERED_NO_PAYMENT ────────────────────────────────────────────────────
+  if (!type || type === "DELIVERED_NO_PAYMENT") {
+    const params: string[] = [];
+    const regionClause = region && region !== "all"
+      ? `AND l.city = $${params.push(region)}`
+      : "";
+    const { rows } = await pool.query(`
+      SELECT
+        b.id AS booking_id,
+        v.id AS vehicle_id,
+        TRIM(COALESCE(br.name, '') || ' ' || COALESCE(vm.name, bm.name, '')) AS vehicle_label,
+        COALESCE(v.license_plate, '—') AS plate,
+        COALESCE(l.city, '—') AS region,
+        b.contact_full_name AS customer,
+        NOW() AS event_datetime
+      FROM booking b
+      LEFT JOIN vehicle v ON v.id = b.vehicle_id
+      LEFT JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+      LEFT JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle_model bm ON bm.id = b.vehicle_model_id
+      LEFT JOIN location l ON l.id = b.pickup_location_id
+      LEFT JOIN booking_payment bp ON bp.booking_id = b.id
+      WHERE b.status = 'DELIVERED'
+        AND b.deleted_at IS NULL
+        AND bp.id IS NULL
+        ${regionClause}
+      ORDER BY b.id DESC
+    `, params);
+    for (const r of rows) {
+      const label = r.vehicle_label?.trim() || "Unassigned vehicle";
+      const plateStr = r.plate !== "—" ? ` (${r.plate})` : "";
+      alerts.push({
+        id: `no-payment-${r.booking_id}`,
+        alertType: "DELIVERED_NO_PAYMENT",
+        vehicleId: r.vehicle_id,
+        bookingId: r.booking_id,
+        vehicleLabel: label + plateStr,
+        region: r.region,
+        customer: r.customer,
+        message: `Booking #${r.booking_id} is delivered but has no payment record`,
+        eventDatetime: r.event_datetime,
+        generatedAt: now,
+      });
+    }
+  }
+
   // ── PARKING_OVERFLOW ────────────────────────────────────────────────────────
   if (!type || type === "PARKING_OVERFLOW") {
     const CAPACITIES: Record<string, number> = { TERMINAL: 5, OUT: 10 };
@@ -355,7 +401,7 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
   // Sort by priority
   alerts.sort((a: any, b: any) => {
     const PRIORITY: Record<string, number> = {
-      OVERDUE: 0, CONFLICT: 1, PARKING_OVERFLOW: 1, SERVICE_OVERDUE: 2, SERVICE_DUE: 3, SERVICE_WARNING: 4, DROPOFF_TODAY: 5, PICKUP_TODAY: 6,
+      OVERDUE: 0, DELIVERED_NO_PAYMENT: 1, CONFLICT: 2, PARKING_OVERFLOW: 2, SERVICE_OVERDUE: 3, SERVICE_DUE: 4, SERVICE_WARNING: 5, DROPOFF_TODAY: 6, PICKUP_TODAY: 7,
     };
     const pa = PRIORITY[a.alertType] ?? 99;
     const pb = PRIORITY[b.alertType] ?? 99;
@@ -368,10 +414,11 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/alerts/summary ────────────────────────────────────────────
 
 router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
-  const [pickupRes, dropoffRes, overdueRes, conflictRes, maintRes, overflowRes] = await Promise.all([
+  const [pickupRes, dropoffRes, overdueRes, noPaymentRes, conflictRes, maintRes, overflowRes] = await Promise.all([
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE pickup_datetime::date = CURRENT_DATE AND status IN ('PENDING','CONFIRMED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime::date = CURRENT_DATE AND status IN ('CONFIRMED','DELIVERED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime < NOW() AND status NOT IN ('RETURNED','CANCELED','NO_SHOW') AND deleted_at IS NULL`),
+    pool.query(`SELECT COUNT(*) AS n FROM booking b LEFT JOIN booking_payment bp ON bp.booking_id = b.id WHERE b.status = 'DELIVERED' AND b.deleted_at IS NULL AND bp.id IS NULL`),
     pool.query(`
       SELECT COUNT(DISTINCT b1.vehicle_id) AS n
       FROM booking b1
@@ -445,15 +492,16 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
   const pickup = parseInt(pickupRes.rows[0].n, 10);
   const dropoff = parseInt(dropoffRes.rows[0].n, 10);
   const overdue = parseInt(overdueRes.rows[0].n, 10);
+  const deliveredNoPayment = parseInt(noPaymentRes.rows[0].n, 10);
   const conflict = parseInt(conflictRes.rows[0].n, 10);
   const serviceWarning = parseInt(maintRes.rows[0].warning, 10);
   const serviceDue = parseInt(maintRes.rows[0].due, 10);
   const serviceOverdue = parseInt(maintRes.rows[0].overdue, 10);
   const service = serviceWarning + serviceDue + serviceOverdue;
   const parkingOverflow = parseInt(overflowRes.rows[0].n, 10);
-  const total = pickup + dropoff + overdue + conflict + service + parkingOverflow;
+  const total = pickup + dropoff + overdue + deliveredNoPayment + conflict + service + parkingOverflow;
 
-  res.json({ total, pickup, dropoff, overdue, conflict, service, serviceWarning, serviceDue, serviceOverdue, parkingOverflow });
+  res.json({ total, pickup, dropoff, overdue, deliveredNoPayment, conflict, service, serviceWarning, serviceDue, serviceOverdue, parkingOverflow });
 });
 
 // ─── GET /api/admin/alerts/meta ───────────────────────────────────────────────
@@ -461,7 +509,7 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
 router.get("/admin/alerts/meta", requireAdmin, async (_req, res) => {
   const { rows } = await pool.query(`SELECT DISTINCT city FROM location WHERE city IS NOT NULL ORDER BY city`);
   res.json({
-    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "CONFLICT", "PARKING_OVERFLOW", "SERVICE_OVERDUE", "SERVICE_DUE", "SERVICE_WARNING"],
+    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "DELIVERED_NO_PAYMENT", "CONFLICT", "PARKING_OVERFLOW", "SERVICE_OVERDUE", "SERVICE_DUE", "SERVICE_WARNING"],
     regions: rows.map((r: any) => r.city),
   });
 });

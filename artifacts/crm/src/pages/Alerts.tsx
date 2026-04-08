@@ -11,12 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Bell, AlertTriangle, Clock, CalendarClock, RefreshCw,
   ArrowDownToLine, ArrowUpFromLine, Wrench, GitFork,
-  ExternalLink, Filter, Car, ParkingCircle
+  ExternalLink, Filter, Car, ParkingCircle, CreditCard
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "CONFLICT" | "PARKING_OVERFLOW" | "SERVICE_OVERDUE" | "SERVICE_DUE" | "SERVICE_WARNING";
+type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "DELIVERED_NO_PAYMENT" | "CONFLICT" | "PARKING_OVERFLOW" | "SERVICE_OVERDUE" | "SERVICE_DUE" | "SERVICE_WARNING";
 
 interface Alert {
   id: string;
@@ -75,6 +75,13 @@ const ALERT_CONFIG: Record<string, {
     badge: "bg-red-500/15 text-red-400 border-red-500/30",
     row: "border-l-2 border-l-red-500/60",
     priority: 0,
+  },
+  DELIVERED_NO_PAYMENT: {
+    label: "No Payment",
+    icon: <CreditCard className="w-3.5 h-3.5" />,
+    badge: "bg-red-500/15 text-red-400 border-red-500/30",
+    row: "border-l-2 border-l-red-500/60",
+    priority: 1,
   },
   CONFLICT: {
     label: "Booking Conflict",
@@ -141,6 +148,7 @@ interface Summary {
   pickup: number;
   dropoff: number;
   overdue: number;
+  deliveredNoPayment: number;
   conflict: number;
   service: number;
   serviceWarning: number;
@@ -152,6 +160,7 @@ interface Summary {
 function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: AlertType) => void }) {
   const tiles = [
     { key: "OVERDUE" as AlertType, label: "Overdue Return", count: summary.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-5 h-5" /> },
+    { key: "DELIVERED_NO_PAYMENT" as AlertType, label: "No Payment", count: summary.deliveredNoPayment ?? 0, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <CreditCard className="w-5 h-5" /> },
     { key: "CONFLICT" as AlertType, label: "Conflicts", count: summary.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-5 h-5" /> },
     { key: "PARKING_OVERFLOW" as AlertType, label: "Parking Over", count: summary.parkingOverflow ?? 0, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <ParkingCircle className="w-5 h-5" /> },
     { key: "SERVICE_OVERDUE" as AlertType, label: "Svc Overdue", count: summary.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-5 h-5" /> },
@@ -162,7 +171,7 @@ function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: A
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-9 gap-3">
       {tiles.map((t) => (
         <button
           key={t.key}

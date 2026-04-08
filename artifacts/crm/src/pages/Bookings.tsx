@@ -759,6 +759,11 @@ export default function BookingsPage() {
                             {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : "—"}
                           </div>
                           <PaymentBadge status={b.paymentStatus} />
+                          {b.status === "DELIVERED" && b.paymentRecordCount === 0 && (
+                            <span className="inline-flex items-center gap-1 mt-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/25">
+                              No payment
+                            </span>
+                          )}
                         </>
                       )}
                     </TableCell>
