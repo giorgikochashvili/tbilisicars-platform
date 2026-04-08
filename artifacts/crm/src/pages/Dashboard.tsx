@@ -14,7 +14,7 @@ import {
   PlayCircle, CheckCircle2, Flag, RotateCcw,
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
-  Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown,
+  Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   ClipboardList, Clock,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -107,15 +107,28 @@ interface ParkingOverviewData {
 
 // ─── Widget config ─────────────────────────────────────────────────────────────
 
+type SectionKey =
+  | "myTasks"
+  | "bookingOverview"
+  | "fleetLiveStatus"
+  | "parkingOverview"
+  | "todaysOperations"
+  | "fleetTimeline"
+  | "operationalAlerts";
+
+const DEFAULT_SECTION_ORDER: SectionKey[] = [
+  "myTasks",
+  "bookingOverview",
+  "fleetLiveStatus",
+  "parkingOverview",
+  "todaysOperations",
+  "fleetTimeline",
+  "operationalAlerts",
+];
+
 interface WidgetConfig {
-  sections: {
-    bookingOverview: boolean;
-    fleetLiveStatus: boolean;
-    parkingOverview: boolean;
-    todaysOperations: boolean;
-    fleetTimeline: boolean;
-    operationalAlerts: boolean;
-  };
+  sections: Record<SectionKey, boolean>;
+  sectionOrder: SectionKey[];
   cards: {
     total: boolean;
     revenue: boolean;
@@ -130,6 +143,7 @@ interface WidgetConfig {
 
 const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
   sections: {
+    myTasks: true,
     bookingOverview: true,
     fleetLiveStatus: true,
     parkingOverview: true,
@@ -137,6 +151,7 @@ const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
     fleetTimeline: true,
     operationalAlerts: true,
   },
+  sectionOrder: DEFAULT_SECTION_ORDER,
   cards: {
     total: true,
     revenue: true,
@@ -155,10 +170,22 @@ function loadWidgetConfig(): WidgetConfig {
   try {
     const stored = localStorage.getItem(WIDGET_STORAGE_KEY);
     if (!stored) return DEFAULT_WIDGET_CONFIG;
-    const parsed = JSON.parse(stored) as Partial<WidgetConfig>;
+    const parsed = JSON.parse(stored) as Record<string, unknown>;
+    const mergedSections: Record<SectionKey, boolean> = {
+      ...DEFAULT_WIDGET_CONFIG.sections,
+      ...((parsed.sections ?? {}) as Partial<Record<SectionKey, boolean>>),
+    };
+    // Restore stored order; append any newly added keys not yet in stored order
+    const storedOrder = ((parsed.sectionOrder ?? []) as SectionKey[])
+      .filter((k): k is SectionKey => DEFAULT_SECTION_ORDER.includes(k));
+    const sectionOrder: SectionKey[] = [
+      ...storedOrder,
+      ...DEFAULT_SECTION_ORDER.filter((k) => !storedOrder.includes(k)),
+    ];
     return {
-      sections: { ...DEFAULT_WIDGET_CONFIG.sections, ...(parsed.sections ?? {}) },
-      cards: { ...DEFAULT_WIDGET_CONFIG.cards, ...(parsed.cards ?? {}) },
+      sections: mergedSections,
+      sectionOrder,
+      cards: { ...DEFAULT_WIDGET_CONFIG.cards, ...((parsed.cards ?? {}) as Partial<WidgetConfig["cards"]>) },
     };
   } catch {
     return DEFAULT_WIDGET_CONFIG;
@@ -168,6 +195,16 @@ function loadWidgetConfig(): WidgetConfig {
 function saveWidgetConfig(cfg: WidgetConfig) {
   localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify(cfg));
 }
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  myTasks: "My Tasks",
+  bookingOverview: "Booking Overview",
+  fleetLiveStatus: "Fleet Live Status",
+  parkingOverview: "TBS Air Parking",
+  todaysOperations: "Today's Operations",
+  fleetTimeline: "Fleet Timeline",
+  operationalAlerts: "Operational Alerts",
+};
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
@@ -326,71 +363,67 @@ function FleetTile({ label, count, colorClass, testId, isLoading, onClick }: {
   );
 }
 
-// ─── TBS Air Parking Widget ───────────────────────────────────────────────────
-
-const PARKING_ZONE_CONFIG = [
-  { key: "TERMINAL" as const, label: "Terminal", capacity: 5, colorClass: "text-sky-400 border-sky-500/30 bg-sky-500/10" },
-  { key: "OUT" as const, label: "Out", capacity: 10, colorClass: "text-violet-400 border-violet-500/30 bg-violet-500/10" },
-  { key: "FREE" as const, label: "Free", capacity: null, colorClass: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" },
-];
+// ─── TBS Air Parking Widget (compact) ────────────────────────────────────────
 
 function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; isLoading: boolean }) {
   const [, navigate] = useLocation();
 
+  const zones: Array<{ key: keyof ParkingOverviewData; label: string; capacity: number | null; colorClass: string }> = [
+    { key: "TERMINAL", label: "Terminal", capacity: 5, colorClass: "text-sky-400" },
+    { key: "OUT", label: "Out", capacity: 10, colorClass: "text-violet-400" },
+    { key: "FREE", label: "Free", capacity: null, colorClass: "text-emerald-400" },
+  ];
+
   return (
     <Card
-      className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm cursor-pointer hover:bg-card/80 hover:border-border/70 transition-all"
+      className="border border-border/40 bg-card/60 cursor-pointer hover:border-primary/40 hover:bg-card/80 transition-all duration-200 max-w-sm"
       onClick={() => navigate("/tbs-parking")}
     >
-      <CardHeader className="pb-3 pt-4 px-5 border-b border-border/30 flex flex-row items-center justify-between">
-        <CardTitle className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <ParkingSquare className="w-4 h-4 text-primary" />
-          TBS Air Parking
-        </CardTitle>
-        <span className="text-[10px] text-muted-foreground/60 font-medium">Click to manage →</span>
-      </CardHeader>
-      <CardContent className="px-5 py-4">
-        <div className="grid grid-cols-3 gap-3">
-          {PARKING_ZONE_CONFIG.map(({ key, label, capacity, colorClass }) => {
-            const zoneData = data?.[key];
-            const count = zoneData?.assignments?.length ?? 0;
-            const isFull = capacity != null && count >= capacity;
-
-            return (
-              <div
-                key={key}
-                className={cn(
-                  "rounded-lg border p-4 flex flex-col items-center justify-center gap-1.5 transition-colors",
-                  colorClass,
-                )}
-              >
-                {isLoading ? (
-                  <Skeleton className="h-8 w-10 bg-current opacity-20 rounded" />
-                ) : (
-                  <div className="text-3xl font-black font-display tracking-tighter leading-none">
+      <CardContent className="pt-4 pb-3 px-5">
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-12" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-6">
+            {zones.map(({ key, label, capacity, colorClass }) => {
+              const count = data?.[key]?.assignments?.length ?? 0;
+              const isOverCap = capacity != null && count > capacity;
+              const isFull = capacity != null && count === capacity;
+              return (
+                <div key={key} className="flex flex-col">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">
+                    {label}
+                  </p>
+                  <p className={cn(
+                    "text-3xl font-black font-display leading-none",
+                    isOverCap ? "text-red-400" : colorClass,
+                  )}>
                     {capacity != null ? `${count}/${capacity}` : count}
-                  </div>
-                )}
-                <div className="text-[10px] font-bold uppercase tracking-widest opacity-90">{label}</div>
-                {isFull && !isLoading && (
-                  <Badge className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0 bg-red-500/20 text-red-400 border border-red-500/30 rounded-sm shadow-none">
-                    Full
-                  </Badge>
-                )}
-                {!isFull && capacity != null && !isLoading && (
-                  <div className="text-[9px] text-current opacity-50 font-medium">
-                    {capacity - count} left
-                  </div>
-                )}
-                {capacity == null && !isLoading && (
-                  <div className="text-[9px] text-current opacity-50 font-medium">
-                    {count === 1 ? "vehicle" : "vehicles"}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  </p>
+                  {isOverCap && (
+                    <span className="text-[9px] font-black text-red-400 uppercase tracking-wide mt-0.5">Over Cap</span>
+                  )}
+                  {isFull && (
+                    <span className="text-[9px] font-bold text-red-400 uppercase mt-0.5">Full</span>
+                  )}
+                  {!isFull && !isOverCap && capacity != null && (
+                    <span className="text-[9px] text-muted-foreground mt-0.5">{capacity - count} left</span>
+                  )}
+                  {capacity == null && (
+                    <span className="text-[9px] text-muted-foreground mt-0.5">
+                      {count === 1 ? "vehicle" : "vehicles"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            <div className="ml-auto text-[10px] text-muted-foreground/60 font-medium self-start">
+              Open →
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -846,18 +879,28 @@ function CustomizePopover({ config, onChange, region }: {
   onChange: (cfg: WidgetConfig) => void;
   region: Region;
 }) {
-  const setSection = (key: keyof WidgetConfig["sections"], val: boolean) =>
+  const setSection = (key: SectionKey, val: boolean) =>
     onChange({ ...config, sections: { ...config.sections, [key]: val } });
   const setCard = (key: keyof WidgetConfig["cards"], val: boolean) =>
     onChange({ ...config, cards: { ...config.cards, [key]: val } });
   const reset = () => onChange(DEFAULT_WIDGET_CONFIG);
 
-  const SectionRow = ({ label, k }: { label: string; k: keyof WidgetConfig["sections"] }) => (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-sm font-medium">{label}</span>
-      <Switch checked={config.sections[k]} onCheckedChange={(v) => setSection(k, v)} />
-    </div>
-  );
+  const moveSection = (idx: number, dir: -1 | 1) => {
+    const visibleOrder = config.sectionOrder.filter(
+      (k) => k !== "parkingOverview" || region === "Tbilisi",
+    );
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= visibleOrder.length) return;
+    // Swap in the full sectionOrder (which may include parkingOverview even in non-Tbilisi)
+    const fullOrder = [...config.sectionOrder];
+    const aKey = visibleOrder[idx];
+    const bKey = visibleOrder[swapIdx];
+    const aFullIdx = fullOrder.indexOf(aKey);
+    const bFullIdx = fullOrder.indexOf(bKey);
+    fullOrder[aFullIdx] = bKey;
+    fullOrder[bFullIdx] = aKey;
+    onChange({ ...config, sectionOrder: fullOrder });
+  };
 
   const CardRow = ({ label, k }: { label: string; k: keyof WidgetConfig["cards"] }) => (
     <div className="flex items-center justify-between py-1 pl-4">
@@ -868,6 +911,10 @@ function CustomizePopover({ config, onChange, region }: {
         disabled={!config.sections.bookingOverview}
       />
     </div>
+  );
+
+  const visibleSections = config.sectionOrder.filter(
+    (k) => k !== "parkingOverview" || region === "Tbilisi",
   );
 
   return (
@@ -888,12 +935,32 @@ function CustomizePopover({ config, onChange, region }: {
         <div className="space-y-0.5 divide-y divide-border/30">
           <div className="pb-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Sections</p>
-            <SectionRow label="Booking Overview" k="bookingOverview" />
-            <SectionRow label="Fleet Live Status" k="fleetLiveStatus" />
-            {region === "Tbilisi" && <SectionRow label="TBS Air Parking" k="parkingOverview" />}
-            <SectionRow label="Today's Operations" k="todaysOperations" />
-            <SectionRow label="Fleet Timeline" k="fleetTimeline" />
-            <SectionRow label="Operational Alerts" k="operationalAlerts" />
+            {visibleSections.map((k, idx) => (
+              <div key={k} className="flex items-center gap-1 py-1">
+                <div className="flex flex-col">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-5 text-muted-foreground/50 hover:text-foreground p-0"
+                    disabled={idx === 0}
+                    onClick={() => moveSection(idx, -1)}
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-5 text-muted-foreground/50 hover:text-foreground p-0"
+                    disabled={idx === visibleSections.length - 1}
+                    onClick={() => moveSection(idx, 1)}
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </div>
+                <span className="text-sm font-medium flex-1">{SECTION_LABELS[k]}</span>
+                <Switch checked={config.sections[k]} onCheckedChange={(v) => setSection(k, v)} />
+              </div>
+            ))}
           </div>
           <div className="pt-2">
             <p className={cn("text-[10px] font-bold uppercase tracking-wider mb-1", config.sections.bookingOverview ? "text-muted-foreground" : "text-muted-foreground/40")}>
@@ -1074,202 +1141,201 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* My Tasks Widget */}
-      <div>
-        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-          <ClipboardList className="w-4 h-4 text-primary" /> My Tasks
-        </h2>
-        <Card
-          className="border border-border/40 bg-card/60 cursor-pointer hover:border-primary/40 hover:bg-card/80 transition-all duration-200 max-w-sm"
-          onClick={() => navigate("/tasks?assignee=me")}
-        >
-          <CardContent className="pt-4 pb-3 px-5">
-            {myTasksSummaryQuery.isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-7 w-12" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-6">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">Open Tasks</p>
-                  <p className="text-3xl font-black font-display text-foreground">{myTasksSummaryQuery.data?.total ?? 0}</p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {(myTasksSummaryQuery.data?.overdue ?? 0) > 0 && (
-                    <div className="flex items-center gap-1.5 text-red-400">
-                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.overdue} overdue</span>
-                    </div>
-                  )}
-                  {(myTasksSummaryQuery.data?.dueToday ?? 0) > 0 && (
-                    <div className="flex items-center gap-1.5 text-amber-400">
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.dueToday} due today</span>
-                    </div>
-                  )}
-                  {(myTasksSummaryQuery.data?.overdue ?? 0) === 0 && (myTasksSummaryQuery.data?.dueToday ?? 0) === 0 && (
-                    <span className="text-xs text-muted-foreground">All on track</span>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Sections — rendered in customizable order */}
+      {widgetConfig.sectionOrder.map((key) => {
+        if (!sc[key]) return null;
 
-      {/* KPI Cards */}
-      {sc.bookingOverview && (
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-primary" /> Booking Overview
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {cc.total && <StatCard title="Total" value={summaryQuery.data?.total} icon={CalendarClock} testId="stat-total" isLoading={summaryQuery.isLoading} />}
-            {cc.revenue && (
-              <StatCard
-                title="Revenue"
-                value={formatMoney(summaryQuery.data?.totalRevenue)}
-                icon={CreditCard}
-                testId="stat-revenue"
-                isLoading={summaryQuery.isLoading}
-                tooltip="GEL-equivalent total from RETURNED bookings (USD×2.7, EUR×2.9)"
-              />
-            )}
-            {cc.pending && <StatCard title="Pending" value={summaryQuery.data?.pending} icon={PlayCircle} testId="stat-pending" isLoading={summaryQuery.isLoading} />}
-            {cc.confirmed && <StatCard title="Confirmed" value={summaryQuery.data?.confirmed} icon={CheckCircle2} testId="stat-confirmed" isLoading={summaryQuery.isLoading} />}
-            {cc.delivered && <StatCard title="Delivered" value={summaryQuery.data?.delivered} icon={Flag} testId="stat-delivered" isLoading={summaryQuery.isLoading} />}
-            {cc.returned && <StatCard title="Returned" value={summaryQuery.data?.returned} icon={RotateCcw} testId="stat-returned" isLoading={summaryQuery.isLoading} />}
-            {cc.canceled && <StatCard title="Canceled" value={summaryQuery.data?.canceled} icon={XCircle} testId="stat-canceled" isLoading={summaryQuery.isLoading} />}
-            {cc.noShow && <StatCard title="No Show" value={summaryQuery.data?.noShow} icon={UserX} testId="stat-noshow" isLoading={summaryQuery.isLoading} />}
-          </div>
-        </div>
-      )}
-
-      {/* Fleet Live Status */}
-      {sc.fleetLiveStatus && (
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <Car className="w-4 h-4 text-primary" /> Fleet Live Status
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {(() => {
-              const fleetUrl = (status: string) => city ? `/fleet?status=${status}&city=${city}` : `/fleet?status=${status}`;
-              return (
-                <>
-                  <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("AVAILABLE"))} />
-                  <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RENTED"))} />
-                  <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("MAINTENANCE"))} />
-                  <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RESERVED"))} />
-                  <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("INACTIVE"))} />
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* TBS Air Parking Overview — Tbilisi only */}
-      {sc.parkingOverview && region === "Tbilisi" && (
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <ParkingSquare className="w-4 h-4 text-primary" /> TBS Air Parking
-          </h2>
-          <TbsAirParkingWidget data={parkingQuery.data} isLoading={parkingQuery.isLoading} />
-        </div>
-      )}
-
-      {/* Today's Operations */}
-      {sc.todaysOperations && (
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
-          </h2>
-          <div className="grid grid-cols-1 gap-5">
-            <ActivityTable
-              title="Pickups"
-              bookings={filteredPickups}
-              isLoading={pickupQuery.isLoading}
-              emptyMessage="No pending pickups for this date."
-              timeKey="pickup"
-              onRowClick={(id) => setDetailBookingId(id)}
-              dateStr={selectedPickupDate}
-              onPrevDate={() => setSelectedPickupDate((d) => shiftDate(d, -1))}
-              onNextDate={() => setSelectedPickupDate((d) => shiftDate(d, 1))}
-              isToday={selectedPickupDate === todayDateStr()}
-              onTodayDate={() => setSelectedPickupDate(todayDateStr())}
-            />
-            <ActivityTable
-              title="Dropoffs"
-              bookings={filteredDropoffs}
-              isLoading={dropoffQuery.isLoading}
-              emptyMessage="No pending dropoffs for this date."
-              timeKey="dropoff"
-              onRowClick={(id) => setDetailBookingId(id)}
-              dateStr={selectedDropoffDate}
-              onPrevDate={() => setSelectedDropoffDate((d) => shiftDate(d, -1))}
-              onNextDate={() => setSelectedDropoffDate((d) => shiftDate(d, 1))}
-              isToday={selectedDropoffDate === todayDateStr()}
-              onTodayDate={() => setSelectedDropoffDate(todayDateStr())}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Fleet Timeline */}
-      {sc.fleetTimeline && (
-        <div>
-          <button
-            type="button"
-            className="w-full flex items-center gap-2 mb-3 text-left group"
-            onClick={() => { setTimelineUserToggled(true); setTimelineExpanded((v) => !v); }}
-          >
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 flex-1">
-              <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
+        if (key === "myTasks") return (
+          <div key="myTasks">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-primary" /> My Tasks
             </h2>
-            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", timelineExpanded ? "rotate-180" : "")} />
-          </button>
-          <div className={timelineExpanded ? undefined : "hidden"}>
-            <FleetTimeline
-              calendar={calendarQuery.data}
-              isLoading={calendarQuery.isLoading}
-              onSelectBooking={(id) => setDetailBookingId(id)}
-            />
+            <Card
+              className="border border-border/40 bg-card/60 cursor-pointer hover:border-primary/40 hover:bg-card/80 transition-all duration-200 max-w-sm"
+              onClick={() => navigate("/tasks?assignee=me")}
+            >
+              <CardContent className="pt-4 pb-3 px-5">
+                {myTasksSummaryQuery.isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-12" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">Open Tasks</p>
+                      <p className="text-3xl font-black font-display text-foreground">{myTasksSummaryQuery.data?.total ?? 0}</p>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {(myTasksSummaryQuery.data?.overdue ?? 0) > 0 && (
+                        <div className="flex items-center gap-1.5 text-red-400">
+                          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.overdue} overdue</span>
+                        </div>
+                      )}
+                      {(myTasksSummaryQuery.data?.dueToday ?? 0) > 0 && (
+                        <div className="flex items-center gap-1.5 text-amber-400">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="text-xs font-semibold">{myTasksSummaryQuery.data?.dueToday} due today</span>
+                        </div>
+                      )}
+                      {(myTasksSummaryQuery.data?.overdue ?? 0) === 0 && (myTasksSummaryQuery.data?.dueToday ?? 0) === 0 && (
+                        <span className="text-xs text-muted-foreground">All on track</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
+        );
 
-      {/* Alert Summary Panel */}
-      {sc.operationalAlerts && (
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-            <Bell className="w-4 h-4 text-primary" /> Operational Alerts
-            {alertSummaryQuery.data && alertSummaryQuery.data.total > 0 && (
-              <span className="ml-1 text-[10px] font-bold bg-red-500 text-white rounded-full px-2 py-0.5">{alertSummaryQuery.data.total}</span>
-            )}
-          </h2>
-          {alertSummaryQuery.isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
-              {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        if (key === "bookingOverview") return (
+          <div key="bookingOverview">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-primary" /> Booking Overview
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              {cc.total && <StatCard title="Total" value={summaryQuery.data?.total} icon={CalendarClock} testId="stat-total" isLoading={summaryQuery.isLoading} />}
+              {cc.revenue && (
+                <StatCard
+                  title="Revenue"
+                  value={formatMoney(summaryQuery.data?.totalRevenue)}
+                  icon={CreditCard}
+                  testId="stat-revenue"
+                  isLoading={summaryQuery.isLoading}
+                  tooltip="GEL-equivalent total from RETURNED bookings (USD×2.7, EUR×2.9)"
+                />
+              )}
+              {cc.pending && <StatCard title="Pending" value={summaryQuery.data?.pending} icon={PlayCircle} testId="stat-pending" isLoading={summaryQuery.isLoading} />}
+              {cc.confirmed && <StatCard title="Confirmed" value={summaryQuery.data?.confirmed} icon={CheckCircle2} testId="stat-confirmed" isLoading={summaryQuery.isLoading} />}
+              {cc.delivered && <StatCard title="Delivered" value={summaryQuery.data?.delivered} icon={Flag} testId="stat-delivered" isLoading={summaryQuery.isLoading} />}
+              {cc.returned && <StatCard title="Returned" value={summaryQuery.data?.returned} icon={RotateCcw} testId="stat-returned" isLoading={summaryQuery.isLoading} />}
+              {cc.canceled && <StatCard title="Canceled" value={summaryQuery.data?.canceled} icon={XCircle} testId="stat-canceled" isLoading={summaryQuery.isLoading} />}
+              {cc.noShow && <StatCard title="No Show" value={summaryQuery.data?.noShow} icon={UserX} testId="stat-noshow" isLoading={summaryQuery.isLoading} />}
             </div>
-          ) : alertSummaryQuery.data ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
-              {[
-                { label: "Overdue Return", count: alertSummaryQuery.data.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, type: "OVERDUE" },
-                { label: "Conflicts", count: alertSummaryQuery.data.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-4 h-4" />, type: "CONFLICT" },
-                { label: "Svc Overdue", count: alertSummaryQuery.data.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_OVERDUE" },
-                { label: "Service Due", count: alertSummaryQuery.data.serviceDue ?? 0, cls: "border-orange-500/20 bg-orange-500/5 text-orange-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_DUE" },
-                { label: "Svc Warning", count: alertSummaryQuery.data.serviceWarning ?? 0, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_WARNING" },
-                { label: "Dropoffs Today", count: alertSummaryQuery.data.dropoff, cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: <ArrowDownToLine className="w-4 h-4" />, type: "DROPOFF_TODAY" },
-                { label: "Pickups Today", count: alertSummaryQuery.data.pickup, cls: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: <ArrowUpFromLine className="w-4 h-4" />, type: "PICKUP_TODAY" },
-              ].map((tile) => (
-                <Link key={tile.type} href={`/alerts?type=${tile.type}`}>
-                  <Card className={cn("overflow-hidden border cursor-pointer hover:opacity-80 transition-all", tile.cls)}>
-                    <div className="p-4 flex items-center gap-3">
-                      {tile.icon}
-                      <div>
-                        <div className="text-2xl font-black font-display leading-none">{tile.count}</div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider opacity-70 mt-0.5">{tile.label}</div>
+          </div>
+        );
+
+        if (key === "fleetLiveStatus") return (
+          <div key="fleetLiveStatus">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <Car className="w-4 h-4 text-primary" /> Fleet Live Status
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {(() => {
+                const fleetUrl = (status: string) => city ? `/fleet?status=${status}&city=${city}` : `/fleet?status=${status}`;
+                return (
+                  <>
+                    <FleetTile label="Available" count={fleetQuery.data?.available} colorClass="bg-emerald-500/10 text-emerald-400 border-emerald-500/20" testId="tile-available" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("AVAILABLE"))} />
+                    <FleetTile label="Rented" count={fleetQuery.data?.rented} colorClass="bg-blue-500/10 text-blue-400 border-blue-500/20" testId="tile-rented" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RENTED"))} />
+                    <FleetTile label="Maintenance" count={fleetQuery.data?.maintenance} colorClass="bg-orange-500/10 text-orange-400 border-orange-500/20" testId="tile-maintenance" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("MAINTENANCE"))} />
+                    <FleetTile label="Reserved" count={fleetQuery.data?.reserved} colorClass="bg-purple-500/10 text-purple-400 border-purple-500/20" testId="tile-reserved" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("RESERVED"))} />
+                    <FleetTile label="Inactive" count={fleetQuery.data?.inactive} colorClass="bg-slate-500/10 text-slate-400 border-slate-500/20" testId="tile-inactive" isLoading={fleetQuery.isLoading} onClick={() => navigate(fleetUrl("INACTIVE"))} />
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        );
+
+        if (key === "parkingOverview") return region === "Tbilisi" ? (
+          <div key="parkingOverview">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <ParkingSquare className="w-4 h-4 text-primary" /> TBS Air Parking
+            </h2>
+            <TbsAirParkingWidget data={parkingQuery.data} isLoading={parkingQuery.isLoading} />
+          </div>
+        ) : null;
+
+        if (key === "todaysOperations") return (
+          <div key="todaysOperations">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
+            </h2>
+            <div className="grid grid-cols-1 gap-5">
+              <ActivityTable
+                title="Pickups"
+                bookings={filteredPickups}
+                isLoading={pickupQuery.isLoading}
+                emptyMessage="No pending pickups for this date."
+                timeKey="pickup"
+                onRowClick={(id) => setDetailBookingId(id)}
+                dateStr={selectedPickupDate}
+                onPrevDate={() => setSelectedPickupDate((d) => shiftDate(d, -1))}
+                onNextDate={() => setSelectedPickupDate((d) => shiftDate(d, 1))}
+                isToday={selectedPickupDate === todayDateStr()}
+                onTodayDate={() => setSelectedPickupDate(todayDateStr())}
+              />
+              <ActivityTable
+                title="Dropoffs"
+                bookings={filteredDropoffs}
+                isLoading={dropoffQuery.isLoading}
+                emptyMessage="No pending dropoffs for this date."
+                timeKey="dropoff"
+                onRowClick={(id) => setDetailBookingId(id)}
+                dateStr={selectedDropoffDate}
+                onPrevDate={() => setSelectedDropoffDate((d) => shiftDate(d, -1))}
+                onNextDate={() => setSelectedDropoffDate((d) => shiftDate(d, 1))}
+                isToday={selectedDropoffDate === todayDateStr()}
+                onTodayDate={() => setSelectedDropoffDate(todayDateStr())}
+              />
+            </div>
+          </div>
+        );
+
+        if (key === "fleetTimeline") return (
+          <div key="fleetTimeline">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 mb-3 text-left group"
+              onClick={() => { setTimelineUserToggled(true); setTimelineExpanded((v) => !v); }}
+            >
+              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 flex-1">
+                <Calendar className="w-4 h-4 text-primary" /> Fleet Timeline — Next 7 Days
+              </h2>
+              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", timelineExpanded ? "rotate-180" : "")} />
+            </button>
+            <div className={timelineExpanded ? undefined : "hidden"}>
+              <FleetTimeline
+                calendar={calendarQuery.data}
+                isLoading={calendarQuery.isLoading}
+                onSelectBooking={(id) => setDetailBookingId(id)}
+              />
+            </div>
+          </div>
+        );
+
+        if (key === "operationalAlerts") return (
+          <div key="operationalAlerts">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" /> Operational Alerts
+              {alertSummaryQuery.data && alertSummaryQuery.data.total > 0 && (
+                <span className="ml-1 text-[10px] font-bold bg-red-500 text-white rounded-full px-2 py-0.5">{alertSummaryQuery.data.total}</span>
+              )}
+            </h2>
+            {alertSummaryQuery.isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+                {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+              </div>
+            ) : alertSummaryQuery.data ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+                {[
+                  { label: "Overdue Return", count: alertSummaryQuery.data.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, type: "OVERDUE" },
+                  { label: "Conflicts", count: alertSummaryQuery.data.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-4 h-4" />, type: "CONFLICT" },
+                  { label: "Svc Overdue", count: alertSummaryQuery.data.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_OVERDUE" },
+                  { label: "Service Due", count: alertSummaryQuery.data.serviceDue ?? 0, cls: "border-orange-500/20 bg-orange-500/5 text-orange-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_DUE" },
+                  { label: "Svc Warning", count: alertSummaryQuery.data.serviceWarning ?? 0, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-4 h-4" />, type: "SERVICE_WARNING" },
+                  { label: "Dropoffs Today", count: alertSummaryQuery.data.dropoff, cls: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400", icon: <ArrowDownToLine className="w-4 h-4" />, type: "DROPOFF_TODAY" },
+                  { label: "Pickups Today", count: alertSummaryQuery.data.pickup, cls: "border-blue-500/30 bg-blue-500/5 text-blue-400", icon: <ArrowUpFromLine className="w-4 h-4" />, type: "PICKUP_TODAY" },
+                ].map((tile) => (
+                  <Link key={tile.type} href={`/alerts?type=${tile.type}`}>
+                    <Card className={cn("overflow-hidden border cursor-pointer hover:opacity-80 transition-all", tile.cls)}>
+                      <div className="p-4 flex items-center gap-3">
+                        {tile.icon}
+                        <div>
+                          <div className="text-2xl font-black font-display leading-none">{tile.count}</div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider opacity-70 mt-0.5">{tile.label}</div>
                       </div>
                     </div>
                   </Card>
@@ -1283,8 +1349,11 @@ export default function Dashboard() {
               <span className="text-sm">No active operational alerts</span>
             </Card>
           )}
-        </div>
-      )}
+          </div>
+        );
+
+        return null;
+      })}
 
       {/* Booking Detail Dialog */}
       <BookingDetail
