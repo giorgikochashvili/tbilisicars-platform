@@ -366,16 +366,20 @@ export default function BookingsPage() {
       pickupDate: pickupDt ? format(pickupDt, "yyyy-MM-dd") : "",
       pickupTime: pickupDt ? format(pickupDt, "HH:mm") : "10:00",
       pickupType: (() => {
-        const loc = allLocations.find((l: any) => l.id === bookingRow.pickupLocationId);
-        return loc ? deriveLocationType(loc.name) : "airport";
+        const pid = String(bookingRow.pickupLocationId ?? "");
+        const loc = allLocations.find((l: any) => String(l.id) === pid);
+        const name = loc?.name ?? bookingRow.pickupLocation?.name ?? "";
+        return name ? deriveLocationType(name) : "airport";
       })(),
       pickupAddress: bookingRow.pickupAddress || "",
       dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
       dropoffDate: dropoffDt ? format(dropoffDt, "yyyy-MM-dd") : "",
       dropoffTime: dropoffDt ? format(dropoffDt, "HH:mm") : "10:00",
       dropoffType: (() => {
-        const loc = allLocations.find((l: any) => l.id === bookingRow.dropoffLocationId);
-        return loc ? deriveLocationType(loc.name) : "airport";
+        const did = String(bookingRow.dropoffLocationId ?? "");
+        const loc = allLocations.find((l: any) => String(l.id) === did);
+        const name = loc?.name ?? bookingRow.dropoffLocation?.name ?? "";
+        return name ? deriveLocationType(name) : "airport";
       })(),
       dropoffAddress: bookingRow.dropoffAddress || "",
       totalAmount: bookingRow.totalAmount ?? "",
