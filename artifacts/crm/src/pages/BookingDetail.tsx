@@ -1794,8 +1794,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         onSubmit={handleHandoverSubmit}
         isAirportDropoff={
           booking?.vehicleId != null &&
-          booking?.dropoffLocation?.city === "Tbilisi" &&
-          (booking?.dropoffLocation?.name ?? "").toLowerCase().includes("airport")
+          booking?.dropoffLocation?.id === 1
         }
       />
 
