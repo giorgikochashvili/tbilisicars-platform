@@ -1,0 +1,156 @@
+# Batch 1 — Functional Consistency & UX Trust Fixes
+Project: Tbilisicars CRM&WEB
+Mode: SURGICAL ONLY
+Important:
+- Do NOT re-architect anything
+- Do NOT refactor unrelated files
+- Do NOT change booking flow structure unless explicitly required below
+- Do NOT touch pricing formulas except to unify duplicated day-count logic
+- Preserve current styling and dark theme
+- Preserve existing routes and auth behavior unless explicitly required below
+- Minimize changed files
+- After changes, run/build-check and report exact files changed
+
+## Goal
+Fix the most urgent user-facing inconsistencies and misleading UI so the website behaves reliably and matches the actual business rules.
+
+---
+
+## Scope to implement
+
+### 1) Age policy consistency across website + booking validation
+There is a legal/UX inconsistency:
+- Terms page says minimum age is 21
+- Booking page currently says 18 in Step 4 / checkbox copy
+- API currently does not properly validate age server-side
+
+Required:
+- Make the minimum age rule consistent everywhere: **21 years old**
+- Update all related website text so it matches exactly
+- Keep any existing Young Driver note only if it still makes sense and does not contradict the 21 minimum
+- Add server-side validation in the public booking creation endpoint:
+  - if age is provided, parse it as integer
+  - reject non-numeric values
+  - reject values under 21
+  - keep validation error user-friendly
+- Do NOT rely only on HTML min/max
+
+Files likely involved:
+- artifacts/website/src/pages/Terms.tsx
+- artifacts/website/src/pages/Booking.tsx
+- artifacts/api-server public booking route/service validator files
+
+Done looks like:
+- Terms and booking UI both say 21
+- checkbox / helper text / field constraints all match
+- booking API rejects invalid or under-21 age values
+
+---
+
+### 2) Unify rental-day calculation used by pricing and confirmation email
+There is duplicated day-count logic:
+- pricing logic uses the real rental rule
+- email service uses a different calcDays() approach
+
+Required:
+- Create or reuse a shared utility so both pricing and confirmation email use the same rental-day calculation rule
+- Preserve the CURRENT business pricing rule already used in pricing.ts:
+  - minimum 2 days
+  - 120-minute grace logic
+  - no behavior drift
+- Replace the email-specific divergent day-count logic with the shared one
+- Do NOT change totals logic except to make day count consistent everywhere
+
+Files likely involved:
+- pricing.ts
+- email.service.ts
+- shared util if needed
+
+Done looks like:
+- same booking shows the same day count in pricing and confirmation email
+- no duplicate conflicting calcDays logic remains
+
+---
+
+### 3) Hide the non-functional online card payment option for now
+Current issue:
+- "Pay by Card Now" / online card option is visible but not truly functional
+- this is misleading for users
+
+Required:
+- Temporarily hide/remove the online card payment option from the public booking flow
+- Only show payment methods that actually work today
+- Do NOT leave a selectable “coming soon” option
+- Do NOT break current submission flow for the remaining payment methods
+
+File likely involved:
+- artifacts/website/src/pages/Booking.tsx
+
+Done looks like:
+- user cannot choose online card payment for now
+- booking flow remains clean and functional
+
+---
+
+### 4) Restore “My Booking” and “Staff Login” visibility in website auth/navigation
+Current business decision:
+- My Booking page was only temporarily hidden
+- We now want it visible again
+- Staff Login option should also be visible again like before
+
+Required:
+- Restore visibility/access to My Booking in the website UI/navigation
+- Restore Staff Login visibility in the login/auth entry flow like it previously existed
+- Reuse existing routes/components if they already exist
+- Do NOT invent a new auth system
+- Do NOT redesign the login system
+- Simply re-enable the previously available access points in a clean way
+
+Check for consistency:
+- If Terms references My Booking, the route/link should now be truly accessible again
+- Website header/login entry should expose both customer-facing and staff login access as before
+
+Files likely involved:
+- website header / login related files
+- App.tsx or route registration if hidden there
+
+Done looks like:
+- My Booking is reachable again
+- Staff Login is visible again
+- no dead link / no broken route introduced
+
+---
+
+### 5) Add noindex,nofollow to CRM index.html
+Required:
+- Add `<meta name="robots" content="noindex,nofollow">` to the CRM app HTML entry
+- Only for CRM, not the public website
+
+File:
+- artifacts/crm/index.html
+
+Done looks like:
+- CRM login/admin shell is marked noindex
+
+---
+
+## Constraints
+- Do NOT work on CORS, Helmet, CSRF, storage privacy, or document access control in this task
+- Do NOT do SEO enhancements beyond the CRM noindex meta above
+- Do NOT change website copy unrelated to the items above
+- Do NOT touch dashboard, rates, fleet, tasks, or CRM business logic
+
+---
+
+## Validation checklist
+After editing:
+1. Confirm exact files changed
+2. Confirm under-21 booking is now rejected server-side
+3. Confirm booking UI text now consistently says 21
+4. Confirm email/pricing day count now shares the same logic
+5. Confirm online card payment option no longer appears in booking flow
+6. Confirm My Booking and Staff Login are visible/reachable again
+7. Confirm CRM index has noindex meta
+8. Run relevant build/type checks and report results clearly
+
+If any hidden dependency blocks one of the UI restores, report it explicitly instead of inventing a workaround.
