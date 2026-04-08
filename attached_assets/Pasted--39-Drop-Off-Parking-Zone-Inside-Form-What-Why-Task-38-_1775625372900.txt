@@ -1,0 +1,39 @@
+#39 - Drop Off Parking Zone — Inside Form
+What & Why
+Task #38 added a post-dropoff popup for TBS Airport parking zone selection. This spec requires the parking zone selector to live inside the existing Drop Off form/modal, not as a separate dialog that appears after the form closes.
+
+All backend changes from Task #38 are already correct and are not touched:
+
+createAdminBooking applies vehicle side-effects on DELIVERED (vehicle → RENTED, removed from parking)
+dropoffLocation.city is already exposed in the booking API response
+Pickup flow already removes vehicle from TBS AIR PARKING via applyAdminBookingStatus
+Only one file changes: artifacts/crm/src/pages/BookingDetail.tsx.
+
+Done looks like
+The Drop Off modal (HandoverModal) shows an optional "Parking Zone" section at the bottom of the form when the booking's dropoff location is Tbilisi International Airport and the booking has an assigned vehicle
+Options inside the form: TERMINAL / OUT / FREE / Skip (default: no selection = skip)
+Staff selects zone (or leaves unselected) then clicks "Record Drop Off"
+If a zone was selected: after successful Drop Off API call, vehicle is assigned to that TBS AIR PARKING zone via POST /admin/parking; a success toast is shown
+If no zone selected (Skip): Drop Off completes normally, no parking POST is made
+If parking POST fails after a successful Drop Off: a toast is shown, Drop Off is NOT undone, booking state is NOT corrupted
+For all non-airport dropoffs, the Drop Off modal is identical to before — no new UI elements appear
+Pick Up modal is completely unchanged
+No TypeScript errors in BookingDetail.tsx
+Out of scope
+Any backend changes (Task #38 backend is already complete and correct)
+Pickup flow changes (already correct)
+Any other page or file
+Tasks
+Remove the post-dropoff popup — Delete the showParkingZoneModal and parkingVehicleId states, the TBS AIR PARKING Dialog JSX block at the end of the component, and the popup-trigger logic added in handleHandoverSubmit by Task #38. Also remove the ParkingSquare import if it is no longer used after the JSX is removed.
+
+Add isAirportDropoff prop to HandoverModal — Extend HandoverModalProps with isAirportDropoff?: boolean. Add a selectedZone: string | null state inside HandoverModal. When type === "dropoff" and isAirportDropoff is true, render a labeled zone-picker section inside the scrollable form body (below Notes, above Photos, or below Photos — keep it visually consistent). Options: TERMINAL / OUT / FREE displayed as small toggle buttons; no selection = Skip. Extend the onSubmit prop signature to (type, photoUrls, parkingZone?: string) => Promise<void>. In handleRecord, pass selectedZone ?? undefined as the third argument.
+
+Wire up parent component — Compute isAirportDropoff in BookingDetail based on booking.dropoffLocation.city === "Tbilisi" AND booking.dropoffLocation.name.toLowerCase().includes("airport") AND booking.vehicleId is non-null. Pass it to the dropoff HandoverModal. Update handleHandoverSubmit signature to accept the optional parkingZone?: string third argument. After a successful dropoff, if parkingZone is set, POST to /admin/parking with { vehicleId: booking.vehicleId, zone: parkingZone }. Show a success toast on assignment; on error, show a toast without undoing the Drop Off.
+
+Relevant files
+artifacts/crm/src/pages/BookingDetail.tsx:453-465
+artifacts/crm/src/pages/BookingDetail.tsx:466-747
+artifacts/crm/src/pages/BookingDetail.tsx:772-779
+artifacts/crm/src/pages/BookingDetail.tsx:982-1037
+artifacts/crm/src/pages/BookingDetail.tsx:1716-1730
+artifacts/crm/src/pages/BookingDetail.tsx:1836-1880

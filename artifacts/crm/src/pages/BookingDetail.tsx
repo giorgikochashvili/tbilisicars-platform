@@ -461,17 +461,20 @@ interface HandoverModalProps {
   handoverForm: { actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string };
   setHandoverForm: React.Dispatch<React.SetStateAction<{ actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string }>>;
   savingHandover: boolean;
-  onSubmit: (type: "pickup" | "dropoff", photoUrls: string[]) => Promise<void>;
+  onSubmit: (type: "pickup" | "dropoff", photoUrls: string[], parkingZone?: string) => Promise<void>;
+  isAirportDropoff?: boolean;
 }
 
 function HandoverModal({
   type, open, onClose,
   handoverForm, setHandoverForm,
   savingHandover, onSubmit,
+  isAirportDropoff,
 }: HandoverModalProps) {
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
   const Icon = type === "pickup" ? Car : RotateCcw;
@@ -481,6 +484,7 @@ function HandoverModal({
   const handleModalClose = () => {
     fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
     setFileItems([]);
+    setSelectedZone(null);
     onClose();
   };
 
@@ -569,7 +573,7 @@ function HandoverModal({
         .map((fi) => fi.path!);
       const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
       try {
-        await onSubmit(type, photoUrls);
+        await onSubmit(type, photoUrls, selectedZone ?? undefined);
         // Clear only successfully uploaded/done files; leave errored ones in place
         setFileItems((prev) => {
           const toKeep = prev.filter((fi) => fi.status === "error");
@@ -584,7 +588,7 @@ function HandoverModal({
       // No pending files — submit with already-done file paths
       const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
       try {
-        await onSubmit(type, photoUrls);
+        await onSubmit(type, photoUrls, selectedZone ?? undefined);
         // Clear file state after successful submit
         setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
       } catch {
@@ -652,6 +656,33 @@ function HandoverModal({
               />
             </div>
           </div>
+
+          {/* TBS Airport parking zone — dropoff at Tbilisi International Airport only */}
+          {type === "dropoff" && isAirportDropoff && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <ParkingSquare className="w-3 h-3 text-blue-400" />
+                Parking Zone (TBS Airport)
+              </Label>
+              <div className="flex gap-2">
+                {(["TERMINAL", "OUT", "FREE"] as const).map((zone) => (
+                  <button
+                    key={zone}
+                    type="button"
+                    onClick={() => setSelectedZone(selectedZone === zone ? null : zone)}
+                    className={`flex-1 text-xs h-8 rounded-md border transition-colors ${
+                      selectedZone === zone
+                        ? "border-blue-500 bg-blue-500/10 text-blue-400 font-medium"
+                        : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                    }`}
+                  >
+                    {zone}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Leave unselected to skip parking assignment.</p>
+            </div>
+          )}
 
           {/* Photo upload */}
           <div className="grid gap-1.5">
@@ -772,8 +803,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   // Handover modal state
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showDropoffModal, setShowDropoffModal] = useState(false);
-  const [showParkingZoneModal, setShowParkingZoneModal] = useState(false);
-  const [parkingVehicleId, setParkingVehicleId] = useState<number | null>(null);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
   const [savingHandover, setSavingHandover] = useState(false);
 
@@ -977,17 +1006,15 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     }
   };
 
-  const handleHandoverSubmit = async (type: "pickup" | "dropoff", photoUrls: string[]) => {
+  const handleHandoverSubmit = async (type: "pickup" | "dropoff", photoUrls: string[], parkingZone?: string) => {
     if (!bookingId) return;
     if (!handoverForm.actionDate) {
       toast({ title: "Validation", description: "Action date is required.", variant: "destructive" });
       return;
     }
 
-    // Capture before API call — state may change after fetchBooking()
-    const dropoffVehicleId = booking?.vehicleId ?? null;
-    const dropoffLocCity: string | null = booking?.dropoffLocation?.city ?? null;
-    const dropoffLocName: string = booking?.dropoffLocation?.name ?? "";
+    // Capture vehicleId before the API call — state may change after fetchBooking()
+    const vehicleId = booking?.vehicleId ?? null;
 
     setSavingHandover(true);
     try {
@@ -1016,18 +1043,29 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       fetchBooking();
       fetchHandovers();
 
-      // Fix 3: After TBS Airport dropoff, prompt for parking zone assignment
-      if (
-        type === "dropoff" &&
-        dropoffVehicleId !== null &&
-        dropoffLocCity === "Tbilisi" &&
-        dropoffLocName.toLowerCase().includes("airport")
-      ) {
-        setParkingVehicleId(dropoffVehicleId);
-        setShowParkingZoneModal(true);
+      // Assign TBS Airport parking zone if staff selected one in the Drop Off form
+      if (type === "dropoff" && parkingZone && vehicleId !== null) {
+        try {
+          await apiFetch("/admin/parking", {
+            method: "POST",
+            body: JSON.stringify({ vehicleId, zone: parkingZone }),
+          });
+          toast({
+            title: "Parking Assigned",
+            description: `Vehicle assigned to TBS Airport zone ${parkingZone}.`,
+          });
+        } catch (parkingErr: unknown) {
+          const msg = parkingErr instanceof Error ? parkingErr.message : "Unknown error";
+          toast({
+            title: "Parking Assignment Failed",
+            description: `Drop off was recorded, but parking zone assignment failed: ${msg}`,
+            variant: "destructive",
+          });
+        }
       }
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast({ title: "Error", description: msg, variant: "destructive" });
       throw e; // rethrow so HandoverModal does not clear files on API failure
     } finally {
       setSavingHandover(false);
@@ -1744,6 +1782,11 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         setHandoverForm={setHandoverForm}
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
+        isAirportDropoff={
+          booking?.vehicleId != null &&
+          booking?.dropoffLocation?.city === "Tbilisi" &&
+          (booking?.dropoffLocation?.name ?? "").toLowerCase().includes("airport")
+        }
       />
 
       {/* Assign Vehicle Dialog */}
@@ -1832,50 +1875,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         </DialogContent>
       </Dialog>
 
-      {/* TBS Airport parking zone picker — appears after Drop Off at Tbilisi International Airport */}
-      <Dialog open={showParkingZoneModal} onOpenChange={(v) => { if (!v) setShowParkingZoneModal(false); }}>
-        <DialogContent className="sm:max-w-[340px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <ParkingSquare className="w-4 h-4 text-blue-400" />
-              TBS AIR PARKING
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Vehicle returned to Tbilisi Airport. Assign a parking zone or skip.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 gap-2 pt-1">
-            {(["TERMINAL", "OUT", "FREE"] as const).map((zone) => (
-              <Button
-                key={zone}
-                variant="outline"
-                className="w-full justify-start text-sm h-10"
-                onClick={async () => {
-                  setShowParkingZoneModal(false);
-                  try {
-                    await apiFetch("/admin/parking", {
-                      method: "POST",
-                      body: JSON.stringify({ vehicleId: parkingVehicleId, zone }),
-                    });
-                    toast({ title: "Parking assigned", description: `Vehicle added to zone ${zone}.` });
-                  } catch (e: any) {
-                    toast({ title: "Parking assignment failed", description: e.message, variant: "destructive" });
-                  }
-                }}
-              >
-                {zone}
-              </Button>
-            ))}
-            <Button
-              variant="ghost"
-              className="w-full text-muted-foreground text-sm h-9"
-              onClick={() => setShowParkingZoneModal(false)}
-            >
-              Skip
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
