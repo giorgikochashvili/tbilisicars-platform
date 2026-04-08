@@ -1160,10 +1160,7 @@ export default function RatesPage() {
       }
 
       const parentRateObj = rates.find((r) => r.id === parseInt(childParentId, 10));
-      const dayRangesToClone =
-        (parentRateObj?.dayRanges ?? []).length > 0
-          ? (parentRateObj?.dayRanges ?? [])
-          : childDayRanges;
+      const dayRangesToClone = parentRateObj?.dayRanges ?? childDayRanges;
 
       if (newRate?.id && dayRangesToClone.length > 0) {
         const drResp = await fetch(`/api/admin/rates/${newRate.id}/day-ranges`, {
