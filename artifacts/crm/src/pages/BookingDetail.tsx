@@ -521,6 +521,11 @@ function HandoverModal({
   };
 
   const handleRecord = async () => {
+    if (type === "dropoff" && isAirportDropoff && !selectedZone) {
+      toast({ title: "Parking zone required", description: "Select a TBS AIR PARKING zone before recording the drop off.", variant: "destructive" });
+      return;
+    }
+
     const toUpload = fileItems.filter((fi) => fi.status === "pending" || fi.status === "error");
 
     if (toUpload.length > 0) {
@@ -680,7 +685,7 @@ function HandoverModal({
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">Leave unselected to skip parking assignment.</p>
+              <p className="text-[10px] text-amber-400/90">Required — select a zone before recording drop off.</p>
             </div>
           )}
 
@@ -767,7 +772,12 @@ function HandoverModal({
             size="sm"
             className="h-7 text-xs"
             onClick={handleRecord}
-            disabled={savingHandover || uploading || fileItems.some((fi) => fi.status === "uploading")}
+            disabled={
+              savingHandover ||
+              uploading ||
+              fileItems.some((fi) => fi.status === "uploading") ||
+              (type === "dropoff" && !!isAirportDropoff && !selectedZone)
+            }
           >
             {savingHandover || uploading ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
           </Button>

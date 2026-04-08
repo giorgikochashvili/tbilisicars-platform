@@ -11,12 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Bell, AlertTriangle, Clock, CalendarClock, RefreshCw,
   ArrowDownToLine, ArrowUpFromLine, Wrench, GitFork,
-  ExternalLink, Filter, Car
+  ExternalLink, Filter, Car, ParkingCircle
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "CONFLICT" | "SERVICE_OVERDUE" | "SERVICE_DUE" | "SERVICE_WARNING";
+type AlertType = "all" | "PICKUP_TODAY" | "DROPOFF_TODAY" | "OVERDUE" | "CONFLICT" | "PARKING_OVERFLOW" | "SERVICE_OVERDUE" | "SERVICE_DUE" | "SERVICE_WARNING";
 
 interface Alert {
   id: string;
@@ -81,6 +81,13 @@ const ALERT_CONFIG: Record<string, {
     icon: <GitFork className="w-3.5 h-3.5" />,
     badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
     row: "border-l-2 border-l-orange-500/60",
+    priority: 1,
+  },
+  PARKING_OVERFLOW: {
+    label: "Parking Overflow",
+    icon: <ParkingCircle className="w-3.5 h-3.5" />,
+    badge: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    row: "border-l-2 border-l-orange-400/60",
     priority: 1,
   },
   SERVICE_OVERDUE: {

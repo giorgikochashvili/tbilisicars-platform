@@ -1,6 +1,5 @@
 import {
   db,
-  locationTable,
   parkingAssignmentTable,
   vehicleTable,
   vehicleModelTable,
@@ -62,6 +61,10 @@ export async function listParkingByZone() {
 }
 
 // ─── Assign a vehicle to a zone ────────────────────────────────────────────────
+// Capacity and city checks are intentionally omitted:
+// • TBS AIR PARKING is admin-only and Tbilisi-exclusive by design.
+// • Overflow is allowed — staff must be able to assign even when a zone is "full".
+// • During booking dropoff the vehicle's locationId may not yet reflect the airport.
 
 export async function assignVehicleToZone(
   vehicleId: number,
@@ -70,23 +73,6 @@ export async function assignVehicleToZone(
 ) {
   if (!VALID_ZONES.includes(zone)) {
     throw new ConflictError(`Invalid zone "${zone}". Must be one of: ${VALID_ZONES.join(", ")}`);
-  }
-
-  // Check vehicle exists and is located in Tbilisi
-  const [vehicle] = await db
-    .select({ id: vehicleTable.id, locationId: vehicleTable.locationId, city: locationTable.city })
-    .from(vehicleTable)
-    .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
-    .where(eq(vehicleTable.id, vehicleId))
-    .limit(1);
-
-  if (!vehicle) throw new NotFoundError(`Vehicle ${vehicleId} not found`);
-
-  if (vehicle.city !== "Tbilisi") {
-    throw new ConflictError(
-      `TBS AIR PARKING only accepts vehicles currently located in Tbilisi. ` +
-      `This vehicle is in ${vehicle.city ?? "an unknown location"}.`,
-    );
   }
 
   // Check: vehicle not already actively parked
@@ -107,24 +93,6 @@ export async function assignVehicleToZone(
     );
   }
 
-  // Check zone capacity
-  const capacity = ZONE_CAPACITIES[zone];
-  if (capacity !== null) {
-    const currentCount = await db
-      .select({ id: parkingAssignmentTable.id })
-      .from(parkingAssignmentTable)
-      .where(
-        and(
-          eq(parkingAssignmentTable.zone, zone),
-          isNull(parkingAssignmentTable.removedAt),
-        ),
-      );
-
-    if (currentCount.length >= capacity) {
-      throw new ConflictError(`Zone ${zone} is full (capacity: ${capacity}).`);
-    }
-  }
-
   const [assignment] = await db
     .insert(parkingAssignmentTable)
     .values({
@@ -136,6 +104,47 @@ export async function assignVehicleToZone(
     .returning();
 
   return assignment;
+}
+
+// ─── Move a vehicle from one zone to another (atomic) ─────────────────────────
+
+export async function moveVehicleToZone(
+  assignmentId: number,
+  targetZone: string,
+  assignedByAdminId: number | null,
+) {
+  if (!VALID_ZONES.includes(targetZone)) {
+    throw new ConflictError(`Invalid zone "${targetZone}". Must be one of: ${VALID_ZONES.join(", ")}`);
+  }
+
+  return db.transaction(async (tx) => {
+    const [old] = await tx
+      .update(parkingAssignmentTable)
+      .set({ removedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(parkingAssignmentTable.id, assignmentId),
+          isNull(parkingAssignmentTable.removedAt),
+        ),
+      )
+      .returning();
+
+    if (!old) {
+      throw new NotFoundError(`Active parking assignment ${assignmentId} not found`);
+    }
+
+    const [next] = await tx
+      .insert(parkingAssignmentTable)
+      .values({
+        vehicleId: old.vehicleId,
+        zone: targetZone,
+        assignedByAdminId,
+        assignedAt: new Date(),
+      })
+      .returning();
+
+    return next;
+  });
 }
 
 // ─── Remove (soft-delete) a parking assignment ────────────────────────────────

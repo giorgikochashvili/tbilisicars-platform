@@ -3,6 +3,7 @@ import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
   listParkingByZone,
   assignVehicleToZone,
+  moveVehicleToZone,
   removeFromParking,
 } from "../services/admin-parking.service.js";
 
@@ -24,6 +25,23 @@ router.post("/admin/parking", requireAdmin, async (req, res) => {
   const adminId = req.session.adminId ?? null;
   const assignment = await assignVehicleToZone(vehicleId, zone, adminId);
   res.status(201).json(assignment);
+});
+
+// PATCH /api/admin/parking/:id/zone — move vehicle to a different zone (atomic)
+router.patch("/admin/parking/:id/zone", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid assignment ID" });
+    return;
+  }
+  const { zone } = req.body as { zone: string };
+  if (!zone) {
+    res.status(400).json({ error: "zone is required" });
+    return;
+  }
+  const adminId = req.session.adminId ?? null;
+  const assignment = await moveVehicleToZone(id, zone, adminId);
+  res.json(assignment);
 });
 
 // DELETE /api/admin/parking/:id — remove (soft-delete) a parking assignment

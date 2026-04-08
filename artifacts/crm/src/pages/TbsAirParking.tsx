@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus } from "lucide-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -139,6 +140,21 @@ export default function TbsAirParking() {
     },
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ id, zone }: { id: number; zone: string }) =>
+      apiFetch(`/admin/parking/${id}/zone`, {
+        method: "PATCH",
+        body: JSON.stringify({ zone }),
+      }),
+    onSuccess: (_data, { zone }) => {
+      toast({ title: "Vehicle moved", description: `Moved to zone: ${zone}` });
+      queryClient.invalidateQueries({ queryKey: ["parking-zones"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Move failed", description: err.message, variant: "destructive" });
+    },
+  });
+
   // ─── Modal helpers ──────────────────────────────────────────────────────────
 
   function handleOpenModal() {
@@ -186,7 +202,8 @@ export default function TbsAirParking() {
           const zoneData: ZoneData = zones?.[zoneDef.name] ?? { capacity: zoneDef.capacity, assignments: [] };
           const count = zoneData.assignments.length;
           const cap = zoneDef.capacity;
-          const isFull = cap !== null && count >= cap;
+          const isFull = cap !== null && count === cap;
+          const isOverflow = cap !== null && count > cap;
 
           return (
             <Card
@@ -205,7 +222,12 @@ export default function TbsAirParking() {
                     <span className="text-sm font-semibold text-muted-foreground">
                       {cap !== null ? `${count} / ${cap}` : `${count} vehicles`}
                     </span>
-                    {isFull && (
+                    {isOverflow && (
+                      <Badge className="text-[10px] font-bold py-0.5 px-2 uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                        OVER CAP
+                      </Badge>
+                    )}
+                    {isFull && !isOverflow && (
                       <Badge variant="destructive" className="text-[10px] font-bold py-0.5 px-2 uppercase tracking-wider">
                         FULL
                       </Badge>
@@ -216,7 +238,13 @@ export default function TbsAirParking() {
                 {cap !== null && (
                   <div className="mt-2 h-1.5 rounded-full bg-border/50 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${isFull ? "bg-red-500" : zoneDef.color.replace("text-", "bg-")}`}
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isOverflow
+                          ? "bg-orange-500"
+                          : isFull
+                          ? "bg-red-500"
+                          : zoneDef.color.replace("text-", "bg-")
+                      }`}
                       style={{ width: `${Math.min((count / cap) * 100, 100)}%` }}
                     />
                   </div>
@@ -251,16 +279,52 @@ export default function TbsAirParking() {
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0 transition-colors"
-                        onClick={() => removeMutation.mutate(entry.id)}
-                        disabled={removeMutation.isPending}
-                        title="Remove from parking"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {/* Move to zone */}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              disabled={moveMutation.isPending || removeMutation.isPending}
+                              title="Move to another zone"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2" align="end">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">
+                              Move to zone
+                            </p>
+                            <div className="flex flex-col gap-1">
+                              {ZONES.filter((z) => z.name !== entry.zone).map((z) => (
+                                <Button
+                                  key={z.name}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs justify-start gap-2 px-2"
+                                  onClick={() => moveMutation.mutate({ id: entry.id, zone: z.name })}
+                                  disabled={moveMutation.isPending}
+                                >
+                                  <span className={`font-bold ${z.color}`}>{z.name}</span>
+                                </Button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {/* Remove */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          onClick={() => removeMutation.mutate(entry.id)}
+                          disabled={removeMutation.isPending || moveMutation.isPending}
+                          title="Remove from parking"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -303,15 +367,19 @@ export default function TbsAirParking() {
                     const zoneData = zones?.[z.name];
                     const count = zoneData?.assignments.length ?? 0;
                     const cap = z.capacity;
-                    const isFull = cap !== null && count >= cap;
+                    const isFull = cap !== null && count === cap;
+                    const isOverflow = cap !== null && count > cap;
                     return (
-                      <SelectItem key={z.name} value={z.name} disabled={!!isFull}>
+                      <SelectItem key={z.name} value={z.name}>
                         <span className="flex items-center gap-2">
                           {z.name}
                           <span className="text-muted-foreground text-xs">
                             {cap !== null ? `(${count}/${cap})` : `(${count})`}
                           </span>
-                          {isFull && (
+                          {isOverflow && (
+                            <Badge className="text-[10px] py-0 px-1 bg-orange-500/20 text-orange-400 border border-orange-500/30">OVER</Badge>
+                          )}
+                          {isFull && !isOverflow && (
                             <Badge variant="destructive" className="text-[10px] py-0 px-1">FULL</Badge>
                           )}
                         </span>

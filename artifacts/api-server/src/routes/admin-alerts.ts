@@ -323,10 +323,39 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
     }
   }
 
+  // ── PARKING_OVERFLOW ────────────────────────────────────────────────────────
+  if (!type || type === "PARKING_OVERFLOW") {
+    const CAPACITIES: Record<string, number> = { TERMINAL: 5, OUT: 10 };
+    const { rows: pRows } = await pool.query(`
+      SELECT zone, COUNT(*) AS count
+      FROM parking_assignment
+      WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
+      GROUP BY zone
+    `);
+    for (const r of pRows) {
+      const cap = CAPACITIES[r.zone as string];
+      const count = parseInt(r.count as string, 10);
+      if (cap && count > cap) {
+        alerts.push({
+          id: `parking-overflow-${(r.zone as string).toLowerCase()}`,
+          alertType: "PARKING_OVERFLOW",
+          vehicleId: null,
+          bookingId: null,
+          vehicleLabel: `Zone ${r.zone}`,
+          region: "Tbilisi",
+          customer: null,
+          message: `Zone ${r.zone} is over capacity: ${count}/${cap}`,
+          eventDatetime: now,
+          generatedAt: now,
+        });
+      }
+    }
+  }
+
   // Sort by priority
   alerts.sort((a: any, b: any) => {
     const PRIORITY: Record<string, number> = {
-      OVERDUE: 0, CONFLICT: 1, SERVICE_OVERDUE: 2, SERVICE_DUE: 3, SERVICE_WARNING: 4, DROPOFF_TODAY: 5, PICKUP_TODAY: 6,
+      OVERDUE: 0, CONFLICT: 1, PARKING_OVERFLOW: 1, SERVICE_OVERDUE: 2, SERVICE_DUE: 3, SERVICE_WARNING: 4, DROPOFF_TODAY: 5, PICKUP_TODAY: 6,
     };
     const pa = PRIORITY[a.alertType] ?? 99;
     const pb = PRIORITY[b.alertType] ?? 99;
@@ -339,7 +368,7 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 // ─── GET /api/admin/alerts/summary ────────────────────────────────────────────
 
 router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
-  const [pickupRes, dropoffRes, overdueRes, conflictRes, maintRes] = await Promise.all([
+  const [pickupRes, dropoffRes, overdueRes, conflictRes, maintRes, overflowRes] = await Promise.all([
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE pickup_datetime::date = CURRENT_DATE AND status IN ('PENDING','CONFIRMED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime::date = CURRENT_DATE AND status IN ('CONFIRMED','DELIVERED') AND deleted_at IS NULL`),
     pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime < NOW() AND status NOT IN ('RETURNED','CANCELED','NO_SHOW') AND deleted_at IS NULL`),
@@ -400,6 +429,17 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
         COUNT(*) FILTER (WHERE severity = 'SERVICE_OVERDUE') AS overdue
       FROM best
     `),
+    pool.query(`
+      SELECT COALESCE(SUM(CASE WHEN cnt > capacity THEN 1 ELSE 0 END), 0) AS n
+      FROM (
+        SELECT zone,
+               COUNT(*) AS cnt,
+               CASE zone WHEN 'TERMINAL' THEN 5 WHEN 'OUT' THEN 10 END AS capacity
+        FROM parking_assignment
+        WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
+        GROUP BY zone
+      ) sub
+    `),
   ]);
 
   const pickup = parseInt(pickupRes.rows[0].n, 10);
@@ -410,9 +450,10 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
   const serviceDue = parseInt(maintRes.rows[0].due, 10);
   const serviceOverdue = parseInt(maintRes.rows[0].overdue, 10);
   const service = serviceWarning + serviceDue + serviceOverdue;
-  const total = pickup + dropoff + overdue + conflict + service;
+  const parkingOverflow = parseInt(overflowRes.rows[0].n, 10);
+  const total = pickup + dropoff + overdue + conflict + service + parkingOverflow;
 
-  res.json({ total, pickup, dropoff, overdue, conflict, service, serviceWarning, serviceDue, serviceOverdue });
+  res.json({ total, pickup, dropoff, overdue, conflict, service, serviceWarning, serviceDue, serviceOverdue, parkingOverflow });
 });
 
 // ─── GET /api/admin/alerts/meta ───────────────────────────────────────────────
@@ -420,7 +461,7 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
 router.get("/admin/alerts/meta", requireAdmin, async (_req, res) => {
   const { rows } = await pool.query(`SELECT DISTINCT city FROM location WHERE city IS NOT NULL ORDER BY city`);
   res.json({
-    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "CONFLICT", "SERVICE_OVERDUE", "SERVICE_DUE", "SERVICE_WARNING"],
+    alertTypes: ["PICKUP_TODAY", "DROPOFF_TODAY", "OVERDUE", "CONFLICT", "PARKING_OVERFLOW", "SERVICE_OVERDUE", "SERVICE_DUE", "SERVICE_WARNING"],
     regions: rows.map((r: any) => r.city),
   });
 });
