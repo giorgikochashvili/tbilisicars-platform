@@ -5,6 +5,7 @@
  */
 import { Resend } from "resend";
 import { generateBookingVoucherPdf } from "./pdf-voucher.service.js";
+import { calculateChargeableDays } from "../lib/pricing.js";
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -30,11 +31,6 @@ function formatDT(iso: string): string {
   } catch {
     return iso;
   }
-}
-
-function calcDays(pickup: string, dropoff: string): number {
-  const ms = new Date(dropoff).getTime() - new Date(pickup).getTime();
-  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 }
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
@@ -107,7 +103,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   } = params;
 
   const fromAddress = process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
-  const days = calcDays(pickupDatetime, dropoffDatetime);
+  const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 

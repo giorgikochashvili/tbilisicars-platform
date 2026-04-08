@@ -452,6 +452,15 @@ router.post("/public/bookings", async (req, res) => {
   if (!body.email?.trim()) errors.push("Email is required");
   if (!body.phone?.trim()) errors.push("Phone number is required");
 
+  if (body.age !== undefined && body.age !== "") {
+    const ageNum = parseInt(body.age, 10);
+    if (isNaN(ageNum)) {
+      errors.push("Age must be a valid number");
+    } else if (ageNum < 21) {
+      errors.push("Driver must be at least 21 years old");
+    }
+  }
+
   if (errors.length > 0) {
     return res.status(422).json({ errors });
   }

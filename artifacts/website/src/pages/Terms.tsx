@@ -26,8 +26,6 @@ const SECTIONS = [
     content: [
       "The main driver and any additional drivers must meet the following requirements: minimum age 21 years old, maximum age 70 years old.",
       "Drivers must hold a valid driving license for at least 2 years.",
-      "Drivers under 21 years old are considered Young Drivers. Young drivers may still be accepted depending on the vehicle category. In such cases a Young Driver Fee may apply.",
-      "The surcharge ranges between 10–15 EUR per day, depending on the vehicle category.",
     ],
   },
   {

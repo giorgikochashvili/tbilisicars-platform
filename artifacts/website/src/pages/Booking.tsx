@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ArrowRight,
-  MapPin, Calendar, Phone, MessageCircle, CreditCard, Banknote, Info, Shield,
+  MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
   Lock, Copy, Package, Baby, Wifi, Clock,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -1175,8 +1175,8 @@ function Step4({ form, setForm, onNext, onBack }: {
           </div>
           <div>
             <FieldLabel>Age</FieldLabel>
-            <Inp type="number" min="18" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-            <p className="text-xs text-muted-foreground mt-1">Minimum age: 18 years</p>
+            <Inp type="number" min="21" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
+            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 years</p>
           </div>
         </div>
         <div>
@@ -1228,7 +1228,7 @@ function Step4({ form, setForm, onNext, onBack }: {
           <span className="text-sm text-muted-foreground leading-relaxed">
             I have read and agree to the{" "}
             <Link href="/terms" className="text-primary hover:underline font-medium">Terms & Conditions</Link>.
-            {" "}I confirm I am at least 18 years old and hold a valid driving licence.
+            {" "}I confirm I am at least 21 years old and hold a valid driving licence.
           </span>
         </label>
         <label className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors">
@@ -1259,13 +1259,6 @@ const PRIMARY_PAYMENT_OPTIONS = [
     icon: <Banknote className="w-6 h-6 text-primary" />,
     recommended: true,
   },
-  {
-    id: "Card (Online)",
-    label: "Pay by Card Now",
-    desc: "Secure your reservation with an online card payment. Our team will contact you with a secure payment link.",
-    icon: <CreditCard className="w-6 h-6 text-primary" />,
-    recommended: false,
-  },
 ];
 
 const OTHER_PAYMENT_METHODS = [
@@ -1291,14 +1284,13 @@ function Step5({ form, setForm, onNext, onBack }: {
   const isOther = form.paymentMethod && !isPrimary;
 
   const selArrival = form.paymentMethod === "Pay on Arrival";
-  const selCard = form.paymentMethod === "Card (Online)";
 
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Payment Method</h2>
       <p className="text-muted-foreground text-sm mb-6">Choose how you'd like to handle payment for your rental</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-1 gap-4 mb-5">
 
         {/* ── Pay on Arrival ── PRIMARY option */}
         <button
@@ -1340,53 +1332,6 @@ function Step5({ form, setForm, onNext, onBack }: {
             {["Cash", "Card", "Bank Transfer"].map((m) => (
               <span key={m} className="text-[10px] text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2 py-0.5">{m}</span>
             ))}
-          </div>
-        </button>
-
-        {/* ── Pay by Card Now ── PREMIUM PLACEHOLDER */}
-        <button
-          type="button"
-          onClick={() => setForm((f) => ({ ...f, paymentMethod: "Card (Online)" }))}
-          className={cn(
-            "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200 flex flex-col",
-            selCard
-              ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          {/* Coming Soon badge */}
-          <span className="absolute -top-3 right-4 inline-flex items-center gap-1 bg-blue-500/10 border border-blue-400/20 text-blue-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
-            Coming Soon
-          </span>
-
-          <div className="flex items-start justify-between gap-3 mb-3 mt-1">
-            <div className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors duration-200",
-              selCard ? "bg-primary/20 border-primary/30" : "bg-secondary/50 border-border"
-            )}>
-              <CreditCard className={cn("w-6 h-6 transition-colors", selCard ? "text-primary" : "text-muted-foreground")} />
-            </div>
-            {selCard && (
-              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-            )}
-          </div>
-
-          <div className="font-bold text-white text-base mb-1">Pay by Card Now</div>
-          <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-            Secure your reservation with an online card payment. Our team will send you a secure payment link after confirming your booking.
-          </p>
-
-          {/* Bank of Georgia placeholder */}
-          <div className="mt-auto p-2.5 rounded-lg bg-secondary/30 border border-border/50">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Lock className="w-3 h-3 text-muted-foreground" />
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Secure Online Payment</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Bank of Georgia integration — payment link sent after confirmation. No charge at this step.
-            </p>
           </div>
         </button>
       </div>
