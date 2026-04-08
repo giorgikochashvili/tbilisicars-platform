@@ -1,0 +1,80 @@
+Project: TBILISICARS CRM&WEB
+Context:
+The previous parking/dropoff task is mostly working:
+- overflow works
+- move between zones works
+- alerts work
+- pickup removes vehicle from parking correctly
+
+But one critical issue remains:
+During booking dropoff, the system still does NOT require/select a parking zone for Tbilisi International Airport dropoff. The dropoff flow completes without asking which parking zone the vehicle returned to.
+
+This is now a targeted bugfix task.
+Do NOT refactor architecture.
+Do NOT redesign the booking detail page.
+Do NOT touch working overflow/move/alerts logic.
+Only fix the airport dropoff zone requirement so it actually appears and blocks submission correctly.
+
+Goal:
+When recording a dropoff for Tbilisi International Airport, the modal must visibly require zone selection (TERMINAL / OUT / FREE) before dropoff can be recorded.
+
+Required task:
+
+1. Inspect the real runtime condition currently used in BookingDetail/HandoverModal to decide whether airport-zone UI is shown.
+- Find why the zone selector is not appearing in the live dropoff flow.
+- Do not assume the current `isAirportDropoff` logic is correct.
+- Trace the actual booking data shape used by the modal at runtime.
+
+2. Fix airport detection to use the correct source of truth
+- The requirement must trigger whenever the booking’s dropoff location is Tbilisi International Airport
+- Use the most reliable available identifier from the existing booking data shape, preferring:
+  a) exact dropoff location id match, if available
+  b) exact normalized location name match, if id is not reliable
+  c) city + airport-type/location-type metadata, if such metadata already exists
+- Avoid brittle logic that depends only on `name.includes("airport")` if a stronger identifier already exists in the current codebase
+
+3. Make the zone picker actually appear in the modal for Tbilisi Airport dropoff
+- The staff must clearly see:
+  - TERMINAL
+  - OUT
+  - FREE
+- Show a visible required hint
+- Do not allow silent skipping
+
+4. Block dropoff submission until a zone is selected
+- Keep the disabled button logic
+- Keep the belt-and-suspenders submit guard
+- Ensure both are tied to the corrected airport detection condition
+
+5. Preserve scope
+- Do not change non-airport dropoff behavior
+- Do not break existing pickup/dropoff recording
+- Do not modify parking overflow, move UI, or alerts
+- Do not redesign the handover modal
+
+Implementation guidance:
+- Read the booking detail page and identify exactly what field is actually populated in the modal:
+  - booking.dropoffLocation
+  - booking.dropoffLocationId
+  - booking.returnLocation
+  - booking.location
+  - any normalized DTO field actually used
+- If the modal currently checks a field that is often null or not populated in this route, switch to the correct populated field
+- If necessary, derive a small helper like:
+  `const requiresTbsAirportParkingZone = ...`
+  and use it consistently for:
+  - rendering the picker
+  - disabling submit
+  - submit guard
+- Prefer exactness and reliability over cleverness
+
+Done looks like:
+- In a booking whose dropoff is Tbilisi International Airport, the dropoff modal visibly shows the parking zone selector
+- The Record Drop Off button is disabled until a zone is selected
+- Submission is blocked if zone is missing
+- Non-airport dropoffs remain unchanged
+
+At the end:
+1. Explain exactly why the previous logic failed in the real UI
+2. List exactly which file(s) were changed
+3. Show the final condition used to decide whether Tbilisi Airport parking zone is required
