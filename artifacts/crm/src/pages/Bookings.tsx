@@ -142,9 +142,11 @@ function DateTimePicker({
   );
 }
 
-function deriveLocationType(locationName: string): "airport" | "hotel" | "office" {
-  if (locationName.includes("Airport")) return "airport";
-  if (locationName.includes("Hotel")) return "hotel";
+function getLocationType(locationName: string | null | undefined): "airport" | "hotel" | "office" {
+  if (!locationName) return "office";
+  const lower = locationName.toLowerCase();
+  if (lower.includes("airport")) return "airport";
+  if (lower.includes("hotel")) return "hotel";
   return "office";
 }
 
@@ -369,7 +371,7 @@ export default function BookingsPage() {
         const pid = String(bookingRow.pickupLocationId ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === pid);
         const name = loc?.name ?? bookingRow.pickupLocation?.name ?? "";
-        return deriveLocationType(name);
+        return getLocationType(name);
       })(),
       pickupAddress: bookingRow.pickupAddress || "",
       dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
@@ -379,7 +381,7 @@ export default function BookingsPage() {
         const did = String(bookingRow.dropoffLocationId ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === did);
         const name = loc?.name ?? bookingRow.dropoffLocation?.name ?? "";
-        return deriveLocationType(name);
+        return getLocationType(name);
       })(),
       dropoffAddress: bookingRow.dropoffAddress || "",
       totalAmount: bookingRow.totalAmount ?? "",
@@ -471,6 +473,14 @@ export default function BookingsPage() {
     }
     if (!booking.dropoffDate) {
       toast({ title: "Validation Error", description: "Dropoff date is required", variant: "destructive" });
+      return false;
+    }
+    if (booking.pickupType === "hotel" && !booking.pickupAddress.trim()) {
+      toast({ title: "Validation Error", description: "Please enter a hotel name or address for pickup", variant: "destructive" });
+      return false;
+    }
+    if (booking.dropoffType === "hotel" && !booking.dropoffAddress.trim()) {
+      toast({ title: "Validation Error", description: "Please enter a hotel name or address for dropoff", variant: "destructive" });
       return false;
     }
     return true;
@@ -1027,7 +1037,7 @@ export default function BookingsPage() {
                     setBooking({
                       ...booking,
                       pickupLocationId: v,
-                      pickupType: deriveLocationType(loc?.name ?? ""),
+                      pickupType: getLocationType(loc?.name),
                       pickupAddress: "",
                     });
                   }}
@@ -1058,6 +1068,14 @@ export default function BookingsPage() {
                   />
                 </div>
               )}
+              {booking.pickupType === "office" && (() => {
+                const loc = allLocations.find((l: any) => l.id.toString() === booking.pickupLocationId);
+                return loc?.address ? (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Address:</span> {loc.address}
+                  </p>
+                ) : null;
+              })()}
             </div>
 
             {/* Dropoff Section */}
@@ -1072,7 +1090,7 @@ export default function BookingsPage() {
                     setBooking({
                       ...booking,
                       dropoffLocationId: v,
-                      dropoffType: deriveLocationType(loc?.name ?? ""),
+                      dropoffType: getLocationType(loc?.name),
                       dropoffAddress: "",
                     });
                   }}
@@ -1103,6 +1121,14 @@ export default function BookingsPage() {
                   />
                 </div>
               )}
+              {booking.dropoffType === "office" && (() => {
+                const loc = allLocations.find((l: any) => l.id.toString() === booking.dropoffLocationId);
+                return loc?.address ? (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Address:</span> {loc.address}
+                  </p>
+                ) : null;
+              })()}
             </div>
 
             {/* Pricing & Notes */}
