@@ -146,12 +146,14 @@ interface Summary {
   serviceWarning: number;
   serviceDue: number;
   serviceOverdue: number;
+  parkingOverflow: number;
 }
 
 function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: AlertType) => void }) {
   const tiles = [
     { key: "OVERDUE" as AlertType, label: "Overdue Return", count: summary.overdue, cls: "border-red-500/30 bg-red-500/5 text-red-400", icon: <AlertTriangle className="w-5 h-5" /> },
     { key: "CONFLICT" as AlertType, label: "Conflicts", count: summary.conflict, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <GitFork className="w-5 h-5" /> },
+    { key: "PARKING_OVERFLOW" as AlertType, label: "Parking Over", count: summary.parkingOverflow ?? 0, cls: "border-orange-500/30 bg-orange-500/5 text-orange-400", icon: <ParkingCircle className="w-5 h-5" /> },
     { key: "SERVICE_OVERDUE" as AlertType, label: "Svc Overdue", count: summary.serviceOverdue ?? 0, cls: "border-red-500/20 bg-red-500/5 text-red-400", icon: <Wrench className="w-5 h-5" /> },
     { key: "SERVICE_DUE" as AlertType, label: "Service Due", count: summary.serviceDue ?? 0, cls: "border-orange-500/20 bg-orange-500/5 text-orange-400", icon: <Wrench className="w-5 h-5" /> },
     { key: "SERVICE_WARNING" as AlertType, label: "Svc Warning", count: summary.serviceWarning ?? 0, cls: "border-yellow-500/30 bg-yellow-500/5 text-yellow-400", icon: <Wrench className="w-5 h-5" /> },
@@ -160,7 +162,7 @@ function SummaryCards({ summary, onFilter }: { summary: Summary; onFilter: (t: A
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
       {tiles.map((t) => (
         <button
           key={t.key}
