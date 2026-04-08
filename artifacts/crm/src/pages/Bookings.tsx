@@ -142,12 +142,62 @@ function DateTimePicker({
   );
 }
 
-const DELIVERY_TYPES = [
-  { value: "airport", label: "Airport" },
-  { value: "hotel", label: "Hotel" },
-  { value: "address", label: "Address" },
-  { value: "office", label: "Office" },
-];
+function deriveLocationType(locationName: string): "airport" | "hotel" | "office" {
+  if (locationName.includes("Airport")) return "airport";
+  if (locationName.includes("Hotel")) return "hotel";
+  return "office";
+}
+
+function DateFilterPicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? new Date(value + "T12:00:00") : undefined;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="h-9 w-[140px] justify-start text-left font-normal bg-background"
+        >
+          <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+          {value
+            ? format(new Date(value + "T12:00:00"), "MMM d, yyyy")
+            : <span className="text-muted-foreground text-sm">{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            onChange(d ? format(d, "yyyy-MM-dd") : "");
+            setOpen(false);
+          }}
+          autoFocus
+        />
+        {value && (
+          <div className="border-t border-border/40 p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-7 text-xs text-muted-foreground"
+              onClick={() => { onChange(""); setOpen(false); }}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 const EMPTY_BOOKING = {
   customerMode: "new" as "existing" | "new",
@@ -161,17 +211,17 @@ const EMPTY_BOOKING = {
   pickupLocationId: "",
   pickupDate: "",
   pickupTime: "10:00",
-  pickupType: "airport",
+  pickupType: "airport" as "airport" | "hotel" | "office",
   pickupAddress: "",
   dropoffLocationId: "",
   dropoffDate: "",
   dropoffTime: "10:00",
-  dropoffType: "airport",
+  dropoffType: "airport" as "airport" | "hotel" | "office",
   dropoffAddress: "",
   totalAmount: "",
   currency: "GEL",
   notes: "",
-  status: "PENDING" as const,
+  status: "CONFIRMED" as const,
   paymentStatus: "UNPAID" as string,
 };
 
@@ -315,12 +365,16 @@ export default function BookingsPage() {
       pickupLocationId: bookingRow.pickupLocationId ? bookingRow.pickupLocationId.toString() : "",
       pickupDate: pickupDt ? format(pickupDt, "yyyy-MM-dd") : "",
       pickupTime: pickupDt ? format(pickupDt, "HH:mm") : "10:00",
-      pickupType: bookingRow.pickupType || "airport",
+      pickupType: deriveLocationType(
+        allLocations.find((l: any) => l.id === bookingRow.pickupLocationId)?.name ?? ""
+      ),
       pickupAddress: bookingRow.pickupAddress || "",
       dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
       dropoffDate: dropoffDt ? format(dropoffDt, "yyyy-MM-dd") : "",
       dropoffTime: dropoffDt ? format(dropoffDt, "HH:mm") : "10:00",
-      dropoffType: bookingRow.dropoffType || "airport",
+      dropoffType: deriveLocationType(
+        allLocations.find((l: any) => l.id === bookingRow.dropoffLocationId)?.name ?? ""
+      ),
       dropoffAddress: bookingRow.dropoffAddress || "",
       totalAmount: bookingRow.totalAmount ?? "",
       currency: bookingRow.currency || "GEL",
@@ -357,9 +411,9 @@ export default function BookingsPage() {
       pickupDatetime,
       dropoffDatetime,
       pickupType: booking.pickupType,
-      pickupAddress: ["hotel", "address"].includes(booking.pickupType) ? booking.pickupAddress : null,
+      pickupAddress: booking.pickupType === "hotel" ? booking.pickupAddress : null,
       dropoffType: booking.dropoffType,
-      dropoffAddress: ["hotel", "address"].includes(booking.dropoffType) ? booking.dropoffAddress : null,
+      dropoffAddress: booking.dropoffType === "hotel" ? booking.dropoffAddress : null,
       notes: booking.notes || null,
       status: booking.status,
       paymentStatus: booking.paymentStatus,
@@ -456,8 +510,6 @@ export default function BookingsPage() {
       }
     );
   };
-
-  const needsAddress = (type: string) => ["hotel", "address"].includes(type);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -589,20 +641,16 @@ export default function BookingsPage() {
               </SelectContent>
             </Select>
             {/* Date from */}
-            <Input
-              type="date"
+            <DateFilterPicker
               value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-              className="bg-background h-9 text-sm w-[140px]"
-              title="Pickup from"
+              onChange={(v) => { setDateFrom(v); setPage(1); }}
+              placeholder="From date"
             />
             {/* Date to */}
-            <Input
-              type="date"
+            <DateFilterPicker
               value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-              className="bg-background h-9 text-sm w-[140px]"
-              title="Pickup to"
+              onChange={(v) => { setDateTo(v); setPage(1); }}
+              placeholder="To date"
             />
             {/* Clear all */}
             {hasActiveFilters && (
@@ -687,10 +735,16 @@ export default function BookingsPage() {
                       <div className="text-xs text-muted-foreground truncate max-w-[140px]">{b.dropoffLocation?.name}</div>
                     </TableCell>
                     <TableCell className="align-top pt-4">
-                      <div className="font-mono font-bold text-sm mb-1">
-                        {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : "—"}
-                      </div>
-                      <PaymentBadge status={b.paymentStatus} />
+                      {b.status === "CANCELED" || b.status === "NO_SHOW" ? (
+                        <span className="text-muted-foreground font-mono text-sm">—</span>
+                      ) : (
+                        <>
+                          <div className="font-mono font-bold text-sm mb-1">
+                            {b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : "—"}
+                          </div>
+                          <PaymentBadge status={b.paymentStatus} />
+                        </>
+                      )}
                     </TableCell>
                     <TableCell className="align-top pt-3" onClick={(e) => e.stopPropagation()}>
                       <Select 
@@ -903,7 +957,11 @@ export default function BookingsPage() {
                   <SelectTrigger><SelectValue placeholder="Any brand…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any brand</SelectItem>
-                    {allBrands.map((b: any) => (
+                    {[...allBrands].sort((a: any, b: any) => {
+                      const aCount = allModels.filter((m: any) => (m.brandId ?? m.brand?.id) === a.id).length;
+                      const bCount = allModels.filter((m: any) => (m.brandId ?? m.brand?.id) === b.id).length;
+                      return bCount !== aCount ? bCount - aCount : a.name.localeCompare(b.name);
+                    }).map((b: any) => (
                       <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -918,7 +976,7 @@ export default function BookingsPage() {
                   <SelectTrigger><SelectValue placeholder="Choose model…" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any model</SelectItem>
-                    {filteredModels.map((m: any) => (
+                    {[...filteredModels].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((m: any) => (
                       <SelectItem key={m.id} value={m.id.toString()}>
                         {m.brand?.name} {m.name}
                       </SelectItem>
@@ -950,7 +1008,18 @@ export default function BookingsPage() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pickup</h3>
               <div className="grid gap-2">
                 <Label>Location <span className="text-destructive">*</span></Label>
-                <Select value={booking.pickupLocationId} onValueChange={(v) => setBooking({...booking, pickupLocationId: v})}>
+                <Select
+                  value={booking.pickupLocationId}
+                  onValueChange={(v) => {
+                    const loc = allLocations.find((l: any) => l.id.toString() === v);
+                    setBooking({
+                      ...booking,
+                      pickupLocationId: v,
+                      pickupType: deriveLocationType(loc?.name ?? ""),
+                      pickupAddress: "",
+                    });
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Select pickup location..." /></SelectTrigger>
                   <SelectContent>
                     {allLocations.map((loc: any) => (
@@ -967,21 +1036,13 @@ export default function BookingsPage() {
                 onTimeChange={(t) => setBooking({ ...booking, pickupTime: t })}
                 required
               />
-              <div className="grid gap-2">
-                <Label>Delivery Type</Label>
-                <Select value={booking.pickupType} onValueChange={(v) => setBooking({...booking, pickupType: v, pickupAddress: ""})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DELIVERY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {needsAddress(booking.pickupType) && (
+              {booking.pickupType === "hotel" && (
                 <div className="grid gap-2">
-                  <Label>Pickup Address</Label>
-                  <Input 
+                  <Label>Hotel Name / Address</Label>
+                  <Input
                     value={booking.pickupAddress}
                     onChange={e => setBooking({...booking, pickupAddress: e.target.value})}
+                    placeholder="Enter hotel name or address"
                   />
                 </div>
               )}
@@ -992,7 +1053,18 @@ export default function BookingsPage() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Dropoff / Return</h3>
               <div className="grid gap-2">
                 <Label>Location <span className="text-destructive">*</span></Label>
-                <Select value={booking.dropoffLocationId} onValueChange={(v) => setBooking({...booking, dropoffLocationId: v})}>
+                <Select
+                  value={booking.dropoffLocationId}
+                  onValueChange={(v) => {
+                    const loc = allLocations.find((l: any) => l.id.toString() === v);
+                    setBooking({
+                      ...booking,
+                      dropoffLocationId: v,
+                      dropoffType: deriveLocationType(loc?.name ?? ""),
+                      dropoffAddress: "",
+                    });
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Select dropoff location..." /></SelectTrigger>
                   <SelectContent>
                     {allLocations.map((loc: any) => (
@@ -1009,21 +1081,13 @@ export default function BookingsPage() {
                 onTimeChange={(t) => setBooking({ ...booking, dropoffTime: t })}
                 required
               />
-              <div className="grid gap-2">
-                <Label>Return Type</Label>
-                <Select value={booking.dropoffType} onValueChange={(v) => setBooking({...booking, dropoffType: v, dropoffAddress: ""})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DELIVERY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {needsAddress(booking.dropoffType) && (
+              {booking.dropoffType === "hotel" && (
                 <div className="grid gap-2">
-                  <Label>Dropoff Address</Label>
-                  <Input 
+                  <Label>Hotel Name / Address</Label>
+                  <Input
                     value={booking.dropoffAddress}
                     onChange={e => setBooking({...booking, dropoffAddress: e.target.value})}
+                    placeholder="Enter hotel name or address"
                   />
                 </div>
               )}
