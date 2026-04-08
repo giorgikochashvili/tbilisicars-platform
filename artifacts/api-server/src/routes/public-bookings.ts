@@ -46,16 +46,40 @@ router.get("/public/booking-config", async (req, res) => {
   // Shared price lateral — identical across all four query variants.
   // Only WEB rates that are currently valid contribute to the "from" price;
   // broker rates and expired/future rates are excluded.
+  //
+  // Two-step logic:
+  //   1. Pick the winning rate for this model: child rates (parent_rate_id IS NOT NULL)
+  //      take priority over parent rates; among same level, most recently started wins.
+  //      Only rates that have at least one non-zero tier for this model are considered.
+  //   2. From the winning rate's tiers, return the minimum price_per_day > 0.
+  //      price_per_day = 0 is treated as an unfilled placeholder and ignored.
+  //   If no valid non-zero tier exists the lateral returns NULL (LEFT JOIN propagates).
   const priceLateral = `
     LEFT JOIN LATERAL (
       SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
       FROM ratetier rt
       JOIN rate r ON r.id = rt.rate_id
       WHERE rt.vehicle_model_id = vm.id
+        AND rt.price_per_day > 0
         AND r.is_active = true
         AND (r.rate_type = 'web' OR r.rate_type IS NULL)
         AND r.valid_from::date <= CURRENT_DATE
         AND r.valid_until::date >= CURRENT_DATE
+        AND r.id = (
+          SELECT r2.id
+          FROM rate r2
+          JOIN ratetier rt2 ON rt2.rate_id = r2.id
+            AND rt2.vehicle_model_id = vm.id
+            AND rt2.price_per_day > 0
+          WHERE r2.is_active = true
+            AND (r2.rate_type = 'web' OR r2.rate_type IS NULL)
+            AND r2.valid_from::date <= CURRENT_DATE
+            AND r2.valid_until::date >= CURRENT_DATE
+          ORDER BY
+            (CASE WHEN r2.parent_rate_id IS NOT NULL THEN 1 ELSE 0 END) DESC,
+            r2.valid_from DESC
+          LIMIT 1
+        )
       ORDER BY rt.price_per_day ASC
       LIMIT 1
     ) price_info ON true`;
