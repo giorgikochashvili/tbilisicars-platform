@@ -1504,8 +1504,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
                   <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-sm font-semibold text-red-400">No payment recorded for this delivered booking</p>
-                    <p className="text-xs text-red-400/80 mt-0.5">This rental has been delivered but has no payment entries. Use the "Add" button below to record a payment.</p>
+                    <p className="text-sm font-semibold text-red-400">Record Payment</p>
+                    <p className="text-xs text-red-400/80 mt-0.5">This booking is marked as delivered but has no payment records. Use the "Add" button below to record a payment.</p>
                   </div>
                 </div>
               )}

@@ -245,6 +245,20 @@ export default function BookingsPage() {
   const [isVoucherImportOpen, setIsVoucherImportOpen] = useState(false);
   const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
+
+  // Auto-open booking detail when navigated here with ?open=<id> (e.g. from Alerts)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (openId) {
+      const id = parseInt(openId, 10);
+      if (!isNaN(id)) {
+        setDetailBookingId(id);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, []);
+
   const [booking, setBooking] = useState(EMPTY_BOOKING);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
@@ -761,7 +775,7 @@ export default function BookingsPage() {
                           <PaymentBadge status={b.paymentStatus} />
                           {b.status === "DELIVERED" && b.paymentRecordCount === 0 && (
                             <span className="inline-flex items-center gap-1 mt-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-red-500/15 text-red-400 border border-red-500/25">
-                              No payment
+                              Record Payment
                             </span>
                           )}
                         </>
