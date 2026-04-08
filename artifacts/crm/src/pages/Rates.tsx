@@ -1159,13 +1159,19 @@ export default function RatesPage() {
         }
       }
 
-      if (newRate?.id && childDayRanges.length > 0) {
+      const parentRateObj = rates.find((r) => r.id === parseInt(childParentId, 10));
+      const dayRangesToClone =
+        (parentRateObj?.dayRanges ?? []).length > 0
+          ? (parentRateObj?.dayRanges ?? [])
+          : childDayRanges;
+
+      if (newRate?.id && dayRangesToClone.length > 0) {
         const drResp = await fetch(`/api/admin/rates/${newRate.id}/day-ranges`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            ranges: childDayRanges.map((r) => ({
+            ranges: dayRangesToClone.map((r) => ({
               fromDays: r.fromDays,
               toDays: r.toDays ?? null,
               label: r.label ?? null,
