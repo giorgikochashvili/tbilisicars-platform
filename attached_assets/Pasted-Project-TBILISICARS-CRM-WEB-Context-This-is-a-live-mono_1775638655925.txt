@@ -1,0 +1,96 @@
+Project: TBILISICARS CRM&WEB
+Context:
+This is a live monorepo already built in Replit. Do NOT refactor architecture. Do NOT redesign unrelated CRM pages. Do NOT change pricing logic, payment logic, or accounting aggregation outside the exact display/data-consistency issue below. Make only targeted, production-safe changes.
+
+Target:
+Fleet vehicle detail/history financial display consistency
+
+Problem:
+A booking may be created in EUR/USD/GEL, but in the Fleet vehicle history/detail area the amount is currently shown as GEL-only or otherwise inconsistently, which makes the financial display misleading. The Fleet view must stay financially consistent with the booking/payment source data.
+
+Goal:
+Use the booking/payment source of truth so Fleet history no longer shows a misleading standalone GEL value when the booking is actually in another currency.
+
+Required outcome:
+For each booking shown in Fleet history/detail:
+- show the booking’s original/primary currency amount as the main amount
+- optionally show GEL equivalent as a secondary line if reliable converted GEL data already exists in the project
+- do NOT show a misleading GEL-only amount when the original booking is in EUR/USD/etc.
+- keep the UI compact and readable
+
+Required task:
+
+1. Inspect the exact Fleet page / vehicle detail component(s) that render booking financial history
+- Find the exact source currently used for the displayed amount
+- Determine why it is showing GEL when the linked booking is actually in EUR
+- Trace the data flow from:
+  - booking row / booking summary
+  - payment summary
+  - any vehicle revenue/history DTO
+  - any converted_gel / booking currency fields already available
+
+2. Identify the correct source of truth
+Prefer this order:
+a) booking original amount + booking currency from the linked booking record
+b) if the Fleet DTO already includes original currency fields, use those
+c) if GEL equivalent is already stored/calculated reliably (such as converted_gel or known summary fields), show it as a secondary display only
+d) do NOT invent conversion on the client unless the system already has an established conversion source used elsewhere
+
+3. Fix the Fleet history/detail amount display
+- Main line: original booking amount with its true currency
+  - examples: €120, $90, ₾300
+- Secondary line (optional, only if reliable data exists already in the current project):
+  - GEL equivalent, styled smaller/muted
+  - example: ₾324
+- If original currency is GEL, do not duplicate GEL twice unnecessarily
+- Preserve compact UI and current dark-theme style
+
+4. Keep accounting/reporting logic untouched unless absolutely required
+- Do not rewrite payment calculations
+- Do not rewrite booking totals
+- Do not rewrite dashboard revenue aggregation
+- This task is about consistency of Fleet financial display
+- Make the smallest safe backend/API adjustment only if the current Fleet DTO simply does not expose the correct original currency fields and those fields already exist in the underlying booking/payment data
+
+5. Reuse existing formatting patterns
+- Inspect how booking/payment summary already formats:
+  - primary amount
+  - native/original currency
+  - GEL equivalent
+- Reuse the same or similar visual semantics so staff see a consistent financial language across CRM
+
+6. Preserve scope
+- Do not touch parking logic
+- Do not touch bookings filters/UI
+- Do not redesign the whole Fleet page
+- Do not add new exchange-rate infrastructure
+- Do not hardcode new conversion formulas unless the exact same formula/source is already used elsewhere in this codebase
+
+Edge cases:
+- Booking in EUR with reliable GEL equivalent → show EUR primary, GEL secondary
+- Booking in USD with reliable GEL equivalent → show USD primary, GEL secondary
+- Booking in GEL → show GEL primary only
+- Missing converted GEL data → show original amount only, do not fake a conversion
+- Historical rows must remain readable and aligned
+- If multiple payments exist, do not accidentally replace booking amount with paid amount unless the current Fleet history is explicitly meant to show booking total rather than payment total; determine the intended meaning from the existing implementation first
+
+Implementation guidance:
+- First inspect the Fleet page and any related API/DTO used for vehicle booking history
+- Compare with booking detail/payment summary implementation that already handles multi-currency correctly
+- Reuse existing money formatting helpers if present
+- Prefer a small backend response extension only if necessary and only using existing underlying fields
+- Keep the change surgical and production-safe
+
+Done looks like:
+- Fleet vehicle history/detail no longer shows a misleading GEL-only amount for EUR/USD bookings
+- Main displayed amount matches the booking’s original currency
+- GEL equivalent appears only as a secondary helper display when reliable data exists
+- Existing accounting and payment logic remain unchanged
+- UI stays compact and consistent with the rest of CRM
+
+At the end:
+1. List exactly which files were changed
+2. Explain what the previous Fleet amount was incorrectly using
+3. Explain the final source of truth now used for the main amount
+4. Explain whether GEL secondary display was added and what source it uses
+5. Mention any assumptions made about whether the Fleet history amount represents booking total vs paid amount
