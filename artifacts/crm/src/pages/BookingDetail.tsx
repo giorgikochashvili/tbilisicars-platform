@@ -1505,7 +1505,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-red-400">Record Payment</p>
-                    <p className="text-xs text-red-400/80 mt-0.5">This booking is marked as delivered but has no payment records. Use the "Add" button below to record a payment.</p>
+                    <p className="text-xs text-red-400/80 mt-0.5">This booking is marked as delivered but has no payment records.</p>
                   </div>
                 </div>
               )}
