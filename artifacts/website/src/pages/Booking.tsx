@@ -805,7 +805,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                       </span>
                     )}
                     {/* Price badge — total is primary, daily is secondary */}
-                    {!isOnRequest && price !== null && (
+                    {price !== null && (
                       <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
                         {totalEst ? (
                           <>
@@ -823,7 +823,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                       </div>
                     )}
                     {/* Contact for pricing overlay */}
-                    {!isOnRequest && price === null && (
+                    {price === null && (
                       <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
                         <div className="text-xs leading-none">Contact for pricing</div>
                       </div>

@@ -176,13 +176,13 @@ export default function Fleet() {
                       </span>
                     )}
                     {/* Price badge — bottom right */}
-                    {!isOnRequest && price !== null && (
+                    {price !== null && (
                       <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
                         <div className="text-sm font-bold leading-none">{price.toLocaleString()} {currency}</div>
                         <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
                       </div>
                     )}
-                    {!isOnRequest && price === null && (
+                    {price === null && (
                       <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
                         <div className="text-xs leading-none">Contact for pricing</div>
                       </div>
@@ -229,22 +229,20 @@ export default function Fleet() {
                       </div>
                     )}
 
-                    {/* Price line for instantly-available vehicles */}
-                    {!isOnRequest && (
-                      <div className="mb-3 mt-auto">
-                        {price !== null ? (
-                          <div>
-                            <span className="text-xs text-muted-foreground">Starting from</span>
-                            <div className="text-xl font-bold text-primary">
-                              {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
-                              <span className="text-sm font-normal text-muted-foreground">/day</span>
-                            </div>
+                    {/* Price line */}
+                    <div className="mb-3 mt-auto">
+                      {price !== null ? (
+                        <div>
+                          <span className="text-xs text-muted-foreground">Starting from</span>
+                          <div className="text-xl font-bold text-primary">
+                            {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
+                            <span className="text-sm font-normal text-muted-foreground">/day</span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Contact us for pricing</span>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Contact us for pricing</span>
+                      )}
+                    </div>
 
                     {isOnRequest ? (
                       <a
