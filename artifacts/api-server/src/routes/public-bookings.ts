@@ -266,7 +266,7 @@ router.post("/public/validate-promo", async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, code, discount_type, discount_value, valid_from, valid_until, active
+    `SELECT id, code, discount_type, discount_value, valid_from, valid_until, active, max_uses, times_used
      FROM promo WHERE code = $1 LIMIT 1`,
     [code.trim().toUpperCase()],
   );
@@ -282,6 +282,9 @@ router.post("/public/validate-promo", async (req, res) => {
   }
   if (promo.valid_until && new Date(promo.valid_until) < now) {
     return res.json({ valid: false, error: "Promo code has expired" });
+  }
+  if (promo.max_uses !== null && (promo.times_used ?? 0) >= promo.max_uses) {
+    return res.json({ valid: false, error: "Promo code has reached its usage limit" });
   }
 
   return res.json({
