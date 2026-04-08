@@ -1,0 +1,134 @@
+Task: Fix Child Rate inheritance so it cleanly clones the selected Parent rate and supports per-model active/deactivate control
+
+Project context:
+Tbilisicars CRM&WEB monorepo.
+The WEB Rates module supports Parent and Child rates.
+
+Business model:
+- Parent rate = long-term base pricing
+- Child rate = seasonal/date-specific override of a selected Parent
+- Child is copy-at-creation, not live inheritance
+- After creation, Child must be independently editable
+
+Current problem:
+Child rates are not behaving as a clean full copy of the selected Parent.
+The Child may show incomplete or inconsistent pricing tiers instead of the exact same model grid and day-range structure as the Parent.
+
+Additional business requirement:
+Within a Child rate, staff must be able to temporarily deactivate/disable specific vehicle models without changing the Parent.
+This is necessary for seasonal strategy, stock planning, or temporary model exclusion.
+
+STRICT business rules:
+
+1. Parent linkage
+- A Child must explicitly belong to one selected Parent
+- The parent relationship must be clearly stored and visible in the CRM UI
+
+2. Exact copy at creation
+When creating a Child from a Parent, the Child must clone the Parent's full pricing structure exactly:
+- same included vehicle models
+- same day ranges / duration buckets
+- same prices
+- same currency where applicable
+- no missing rows
+- no extra rows
+- no collapsed or altered structure
+
+3. Child independence
+After creation:
+- the Child remains independently editable
+- editing the Child must not mutate the Parent
+
+4. Per-model active/deactivate in Child
+Inside a Child rate:
+- each copied model must support active/deactivate control
+- all copied models should start as ACTIVE by default
+- staff must be able to disable a specific model for that Child period only
+- this must not affect the Parent
+
+5. Override behavior
+During a date range covered by an active Child:
+- the Child is the source of truth for included models
+- if a model is deactivated in the Child, the system must NOT fall back to the Parent for that same model during the Child-covered period
+- deactivated in Child means unavailable/unpriced in that Child override period
+
+Important clarification:
+This is not a new pricing architecture.
+This is a controlled fix to make Child creation and Child editing behave correctly.
+
+CRITICAL RULES:
+- Do NOT refactor the Rates module architecture
+- Do NOT change public website pricing logic except what is strictly required to respect Child model deactivation
+- Do NOT change booking flow structure
+- Do NOT change accounting logic
+- Do NOT redesign the whole UI
+- Do NOT touch unrelated CRM modules
+- Do NOT invent a parallel pricing system
+- Make the minimum safe fix needed
+
+Investigate:
+1. How Child rate creation currently works in the CRM
+2. How parent_rate_id is stored and displayed
+3. How Parent model/tier data is cloned into a Child
+4. Why the Child is not receiving the exact same grid structure as the Parent
+5. Whether the current data model already supports per-model active/inactive state in Child tiers or copied models
+6. If not directly supported, implement the smallest safe persistence/UI change required
+
+Required fix:
+
+A. Child creation flow
+- Ensure a Child can only be created by explicitly selecting a Parent
+- Persist the selected parent relationship correctly
+- Ensure parent_rate_id is correctly stored
+- Immediately clone the Parent's full pricing structure into the new Child
+
+B. Tier/model cloning integrity
+At Child creation, clone the Parent's entire pricing structure into the Child:
+- all included vehicle models
+- all duration/day-range tiers
+- all prices
+- currency if applicable
+- default active state for each copied model = active
+
+The resulting Child must exactly match the Parent grid immediately after creation.
+
+C. CRM Child UI
+- In the Rates list / detail / expanded section, make the Child clearly show which Parent it belongs to
+- Example wording is fine:
+  - "Child"
+  - "seasonal override of 1TEST"
+  or equivalent clear wording
+
+D. Per-model active/deactivate control in Child
+- In the Child pricing grid/list, add a clear active/deactivate control per copied model
+- Staff must be able to disable or re-enable a model inside the Child
+- This control must be intuitive and consistent with existing CRM UI patterns
+- Do not redesign the whole page; use minimal UI change
+
+E. Resolution integrity
+- During a Child-covered period, if a model exists in Child and is deactivated there, Parent must NOT be used as fallback for that model
+- Child override must fully govern that model during the Child period
+
+Deliverables after implementation:
+1. Root cause summary
+2. Exact files changed
+3. Explain how Child creation now copies Parent structure
+4. Explain how per-model active/deactivate works in Child
+5. Confirm:
+   - Child shows linked Parent clearly
+   - Child receives full copied pricing grid
+   - Child models default to active
+   - Child model deactivation works
+   - Child remains editable after creation
+   - Parent remains unchanged
+   - no unrelated logic changed
+
+Validation:
+- Create or inspect a Parent with multiple models and full day ranges
+- Create a Child from it
+- Confirm the Child initially matches the Parent exactly
+- Confirm the Parent relationship is visible in the CRM
+- Deactivate one model in the Child
+- Confirm the model is disabled only in that Child
+- Confirm the Parent is unchanged
+- Confirm no unrelated booking/accounting logic is affected
