@@ -34,14 +34,14 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     if (!allowedOrigins || allowedOrigins.length === 0) {
-      return callback(null, true);
+      return callback(null, false);
     }
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    return callback(new Error("Not allowed by CORS"));
+    return callback(null, false);
   },
   credentials: true,
 }));
