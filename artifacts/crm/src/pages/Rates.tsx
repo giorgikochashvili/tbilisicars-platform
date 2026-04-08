@@ -890,6 +890,7 @@ function ChildRateLoader({
     validUntil: string,
     minDays: number,
     maxDays: number,
+    dayRanges: RateDayRange[],
   ) => void;
 }) {
   const reqOpts = { request: { credentials: "include" as const } };
@@ -910,6 +911,7 @@ function ChildRateLoader({
       pd.validUntil ? new Date(pd.validUntil).toISOString().split("T")[0] : "",
       pd.minDays ?? 1,
       pd.maxDays ?? 0,
+      pd.dayRanges ?? [],
     );
   }, [parentDetail]);
 
@@ -944,6 +946,7 @@ export default function RatesPage() {
   const [childParentId, setChildParentId] = useState<string>("");
   const [childFormData, setChildFormData] = useState<RateFormData>(BLANK_FORM);
   const [childTiers, setChildTiers] = useState<CopiedTierRow[]>([]);
+  const [childDayRanges, setChildDayRanges] = useState<RateDayRange[]>([]);
   const [isSavingChild, setIsSavingChild] = useState(false);
 
   const [expandedRateId, setExpandedRateId] = useState<number | null>(null);
@@ -1021,6 +1024,7 @@ export default function RatesPage() {
     setChildParentId("");
     setChildFormData(BLANK_FORM);
     setChildTiers([]);
+    setChildDayRanges([]);
     setIsChildModalOpen(true);
   };
 
@@ -1155,6 +1159,21 @@ export default function RatesPage() {
         }
       }
 
+      if (newRate?.id && childDayRanges.length > 0) {
+        await fetch(`/api/admin/rates/${newRate.id}/day-ranges`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            ranges: childDayRanges.map((r) => ({
+              fromDays: r.fromDays,
+              toDays: r.toDays ?? null,
+              label: r.label ?? null,
+            })),
+          }),
+        });
+      }
+
       queryClient.invalidateQueries();
       if (tierFailCount > 0) {
         toast({
@@ -1198,11 +1217,9 @@ export default function RatesPage() {
 
 
   const renderExpandedContent = (rate: RateItem) => {
-    const isWebParent =
-      (rate.rateType === "web" || rate.rateType == null) && rate.parentRateId == null;
     const hasDayRanges = (rate.dayRanges?.length ?? 0) > 0;
 
-    if (isWebParent && hasDayRanges) {
+    if (hasDayRanges) {
       return (
         <ModelPricingGrid
           rateId={rate.id}
@@ -1628,8 +1645,9 @@ export default function RatesPage() {
           {parentIdNum > 0 && (
             <ChildRateLoader
               parentId={parentIdNum}
-              onParentLoaded={(tiers, validFrom, validUntil, minDays, maxDays) => {
+              onParentLoaded={(tiers, validFrom, validUntil, minDays, maxDays, dayRanges) => {
                 setChildTiers(tiers);
+                setChildDayRanges(dayRanges);
                 setChildFormData((prev) => ({ ...prev, validFrom, validUntil, minDays, maxDays }));
               }}
             />
