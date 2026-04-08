@@ -625,7 +625,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                               {b.dropoff_datetime ? format(new Date(b.dropoff_datetime), "MMM d, yy") : "—"}
                             </TableCell>
                             <TableCell className="font-mono text-xs">
-                              {b.total_amount ? formatBookingAmount(b.total_amount, b.currency) : "—"}
+                              {b.total_amount != null ? formatBookingAmount(b.total_amount, b.currency) : "—"}
                             </TableCell>
                             <TableCell><BookingStatusBadge status={b.status} /></TableCell>
                             <TableCell>
