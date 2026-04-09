@@ -897,7 +897,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     setAssignSelectedModelId(modelId);
     setLoadingAssignVehicles(true);
     try {
-      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocationId)?.city;
+      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
       const cityParam = pickupCity ? `&city=${encodeURIComponent(pickupCity)}` : "";
       const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`);
       setAssignVehicles(data?.data ?? []);
@@ -906,7 +906,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     } finally {
       setLoadingAssignVehicles(false);
     }
-  }, [booking?.pickupLocationId, overviewLocations]);
+  }, [booking?.pickupLocation?.id, overviewLocations]);
 
   const handleAssignVehicle = useCallback(async (vehicleId: number) => {
     if (!bookingId) return;
@@ -1111,8 +1111,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       totalAmount: booking?.totalAmount ?? "",
       currency: booking?.currency ?? "GEL",
       notes: booking?.notes ?? "",
-      pickupLocationId: booking?.pickupLocationId?.toString() ?? "",
-      dropoffLocationId: booking?.dropoffLocationId?.toString() ?? "",
+      pickupLocationId: booking?.pickupLocation?.id?.toString() ?? "",
+      dropoffLocationId: booking?.dropoffLocation?.id?.toString() ?? "",
       pickupDate: pu.date,
       pickupTime: pu.time,
       dropoffDate: dr.date,

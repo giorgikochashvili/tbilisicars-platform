@@ -784,6 +784,12 @@ export default function TasksPage() {
     staleTime: 15_000,
   });
 
+  const myTasksSummaryQuery = useQuery<{ total: number; overdue: number; dueToday: number }>({
+    queryKey: ["my-tasks-summary"],
+    queryFn: () => apiFetch(`${BASE}/admin/tasks/my-summary`),
+    staleTime: 60_000,
+  });
+
   const tasks = tasksQuery.data?.tasks ?? [];
   const total = tasksQuery.data?.total ?? 0;
 
@@ -795,7 +801,7 @@ export default function TasksPage() {
 
   // Derived stat counts
   const allCount = total;
-  const myCount = tasks.filter((t) => user && t.assignedToId === user.id).length;
+  const myCount = myTasksSummaryQuery.data?.total ?? tasks.filter((t) => user && t.assignedToId === user.id).length;
   const overdueCount = tasks.filter(isOverdue).length;
   const dueTodayCount = tasks.filter(isDueToday).length;
   const completedCount = tasks.filter((t) => t.status === "Done").length;

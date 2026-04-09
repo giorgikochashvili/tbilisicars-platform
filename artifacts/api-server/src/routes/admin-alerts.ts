@@ -412,81 +412,218 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
 });
 
 // ─── GET /api/admin/alerts/summary ────────────────────────────────────────────
+//
+// Optional ?city=Tbilisi|Kutaisi|Batumi query param.
+// When city is provided, all counts are scoped to bookings/vehicles whose
+// location.city = city (using the existing sub-location model).
+// Parking overflow is TBS-specific and is excluded from regional totals.
+
+const VALID_SUMMARY_CITIES = ["Tbilisi", "Kutaisi", "Batumi"] as const;
 
 router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
+  const rawCity = req.query.city;
+  const city =
+    typeof rawCity === "string" &&
+    (VALID_SUMMARY_CITIES as readonly string[]).includes(rawCity)
+      ? rawCity
+      : undefined;
+
+  const cp = city ? [city] : [];
+
   const [pickupRes, dropoffRes, overdueRes, noPaymentRes, conflictRes, maintRes, overflowRes] = await Promise.all([
-    pool.query(`SELECT COUNT(*) AS n FROM booking WHERE pickup_datetime::date = CURRENT_DATE AND status IN ('PENDING','CONFIRMED') AND deleted_at IS NULL`),
-    pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime::date = CURRENT_DATE AND status IN ('CONFIRMED','DELIVERED') AND deleted_at IS NULL`),
-    pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime < NOW() AND status NOT IN ('RETURNED','CANCELED','NO_SHOW') AND deleted_at IS NULL`),
-    pool.query(`SELECT COUNT(*) AS n FROM booking b LEFT JOIN booking_payment bp ON bp.booking_id = b.id WHERE b.status = 'DELIVERED' AND b.deleted_at IS NULL AND bp.id IS NULL`),
-    pool.query(`
-      SELECT COUNT(DISTINCT b1.vehicle_id) AS n
-      FROM booking b1
-      JOIN booking b2 ON b1.vehicle_id = b2.vehicle_id AND b1.id < b2.id
-      WHERE b1.vehicle_id IS NOT NULL
-        AND b1.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
-        AND b2.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
-        AND b1.pickup_datetime < b2.dropoff_datetime
-        AND b1.dropoff_datetime > b2.pickup_datetime
-        AND b1.deleted_at IS NULL AND b2.deleted_at IS NULL
-    `),
+    city
+      ? pool.query(
+          `SELECT COUNT(*) AS n
+           FROM booking b
+           JOIN location l ON l.id = b.pickup_location_id
+           WHERE b.pickup_datetime::date = CURRENT_DATE
+             AND b.status IN ('PENDING','CONFIRMED')
+             AND b.deleted_at IS NULL
+             AND l.city = $1`,
+          cp,
+        )
+      : pool.query(`SELECT COUNT(*) AS n FROM booking WHERE pickup_datetime::date = CURRENT_DATE AND status IN ('PENDING','CONFIRMED') AND deleted_at IS NULL`),
+
+    city
+      ? pool.query(
+          `SELECT COUNT(*) AS n
+           FROM booking b
+           JOIN location l ON l.id = b.dropoff_location_id
+           WHERE b.dropoff_datetime::date = CURRENT_DATE
+             AND b.status IN ('CONFIRMED','DELIVERED')
+             AND b.deleted_at IS NULL
+             AND l.city = $1`,
+          cp,
+        )
+      : pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime::date = CURRENT_DATE AND status IN ('CONFIRMED','DELIVERED') AND deleted_at IS NULL`),
+
+    city
+      ? pool.query(
+          `SELECT COUNT(*) AS n
+           FROM booking b
+           JOIN location pl ON pl.id = b.pickup_location_id
+           JOIN location dl ON dl.id = b.dropoff_location_id
+           WHERE b.dropoff_datetime < NOW()
+             AND b.status NOT IN ('RETURNED','CANCELED','NO_SHOW')
+             AND b.deleted_at IS NULL
+             AND (pl.city = $1 OR dl.city = $1)`,
+          cp,
+        )
+      : pool.query(`SELECT COUNT(*) AS n FROM booking WHERE dropoff_datetime < NOW() AND status NOT IN ('RETURNED','CANCELED','NO_SHOW') AND deleted_at IS NULL`),
+
+    city
+      ? pool.query(
+          `SELECT COUNT(*) AS n
+           FROM booking b
+           LEFT JOIN booking_payment bp ON bp.booking_id = b.id
+           JOIN location pl ON pl.id = b.pickup_location_id
+           JOIN location dl ON dl.id = b.dropoff_location_id
+           WHERE b.status = 'DELIVERED'
+             AND b.deleted_at IS NULL
+             AND bp.id IS NULL
+             AND (pl.city = $1 OR dl.city = $1)`,
+          cp,
+        )
+      : pool.query(`SELECT COUNT(*) AS n FROM booking b LEFT JOIN booking_payment bp ON bp.booking_id = b.id WHERE b.status = 'DELIVERED' AND b.deleted_at IS NULL AND bp.id IS NULL`),
+
+    city
+      ? pool.query(
+          `SELECT COUNT(DISTINCT b1.vehicle_id) AS n
+           FROM booking b1
+           JOIN booking b2 ON b1.vehicle_id = b2.vehicle_id AND b1.id < b2.id
+           JOIN vehicle v ON v.id = b1.vehicle_id
+           JOIN location l ON l.id = v.location_id
+           WHERE b1.vehicle_id IS NOT NULL
+             AND b1.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
+             AND b2.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
+             AND b1.pickup_datetime < b2.dropoff_datetime
+             AND b1.dropoff_datetime > b2.pickup_datetime
+             AND b1.deleted_at IS NULL AND b2.deleted_at IS NULL
+             AND l.city = $1`,
+          cp,
+        )
+      : pool.query(`
+          SELECT COUNT(DISTINCT b1.vehicle_id) AS n
+          FROM booking b1
+          JOIN booking b2 ON b1.vehicle_id = b2.vehicle_id AND b1.id < b2.id
+          WHERE b1.vehicle_id IS NOT NULL
+            AND b1.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
+            AND b2.status NOT IN ('CANCELED','NO_SHOW','RETURNED')
+            AND b1.pickup_datetime < b2.dropoff_datetime
+            AND b1.dropoff_datetime > b2.pickup_datetime
+            AND b1.deleted_at IS NULL AND b2.deleted_at IS NULL
+        `),
+
     // Three-level maintenance counts (worst alert per vehicle)
-    pool.query(`
-      WITH ranked AS (
-        SELECT
-          ms.vehicle_id,
-          CASE
-            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
-            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
-              AND v.mileage > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
-            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
-            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
-              AND v.mileage >= ms.next_service_mileage THEN 'SERVICE_DUE'
-            WHEN ms.next_service_date IS NOT NULL
-              AND ms.next_service_date > CURRENT_DATE
-              AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
-            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
-              AND v.mileage >= ms.next_service_mileage - 1000
-              AND v.mileage < ms.next_service_mileage THEN 'SERVICE_WARNING'
-            ELSE NULL
-          END AS severity,
-          CASE
-            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
-            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
-              AND v.mileage > ms.next_service_mileage + 1000 THEN 1
-            WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
-            WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
-              AND v.mileage >= ms.next_service_mileage THEN 2
-            ELSE 3
-          END AS sev_rank
-        FROM maintenance_services ms
-        JOIN vehicle v ON v.id = ms.vehicle_id
-        WHERE ms.status NOT IN ('IN_PROGRESS')
-          AND (ms.next_service_date IS NOT NULL OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL))
-      ),
-      best AS (
-        SELECT DISTINCT ON (vehicle_id) vehicle_id, severity
-        FROM ranked
-        WHERE severity IS NOT NULL
-        ORDER BY vehicle_id, sev_rank ASC
-      )
-      SELECT
-        COUNT(*) FILTER (WHERE severity = 'SERVICE_WARNING') AS warning,
-        COUNT(*) FILTER (WHERE severity = 'SERVICE_DUE') AS due,
-        COUNT(*) FILTER (WHERE severity = 'SERVICE_OVERDUE') AS overdue
-      FROM best
-    `),
-    pool.query(`
-      SELECT COALESCE(SUM(CASE WHEN cnt > capacity THEN 1 ELSE 0 END), 0) AS n
-      FROM (
-        SELECT zone,
-               COUNT(*) AS cnt,
-               CASE zone WHEN 'TERMINAL' THEN 5 WHEN 'OUT' THEN 10 END AS capacity
-        FROM parking_assignment
-        WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
-        GROUP BY zone
-      ) sub
-    `),
+    city
+      ? pool.query(
+          `WITH ranked AS (
+            SELECT
+              ms.vehicle_id,
+              CASE
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage THEN 'SERVICE_DUE'
+                WHEN ms.next_service_date IS NOT NULL
+                  AND ms.next_service_date > CURRENT_DATE
+                  AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage - 1000
+                  AND v.mileage < ms.next_service_mileage THEN 'SERVICE_WARNING'
+                ELSE NULL
+              END AS severity,
+              CASE
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage > ms.next_service_mileage + 1000 THEN 1
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage THEN 2
+                ELSE 3
+              END AS sev_rank
+            FROM maintenance_services ms
+            JOIN vehicle v ON v.id = ms.vehicle_id
+            JOIN location l ON l.id = v.location_id
+            WHERE ms.status NOT IN ('IN_PROGRESS')
+              AND (ms.next_service_date IS NOT NULL OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL))
+              AND l.city = $1
+          ),
+          best AS (
+            SELECT DISTINCT ON (vehicle_id) vehicle_id, severity
+            FROM ranked
+            WHERE severity IS NOT NULL
+            ORDER BY vehicle_id, sev_rank ASC
+          )
+          SELECT
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_WARNING') AS warning,
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_DUE') AS due,
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_OVERDUE') AS overdue
+          FROM best`,
+          cp,
+        )
+      : pool.query(`
+          WITH ranked AS (
+            SELECT
+              ms.vehicle_id,
+              CASE
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 'SERVICE_OVERDUE'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage > ms.next_service_mileage + 1000 THEN 'SERVICE_OVERDUE'
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 'SERVICE_DUE'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage THEN 'SERVICE_DUE'
+                WHEN ms.next_service_date IS NOT NULL
+                  AND ms.next_service_date > CURRENT_DATE
+                  AND ms.next_service_date <= CURRENT_DATE + INTERVAL '7 days' THEN 'SERVICE_WARNING'
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage - 1000
+                  AND v.mileage < ms.next_service_mileage THEN 'SERVICE_WARNING'
+                ELSE NULL
+              END AS severity,
+              CASE
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date < CURRENT_DATE THEN 1
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage > ms.next_service_mileage + 1000 THEN 1
+                WHEN ms.next_service_date IS NOT NULL AND ms.next_service_date = CURRENT_DATE THEN 2
+                WHEN ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL
+                  AND v.mileage >= ms.next_service_mileage THEN 2
+                ELSE 3
+              END AS sev_rank
+            FROM maintenance_services ms
+            JOIN vehicle v ON v.id = ms.vehicle_id
+            WHERE ms.status NOT IN ('IN_PROGRESS')
+              AND (ms.next_service_date IS NOT NULL OR (ms.next_service_mileage IS NOT NULL AND v.mileage IS NOT NULL))
+          ),
+          best AS (
+            SELECT DISTINCT ON (vehicle_id) vehicle_id, severity
+            FROM ranked
+            WHERE severity IS NOT NULL
+            ORDER BY vehicle_id, sev_rank ASC
+          )
+          SELECT
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_WARNING') AS warning,
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_DUE') AS due,
+            COUNT(*) FILTER (WHERE severity = 'SERVICE_OVERDUE') AS overdue
+          FROM best
+        `),
+
+    // Parking overflow — TBS-specific, only meaningful globally
+    city
+      ? Promise.resolve({ rows: [{ n: "0" }] })
+      : pool.query(`
+          SELECT COALESCE(SUM(CASE WHEN cnt > capacity THEN 1 ELSE 0 END), 0) AS n
+          FROM (
+            SELECT zone,
+                   COUNT(*) AS cnt,
+                   CASE zone WHEN 'TERMINAL' THEN 5 WHEN 'OUT' THEN 10 END AS capacity
+            FROM parking_assignment
+            WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
+            GROUP BY zone
+          ) sub
+        `),
   ]);
 
   const pickup = parseInt(pickupRes.rows[0].n, 10);
@@ -498,7 +635,7 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
   const serviceDue = parseInt(maintRes.rows[0].due, 10);
   const serviceOverdue = parseInt(maintRes.rows[0].overdue, 10);
   const service = serviceWarning + serviceDue + serviceOverdue;
-  const parkingOverflow = parseInt(overflowRes.rows[0].n, 10);
+  const parkingOverflow = city ? 0 : parseInt(overflowRes.rows[0].n, 10);
   const total = pickup + dropoff + overdue + deliveredNoPayment + conflict + service + parkingOverflow;
 
   res.json({ total, pickup, dropoff, overdue, deliveredNoPayment, conflict, service, serviceWarning, serviceDue, serviceOverdue, parkingOverflow });

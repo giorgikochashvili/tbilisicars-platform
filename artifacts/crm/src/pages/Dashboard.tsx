@@ -1089,8 +1089,13 @@ export default function Dashboard() {
   });
 
   const alertSummaryQuery = useQuery<{ total: number; pickup: number; dropoff: number; overdue: number; conflict: number; service: number; serviceWarning: number; serviceDue: number; serviceOverdue: number }>({
-    queryKey: ["dashboard-alerts-summary"],
-    queryFn: () => fetchJson("/api/admin/alerts/summary"),
+    queryKey: ["dashboard-alerts-summary", city],
+    queryFn: () => {
+      const url = city
+        ? `/api/admin/alerts/summary?city=${encodeURIComponent(city)}`
+        : "/api/admin/alerts/summary";
+      return fetchJson(url);
+    },
     staleTime: 60_000,
   });
 
