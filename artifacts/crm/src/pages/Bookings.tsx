@@ -871,12 +871,13 @@ export default function BookingsPage() {
                         {b.customer?.fullName || b.contactFullName || "Unknown"}
                       </div>
                       {b.contactPhone && (
-                        <div className="flex items-center gap-1.5 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-xs text-muted-foreground">{b.contactPhone}</span>
                           <a
                             href={`https://wa.me/${b.contactPhone.replace(/[\s+]/g, "")}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-green-400 hover:text-green-300 flex-shrink-0"
                           >
                             <MessageCircle className="w-3 h-3" />

@@ -142,6 +142,7 @@ type BookingRowFlat = {
   dropoffLocationCity: string | null;
   partnerId: number | null;
   partnerName: string | null;
+  externalReservationCode: string | null;
 };
 
 function mapToBookingRow(row: BookingRowFlat) {
