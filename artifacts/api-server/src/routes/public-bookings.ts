@@ -668,6 +668,7 @@ router.post("/public/bookings", async (req, res) => {
           paymentStatus: "UNPAID" as const,
           rateId: resolvedTier?.rateId ?? null,
           rateTierId: resolvedTier?.tierId ?? null,
+          pricePerDay: resolvedTier ? String(resolvedTier.pricePerDay) : null,
           baseRate: serverBaseRate !== null ? String(serverBaseRate) : null,
           oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
         })
