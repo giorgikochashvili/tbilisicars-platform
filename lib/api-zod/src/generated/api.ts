@@ -2018,7 +2018,7 @@ export const UpdateAdminBookingBody = zod.object({
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
-  externalReservationCode: zod.string().optional(),
+  externalReservationCode: zod.string().nullish(),
 });
 
 export const UpdateAdminBookingResponse = zod

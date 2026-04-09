@@ -32,4 +32,6 @@ export interface AdminUpdateBookingBody {
   documentType?: string;
   documentNumber?: string;
   deposit?: string;
+  /** @nullable */
+  externalReservationCode?: string | null;
 }

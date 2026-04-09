@@ -1370,11 +1370,11 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     )}
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Source</div>
-                      <div className="font-medium">{(booking as any).source || "—"}</div>
+                      <div className="font-medium">{booking?.source || "—"}</div>
                     </div>
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Ext. Code</div>
-                      <div className="font-mono text-sm">{(booking as any).externalReservationCode || "—"}</div>
+                      <div className="font-mono text-sm">{booking?.externalReservationCode || "—"}</div>
                     </div>
                   </div>
                 ) : (
