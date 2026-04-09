@@ -1,0 +1,168 @@
+We are continuing the live production project TBILISICARS CRM&WEB.
+
+IMPORTANT WORKING MODE
+- This project is already fully built and working in Replit.
+- Do NOT rewrite architecture.
+- Do NOT refactor unrelated code.
+- Do NOT make assumptions.
+- Do NOT start coding yet.
+- First inspect the real existing codebase carefully and return a precise implementation plan only.
+- We are doing a surgical stabilization fix. Nothing else should be changed.
+- Preserve all existing working behavior unless directly required by this task.
+- If current code already partially implements any of the requested logic, identify that exactly and build on top of it instead of replacing it.
+
+TASK TYPE
+Plan only. No edits yet.
+
+GOAL
+Analyze and prepare an implementation plan for strict vehicle location integrity, correct cross-city movement behavior, and hard vehicle availability locking across:
+- CRM booking create/edit/assign flows
+- pickup/dropoff operations
+- fleet timeline/calendar
+- any relevant dashboard/operations views
+- any backend endpoints / validation / availability logic involved
+
+BUSINESS RULES TO IMPLEMENT
+These rules must be understood exactly as written:
+
+1) VEHICLE CITY VISIBILITY / LOCATION INTEGRITY
+- A vehicle must not appear in all cities.
+- If a vehicle is currently based in Tbilisi, it must not appear anywhere in Kutaisi or Batumi.
+- If a vehicle is currently based in Kutaisi, it must not appear anywhere in Tbilisi or Batumi.
+- If a vehicle is currently based in Batumi, it must not appear anywhere in Tbilisi or Kutaisi.
+- This rule must hold consistently in:
+  - booking creation
+  - booking edit / assign vehicle
+  - timeline
+  - calendar
+  - operational boards
+  - any vehicle selection dropdowns
+  - any fleet availability logic
+
+2) VEHICLE CREATION DEFAULT LOCATION BEHAVIOR
+- When creating a vehicle, there are 3 main regions/cities:
+  - Tbilisi
+  - Kutaisi
+  - Batumi
+- For those main city choices, the default sub-location should be the airport location for that city.
+- Analyze how vehicle current location is currently stored and how the city/location relationship works in the existing schema and UI.
+
+3) WHEN VEHICLE LOCATION SHOULD CHANGE
+- Vehicle location should NOT randomly change just because of booking assignment.
+- Vehicle location should only be changed by actual operational workflow.
+- The important operational cases:
+  A. If a vehicle is rented in one city and actually goes out on that rental, after pickup it must operationally belong to the route outcome described by the booking flow.
+  B. If that rental is cross-city, the vehicle must be reflected in the correct city for operations, calendar, and next availability handling.
+  C. If vehicle returns in Downtown or another actual dropoff location, vehicle current location should be updated on the vehicle record accordingly after the correct operational event.
+
+IMPORTANT ANALYSIS REQUIREMENT:
+- Do not guess the correct event yet.
+- Inspect the current pickup/dropoff implementation and determine exactly where location is already updated today.
+- Then propose the safest precise implementation consistent with current system behavior and the business requirement below:
+
+Business requirement:
+- If a vehicle goes out from Kutaisi on a booking and that booking’s operational outcome places it in Tbilisi, then after pickup/dropoff lifecycle it must appear in Tbilisi with correct data in:
+  - calendar
+  - operations board
+  - dropoff views
+  - future assignment logic
+
+You must identify the safest exact lifecycle point(s) for location mutation in the current codebase.
+
+4) HARD VEHICLE LOCK AFTER PICKUP
+- Once a specific vehicle is picked up on a booking, that vehicle must not be assignable to another booking until its active booking reaches its dropoff end and operational completion.
+- Example:
+  - vehicle XX123XX
+  - pickup: 15.04 15:00
+  - dropoff: 18.04 18:00
+  - once pickup is completed, XX123XX must not be assignable elsewhere before that booking is finished
+- This must be enforced in backend availability logic, not just UI hiding.
+
+5) SOFT “RETURNING SOON” WINDOW FOR ASSIGN
+- Desired enhancement:
+  - if a vehicle is returning very soon, it may appear in assign dropdown in a warning state
+  - target window: 2 hours before its scheduled return
+- Example:
+  - vehicle returns at 18:00
+  - if another booking pickup is at 15:30 -> vehicle should NOT appear
+  - if another booking pickup is at 16:00 or later -> vehicle may appear in assign list
+- In this “returning soon” case:
+  - vehicle should be visually differentiated in assign dropdown with a light blue / cyan style or equivalent clear warning state
+  - assignment may be allowed
+  - BUT pickup for the next booking must still be blocked until the previous booking has actually completed dropoff
+- This means:
+  - soft availability for assignment
+  - hard block for pickup until prior rental is operationally closed
+
+6) PICKUP MUST NEVER BE POSSIBLE IF PRIOR RENTAL NOT CLOSED
+- No matter what is assigned visually, a staff member must not be able to complete pickup on a booking if that vehicle still has any active unfinished prior rental.
+- This rule must be enforced in backend operational action validation, not only in UI.
+
+PLAN REQUIREMENTS
+Return a careful plan with these sections:
+
+SECTION A — CURRENT CODEBASE TRUTH
+Inspect the actual existing code and identify:
+- database fields/tables that define vehicle current location
+- how vehicle city is derived today
+- where booking assignment availability is computed
+- where pickup is completed
+- where dropoff is completed
+- where vehicle status changes to RENTED / AVAILABLE / etc
+- where timeline/calendar data is filtered
+- where booking assign dropdown gets its vehicles
+- whether any current overlap prevention already exists
+- whether any current location mutation already exists on pickup or return
+
+SECTION B — GAP ANALYSIS
+For each of the 6 business rules above:
+- explain current behavior in the actual code
+- explain what is missing
+- explain the minimal safe change needed
+
+SECTION C — FILE-BY-FILE IMPLEMENTATION PLAN
+List exact files, functions, routes, services, queries, components, hooks, and schemas that must be changed.
+Be specific.
+Do not say “probably” or “maybe”.
+Search until you know.
+
+SECTION D — RISK CONTROL
+Identify:
+- what existing flows could break if implemented carelessly
+- what must remain backward compatible
+- edge cases around:
+  - same-city rentals
+  - cross-city rentals
+  - airport vs downtown locations
+  - vehicle assigned but not yet picked up
+  - vehicle picked up but not dropped off
+  - returned booking with delayed staff actions
+  - manual booking edits after assignment
+  - calendar/timeline filtering mismatch
+
+SECTION E — IMPLEMENTATION ORDER
+Provide the safest step-by-step order for coding:
+1. backend truth changes
+2. validation/locking
+3. API response changes if needed
+4. frontend filtering
+5. assign dropdown warning state
+6. final regression checks
+
+SECTION F — ACCEPTANCE TEST MATRIX
+Provide concrete test cases for:
+- city isolation
+- cross-city operation
+- hard lock after pickup
+- soft 2-hour warning visibility
+- pickup blocked until previous dropoff is completed
+- timeline/calendar correctness
+- booking create/edit assign correctness
+
+VERY IMPORTANT
+- Do not code yet.
+- Do not simplify the business rules.
+- Do not replace current architecture.
+- Use the current codebase as source of truth.
+- If you find ambiguity, resolve it by inspecting more files before answering.
+- We need a precise engineering plan for a surgical production-safe fix.
