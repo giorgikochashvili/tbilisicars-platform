@@ -1,5 +1,6 @@
 import {
   db,
+  bookingTable,
   brandTable,
   locationTable,
   vehicleModelTable,
@@ -7,7 +8,7 @@ import {
   vehicleTable,
   type Vehicle,
 } from "@workspace/db";
-import { and, asc, count, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, lte, sql } from "drizzle-orm";
 import { ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 
 /** Detects PostgreSQL foreign-key violation (code 23503) from Drizzle-wrapped or raw pg errors. */
@@ -269,6 +270,7 @@ export interface AdminVehicleFilters {
   city?: string;
   modelId?: number;
   groupId?: number;
+  availableForPickup?: Date;
 }
 
 export async function listAdminVehicles(
@@ -339,6 +341,33 @@ export async function listAdminVehicles(
       .where(where),
   ]);
 
+  // Returning-soon: find RENTED vehicles whose active DELIVERED booking ends within 2 hours
+  // after the requested pickup time (new pickup at T, vehicle return at R: visible if T <= R <= T+2h)
+  const returningSoonIds = new Set<number>();
+  if (filters.availableForPickup) {
+    const T = filters.availableForPickup;
+    const twoHoursLater = new Date(T.getTime() + 2 * 60 * 60 * 1000);
+    const rentedIds = rows
+      .filter((r) => r.status === "RENTED")
+      .map((r) => r.id);
+    if (rentedIds.length > 0) {
+      const returningSoonRows = await db
+        .select({ vehicleId: bookingTable.vehicleId })
+        .from(bookingTable)
+        .where(
+          and(
+            inArray(bookingTable.vehicleId, rentedIds),
+            eq(bookingTable.status, "DELIVERED"),
+            gt(bookingTable.dropoffDatetime, T),
+            lte(bookingTable.dropoffDatetime, twoHoursLater),
+          ),
+        );
+      for (const r of returningSoonRows) {
+        if (r.vehicleId != null) returningSoonIds.add(r.vehicleId);
+      }
+    }
+  }
+
   const data = rows.map(({ modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, brandLogoUrl, ...v }) => ({
     ...v,
     vehicleModel: v.vehicleModelId != null ? {
@@ -349,6 +378,7 @@ export async function listAdminVehicles(
       seats: modelSeats ?? null,
       brand: brandId != null ? { id: brandId, name: brandName ?? null, logoUrl: brandLogoUrl ?? null } : null,
     } : null,
+    returningSoon: returningSoonIds.has(v.id),
   }));
 
   return {

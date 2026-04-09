@@ -89,6 +89,14 @@ export default function FleetPage() {
 const VALID_STATUSES = ["AVAILABLE", "RENTED", "MAINTENANCE", "RESERVED", "INACTIVE"] as const;
 type VehicleStatus = (typeof VALID_STATUSES)[number];
 
+// Explicit city → default airport location ID mapping.
+// IDs match stable DB values: 1=TBS Airport, 3=Kutaisi Airport, 4=Batumi Sea Port.
+const CITY_DEFAULT_LOCATION_ID: Record<string, number> = {
+  Tbilisi: 1,
+  Kutaisi: 3,
+  Batumi: 4,
+};
+
 function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -600,7 +608,17 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 
             <div className="grid gap-2">
               <Label>Current Location</Label>
-              <Select value={formData.locationId} onValueChange={(val) => setFormData({...formData, locationId: val})}>
+              <Select value={formData.locationId} onValueChange={(val) => {
+                if (!editingItem) {
+                  const selectedCity = regionLocations.find((r) => r.id.toString() === val)?.city;
+                  const defaultId = selectedCity
+                    ? (CITY_DEFAULT_LOCATION_ID[selectedCity]?.toString() ?? val)
+                    : val;
+                  setFormData({ ...formData, locationId: defaultId });
+                } else {
+                  setFormData({ ...formData, locationId: val });
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Select region..." /></SelectTrigger>
                 <SelectContent>
                   {regionLocations.map((r) => (

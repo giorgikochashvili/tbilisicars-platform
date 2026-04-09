@@ -143,6 +143,7 @@ router.get("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
   // Extract city before Zod parse (generated schema does not include it)
   const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
   const q = ListAdminVehiclesQueryParams.parse(req.query);
+  const availableForPickup = q.availableForPickup ? new Date(q.availableForPickup) : undefined;
   const data = await listAdminVehicles(
     {
       status: q.status as any,
@@ -150,6 +151,7 @@ router.get("/admin/fleet/vehicles", requireAdmin, async (req, res) => {
       city,
       modelId: q.modelId,
       groupId: q.groupId,
+      availableForPickup,
     },
     q.page,
     q.limit,

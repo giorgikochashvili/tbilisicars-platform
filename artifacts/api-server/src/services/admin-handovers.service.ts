@@ -6,8 +6,8 @@ import {
   bookingHistoryTable,
   adminsTable,
 } from "@workspace/db";
-import { and, asc, eq, isNull } from "drizzle-orm";
-import { NotFoundError } from "../lib/errors.js";
+import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { applyAdminBookingStatus } from "./admin-bookings.service.js";
 
 export async function createHandover(data: {
@@ -39,6 +39,36 @@ export async function createHandover(data: {
     .limit(1);
   if (bookingRows.length === 0) {
     throw new NotFoundError(`Booking ${bookingId} not found`);
+  }
+
+  // Hard lock: block pickup if the vehicle is currently rented on another booking
+  if (handoverType === "PICKUP") {
+    const [bk] = await db
+      .select({ vehicleId: bookingTable.vehicleId })
+      .from(bookingTable)
+      .where(eq(bookingTable.id, bookingId))
+      .limit(1);
+
+    if (bk?.vehicleId) {
+      const [activeRental] = await db
+        .select({ id: bookingTable.id })
+        .from(bookingTable)
+        .where(
+          and(
+            eq(bookingTable.vehicleId, bk.vehicleId),
+            eq(bookingTable.status, "DELIVERED"),
+            isNull(bookingTable.deletedAt),
+            ne(bookingTable.id, bookingId),
+          ),
+        )
+        .limit(1);
+
+      if (activeRental) {
+        throw new ConflictError(
+          `Vehicle is currently rented on booking #${activeRental.id}. Complete that dropoff first.`,
+        );
+      }
+    }
   }
 
   // Insert the handover record

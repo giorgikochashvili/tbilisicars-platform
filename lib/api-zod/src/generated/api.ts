@@ -885,6 +885,7 @@ export const ListAdminVehiclesQueryParams = zod.object({
   locationId: zod.coerce.number().optional(),
   modelId: zod.coerce.number().optional(),
   groupId: zod.coerce.number().optional(),
+  availableForPickup: zod.string().optional(),
 });
 
 export const ListAdminVehiclesResponse = zod.object({
@@ -960,6 +961,7 @@ export const ListAdminVehiclesResponse = zod.object({
             .nullish(),
         })
         .nullish(),
+      returningSoon: zod.boolean().optional(),
     }),
   ),
   meta: zod.object({

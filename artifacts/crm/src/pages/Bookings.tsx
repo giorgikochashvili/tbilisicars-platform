@@ -308,13 +308,32 @@ export default function BookingsPage() {
   const { data: customers } = useListAdminCustomers(customerQueryParams, reqOpts);
   const { data: brands } = useListAdminBrands(reqOpts);
   const { data: models } = useListAdminModels(reqOpts);
-  const vehicleQueryParams = useMemo(() => {
-    const id = parseInt(booking.vehicleModelId);
-    return !isNaN(id) ? ({ modelId: id } as any) : undefined;
-  }, [booking.vehicleModelId]);
-  const { data: vehicleData } = useListAdminVehicles(vehicleQueryParams, reqOpts);
   const { data: locations } = useListLocations(reqOpts);
   const { data: adminLocations } = useListAdminLocations(reqOpts);
+  const vehicleQueryParams = useMemo(() => {
+    const modelId = parseInt(booking.vehicleModelId);
+    const hasModel = !isNaN(modelId);
+
+    const locationsArray = (locations as any) || [];
+    const pickupLocId = parseInt(booking.pickupLocationId);
+    const pickupLoc = !isNaN(pickupLocId)
+      ? locationsArray.find((l: any) => l.id === pickupLocId)
+      : null;
+    const city: string | undefined = pickupLoc?.city || undefined;
+
+    const availableForPickup =
+      booking.pickupDate && booking.pickupTime
+        ? `${booking.pickupDate}T${booking.pickupTime}:00`
+        : undefined;
+
+    if (!hasModel && !city) return undefined;
+    return {
+      ...(hasModel ? { modelId } : {}),
+      ...(city ? { city } : {}),
+      ...(availableForPickup ? { availableForPickup } : {}),
+    } as any;
+  }, [booking.vehicleModelId, booking.pickupLocationId, booking.pickupDate, booking.pickupTime, locations]);
+  const { data: vehicleData } = useListAdminVehicles(vehicleQueryParams, reqOpts);
 
   const statusMutation = useUpdateAdminBookingStatus(reqOpts);
   const createMutation = useCreateAdminBooking(reqOpts);
@@ -1122,11 +1141,22 @@ export default function BookingsPage() {
                   <SelectTrigger><SelectValue placeholder="Any available vehicle" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Any available vehicle</SelectItem>
-                    {allVehicles.filter((v: any) => v.status === "AVAILABLE" || v.status === "RESERVED").map((v: any) => (
-                      <SelectItem key={v.id} value={v.id.toString()}>
-                        {v.vehicleModel?.brand?.name} {v.vehicleModel?.name} — {v.licensePlate} ({v.status})
-                      </SelectItem>
-                    ))}
+                    {allVehicles
+                      .filter((v: any) =>
+                        v.status === "AVAILABLE" ||
+                        v.status === "RESERVED" ||
+                        (v.status === "RENTED" && v.returningSoon === true)
+                      )
+                      .map((v: any) => (
+                        <SelectItem
+                          key={v.id}
+                          value={v.id.toString()}
+                          className={v.returningSoon ? "text-cyan-600 font-medium" : ""}
+                        >
+                          {v.vehicleModel?.brand?.name} {v.vehicleModel?.name} — {v.licensePlate}
+                          {v.returningSoon ? " ⚠ returning soon" : ` (${v.status})`}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
