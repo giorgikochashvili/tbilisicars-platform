@@ -1,0 +1,165 @@
+Implement #72 - Service Module Form Improvements.
+
+IMPORTANT:
+This is a live production CRM. Apply changes ONLY to the Service module.
+
+STRICT RULES:
+- Do NOT refactor unrelated code
+- Do NOT touch booking, fleet, pricing, or handover logic
+- Keep UI consistent with current dark theme
+- Maintain mobile responsiveness
+- Make minimal, surgical changes only
+
+--------------------------------------------------
+TASK 1 — VEHICLE PLATE AUTOCOMPLETE + SYNC
+--------------------------------------------------
+
+In Service.tsx (Add/Edit Service modal):
+
+1. Replace the Vehicle search input with a combobox-style autocomplete
+
+2. As user types:
+   - fetch/filter vehicles by:
+     - plate number (primary)
+     - brand
+     - model
+
+3. Show dropdown results
+
+4. On selecting a vehicle:
+   - set:
+     vehicleId
+     svcBrandId
+     svcModelId
+
+5. ALSO:
+   - auto-fill the plate search field with selected vehicle plate
+
+6. Reverse sync:
+   - when user selects via Brand → Model → Vehicle dropdowns:
+     - update plate search field with selected vehicle plate
+
+DO NOT break existing cascade logic.
+
+--------------------------------------------------
+TASK 2 — MULTI-SELECT SERVICE CATEGORIES (GEORGIAN)
+--------------------------------------------------
+
+BACKEND (maintenance.ts + service layer):
+
+1. Add new column:
+   serviceCategories TEXT (nullable)
+   → stores JSON array of strings
+
+2. Make:
+   serviceTypeId nullable (remove NOT NULL)
+
+3. Update:
+   - listServiceRecords
+   - getServiceRecord
+   - createServiceRecord
+   - updateServiceRecord
+
+   to include:
+   serviceCategories
+
+4. Change:
+   innerJoin → leftJoin on maintenance_service_types
+
+5. Zod validation:
+   - serviceTypeId optional
+   - serviceCategories optional (array of strings)
+
+IMPORTANT:
+- DO NOT remove serviceTypeId
+- Keep backward compatibility
+
+--------------------------------------------------
+DB APPLY:
+
+Use ONLY:
+pnpm --filter @workspace/db run db:push
+
+--------------------------------------------------
+FRONTEND:
+
+1. Replace single Service Category dropdown with multi-select
+
+2. Hardcoded categories (Georgian):
+
+- ხუნდები
+- ზეთი & ფილტრი
+- ჩისტიწელები
+- ნათურა
+- ვიზუალური დაზიანება
+- კარობკის ზეთი
+- ტექ დათვალიერება
+- სავალი ნაწილები
+- გასატესტი
+- საბურავები
+
+3. Behavior:
+- allow multiple selection
+- must select at least one before save
+
+4. Save as:
+   serviceCategories (JSON array)
+
+5. Display:
+- show as badge list in table and detail view
+
+6. Fallback:
+- if serviceCategories empty → show serviceTypeName (legacy)
+
+--------------------------------------------------
+TASK 3 — DEFAULT STATUS
+--------------------------------------------------
+
+Change default:
+
+FROM:
+COMPLETED
+
+TO:
+SCHEDULED
+
+Only for new records (EMPTY_FORM).
+
+--------------------------------------------------
+TASK 4 — MECHANIC SELECTION
+--------------------------------------------------
+
+Replace Mechanic Name input with searchable dropdown:
+
+1. Fetch:
+GET /api/admin/team
+
+2. Show:
+- staff fullName
+
+3. On select:
+- set mechanicName = selected fullName
+
+4. Fallback:
+- if API fails or empty → use text input
+
+--------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------
+
+- Plate search works with autocomplete
+- Selecting vehicle syncs brand + model
+- Cascade selection syncs plate field
+- Multiple service categories can be selected
+- Categories stored and displayed correctly
+- Legacy records still show serviceTypeName
+- Default status is SCHEDULED
+- Mechanic selectable from staff
+- Mobile layout is clean
+- No regressions anywhere else
+
+--------------------------------------------------
+RETURN
+--------------------------------------------------
+
+Return clean, minimal code only.

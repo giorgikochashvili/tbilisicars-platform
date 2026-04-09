@@ -1,0 +1,119 @@
+We are working on a live production CRM (Tbilisicars).
+This task is strictly for the Service module (Add Service Record form).
+
+CRITICAL RULES:
+- Do NOT refactor unrelated code
+- Do NOT break existing booking, fleet, or pricing logic
+- Keep changes minimal and consistent with current UI
+- Maintain dark theme and mobile responsiveness
+
+----------------------------------------
+TASK 1 — VEHICLE SEARCH BY PLATE
+----------------------------------------
+
+In the "Add Service Record" form:
+
+1. The top Vehicle search input must support searching by:
+   - plate number (primary)
+   - optionally brand/model (if already supported)
+
+2. As user types:
+   - show dropdown results (autocomplete)
+
+3. When a vehicle is selected:
+   - automatically set:
+     - selected vehicle
+     - brand
+     - model
+
+4. Existing flow must still work:
+   - Brand → Model → Vehicle selection must remain functional
+
+----------------------------------------
+TASK 2 — SYNC BRAND / MODEL / VEHICLE
+----------------------------------------
+
+Ensure bidirectional consistency:
+
+- If vehicle selected via search → brand/model auto-fill
+- If brand/model selected → vehicle list filters correctly
+
+Do NOT break existing selection logic.
+
+----------------------------------------
+TASK 3 — SERVICE CATEGORY (MULTI-SELECT)
+----------------------------------------
+
+Replace single-select Service Category with multi-select.
+
+Use fixed categories (in Georgian):
+
+- ხუნდები
+- ზეთი & ფილტრი
+- ჩისტიწელები
+- ნათურა
+- ვიზუალური დაზიანება
+- კარობკის ზეთი
+- ტექ დათვალიერება
+- სავალი ნაწილები
+- გასატესტი
+- საბურავები
+
+Requirements:
+- user can select multiple categories
+- UI must be clean (checkbox list or multi-select dropdown)
+- works well on mobile
+- selected categories must:
+  - save correctly
+  - display correctly in service detail/edit
+
+----------------------------------------
+TASK 4 — DEFAULT STATUS
+----------------------------------------
+
+Change default value of Status:
+
+- from: Completed
+- to: Scheduled
+
+Do NOT change status logic elsewhere.
+
+----------------------------------------
+TASK 5 — MECHANIC SELECTION
+----------------------------------------
+
+Mechanic Name field must allow selecting from staff/employees:
+
+- replace free text with:
+  - searchable select (preferred)
+  OR
+  - dropdown of existing staff users
+
+Requirements:
+- must use existing staff/user data (if available)
+- UI must stay consistent
+
+If staff list is not readily available:
+- keep fallback to text input (do not break form)
+
+----------------------------------------
+ACCEPTANCE CRITERIA
+----------------------------------------
+
+Done only if:
+
+- Vehicle can be searched by plate and selected quickly
+- Selecting vehicle auto-fills brand & model
+- Brand/model selection flow still works
+- Service Category supports multiple selections
+- Categories are in Georgian and display correctly
+- Default status is "Scheduled"
+- Mechanic can be selected from staff
+- Mobile layout is clean and usable
+- No regressions in other modules
+
+----------------------------------------
+RETURN
+----------------------------------------
+
+Return clean code only.
