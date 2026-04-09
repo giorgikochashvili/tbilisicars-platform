@@ -42,7 +42,12 @@ export function logAudit(params: AuditParams): void {
         params.afterData != null ? JSON.stringify(params.afterData) : null,
       ],
     );
-  })().catch((err) => console.error("[AUDIT LOG ERROR]", err));
+  })().catch((err) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[AUDIT FAILURE] ${params.entityType} ${params.action} | entityId=${params.entityId} | actorId=${params.actorId} | error=${msg}`
+    );
+  });
 }
 
 export function bookingRef(id: number): string {
