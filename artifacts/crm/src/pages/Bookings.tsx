@@ -767,12 +767,12 @@ export default function BookingsPage() {
                     <span className="truncate">{format(new Date(b.dropoffDatetime), "MMM d, yyyy HH:mm")} · {b.dropoffLocation?.name}</span>
                   </div>
                 </div>
-                {/* Row 5: amount (if not canceled) */}
-                {b.status !== "CANCELED" && b.status !== "NO_SHOW" && b.totalAmount && (
-                  <div className="mt-1.5 font-mono font-bold text-sm">
-                    {formatBookingAmount(b.totalAmount, b.currency)}
-                  </div>
-                )}
+                {/* Row 5: amount */}
+                <div className="mt-1.5 font-mono font-bold text-sm">
+                  {b.status === "CANCELED" || b.status === "NO_SHOW"
+                    ? <span className="text-muted-foreground">—</span>
+                    : b.totalAmount ? formatBookingAmount(b.totalAmount, b.currency) : "—"}
+                </div>
               </div>
             ))
           )}
