@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
@@ -43,16 +44,38 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED:   "Cancelled",
 };
 
+const GEORGIAN_CATEGORIES = [
+  "ხუნდები",
+  "ზეთი & ფილტრი",
+  "ჩისტიწელები",
+  "ნათურა",
+  "ვიზუალური დაზიანება",
+  "კარობკის ზეთი",
+  "ტექ დათვალიერება",
+  "სავალი ნაწილები",
+  "გასატესტი",
+  "საბურავები",
+];
+
+function parseCategories(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 const EMPTY_FORM = {
   vehicleId: "",
-  serviceTypeId: "",
   serviceDate: new Date().toISOString().split("T")[0],
   mileage: "",
   cost: "",
   shopName: "",
   mechanicName: "",
   description: "",
-  status: "COMPLETED" as string,
+  status: "SCHEDULED" as string,
 };
 
 export default function ServicePage() {
@@ -60,6 +83,7 @@ export default function ServicePage() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -71,9 +95,30 @@ export default function ServicePage() {
   const [svcPlateSearch, setSvcPlateSearch] = useState("");
   const [svcBrandId, setSvcBrandId] = useState("");
   const [svcModelId, setSvcModelId] = useState("");
+  const [svcAutoOpen, setSvcAutoOpen] = useState(false);
+
+  // Mechanic dropdown state
+  const [mechanicDropdownOpen, setMechanicDropdownOpen] = useState(false);
+
+  const plateRef = useRef<HTMLDivElement>(null);
+  const mechanicRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (plateRef.current && !plateRef.current.contains(e.target as Node)) {
+        setSvcAutoOpen(false);
+      }
+      if (mechanicRef.current && !mechanicRef.current.contains(e.target as Node)) {
+        setMechanicDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // ── Data fetching ─────────────────────────────────────────────────
 
@@ -87,6 +132,12 @@ export default function ServicePage() {
     queryFn: () => apiFetch("/api/admin/fleet/vehicles?limit=200"),
   });
   const vehicles = vehiclesData?.data ?? [];
+
+  const { data: teamData } = useQuery({
+    queryKey: ["admin-team-for-service"],
+    queryFn: () => apiFetch("/api/admin/team"),
+  });
+  const staffList: any[] = Array.isArray(teamData) ? teamData : [];
 
   const params = new URLSearchParams();
   if (vehicleSearch) params.set("vehicleSearch", vehicleSearch);
@@ -137,29 +188,34 @@ export default function ServicePage() {
   // ── Handlers ──────────────────────────────────────────────────────
 
   const handleOpenModal = (record: any = null) => {
+    setSvcAutoOpen(false);
+    setMechanicDropdownOpen(false);
     setSvcPlateSearch("");
+    setSvcBrandId("");
     setSvcModelId("");
     if (record) {
       setEditingRecord(record);
       setFormData({
         vehicleId: record.vehicleId?.toString() ?? "",
-        serviceTypeId: record.serviceTypeId?.toString() ?? "",
         serviceDate: record.serviceDate ?? new Date().toISOString().split("T")[0],
         mileage: record.mileage?.toString() ?? "",
         cost: record.cost?.toString() ?? "",
         shopName: record.shopName ?? "",
         mechanicName: record.mechanicName ?? "",
         description: record.description ?? "",
-        status: record.status ?? "COMPLETED",
+        status: record.status ?? "SCHEDULED",
       });
+      // Pre-fill categories
+      setSelectedCategories(parseCategories(record.serviceCategories));
       // Pre-fill cascade from saved vehicle
       const savedVehicle = vehicles.find((v: any) => v.id?.toString() === record.vehicleId?.toString());
+      setSvcPlateSearch(savedVehicle?.licensePlate ?? "");
       setSvcBrandId(savedVehicle?.vehicleModel?.brand?.id?.toString() ?? "");
       setSvcModelId(savedVehicle?.vehicleModelId?.toString() ?? "");
     } else {
       setEditingRecord(null);
       setFormData(EMPTY_FORM);
-      setSvcBrandId("");
+      setSelectedCategories([]);
     }
     setIsModalOpen(true);
   };
@@ -169,13 +225,13 @@ export default function ServicePage() {
       toast({ title: "Validation Error", description: "Vehicle is required", variant: "destructive" });
       return;
     }
-    if (!formData.serviceTypeId) {
-      toast({ title: "Validation Error", description: "Service category is required", variant: "destructive" });
+    if (selectedCategories.length === 0) {
+      toast({ title: "Validation Error", description: "At least one service category is required", variant: "destructive" });
       return;
     }
     const body = {
       vehicleId: parseInt(formData.vehicleId),
-      serviceTypeId: parseInt(formData.serviceTypeId),
+      serviceCategories: JSON.stringify(selectedCategories),
       serviceDate: formData.serviceDate || null,
       mileage: formData.mileage ? parseInt(formData.mileage) : null,
       cost: formData.cost || null,
@@ -207,9 +263,6 @@ export default function ServicePage() {
 
   const hasFilters = vehicleSearch || filterCategory || filterStatus || filterDateFrom || filterDateTo;
 
-  const vehicleLabel = (v: any) =>
-    `${v.vehicleModel?.brand?.name ?? ""} ${v.vehicleModel?.name ?? ""} — ${v.licensePlate ?? "no plate"}`.trim();
-
   // ── Modal vehicle cascade ─────────────────────────────────────────
   const svcBrands: any[] = Array.from(
     new Map(
@@ -235,9 +288,26 @@ export default function ServicePage() {
   const svcFilteredVehicles: any[] = vehicles.filter((v: any) => {
     if (svcBrandId && svcBrandId !== "any" && v.vehicleModel?.brand?.id?.toString() !== svcBrandId) return false;
     if (svcModelId && svcModelId !== "any" && v.vehicleModelId?.toString() !== svcModelId) return false;
-    if (svcPlateSearch && !v.licensePlate?.toUpperCase().includes(svcPlateSearch.toUpperCase())) return false;
     return true;
   });
+
+  // Plate autocomplete results (search by plate, brand, or model)
+  const svcAutoResults: any[] = svcPlateSearch.trim().length >= 1
+    ? vehicles.filter((v: any) => {
+        const q = svcPlateSearch.toLowerCase();
+        return (
+          v.licensePlate?.toLowerCase().includes(q) ||
+          v.vehicleModel?.brand?.name?.toLowerCase().includes(q) ||
+          v.vehicleModel?.name?.toLowerCase().includes(q)
+        );
+      }).slice(0, 10)
+    : [];
+
+  // Mechanic staff filtered list
+  const filteredStaff = staffList.filter((s: any) =>
+    !formData.mechanicName ||
+    s.fullName?.toLowerCase().includes(formData.mechanicName.toLowerCase())
+  );
 
   // ── Render ────────────────────────────────────────────────────────
 
@@ -361,62 +431,75 @@ export default function ServicePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                records.map((r: any) => (
-                  <TableRow key={r.id} className="border-border/20 hover:bg-muted/30 transition-colors">
-                    <TableCell className="text-sm font-mono">
-                      {r.serviceDate ? new Date(r.serviceDate).toLocaleDateString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm">
-                        {r.brandName} {r.vehicleModelName}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {r.vehicleLicensePlate || "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                        {r.serviceTypeName}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {r.mileage ? r.mileage.toLocaleString() + " km" : "—"}
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {r.cost ? `₾${parseFloat(r.cost).toFixed(2)}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {r.shopName || r.mechanicName || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-xs ${STATUS_COLORS[r.status] ?? ""}`}>
-                        {STATUS_LABELS[r.status] ?? r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {r.vehicleId && (
-                            <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
-                              <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
+                records.map((r: any) => {
+                  const cats = parseCategories(r.serviceCategories);
+                  return (
+                    <TableRow key={r.id} className="border-border/20 hover:bg-muted/30 transition-colors">
+                      <TableCell className="text-sm font-mono">
+                        {r.serviceDate ? new Date(r.serviceDate).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">
+                          {r.brandName} {r.vehicleModelName}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {r.vehicleLicensePlate || "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {cats.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {cats.map((c: string) => (
+                              <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                            {r.serviceTypeName || "—"}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.mileage ? r.mileage.toLocaleString() + " km" : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm font-mono">
+                        {r.cost ? `₾${parseFloat(r.cost).toFixed(2)}` : "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.shopName || r.mechanicName || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${STATUS_COLORS[r.status] ?? ""}`}>
+                          {STATUS_LABELS[r.status] ?? r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {r.vehicleId && (
+                              <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
+                                <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleOpenModal(r)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleOpenModal(r)}>
-                            <Edit className="w-4 h-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(r.id)} className="text-destructive focus:text-destructive">
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+                            <DropdownMenuItem onClick={() => handleDelete(r.id)} className="text-destructive focus:text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -425,7 +508,7 @@ export default function ServicePage() {
 
       {/* Add / Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
               {editingRecord ? "Edit Service Record" : "Add Service Record"}
@@ -436,27 +519,62 @@ export default function ServicePage() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Vehicle — plate search + Brand → Model → Vehicle cascade */}
+            {/* ── Vehicle — plate autocomplete + Brand → Model → Vehicle cascade ── */}
             <div className="grid gap-2">
               <Label>Vehicle <span className="text-destructive">*</span></Label>
-              {/* Plate search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+              {/* Plate autocomplete */}
+              <div ref={plateRef} className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   value={svcPlateSearch}
                   onChange={(e) => {
-                    setSvcPlateSearch(e.target.value.toUpperCase());
-                    setFormData({ ...formData, vehicleId: "" });
+                    const val = e.target.value.toUpperCase();
+                    setSvcPlateSearch(val);
+                    setFormData((prev) => ({ ...prev, vehicleId: "" }));
+                    setSvcAutoOpen(true);
                   }}
+                  onFocus={() => svcPlateSearch.trim() && setSvcAutoOpen(true)}
+                  placeholder="Search by plate, brand or model…"
                   className="pl-9 bg-background font-mono uppercase text-sm"
                 />
+                {svcAutoOpen && svcAutoResults.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg max-h-52 overflow-y-auto">
+                    {svcAutoResults.map((v: any) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 border-b border-border/30 last:border-0"
+                        onClick={() => {
+                          setSvcPlateSearch(v.licensePlate ?? "");
+                          setSvcBrandId(v.vehicleModel?.brand?.id?.toString() ?? "");
+                          setSvcModelId(v.vehicleModelId?.toString() ?? "");
+                          setFormData((prev) => ({ ...prev, vehicleId: v.id.toString() }));
+                          setSvcAutoOpen(false);
+                        }}
+                      >
+                        <span className="font-mono font-semibold text-foreground min-w-[80px]">
+                          {v.licensePlate ?? "no plate"}
+                        </span>
+                        <span className="text-muted-foreground text-xs">
+                          {v.vehicleModel?.brand?.name ?? ""} {v.vehicleModel?.name ?? ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               {/* Brand */}
-              <Select value={svcBrandId || "any"} onValueChange={(v) => {
-                setSvcBrandId(v === "any" ? "" : v);
-                setSvcModelId("");
-                setFormData({ ...formData, vehicleId: "" });
-              }}>
+              <Select
+                value={svcBrandId || "any"}
+                onValueChange={(v) => {
+                  setSvcBrandId(v === "any" ? "" : v);
+                  setSvcModelId("");
+                  setFormData((prev) => ({ ...prev, vehicleId: "" }));
+                  setSvcPlateSearch("");
+                }}
+              >
                 <SelectTrigger className="bg-background text-sm"><SelectValue placeholder="Any brand" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any brand</SelectItem>
@@ -465,11 +583,16 @@ export default function ServicePage() {
                   ))}
                 </SelectContent>
               </Select>
+
               {/* Model */}
-              <Select value={svcModelId || "any"} onValueChange={(v) => {
-                setSvcModelId(v === "any" ? "" : v);
-                setFormData({ ...formData, vehicleId: "" });
-              }}>
+              <Select
+                value={svcModelId || "any"}
+                onValueChange={(v) => {
+                  setSvcModelId(v === "any" ? "" : v);
+                  setFormData((prev) => ({ ...prev, vehicleId: "" }));
+                  setSvcPlateSearch("");
+                }}
+              >
                 <SelectTrigger className="bg-background text-sm"><SelectValue placeholder="Any model" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any model</SelectItem>
@@ -478,8 +601,16 @@ export default function ServicePage() {
                   ))}
                 </SelectContent>
               </Select>
-              {/* Vehicle */}
-              <Select value={formData.vehicleId} onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}>
+
+              {/* Vehicle — reverse sync updates plate field */}
+              <Select
+                value={formData.vehicleId}
+                onValueChange={(v) => {
+                  const sel = svcFilteredVehicles.find((fv: any) => fv.id.toString() === v);
+                  setFormData((prev) => ({ ...prev, vehicleId: v }));
+                  if (sel) setSvcPlateSearch(sel.licensePlate ?? "");
+                }}
+              >
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="Select vehicle…" />
                 </SelectTrigger>
@@ -497,47 +628,74 @@ export default function ServicePage() {
               </Select>
             </div>
 
-            {/* Category */}
+            {/* ── Service Categories (multi-select) ── */}
             <div className="grid gap-2">
-              <Label>Service Category <span className="text-destructive">*</span></Label>
-              <Select value={formData.serviceTypeId} onValueChange={(v) => setFormData({ ...formData, serviceTypeId: v })}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Select category…" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {(serviceTypes as any[]).map((t: any) => (
-                    <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>
+              <div className="flex items-center justify-between">
+                <Label>
+                  Service Categories <span className="text-destructive">*</span>
+                </Label>
+                {selectedCategories.length > 0 && (
+                  <span className="text-xs text-muted-foreground">{selectedCategories.length} selected</span>
+                )}
+              </div>
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedCategories.map((c) => (
+                    <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {c}
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
+              <div className="border border-border rounded-md bg-background divide-y divide-border/40 max-h-52 overflow-y-auto">
+                {GEORGIAN_CATEGORIES.map((cat) => (
+                  <div key={cat} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id={`cat-${cat}`}
+                      checked={selectedCategories.includes(cat)}
+                      onCheckedChange={(checked) => {
+                        setSelectedCategories((prev) =>
+                          checked ? [...prev, cat] : prev.filter((c) => c !== cat)
+                        );
+                      }}
+                    />
+                    <label
+                      htmlFor={`cat-${cat}`}
+                      className="text-sm cursor-pointer select-none flex-1"
+                    >
+                      {cat}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Date + Status */}
+            {/* ── Date + Status ── */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Service Date</Label>
                 <Input
                   type="date"
                   value={formData.serviceDate}
-                  onChange={(e) => setFormData({ ...formData, serviceDate: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, serviceDate: e.target.value }))}
                   className="bg-background"
                 />
               </div>
               <div className="grid gap-2">
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                <Select value={formData.status} onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v }))}>
                   <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                     <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
                     <SelectItem value="CANCELLED">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Mileage + Cost */}
+            {/* ── Mileage + Cost ── */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Mileage at Service (km)</Label>
@@ -545,7 +703,7 @@ export default function ServicePage() {
                   type="number"
                   min="0"
                   value={formData.mileage}
-                  onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mileage: e.target.value }))}
                   className="bg-background"
                 />
               </div>
@@ -556,38 +714,67 @@ export default function ServicePage() {
                   step="0.01"
                   min="0"
                   value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, cost: e.target.value }))}
                   className="bg-background"
                 />
               </div>
             </div>
 
-            {/* Shop + Mechanic */}
+            {/* ── Shop + Mechanic ── */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Service Shop / Vendor</Label>
                 <Input
                   value={formData.shopName}
-                  onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, shopName: e.target.value }))}
                   className="bg-background"
                 />
               </div>
               <div className="grid gap-2">
                 <Label>Mechanic Name</Label>
-                <Input
-                  value={formData.mechanicName}
-                  onChange={(e) => setFormData({ ...formData, mechanicName: e.target.value })}
-                  className="bg-background"
-                />
+                <div ref={mechanicRef} className="relative">
+                  <Input
+                    value={formData.mechanicName}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, mechanicName: e.target.value }));
+                      setMechanicDropdownOpen(true);
+                    }}
+                    onFocus={() => setMechanicDropdownOpen(true)}
+                    placeholder={staffList.length > 0 ? "Search staff…" : "Mechanic name"}
+                    className="bg-background text-sm"
+                  />
+                  {staffList.length > 0 && (
+                    <ChevronDown
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+                    />
+                  )}
+                  {mechanicDropdownOpen && filteredStaff.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg max-h-44 overflow-y-auto">
+                      {filteredStaff.map((s: any) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border/30 last:border-0"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, mechanicName: s.fullName }));
+                            setMechanicDropdownOpen(false);
+                          }}
+                        >
+                          {s.fullName}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* ── Notes ── */}
             <div className="grid gap-2">
               <Label>Work Description / Notes</Label>
               <Textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 rows={3}
                 className="bg-background"
               />

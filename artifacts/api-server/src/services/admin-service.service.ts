@@ -6,7 +6,7 @@ import {
   vehicleModelTable,
   brandTable,
 } from "@workspace/db";
-import { asc, desc, eq, and, gte, lte, ilike, or, count } from "drizzle-orm";
+import { asc, desc, eq, and, gte, lte, count } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 // ─── Service Categories ───────────────────────────────────────────────────────
@@ -56,7 +56,8 @@ export async function seedServiceTypes() {
 interface ServiceRecordRow {
   id: number;
   vehicleId: number;
-  serviceTypeId: number;
+  serviceTypeId: number | null;
+  serviceCategories: string | null;
   serviceDate: string | null;
   mileage: number | null;
   cost: string | null;
@@ -69,7 +70,7 @@ interface ServiceRecordRow {
   vehicleLicensePlate: string | null;
   vehicleModelName: string | null;
   brandName: string | null;
-  serviceTypeName: string;
+  serviceTypeName: string | null;
 }
 
 export async function listServiceRecords(filters: {
@@ -105,6 +106,7 @@ export async function listServiceRecords(filters: {
       id: maintenanceServicesTable.id,
       vehicleId: maintenanceServicesTable.vehicleId,
       serviceTypeId: maintenanceServicesTable.serviceTypeId,
+      serviceCategories: maintenanceServicesTable.serviceCategories,
       serviceDate: maintenanceServicesTable.serviceDate,
       mileage: maintenanceServicesTable.mileage,
       cost: maintenanceServicesTable.cost,
@@ -123,7 +125,7 @@ export async function listServiceRecords(filters: {
     .innerJoin(vehicleTable, eq(maintenanceServicesTable.vehicleId, vehicleTable.id))
     .innerJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
     .innerJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
-    .innerJoin(maintenanceServiceTypesTable, eq(maintenanceServicesTable.serviceTypeId, maintenanceServiceTypesTable.id))
+    .leftJoin(maintenanceServiceTypesTable, eq(maintenanceServicesTable.serviceTypeId, maintenanceServiceTypesTable.id))
     .where(where)
     .orderBy(desc(maintenanceServicesTable.serviceDate), desc(maintenanceServicesTable.createdAt))
     .limit(limit)
@@ -163,6 +165,7 @@ export async function getServiceRecord(id: number) {
       id: maintenanceServicesTable.id,
       vehicleId: maintenanceServicesTable.vehicleId,
       serviceTypeId: maintenanceServicesTable.serviceTypeId,
+      serviceCategories: maintenanceServicesTable.serviceCategories,
       serviceDate: maintenanceServicesTable.serviceDate,
       mileage: maintenanceServicesTable.mileage,
       cost: maintenanceServicesTable.cost,
@@ -181,7 +184,7 @@ export async function getServiceRecord(id: number) {
     .innerJoin(vehicleTable, eq(maintenanceServicesTable.vehicleId, vehicleTable.id))
     .innerJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
     .innerJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
-    .innerJoin(maintenanceServiceTypesTable, eq(maintenanceServicesTable.serviceTypeId, maintenanceServiceTypesTable.id))
+    .leftJoin(maintenanceServiceTypesTable, eq(maintenanceServicesTable.serviceTypeId, maintenanceServiceTypesTable.id))
     .where(eq(maintenanceServicesTable.id, id));
 
   const row = rows[0];
@@ -191,7 +194,8 @@ export async function getServiceRecord(id: number) {
 
 export async function createServiceRecord(data: {
   vehicleId: number;
-  serviceTypeId: number;
+  serviceTypeId?: number | null;
+  serviceCategories?: string | null;
   serviceDate?: string | null;
   mileage?: number | null;
   cost?: string | null;
@@ -212,7 +216,8 @@ export async function updateServiceRecord(
   id: number,
   data: Partial<{
     vehicleId: number;
-    serviceTypeId: number;
+    serviceTypeId: number | null;
+    serviceCategories: string | null;
     serviceDate: string | null;
     mileage: number | null;
     cost: string | null;

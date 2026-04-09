@@ -54,10 +54,10 @@ export const maintenanceServicesTable = pgTable(
       .notNull()
       .references(() => vehicleTable.id, { onDelete: "cascade" }),
     serviceTypeId: integer("service_type_id")
-      .notNull()
       .references(() => maintenanceServiceTypesTable.id, {
         onDelete: "restrict",
       }),
+    serviceCategories: text("service_categories"),
     serviceDate: date("service_date"),
     mileage: integer("mileage"),
     cost: numeric("cost", { precision: 10, scale: 2 }),

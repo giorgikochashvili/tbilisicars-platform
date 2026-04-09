@@ -38,6 +38,7 @@ router.post("/admin/service", requireAdmin, async (req, res) => {
   const {
     vehicleId,
     serviceTypeId,
+    serviceCategories,
     serviceDate,
     mileage,
     cost,
@@ -47,21 +48,22 @@ router.post("/admin/service", requireAdmin, async (req, res) => {
     status,
   } = req.body;
 
-  if (!vehicleId || !serviceTypeId) {
-    res.status(400).json({ error: "vehicleId and serviceTypeId are required" });
+  if (!vehicleId) {
+    res.status(400).json({ error: "vehicleId is required" });
     return;
   }
 
   const record = await createServiceRecord({
     vehicleId: parseInt(vehicleId),
-    serviceTypeId: parseInt(serviceTypeId),
+    serviceTypeId: serviceTypeId ? parseInt(serviceTypeId) : null,
+    serviceCategories: serviceCategories || null,
     serviceDate: serviceDate || null,
     mileage: mileage ? parseInt(mileage) : null,
     cost: cost ? cost.toString() : null,
     description: description || null,
     mechanicName: mechanicName || null,
     shopName: shopName || null,
-    status: status || "COMPLETED",
+    status: status || "SCHEDULED",
   });
 
   logAudit({
@@ -88,6 +90,7 @@ router.patch("/admin/service/:id", requireAdmin, async (req, res) => {
   const {
     vehicleId,
     serviceTypeId,
+    serviceCategories,
     serviceDate,
     mileage,
     cost,
@@ -99,7 +102,8 @@ router.patch("/admin/service/:id", requireAdmin, async (req, res) => {
 
   const record = await updateServiceRecord(id, {
     ...(vehicleId !== undefined && { vehicleId: parseInt(vehicleId) }),
-    ...(serviceTypeId !== undefined && { serviceTypeId: parseInt(serviceTypeId) }),
+    ...(serviceTypeId !== undefined && { serviceTypeId: serviceTypeId ? parseInt(serviceTypeId) : null }),
+    ...(serviceCategories !== undefined && { serviceCategories: serviceCategories || null }),
     ...(serviceDate !== undefined && { serviceDate }),
     ...(mileage !== undefined && { mileage: mileage ? parseInt(mileage) : null }),
     ...(cost !== undefined && { cost: cost ? cost.toString() : null }),
