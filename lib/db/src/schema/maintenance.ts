@@ -66,7 +66,7 @@ export const maintenanceServicesTable = pgTable(
     shopName: varchar("shop_name", { length: 200 }),
     nextServiceDate: date("next_service_date"),
     nextServiceMileage: integer("next_service_mileage"),
-    status: maintenanceStatusEnum("status").notNull().default("COMPLETED"),
+    status: maintenanceStatusEnum("status").notNull().default("SCHEDULED"),
     adminId: integer("admin_id").references(() => adminsTable.id, {
       onDelete: "set null",
     }),
