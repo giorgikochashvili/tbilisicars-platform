@@ -1948,6 +1948,7 @@ export const GetAdminBookingResponse = zod
       returnPhoto: zod.string().nullish(),
       updatedAt: zod.date(),
       deletedAt: zod.string().nullish(),
+      externalReservationCode: zod.string().nullish(),
       extras: zod.array(
         zod.object({
           id: zod.number(),
@@ -2017,6 +2018,7 @@ export const UpdateAdminBookingBody = zod.object({
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
+  externalReservationCode: zod.string().optional(),
 });
 
 export const UpdateAdminBookingResponse = zod

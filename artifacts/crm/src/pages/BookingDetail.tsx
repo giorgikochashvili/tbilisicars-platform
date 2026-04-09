@@ -40,6 +40,7 @@ import {
   ExternalLink,
   ParkingSquare,
   AlertTriangle,
+  MessageCircle,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -1289,7 +1290,20 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Customer</div>
                       <div className="font-medium">{booking.customer?.fullName || booking.contactFullName || "—"}</div>
-                      {booking.customer?.phone && <div className="text-xs text-muted-foreground">{booking.customer.phone}</div>}
+                      {(booking.contactPhone || booking.customer?.phone) ? (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{booking.contactPhone || booking.customer?.phone}</span>
+                          <a
+                            href={`https://wa.me/${(booking.contactPhone || booking.customer?.phone || "").replace(/[\s+]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 flex-shrink-0"
+                            title="Open WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      ) : null}
                     </div>
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
@@ -1354,6 +1368,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                         <div className="text-xs">{booking.notes}</div>
                       </div>
                     )}
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Source</div>
+                      <div className="font-medium">{(booking as any).source || "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Ext. Code</div>
+                      <div className="font-mono text-sm">{(booking as any).externalReservationCode || "—"}</div>
+                    </div>
                   </div>
                 ) : (
                   /* Edit form */

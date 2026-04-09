@@ -107,6 +107,7 @@ const bookingDetailSelect = {
   returnPhoto: bookingTable.returnPhoto,
   updatedAt: bookingTable.updatedAt,
   deletedAt: bookingTable.deletedAt,
+  externalReservationCode: bookingTable.externalReservationCode,
 } as const;
 
 // ─── Type and mapper ───────────────────────────────────────────────────────────
@@ -466,6 +467,7 @@ export async function getAdminBooking(id: number) {
     returnPhoto: row.returnPhoto,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt?.toISOString() ?? null,
+    externalReservationCode: row.externalReservationCode,
     extras,
     payments,
   };
@@ -612,6 +614,7 @@ export async function updateAdminBooking(
     notes: string | null;
     source: string | null;
     broker: string | null;
+    externalReservationCode: string | null;
     paymentStatus: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   }>,
 ) {

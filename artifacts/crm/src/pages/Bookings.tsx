@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, FileUp, Phone } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, FileUp, Phone, MessageCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -225,6 +225,8 @@ const EMPTY_BOOKING = {
   notes: "",
   status: "CONFIRMED" as const,
   paymentStatus: "UNPAID" as string,
+  source: "Walkin" as string,
+  externalCode: "",
 };
 
 type Region = "ALL" | "Tbilisi" | "Kutaisi" | "Batumi";
@@ -425,6 +427,8 @@ export default function BookingsPage() {
       notes: bookingRow.notes || "",
       status: bookingRow.status || "PENDING",
       paymentStatus: bookingRow.paymentStatus || "UNPAID",
+      source: bookingRow.source || "Walkin",
+      externalCode: bookingRow.externalReservationCode || "",
     });
     setCustomerSearch(hasExistingCustomer ? customerName : "");
     setCustomerSnapshot(hasExistingCustomer ? {
@@ -461,7 +465,8 @@ export default function BookingsPage() {
       notes: booking.notes || null,
       status: booking.status,
       paymentStatus: booking.paymentStatus,
-      source: "admin",
+      source: booking.source,
+      externalReservationCode: booking.externalCode || null,
     };
 
     if (!isNaN(vehicleModelIdNum)) payload.vehicleModelId = vehicleModelIdNum;
@@ -764,7 +769,7 @@ export default function BookingsPage() {
                   )}
                 </div>
                 {/* Row 3: customer */}
-                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                <div className="text-xs text-muted-foreground mb-0.5 flex items-center gap-1.5">
                   <span className="truncate">{b.customer?.fullName || b.contactFullName || "Unknown"}</span>
                   {b.source && b.source !== "admin" && (
                     <span className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 ${
@@ -775,6 +780,20 @@ export default function BookingsPage() {
                     </span>
                   )}
                 </div>
+                {b.contactPhone && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                    <span>{b.contactPhone}</span>
+                    <a
+                      href={`https://wa.me/${b.contactPhone.replace(/[\s+]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-green-400 hover:text-green-300 flex-shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                )}
                 {/* Row 4: pickup + dropoff */}
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <div className="flex gap-1 items-baseline">
@@ -851,6 +870,19 @@ export default function BookingsPage() {
                       <div className="text-xs text-muted-foreground">
                         {b.customer?.fullName || b.contactFullName || "Unknown"}
                       </div>
+                      {b.contactPhone && (
+                        <div className="flex items-center gap-1.5 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs text-muted-foreground">{b.contactPhone}</span>
+                          <a
+                            href={`https://wa.me/${b.contactPhone.replace(/[\s+]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 flex-shrink-0"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
                       {b.source && b.source !== "admin" && (
                         <span className={`inline-flex items-center mt-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                           b.source === "website" ? "bg-blue-500/15 text-blue-400 border border-blue-500/25" :
@@ -1084,6 +1116,31 @@ export default function BookingsPage() {
                     <SelectItem value="NO_SHOW">No Show</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Source</Label>
+                  <Select value={booking.source} onValueChange={(v) => setBooking({...booking, source: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Walkin">Walkin</SelectItem>
+                      <SelectItem value="Street">Street</SelectItem>
+                      <SelectItem value="Web">Web</SelectItem>
+                      <SelectItem value="Discovercars">Discovercars</SelectItem>
+                      <SelectItem value="Vipcars">Vipcars</SelectItem>
+                      <SelectItem value="Carflexi">Carflexi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>External Code</Label>
+                  <Input
+                    value={booking.externalCode}
+                    onChange={e => setBooking({...booking, externalCode: e.target.value})}
+                    placeholder="e.g. RES-12345"
+                    className="font-mono"
+                  />
+                </div>
               </div>
             </div>
 
