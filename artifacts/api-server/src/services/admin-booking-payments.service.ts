@@ -134,9 +134,13 @@ async function updateBookingPaymentStatus(
       bookingTotalGel = bookingTotal;
     } else {
       const rate = await getExchangeRate();
-      bookingTotalGel = rate
-        ? convertToGel(bookingTotal, b.currency as PaymentCurrency, rate)
-        : bookingTotal;
+      if (!rate) {
+        console.error(
+          `[PAYMENT STATUS SKIPPED] bookingId=${bookingId} | currency=${b.currency} | reason=missing exchange rate`,
+        );
+        return;
+      }
+      bookingTotalGel = convertToGel(bookingTotal, b.currency as PaymentCurrency, rate);
     }
 
     newStatus = totalPaidGel >= bookingTotalGel - 0.005 ? "PAID" : "HALF";
