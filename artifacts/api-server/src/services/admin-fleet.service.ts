@@ -8,7 +8,7 @@ import {
   vehicleTable,
   type Vehicle,
 } from "@workspace/db";
-import { and, asc, count, eq, gt, ilike, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, isNull, lte, sql } from "drizzle-orm";
 import { ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 
 /** Detects PostgreSQL foreign-key violation (code 23503) from Drizzle-wrapped or raw pg errors. */
@@ -358,6 +358,7 @@ export async function listAdminVehicles(
           and(
             inArray(bookingTable.vehicleId, rentedIds),
             eq(bookingTable.status, "DELIVERED"),
+            isNull(bookingTable.deletedAt),
             gt(bookingTable.dropoffDatetime, T),
             lte(bookingTable.dropoffDatetime, twoHoursLater),
           ),
