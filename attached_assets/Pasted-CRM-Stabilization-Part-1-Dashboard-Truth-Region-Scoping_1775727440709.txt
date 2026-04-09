@@ -1,0 +1,152 @@
+CRM Stabilization — Part 1: Dashboard Truth, Region Scoping, and Edit Booking Reliability
+
+Project context:
+This is the live Tbilisicars CRM&WEB monorepo.
+Current priority is CRM-first stabilization for staff operations.
+Do NOT refactor architecture.
+Do NOT touch unrelated website/public flows.
+Do NOT make speculative changes.
+Only fix the exact issues below with the smallest safe implementation.
+Preserve existing business logic unless required to correct the bugs described here.
+
+Goal:
+Make CRM operational views trustworthy and make Edit Booking reliably load existing saved data.
+
+==================================================
+ISSUE 1 — DASHBOARD "MY TASKS" COUNT IS INCONSISTENT
+==================================================
+
+Observed behavior:
+- Dashboard shows 0 open tasks
+- Clicking through from dashboard can still show 0
+- But opening Tasks from the sidebar shows the real count (example: 1)
+
+This indicates inconsistency between dashboard task count logic and Tasks page filtering/scoping/state.
+
+Required fix:
+- Inspect the source of truth for task counts and task list filtering
+- Ensure Dashboard "My Tasks" and the Tasks page use the same default scoping/filtering logic
+- If "My Tasks" means open tasks assigned to the current user, that rule must be consistent everywhere
+- Prevent stale query params, hidden filters, reused page state, or mismatched defaults from causing different counts/results
+
+Done looks like:
+- If the current user has 1 open task assigned, dashboard shows 1
+- Clicking the dashboard task card opens Tasks page and shows the same 1 relevant task
+- Opening Tasks from the sidebar also shows the same count and same relevant result set
+- No mismatch remains
+
+==================================================
+ISSUE 2 — DASHBOARD REGION FILTER IS NOT APPLIED CONSISTENTLY
+==================================================
+
+Observed behavior:
+- Selecting Tbilisi still shows alerts/counts from all regions
+- Region switch is not scoping all relevant dashboard sections consistently
+
+Required fix:
+- Audit all dashboard cards/widgets/sections that should be region-sensitive
+- Ensure selected dashboard region (All / Tbilisi / Kutaisi / Batumi) is applied consistently everywhere it should apply
+- This includes at minimum:
+  - operational alerts
+  - pickups
+  - dropoffs
+  - operational counts
+  - region-sensitive widgets/cards
+- "All" should aggregate all regions
+- Specific region selection should narrow correctly to that region only
+
+Done looks like:
+- Switching region updates all relevant region-sensitive sections consistently
+- Tbilisi shows only Tbilisi-related operational data
+- Kutaisi shows only Kutaisi-related operational data
+- Batumi shows only Batumi-related operational data
+- All shows combined data
+
+==================================================
+ISSUE 3 — REGION LOGIC MUST INCLUDE SUB-LOCATIONS
+==================================================
+
+Observed behavior:
+The CRM has 3 major regions:
+- Tbilisi
+- Kutaisi
+- Batumi
+
+But operational data is tied to sub-locations such as:
+- Airport
+- Downtown
+- Hotel
+- other same-city service points
+
+A booking can exist under a sub-location (example: Tbilisi Downtown or Tbilisi Hotel Delivery) but fail to appear correctly in region-based dashboard/operations views.
+
+Required fix:
+- Audit how region scoping is derived
+- Ensure region filters include all matching sub-locations belonging to that city/region
+- Tbilisi region must include all Tbilisi sub-locations, including airport/downtown/hotel/service points
+- Apply the same logic to Batumi and Kutaisi
+- Reuse the existing location/city source of truth where possible
+- Do NOT hardcode brittle UI-only mapping if backend/source-of-truth already exists
+
+Done looks like:
+- Bookings and operations tied to Tbilisi sub-locations appear under Tbilisi region views
+- Same for Kutaisi and Batumi
+- No booking disappears from operations just because it is tied to a sub-location instead of the parent region
+
+==================================================
+ISSUE 4 — EDIT BOOKING IS NOT RELIABLY PREFILLED
+==================================================
+
+Observed behavior:
+Opening Edit Booking for an existing booking resets or clears saved fields.
+Example:
+- pickup/dropoff locations may become empty and require re-selection
+- existing saved values are not fully restored into the edit form
+
+Required fix:
+- Audit Edit Booking modal/page state initialization
+- Ensure ALL editable fields are prefilled from the current booking record when opening the editor
+- Prevent initialization side-effects from clearing values after mount
+- Existing saved values must remain visible unless the user explicitly changes them
+
+Check especially:
+- customer binding
+- booking status
+- brand
+- model
+- specific vehicle
+- pickup location
+- pickup datetime
+- hotel/address field when relevant
+- dropoff location
+- dropoff datetime
+- pricing/payment-status fields
+- notes and other editable fields
+
+Done looks like:
+- Opening Edit Booking for an existing booking shows the currently saved values already filled in
+- No saved location/date field disappears on open
+- User edits only what they want and does not need to re-enter existing data
+
+==================================================
+IMPLEMENTATION RULES
+==================================================
+
+- First inspect the existing implementation and identify the smallest safe fix for each issue
+- Reuse existing region/location source-of-truth where possible
+- Do not introduce broad refactors
+- Do not change unrelated API contracts unless necessary for the exact fixes above
+- Keep existing desktop behavior unless required by the exact bug
+- Avoid duplicated logic; if dashboard and tasks use inconsistent filters, unify them safely
+- If any dashboard section intentionally should NOT be region-filtered, document that clearly in code comments and leave it unchanged — but operational sections/alerts/tasks should not silently ignore the selected region
+
+Validation checklist:
+1. Dashboard task count matches Tasks page
+2. Dashboard region switch updates all relevant region-sensitive sections consistently
+3. Region scoping includes sub-locations correctly
+4. Existing booking opens in Edit Booking with all saved values prefilled
+
+At the end, report:
+- exact files changed
+- root cause found for each issue
+- what was fully fixed vs partially fixed

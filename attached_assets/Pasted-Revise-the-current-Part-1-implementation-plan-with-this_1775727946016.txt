@@ -1,0 +1,40 @@
+Revise the current Part 1 implementation plan with this additional confirmed project truth:
+
+CONFIRMED LOCATION MODEL
+The CRM already has sub-locations stored in Locations, and each sub-location has a City value.
+Examples currently present:
+- Tbilisi Downtown -> city = Tbilisi
+- Tbilisi Hotel Delivery -> city = Tbilisi
+- Tbilisi International Airport -> city = Tbilisi
+- Kutaisi Downtown -> city = Kutaisi
+- Kutaisi Hotel Delivery -> city = Kutaisi
+- Kutaisi International Airport -> city = Kutaisi
+- Batumi Downtown -> city = Batumi
+- Batumi Hotel Delivery -> city = Batumi
+- Batumi International Airport -> city = Batumi
+
+This means region scoping should use the existing location.city source of truth so that sub-locations are automatically included in the selected region.
+
+Revise the work accordingly:
+
+1. Keep the existing fixes you already identified:
+- Dashboard alerts summary must respect selected region
+- Tasks page "My Tasks" count must use the same server-side truth as the Dashboard widget
+
+2. Explicitly verify and enforce that Dashboard region-sensitive operational data uses location.city consistently as the source of truth, so region selection includes all matching sub-locations automatically.
+This applies not only to alerts, but also to any operational dashboard sections that are expected to change with the selected region.
+
+3. Do not invent separate hardcoded parent/sub-location mapping if location.city already solves it cleanly.
+Only add extra mapping if inspection proves some relevant flow is not actually based on location.city.
+
+4. Also complete the missing Edit Booking fix:
+- existing saved booking values must reliably preload into the Edit Booking form
+- no saved pickup/dropoff location/date/etc. should disappear on open
+
+What I need from you now:
+- update your plan to reflect that location.city is the likely region source of truth
+- confirm exactly which dashboard/operational queries already use it and which do not
+- then implement the smallest safe fix set
+- report exact files changed
+- report whether location.city fully solved the sub-location issue
+- report the root cause of the Edit Booking prefill bug
