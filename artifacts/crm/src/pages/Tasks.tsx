@@ -801,7 +801,7 @@ export default function TasksPage() {
 
   // Derived stat counts
   const allCount = total;
-  const myCount = myTasksSummaryQuery.data?.total ?? tasks.filter((t) => user && t.assignedToId === user.id).length;
+  const myCount = myTasksSummaryQuery.data?.total ?? 0;
   const overdueCount = tasks.filter(isOverdue).length;
   const dueTodayCount = tasks.filter(isDueToday).length;
   const completedCount = tasks.filter((t) => t.status === "Done").length;
