@@ -1,0 +1,64 @@
+#63 - Prevent silent wrong payment_status when exchange rate is missing (C6)
+
+Project context:
+This is a live production monorepo (Tbilisicars CRM & WEB).
+We are applying a minimal, surgical fix for C6.
+Do not refactor payment architecture. Do not broaden scope.
+
+What & Why
+In `admin-booking-payments.service.ts`, `updateBookingPaymentStatus()` recalculates and writes `booking.payment_status` after payment add/update/delete.
+
+Current bug:
+If booking currency is non-GEL (USD/EUR) and `getExchangeRate()` returns null, the code falls back to treating the raw foreign booking total as GEL and continues the comparison. This can silently write the wrong `payment_status` (for example, marking a partially paid booking as `PAID`).
+
+Correct minimal behavior:
+
+* Payment write must still succeed
+* Only the derived `payment_status` update must be skipped when exchange rate is unavailable for non-GEL currency
+* A structured log must be emitted so operations can diagnose and correct it
+
+Target file:
+`artifacts/api-server/src/services/admin-booking-payments.service.ts`
+
+Target function:
+`updateBookingPaymentStatus()`
+
+Task
+Inside `updateBookingPaymentStatus()`, in the non-GEL currency branch:
+
+1. Detect when `getExchangeRate()` returns null
+2. In that case:
+
+   * log a structured error line with a fixed prefix
+   * include booking id and currency
+   * explain clearly that payment status update is being skipped because exchange rate is missing
+3. return early from `updateBookingPaymentStatus()` before the `UPDATE booking SET payment_status = ...` step
+
+Important behavior rules
+
+* Do NOT block payment creation/update/delete
+* Do NOT throw
+* Do NOT introduce a hardcoded fallback rate
+* Do NOT modify callers
+* Do NOT change summary/UI logic
+* Do NOT refactor unrelated code
+
+Expected log style
+Use a fixed, grep-able prefix, for example:
+`[PAYMENT STATUS SKIPPED] bookingId=... | currency=... | reason=missing exchange rate`
+
+Done looks like
+
+* If exchange rate exists: behavior unchanged
+* If exchange rate is missing for USD/EUR booking: payment row still saves, but `payment_status` is not recalculated/written
+* A structured log appears
+* No caller changes
+* No schema changes
+* Build passes without introducing new errors
+
+Out of scope
+
+* No exchange rate auto-seeding
+* No stale-rate detection
+* No backfill/recalculation job
+* No UI redesign
