@@ -381,21 +381,21 @@ export default function BookingsPage() {
       brandId: derivedBrandId,
       vehicleModelId: bookingRow.vehicleModelId ? bookingRow.vehicleModelId.toString() : "",
       vehicleId: bookingRow.vehicleId ? bookingRow.vehicleId.toString() : "",
-      pickupLocationId: bookingRow.pickupLocationId ? bookingRow.pickupLocationId.toString() : "",
+      pickupLocationId: bookingRow.pickupLocation?.id ? bookingRow.pickupLocation.id.toString() : "",
       pickupDate: pickupDt ? format(pickupDt, "yyyy-MM-dd") : "",
       pickupTime: pickupDt ? format(pickupDt, "HH:mm") : "10:00",
       pickupType: (() => {
-        const pid = String(bookingRow.pickupLocationId ?? "");
+        const pid = String(bookingRow.pickupLocation?.id ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === pid);
         const name = loc?.name ?? bookingRow.pickupLocation?.name ?? "";
         return getLocationType(name);
       })(),
       pickupAddress: bookingRow.pickupAddress || "",
-      dropoffLocationId: bookingRow.dropoffLocationId ? bookingRow.dropoffLocationId.toString() : "",
+      dropoffLocationId: bookingRow.dropoffLocation?.id ? bookingRow.dropoffLocation.id.toString() : "",
       dropoffDate: dropoffDt ? format(dropoffDt, "yyyy-MM-dd") : "",
       dropoffTime: dropoffDt ? format(dropoffDt, "HH:mm") : "10:00",
       dropoffType: (() => {
-        const did = String(bookingRow.dropoffLocationId ?? "");
+        const did = String(bookingRow.dropoffLocation?.id ?? "");
         const loc = allLocations.find((l: any) => String(l.id) === did);
         const name = loc?.name ?? bookingRow.dropoffLocation?.name ?? "";
         return getLocationType(name);
