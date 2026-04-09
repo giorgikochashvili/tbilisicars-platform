@@ -1,0 +1,50 @@
+CRM Fix — Complete the remaining Edit Booking prefill bug
+
+Context:
+A previous fix corrected Booking Detail overview inline editing so saved pickup/dropoff locations load correctly there.
+
+However, the bug is only partially fixed.
+
+Current observed behavior:
+- On Booking Detail, clicking the small edit action inside the Overview section opens the inline edit view and the saved locations now appear correctly.
+- But clicking the main top-level "Edit Booking" button (near Rental Agreement / Booking Voucher / Handover Sheet) still opens the full Edit Booking form with blank pickup/dropoff locations and possibly other missing prefilled values.
+
+This means there are at least two separate edit entry paths/state initializers, and only one of them was fixed.
+
+Required task:
+- Inspect the full Booking Detail edit flows and find all entry points that initialize Edit Booking state
+- Identify why the top-level "Edit Booking" flow still loses saved values while the Overview inline edit flow now works
+- Reuse the same correct source-of-truth mapping used in the working inline edit path
+- Ensure the full Edit Booking form is prefilled from the existing booking record consistently
+
+Check especially:
+- customer
+- booking status
+- brand
+- model
+- specific vehicle
+- pickup location
+- pickup date/time
+- hotel/address field when relevant
+- dropoff location
+- dropoff date/time
+- pricing/payment-status fields
+- notes and any other editable fields shown in the full edit form
+
+Important:
+- Do NOT refactor unrelated booking logic
+- Do NOT change API contracts unless strictly necessary
+- Do NOT break the already-fixed Overview inline edit path
+- This is a consistency fix: both edit entry points must use the same correct saved booking data
+
+Done looks like:
+- Clicking the Overview edit path shows the correct saved values
+- Clicking the top-level "Edit Booking" button also shows the same correct saved values
+- No saved pickup/dropoff location is blank on open
+- No already-saved booking info disappears in the full edit form
+
+At the end, report:
+1. exact root cause
+2. exact files changed
+3. why the inline edit worked after the previous fix but the top-level Edit Booking flow did not
+4. what fields were corrected in the remaining full-edit path
