@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, FileUp } from "lucide-react";
+import { Plus, Search, CalendarDays, CalendarIcon, X, MapPin, FileUp, Phone } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -232,6 +232,7 @@ const REGIONS: Region[] = ["ALL", "Tbilisi", "Kutaisi", "Batumi"];
 
 export default function BookingsPage() {
   const [search, setSearch] = useState("");
+  const [phoneSearch, setPhoneSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState<Region>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [paymentFilter, setPaymentFilter] = useState<string>("ALL");
@@ -273,6 +274,7 @@ export default function BookingsPage() {
 
   const queryParams: any = { page, limit: 15 };
   if (search) queryParams.search = search;
+  if (phoneSearch) queryParams.phoneSearch = phoneSearch;
   if (regionFilter !== "ALL") queryParams.city = regionFilter;
   if (statusFilter !== "ALL") queryParams.status = statusFilter;
   if (paymentFilter !== "ALL") queryParams.paymentStatus = paymentFilter;
@@ -282,10 +284,11 @@ export default function BookingsPage() {
   if (locationFilter !== "ALL") queryParams.locationId = parseInt(locationFilter);
   if (bookingIdSearch && !isNaN(parseInt(bookingIdSearch))) queryParams.bookingId = parseInt(bookingIdSearch);
 
-  const hasActiveFilters = search || regionFilter !== "ALL" || statusFilter !== "ALL" || paymentFilter !== "ALL" || vehicleSearch || dateFrom || dateTo || locationFilter !== "ALL" || bookingIdSearch;
+  const hasActiveFilters = search || phoneSearch || regionFilter !== "ALL" || statusFilter !== "ALL" || paymentFilter !== "ALL" || vehicleSearch || dateFrom || dateTo || locationFilter !== "ALL" || bookingIdSearch;
 
   const clearAllFilters = () => {
     setSearch("");
+    setPhoneSearch("");
     setRegionFilter("ALL");
     setStatusFilter("ALL");
     setPaymentFilter("ALL");
@@ -600,6 +603,16 @@ export default function BookingsPage() {
                 className="pl-8 bg-background h-9 text-sm"
               />
             </div>
+            {/* Phone search */}
+            <div className="relative w-36">
+              <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={phoneSearch}
+                onChange={(e) => { setPhoneSearch(e.target.value); setPage(1); }}
+                placeholder="Phone number"
+                className="pl-8 bg-background h-9 text-sm"
+              />
+            </div>
             {/* Vehicle search */}
             <div className="relative w-44">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -691,7 +704,82 @@ export default function BookingsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile card list — visible only on small screens */}
+        <div className="block sm:hidden">
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="border-b border-border/20 p-3 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            ))
+          ) : bookings.length === 0 ? (
+            <div className="h-40 flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <CalendarDays className="w-8 h-8 opacity-20" />
+              <span className="text-sm">No bookings found.</span>
+            </div>
+          ) : (
+            bookings.map((b: any) => (
+              <div
+                key={b.id}
+                className="border-b border-border/20 px-4 py-3 hover:bg-muted/20 active:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setDetailBookingId(b.id)}
+              >
+                {/* Row 1: ref + status badges */}
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="font-mono text-xs text-muted-foreground font-medium">#{b.id}</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <StatusBadge status={b.status} />
+                    <PaymentBadge status={b.paymentStatus} />
+                  </div>
+                </div>
+                {/* Row 2: vehicle */}
+                <div className="font-semibold text-sm text-foreground truncate mb-0.5">
+                  {b.vehicle ? (
+                    <>{(b.vehicle.brandName || "") && `${b.vehicle.brandName} `}{b.vehicle.modelName}<span className="font-mono text-xs text-muted-foreground ml-1">· {b.vehicle.licensePlate}</span></>
+                  ) : b.vehicleModelName ? (
+                    <>{(b.vehicleModelBrandName || "") && `${b.vehicleModelBrandName} `}{b.vehicleModelName}</>
+                  ) : (
+                    <span className="text-muted-foreground italic text-xs">No vehicle</span>
+                  )}
+                </div>
+                {/* Row 3: customer */}
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                  <span className="truncate">{b.customer?.fullName || b.contactFullName || "Unknown"}</span>
+                  {b.source && b.source !== "admin" && (
+                    <span className={`inline-flex items-center rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 ${
+                      b.source === "website" ? "bg-blue-500/15 text-blue-400 border border-blue-500/25" :
+                      "bg-muted text-muted-foreground border border-border"
+                    }`}>
+                      {b.source === "website" ? "web" : b.source}
+                    </span>
+                  )}
+                </div>
+                {/* Row 4: pickup + dropoff */}
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <div className="flex gap-1 items-baseline">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 w-12 flex-shrink-0">Pickup</span>
+                    <span className="truncate">{format(new Date(b.pickupDatetime), "MMM d, yyyy HH:mm")} · {b.pickupLocation?.name}</span>
+                  </div>
+                  <div className="flex gap-1 items-baseline">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 w-12 flex-shrink-0">Return</span>
+                    <span className="truncate">{format(new Date(b.dropoffDatetime), "MMM d, yyyy HH:mm")} · {b.dropoffLocation?.name}</span>
+                  </div>
+                </div>
+                {/* Row 5: amount (if not canceled) */}
+                {b.status !== "CANCELED" && b.status !== "NO_SHOW" && b.totalAmount && (
+                  <div className="mt-1.5 font-mono font-bold text-sm">
+                    {formatBookingAmount(b.totalAmount, b.currency)}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop table — hidden on mobile */}
+        <div className="hidden sm:block overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border/40 hover:bg-transparent">

@@ -183,6 +183,7 @@ export interface ListBookingsFilters {
   status?: "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
   paymentStatus?: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   search?: string;
+  phoneSearch?: string;
   dateFrom?: string;
   dateTo?: string;
   bookingId?: number;
@@ -261,7 +262,7 @@ async function validateVehicleBelongsToModel(
 // ─── Service: list bookings ────────────────────────────────────────────────────
 
 export async function listAdminBookings(filters: ListBookingsFilters = {}) {
-  const { status, paymentStatus, search, dateFrom, dateTo, bookingId, vehicleSearch, locationId, city } = filters;
+  const { status, paymentStatus, search, phoneSearch, dateFrom, dateTo, bookingId, vehicleSearch, locationId, city } = filters;
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
   const offset = (page - 1) * limit;
@@ -278,6 +279,9 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
         ilike(bookingTable.contactPhone, `%${search}%`),
       )!,
     );
+  }
+  if (phoneSearch) {
+    conditions.push(ilike(bookingTable.contactPhone, `%${phoneSearch}%`));
   }
   if (dateFrom) conditions.push(gte(bookingTable.pickupDatetime, new Date(dateFrom)));
   if (dateTo) conditions.push(lte(bookingTable.pickupDatetime, new Date(dateTo)));

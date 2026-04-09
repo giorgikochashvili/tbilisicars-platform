@@ -1294,9 +1294,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
                       {booking.vehicle ? (
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <button
-                            className="font-medium text-left flex items-center gap-1 min-w-0 hover:text-primary transition-colors group"
+                            className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
                             onClick={() => {
                               onClose();
                               setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
@@ -1307,20 +1307,20 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           </button>
                           <button
                             type="button"
-                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium"
+                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
                             onClick={openAssignDialog}
                           >
                             Change
                           </button>
                         </div>
                       ) : booking.vehicleModelName ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-medium">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <div className="font-medium min-w-0 truncate">
                             {booking.vehicleModelBrandName ? `${booking.vehicleModelBrandName} ` : ""}{booking.vehicleModelName}
                           </div>
                           <button
                             type="button"
-                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium"
+                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
                             onClick={openAssignDialog}
                           >
                             Assign
@@ -1338,15 +1338,15 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           : "—"}
                       </div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Pickup</div>
-                      <div>{booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
-                      <div className="text-xs text-muted-foreground">{booking.pickupLocation?.name}</div>
+                      <div className="break-words">{booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate">{booking.pickupLocation?.name}</div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Dropoff</div>
-                      <div>{booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
-                      <div className="text-xs text-muted-foreground">{booking.dropoffLocation?.name}</div>
+                      <div className="break-words">{booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate">{booking.dropoffLocation?.name}</div>
                     </div>
                     {booking.notes && (
                       <div className="col-span-2 sm:col-span-3">

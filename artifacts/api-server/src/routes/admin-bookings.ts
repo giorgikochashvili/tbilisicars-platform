@@ -51,6 +51,7 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
     bookingId: query.bookingId,
     vehicleSearch: query.vehicleSearch,
     locationId: query.locationId,
+    phoneSearch: query.phoneSearch,
     city,
   });
   res.json(ListAdminBookingsResponse.parse(result));

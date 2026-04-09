@@ -15,7 +15,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter
+  SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const { data: alertSummary } = useQuery<{ total: number }>({
     queryKey: ["alerts-summary"],
@@ -98,7 +100,7 @@ export function AppSidebar() {
                       tooltip={item.title} 
                       className="data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-semibold transition-all duration-200 mx-2 rounded-lg py-2"
                     >
-                      <Link href={item.url} className="hover-elevate group flex items-center justify-between w-full">
+                      <Link href={item.url} onClick={() => { if (isMobile) setOpenMobile(false); }} className="hover-elevate group flex items-center justify-between w-full">
                         <span className="flex items-center gap-0">
                           <item.icon className="w-5 h-5 mr-2 text-muted-foreground group-data-[active=true]:text-primary transition-colors" />
                           <span className="text-sm">{item.title}</span>
