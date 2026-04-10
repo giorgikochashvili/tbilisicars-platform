@@ -7,12 +7,15 @@ import { format } from "date-fns";
 import {
   Car, MapPin, Gauge, AlertTriangle, CalendarDays, Wrench,
   TrendingUp, ExternalLink, CheckCircle2, Clock, BarChart3, Activity,
-  Image, Upload, Download, MessageCircle, Trash2, Check
+  Image, Upload, Download, MessageCircle, Trash2, Check, Navigation
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import { formatBookingAmount } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import BookingDetail from "./BookingDetail";
+
+const REGIONS = ["Tbilisi", "Kutaisi", "Batumi"] as const;
+type Region = typeof REGIONS[number];
 
 const BASE = "/api";
 
@@ -140,6 +143,11 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
   const [loading, setLoading] = useState(false);
   const [openBookingId, setOpenBookingId] = useState<number | null>(null);
 
+  // ── Change location state ─────────────────────────────────────────────────
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [locationPending, setLocationPending] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
   // ── Vehicle Photos state ──────────────────────────────────────────────────
   const [photos, setPhotos] = useState<any[]>([]);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
@@ -174,12 +182,44 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
       fetchDetail();
       fetchPhotos();
       setSelectedPhotoIds(new Set());
+      setLocationPickerOpen(false);
+      setLocationError(null);
     } else {
       setData(null);
       setPhotos([]);
       setSelectedPhotoIds(new Set());
+      setLocationPickerOpen(false);
+      setLocationError(null);
     }
   }, [open, vehicleId]);
+
+  const handleChangeRegion = async (city: Region) => {
+    if (!vehicleId || locationPending) return;
+    setLocationPending(true);
+    setLocationError(null);
+    try {
+      const res = await fetch(`${BASE}/admin/fleet/vehicles/${vehicleId}/location`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ city }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.message || body?.error || `Error ${res.status}`;
+        setLocationError(msg);
+        return;
+      }
+      setLocationPickerOpen(false);
+      toast({ title: `Vehicle region changed to ${city}` });
+      fetchDetail();
+      window.dispatchEvent(new CustomEvent("fleetListRefresh"));
+    } catch (e: any) {
+      setLocationError(e.message || "Unexpected error");
+    } finally {
+      setLocationPending(false);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: CustomEvent<{ vehicleId: number }>) => {
@@ -348,6 +388,54 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
                       </div>
                     )}
                     <div className="text-xs text-muted-foreground">Vehicle ID: {v.id}</div>
+                    {/* Change location action */}
+                    <div className="mt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1.5"
+                        onClick={() => { setLocationPickerOpen((o) => !o); setLocationError(null); }}
+                        disabled={locationPending}
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        Change location
+                      </Button>
+                      {locationPickerOpen && (
+                        <div className="mt-2 rounded-lg border border-border/50 bg-background p-3 space-y-2 shadow-sm">
+                          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Select main region</div>
+                          <div className="flex flex-col gap-1.5">
+                            {REGIONS.map((city) => {
+                              const isCurrent = v.location?.city === city;
+                              return (
+                                <button
+                                  key={city}
+                                  disabled={locationPending || isCurrent}
+                                  onClick={() => handleChangeRegion(city)}
+                                  className={`flex items-center gap-2 w-full text-left rounded-md px-3 py-2 text-sm font-medium transition-colors
+                                    ${isCurrent
+                                      ? "bg-primary/10 text-primary border border-primary/30 cursor-default"
+                                      : "hover:bg-muted/50 border border-transparent hover:border-border/40 text-foreground"
+                                    }
+                                    disabled:opacity-60`}
+                                >
+                                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                  {city}
+                                  {isCurrent && <span className="ml-auto text-[10px] font-normal text-muted-foreground">current</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {locationError && (
+                            <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive mt-1">
+                              {locationError}
+                            </div>
+                          )}
+                          {locationPending && (
+                            <div className="text-xs text-muted-foreground text-center py-1">Saving…</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

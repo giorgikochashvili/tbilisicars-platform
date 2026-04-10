@@ -30,6 +30,9 @@ import {
   UpdateAdminVehicleStatusParams,
   UpdateAdminVehicleStatusBody,
   UpdateAdminVehicleStatusResponse,
+  ChangeAdminVehicleLocationParams,
+  ChangeAdminVehicleLocationBody,
+  ChangeAdminVehicleLocationResponse,
   DeleteAdminVehicleParams,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
@@ -52,6 +55,7 @@ import {
   createAdminVehicle,
   updateAdminVehicle,
   updateAdminVehicleStatus,
+  changeAdminVehicleRegion,
   deleteAdminVehicle,
 } from "../services/admin-fleet.service.js";
 import { getVehicleDetail } from "../services/admin-vehicle-detail.service.js";
@@ -232,6 +236,27 @@ router.patch("/admin/fleet/vehicles/:id/status", requireAdmin, requirePermission
     afterData: { status },
   });
   res.json(UpdateAdminVehicleStatusResponse.parse(vehicle));
+});
+
+router.patch("/admin/fleet/vehicles/:id/location", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
+  const { id } = ChangeAdminVehicleLocationParams.parse({ id: req.params.id });
+  const { city } = ChangeAdminVehicleLocationBody.parse(req.body);
+  const { rows: cur } = await pool.query<{ license_plate: string | null }>(
+    "SELECT license_plate FROM vehicle WHERE id = $1",
+    [id],
+  );
+  const plate = cur[0]?.license_plate ?? null;
+  const vehicle = await changeAdminVehicleRegion(id, city);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "vehicle",
+    entityId: id,
+    entityRef: vehicleRef(plate, id),
+    action: "updated",
+    summary: `Admin changed vehicle ${vehicleRef(plate, id)} region to ${city}`,
+    afterData: { city },
+  });
+  res.json(ChangeAdminVehicleLocationResponse.parse(vehicle));
 });
 
 router.delete("/admin/fleet/vehicles/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {

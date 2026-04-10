@@ -2356,6 +2356,16 @@ export const UpdateAdminVehicleStatusResponse = zod.object({
   updatedAt: zod.date(),
 });
 
+export const ChangeAdminVehicleLocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ChangeAdminVehicleLocationBody = zod.object({
+  city: zod.enum(["Tbilisi", "Kutaisi", "Batumi"]),
+});
+
+export const ChangeAdminVehicleLocationResponse = UpdateAdminVehicleStatusResponse;
+
 /**
  * @summary Add tier to rate (admin)
  */

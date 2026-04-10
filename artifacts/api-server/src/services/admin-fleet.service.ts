@@ -652,6 +652,45 @@ export async function updateAdminVehicleStatus(
   return getAdminVehicle(id);
 }
 
+export async function changeAdminVehicleRegion(
+  vehicleId: number,
+  city: "Tbilisi" | "Kutaisi" | "Batumi",
+) {
+  const locationRows = await db
+    .select({ id: locationTable.id })
+    .from(locationTable)
+    .where(eq(locationTable.city, city))
+    .orderBy(asc(locationTable.id))
+    .limit(1);
+  const location = locationRows[0];
+  if (!location) throw new NotFoundError(`No location found for city: ${city}`);
+
+  const activeBookings = await db
+    .select({ id: bookingTable.id })
+    .from(bookingTable)
+    .where(
+      and(
+        eq(bookingTable.vehicleId, vehicleId),
+        inArray(bookingTable.status, ["PENDING", "CONFIRMED", "DELIVERED"]),
+        isNull(bookingTable.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (activeBookings.length > 0) {
+    throw new ConflictError(
+      "Vehicle cannot be relocated while assigned to an active or scheduled booking.",
+    );
+  }
+
+  const [row] = await db
+    .update(vehicleTable)
+    .set({ locationId: location.id, updatedAt: new Date() })
+    .where(eq(vehicleTable.id, vehicleId))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle ${vehicleId} not found`);
+  return getAdminVehicle(vehicleId);
+}
+
 export async function deleteAdminVehicle(id: number) {
   const [row] = await db
     .delete(vehicleTable)
