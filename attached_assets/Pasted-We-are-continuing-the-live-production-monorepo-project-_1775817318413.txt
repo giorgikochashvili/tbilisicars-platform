@@ -1,0 +1,67 @@
+We are continuing the live production monorepo project: Tbilisicars CRM&WEB.
+
+Important project context:
+- The full project is already built and working in Replit
+- Do NOT redesign architecture
+- Do NOT refactor unrelated code
+- Do NOT change booking/business semantics
+- Do NOT damage CRM workflows
+- This fix must remain compatible with future planned improvements to pickup, dropoff, and voucher flows
+- We only want a narrow production-safe reliability fix
+
+Task:
+Make the handover creation flow atomic by wrapping all related database writes inside a single transaction.
+
+Problem context:
+The pickup/dropoff/handover area will likely receive more improvements soon, but right now we need a safe foundational reliability fix that does not interfere with future changes.
+
+Audit truth already identified:
+The createHandover flow currently performs multiple sequential writes without a transaction. If a later step fails after an earlier step succeeds, the system can be left in a partial/inconsistent state.
+
+Goal:
+Ensure handover creation is all-or-nothing.
+
+Likely file:
+- artifacts/api-server/src/services/admin-handovers.service.ts
+
+Focus:
+- Inspect createHandover()
+- Identify all DB writes that belong to one logical handover operation
+
+Expected writes likely involved:
+1. Insert handover record
+2. Insert handover photos (if any)
+3. Apply booking/admin status update triggered by handover
+4. Insert booking history/activity related to handover
+5. Any tightly coupled DB write already inside this same flow
+
+Required scope:
+1. Inspect current createHandover code truth carefully
+2. Wrap the full logical DB write sequence in a single db.transaction(...)
+3. If helper functions currently use the global db directly and must participate in the same atomic operation, make the minimal safe adjustment needed (for example allowing tx to be passed in)
+4. Preserve all existing business behavior exactly
+5. Preserve pickup/dropoff semantics exactly
+6. Preserve existing parking/location/status side effects already intentionally triggered by the flow
+7. Preserve API response shape
+8. Do not broaden this into a refactor
+9. Keep the implementation compatible with future changes in pickup/dropoff/voucher flows
+
+Important:
+- This is a reliability fix, not a workflow redesign
+- Do not change UI logic
+- Do not change wording
+- Do not change voucher generation flow unless it is directly inside the same DB write path and absolutely required
+- Keep changes as small and surgical as possible
+
+Validation expected:
+- If all steps succeed, behavior remains exactly the same
+- If any step fails, no partial DB state is committed
+- No partial handover/photo/status/history state remains
+- No unrelated regression
+
+Output format:
+1. Current code truth
+2. Exact inconsistency risk confirmed
+3. Minimal safe transaction scope
+4. Any helper functions that must accept tx or be adjusted minimally
+5. Anything intentionally left unchanged
