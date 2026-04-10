@@ -12,7 +12,7 @@ import {
   useListLocations,
   useListAdminLocations,
 } from "@workspace/api-client-react";
-import { formatBookingAmount } from "@/lib/utils";
+import { formatBookingAmount, formatDateTime, formatDate, formatTime } from "@/lib/utils";
 import BookingDetail from "./BookingDetail";
 import VoucherImportDialog from "./VoucherImportDialog";
 import { Card } from "@/components/ui/card";
@@ -798,11 +798,11 @@ export default function BookingsPage() {
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <div className="flex gap-1 items-baseline">
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 w-12 flex-shrink-0">Pickup</span>
-                    <span className="truncate">{format(new Date(b.pickupDatetime), "MMM d, yyyy HH:mm")} · {b.pickupLocation?.name}</span>
+                    <span className="truncate">{formatDateTime(b.pickupDatetime)} · {b.pickupLocation?.name}</span>
                   </div>
                   <div className="flex gap-1 items-baseline">
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 w-12 flex-shrink-0">Return</span>
-                    <span className="truncate">{format(new Date(b.dropoffDatetime), "MMM d, yyyy HH:mm")} · {b.dropoffLocation?.name}</span>
+                    <span className="truncate">{formatDateTime(b.dropoffDatetime)} · {b.dropoffLocation?.name}</span>
                   </div>
                 </div>
                 {/* Row 5: amount */}
@@ -895,13 +895,13 @@ export default function BookingsPage() {
                       )}
                     </TableCell>
                     <TableCell className="align-top pt-4">
-                      <div className="text-sm font-medium">{format(new Date(b.pickupDatetime), "MMM d, yyyy")}</div>
-                      <div className="text-xs text-muted-foreground">{format(new Date(b.pickupDatetime), "HH:mm")}</div>
+                      <div className="text-sm font-medium">{formatDate(b.pickupDatetime)}</div>
+                      <div className="text-xs text-muted-foreground">{formatTime(b.pickupDatetime)}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[140px]">{b.pickupLocation?.name}</div>
                     </TableCell>
                     <TableCell className="align-top pt-4">
-                      <div className="text-sm font-medium">{format(new Date(b.dropoffDatetime), "MMM d, yyyy")}</div>
-                      <div className="text-xs text-muted-foreground">{format(new Date(b.dropoffDatetime), "HH:mm")}</div>
+                      <div className="text-sm font-medium">{formatDate(b.dropoffDatetime)}</div>
+                      <div className="text-xs text-muted-foreground">{formatTime(b.dropoffDatetime)}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[140px]">{b.dropoffLocation?.name}</div>
                     </TableCell>
                     <TableCell className="align-top pt-4">

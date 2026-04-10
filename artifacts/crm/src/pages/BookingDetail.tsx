@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatDateTime, formatDate } from "@/lib/utils";
 import {
   Plus,
   Trash2,
@@ -386,7 +387,7 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
             <Calendar className="w-3 h-3" /> Action Time
           </div>
           <div className="text-sm font-medium">
-            {handover.actionAt ? format(new Date(handover.actionAt), "MMM d, yyyy HH:mm") : "—"}
+            {handover.actionAt ? formatDateTime(handover.actionAt) : "—"}
           </div>
         </div>
         {handover.mileage != null && (
@@ -1183,8 +1184,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               {loadingBooking ? "Loading…" : booking ? (
                 <>
                   {booking.customer?.fullName || booking.contactFullName || "—"} ·{" "}
-                  {booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d") : "—"} →{" "}
-                  {booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy") : "—"}
+                  {booking.pickupDatetime ? formatDate(booking.pickupDatetime) : "—"} →{" "}
+                  {booking.dropoffDatetime ? formatDate(booking.dropoffDatetime) : "—"}
                 </>
               ) : null}
             </DialogDescription>
@@ -1354,12 +1355,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     </div>
                     <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Pickup</div>
-                      <div className="break-words">{booking.pickupDatetime ? format(new Date(booking.pickupDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="break-words">{booking.pickupDatetime ? formatDateTime(booking.pickupDatetime) : "—"}</div>
                       <div className="text-xs text-muted-foreground truncate">{booking.pickupLocation?.name}</div>
                     </div>
                     <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Dropoff</div>
-                      <div className="break-words">{booking.dropoffDatetime ? format(new Date(booking.dropoffDatetime), "MMM d, yyyy HH:mm") : "—"}</div>
+                      <div className="break-words">{booking.dropoffDatetime ? formatDateTime(booking.dropoffDatetime) : "—"}</div>
                       <div className="text-xs text-muted-foreground truncate">{booking.dropoffLocation?.name}</div>
                     </div>
                     {booking.notes && (

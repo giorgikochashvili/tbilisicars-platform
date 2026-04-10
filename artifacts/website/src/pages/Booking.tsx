@@ -139,7 +139,7 @@ function cn(...cls: (string | undefined | false | null)[]) { return cls.filter(B
 
 function formatDT(iso: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi", hour12: false });
 }
 
 function calcDays(pickup: string, dropoff: string) {

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
-import { formatMoney, formatBookingAmount, cn } from "@/lib/utils";
+import { formatMoney, formatBookingAmount, cn, formatTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -561,7 +561,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
         {!isLoading && bookings && bookings.length > 0 && bookings.map((b) => {
           const dt = timeKey === "pickup" ? b.pickupDatetime : b.dropoffDatetime;
           const phone = b.customer?.phone ?? b.contactPhone ?? null;
-          const timeStr = new Date(dt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+          const timeStr = formatTime(dt);
           const clientName = b.customer?.fullName || b.customer?.email || b.contactFullName;
           const vehicleName = b.vehicle
             ? `${b.vehicle.brandName ? b.vehicle.brandName + " " : ""}${b.vehicle.modelName}`
