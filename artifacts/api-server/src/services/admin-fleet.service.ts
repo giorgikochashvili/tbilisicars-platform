@@ -8,7 +8,7 @@ import {
   vehicleTable,
   type Vehicle,
 } from "@workspace/db";
-import { and, asc, count, eq, gt, ilike, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { ConflictError, NotFoundError, ValidationError } from "../lib/errors.js";
 
 /** Detects PostgreSQL foreign-key violation (code 23503) from Drizzle-wrapped or raw pg errors. */
@@ -380,10 +380,127 @@ export async function listAdminVehicles(
       brand: brandId != null ? { id: brandId, name: brandName ?? null, logoUrl: brandLogoUrl ?? null } : null,
     } : null,
     returningSoon: returningSoonIds.has(v.id),
+    inboundToRegion: false,
   }));
 
+  // Inbound vehicles: RENTED vehicles from a different region whose active DELIVERED
+  // booking drops off in the requested city. Additive to data, do not affect total.
+  const inboundData: typeof data = [];
+  if (filters.city != null) {
+    const cityLocations = await db
+      .select({ id: locationTable.id })
+      .from(locationTable)
+      .where(eq(locationTable.city, filters.city));
+    const cityLocationIds = cityLocations.map((l) => l.id);
+
+    if (cityLocationIds.length > 0) {
+      const mainResultIds = rows.map((r) => r.id);
+      const inboundBookings = await db
+        .select({ vehicleId: bookingTable.vehicleId })
+        .from(bookingTable)
+        .where(
+          and(
+            inArray(bookingTable.dropoffLocationId, cityLocationIds),
+            eq(bookingTable.status, "DELIVERED"),
+            isNull(bookingTable.deletedAt),
+          ),
+        );
+
+      const candidateIds = [
+        ...new Set(
+          inboundBookings
+            .map((b) => b.vehicleId)
+            .filter((id): id is number => id != null && !mainResultIds.includes(id)),
+        ),
+      ];
+
+      if (candidateIds.length > 0) {
+        // Cross-region guard: only include vehicles whose current location city differs
+        const inboundRows = await db
+          .select({
+            id: vehicleTable.id,
+            vehicleModelId: vehicleTable.vehicleModelId,
+            vehicleGroupId: vehicleTable.vehicleGroupId,
+            licensePlate: vehicleTable.licensePlate,
+            techpassportNumber: vehicleTable.techpassportNumber,
+            year: vehicleTable.year,
+            color: vehicleTable.color,
+            vehicleClass: vehicleTable.vehicleClass,
+            fuelType: vehicleTable.fuelType,
+            transmission: vehicleTable.transmission,
+            status: vehicleTable.status,
+            mileage: vehicleTable.mileage,
+            locationId: vehicleTable.locationId,
+            startingPrice: vehicleTable.startingPrice,
+            createdAt: vehicleTable.createdAt,
+            updatedAt: vehicleTable.updatedAt,
+            modelName: vehicleModelTable.name,
+            modelTransmission: vehicleModelTable.transmission,
+            modelFuelType: vehicleModelTable.fuelType,
+            modelSeats: vehicleModelTable.seats,
+            brandId: brandTable.id,
+            brandName: brandTable.name,
+            brandLogoUrl: brandTable.logoUrl,
+          })
+          .from(vehicleTable)
+          .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+          .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+          .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
+          .where(
+            and(
+              inArray(vehicleTable.id, candidateIds),
+              ne(locationTable.city, filters.city),
+            ),
+          );
+
+        // Compute returningSoon for inbound vehicles using the same 2-hour window
+        const inboundReturningSoonIds = new Set<number>();
+        if (filters.availableForPickup) {
+          const T = filters.availableForPickup;
+          const twoHoursLater = new Date(T.getTime() + 2 * 60 * 60 * 1000);
+          const rentedInboundIds = inboundRows
+            .filter((r) => r.status === "RENTED")
+            .map((r) => r.id);
+          if (rentedInboundIds.length > 0) {
+            const inboundReturningSoonRows = await db
+              .select({ vehicleId: bookingTable.vehicleId })
+              .from(bookingTable)
+              .where(
+                and(
+                  inArray(bookingTable.vehicleId, rentedInboundIds),
+                  eq(bookingTable.status, "DELIVERED"),
+                  isNull(bookingTable.deletedAt),
+                  gt(bookingTable.dropoffDatetime, T),
+                  lte(bookingTable.dropoffDatetime, twoHoursLater),
+                ),
+              );
+            for (const r of inboundReturningSoonRows) {
+              if (r.vehicleId != null) inboundReturningSoonIds.add(r.vehicleId);
+            }
+          }
+        }
+
+        for (const { modelName, modelTransmission, modelFuelType, modelSeats, brandId, brandName, brandLogoUrl, ...v } of inboundRows) {
+          inboundData.push({
+            ...v,
+            vehicleModel: v.vehicleModelId != null ? {
+              id: v.vehicleModelId,
+              name: modelName ?? null,
+              transmission: modelTransmission ?? null,
+              fuelType: modelFuelType ?? null,
+              seats: modelSeats ?? null,
+              brand: brandId != null ? { id: brandId, name: brandName ?? null, logoUrl: brandLogoUrl ?? null } : null,
+            } : null,
+            returningSoon: inboundReturningSoonIds.has(v.id),
+            inboundToRegion: true,
+          });
+        }
+      }
+    }
+  }
+
   return {
-    data,
+    data: [...data, ...inboundData],
     meta: {
       page,
       limit,
