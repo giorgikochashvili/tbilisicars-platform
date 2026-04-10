@@ -96,6 +96,7 @@ router.get("/public/booking-config", async (req, res) => {
       AND NOT EXISTS (
         SELECT 1 FROM booking b
         WHERE b.vehicle_id = v.id
+          AND b.deleted_at IS NULL
           AND b.status IN ('PENDING', 'CONFIRMED', 'DELIVERED')
           AND b.pickup_datetime < ${p2}::timestamptz
           AND b.dropoff_datetime > ${p1}::timestamptz
