@@ -449,6 +449,7 @@ export async function listAdminVehicles(
           .where(
             and(
               inArray(vehicleTable.id, candidateIds),
+              eq(vehicleTable.status, "RENTED"),
               ne(locationTable.city, filters.city),
             ),
           );
