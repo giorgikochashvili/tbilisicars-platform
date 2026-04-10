@@ -1,0 +1,111 @@
+Tbilisicars CRM&WEB — correctness + mandatory cross-region fleet visibility fix (surgical, no refactor)
+
+We are fixing a critical lifecycle correctness issue AND preserving required operational visibility for destination regions.
+
+Business rule:
+A vehicle that is currently rented from one region and will definitely return to another region must remain truthfully located in its current region until RETURNED, BUT it must also be visible in the destination region’s fleet/vehicle list as an inbound vehicle before return.
+
+Example:
+Vehicle goes out in Tbilisi and will return in Kutaisi.
+Before RETURNED:
+
+* current location truth must remain Tbilisi
+* Kutaisi team must still see that vehicle in Kutaisi vehicle list/fleet context
+* Kutaisi team must understand it is inbound / expected return, not physically already there
+* assignment workflows must continue to work
+
+---
+
+## PART 1 — Correct vehicle location on DELIVERED
+
+File:
+artifacts/api-server/src/services/admin-bookings.service.ts
+
+Function:
+applyAdminBookingStatus
+
+Changes:
+
+1. In the SELECT block, add:
+   pickupLocationId: bookingTable.pickupLocationId
+
+2. In DELIVERED branch:
+   change:
+   locationId: current.dropoffLocationId
+
+to:
+locationId: current.pickupLocationId
+
+Do NOT change:
+
+* RETURNED logic
+* CANCELED / NO_SHOW
+* parking removal
+* wrapper functions
+
+---
+
+## PART 2 — Mandatory destination-region visibility
+
+File:
+artifacts/api-server/src/services/admin-fleet.service.ts
+
+Goal:
+When filtering vehicles by city, the result must include:
+
+1. vehicles physically in that city now
+2. vehicles inbound to that city from another region
+
+Implementation requirement:
+
+When filters.city is active:
+
+1. Keep existing vehicle query based on vehicle.locationId
+
+2. Add inbound vehicle query for vehicles that:
+
+* are RENTED
+* are not already in the result set
+* have an active DELIVERED booking
+* that booking’s dropoffLocationId belongs to the requested city
+
+3. Merge them into the same city result list
+
+4. Mark them with:
+   inboundToRegion: true
+
+Important:
+These inbound vehicles MUST appear in the destination city vehicle list/fleet result.
+This is required behavior, not optional.
+
+Do NOT fake current location.
+Do NOT modify vehicle.locationId for this.
+
+---
+
+## PART 3 — Assignment compatibility
+
+Ensure inbound vehicles remain visible/usable in vehicle assignment workflows for future bookings when no time conflict exists.
+
+Keep existing returningSoon logic.
+Do not remove or rewrite it broadly.
+
+---
+
+## STRICT RULES
+
+* No refactor
+* No schema change
+* No unrelated file changes
+* No lifecycle changes beyond DELIVERED correctness fix
+* Keep implementation minimal and additive
+
+---
+
+## DONE LOOKS LIKE
+
+* DELIVERED writes pickupLocationId correctly
+* Vehicle still appears in destination region vehicle list if it is inbound there
+* Destination team can see it before RETURNED
+* Current physical location truth is preserved
+* No regression in fleet or booking flow
