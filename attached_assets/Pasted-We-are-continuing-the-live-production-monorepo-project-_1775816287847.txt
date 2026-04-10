@@ -1,0 +1,72 @@
+We are continuing the live production monorepo project: Tbilisicars CRM&WEB.
+
+Important project context:
+- The project is already fully built and working in Replit
+- Do NOT redesign architecture
+- Do NOT refactor unrelated code
+- Do NOT damage booking flow, CRM flow, pricing flow, or response shapes
+- We only want a narrow production-safe fix
+- This task is only about email display correctness for extras pricing
+
+Task:
+Fix booking confirmation email extras pricing so extras are displayed using the correct pricing rules.
+
+Audit truth already identified:
+In the email formatting logic, extras line totals are currently calculated as:
+pricePerUnit * quantity * days
+for all extras.
+This is incorrect.
+
+Business rules that must be respected:
+1. per_trip extra:
+   - charge once for the trip
+   - formula: pricePerUnit * quantity
+
+2. per_day extra:
+   - charge by day
+   - but with a hard maximum of 7 charged days
+   - formula: pricePerUnit * quantity * min(days, 7)
+
+Important:
+- The email output must match the actual booking/business pricing logic as closely as possible
+- This fix is about what the customer sees in the confirmation email
+- Do not change the booking engine unless strictly required for email data consistency
+- If the booking engine already has a helper that implements this exact extras logic, reuse that logic or mirror it narrowly for email formatting
+
+Likely area:
+- artifacts/api-server/src/services/email.service.ts
+- inspect extraHtmlRow / extraTextLine / extras formatting helpers
+- inspect how extras data is passed into the email template
+- check whether pricingType and maxDays/cap information already exists in the data passed to the email layer
+
+Goal:
+Ensure email extras line totals and displayed totals correctly respect:
+- pricingType
+- per-day cap of 7 days
+
+Required scope:
+1. Inspect current email extras formatting code truth
+2. Identify exactly where line totals are computed for both HTML and plain text email versions
+3. Apply the minimal safe change so:
+   - per_trip does not multiply by days
+   - per_day multiplies by charged days capped at 7
+4. Keep HTML and text email outputs consistent
+5. Preserve existing email structure, styling, and wording unless a tiny change is strictly necessary
+6. Preserve booking creation logic
+7. Preserve CRM logic
+8. Do not refactor unrelated email code
+
+Validation expected:
+- per_trip extra: charged once only
+- per_day extra with 3-day booking: charged for 3 days
+- per_day extra with 7-day booking: charged for 7 days
+- per_day extra with 10-day booking: still charged for only 7 days
+- HTML and plain text versions stay consistent
+- No unrelated email changes
+
+Output format:
+1. Current code truth
+2. Exact bug confirmation
+3. Minimal safe change proposed
+4. Anything intentionally left unchanged
+5. Any data dependency needed from the booking/extras payload

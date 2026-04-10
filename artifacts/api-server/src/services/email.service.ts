@@ -57,6 +57,7 @@ export interface EmailExtra {
   quantity: number;
   pricePerUnit: number;
   pricingType: "per_day" | "per_booking" | string;
+  maxDays?: number | null;
 }
 
 export interface BookingConfirmationEmailParams {
@@ -107,18 +108,28 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
+  // Compute a single extra's line total using the same rules as computeExtrasTotal:
+  //   per_trip → pricePerUnit × quantity (flat, once per booking)
+  //   per_day  → pricePerUnit × quantity × min(days, maxDays ?? days)
+  function extraLineTotal(ex: EmailExtra): number {
+    if (ex.pricingType === "per_trip") {
+      return ex.pricePerUnit * ex.quantity;
+    }
+    const billableDays =
+      ex.maxDays != null && ex.maxDays > 0 ? Math.min(days, ex.maxDays) : days;
+    return ex.pricePerUnit * ex.quantity * billableDays;
+  }
+
   // Build per-extra HTML row.
-  // Cost always uses days (matches /public/quote math) — label omits "per day/per booking"
-  // to avoid misleading display when pricingType and the actual math disagree.
   function extraHtmlRow(ex: EmailExtra): string {
-    const lineTotal = ex.pricePerUnit * ex.quantity * days;
+    const lineTotal = extraLineTotal(ex);
     const label = `${esc(ex.name)}${ex.quantity > 1 ? ` &times;${ex.quantity}` : ""}`;
     return `<div class="row"><span class="label">${label}</span><span class="value">${fmt(lineTotal)}</span></div>`;
   }
 
   // Build per-extra text line
   function extraTextLine(ex: EmailExtra): string {
-    const lineTotal = ex.pricePerUnit * ex.quantity * days;
+    const lineTotal = extraLineTotal(ex);
     return `  • ${ex.name}${ex.quantity > 1 ? ` ×${ex.quantity}` : ""}: ${fmt(lineTotal)}`;
   }
 

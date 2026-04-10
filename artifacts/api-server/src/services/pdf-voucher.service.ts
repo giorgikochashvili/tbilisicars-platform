@@ -177,7 +177,10 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       row(`Base rate (${days} ${days === 1 ? "day" : "days"})`, fmtMoney(baseTotal, currency));
     }
     for (const ex of extras) {
-      const total = ex.pricePerUnit * ex.quantity * days;
+      const billableDays = ex.pricingType === "per_trip"
+        ? 1
+        : (ex.maxDays != null && ex.maxDays > 0 ? Math.min(days, ex.maxDays) : days);
+      const total = ex.pricePerUnit * ex.quantity * billableDays;
       row(`${ex.name}${ex.quantity > 1 ? ` \u00D7${ex.quantity}` : ""}`, fmtMoney(total, currency));
     }
     if (promoCode && discountAmount != null && discountAmount > 0) {
@@ -199,7 +202,10 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   } else if (extras.length > 0) {
     sectionHeader("ADD-ONS & EXTRAS");
     for (const ex of extras) {
-      const total = ex.pricePerUnit * ex.quantity * days;
+      const billableDays = ex.pricingType === "per_trip"
+        ? 1
+        : (ex.maxDays != null && ex.maxDays > 0 ? Math.min(days, ex.maxDays) : days);
+      const total = ex.pricePerUnit * ex.quantity * billableDays;
       row(`${ex.name}${ex.quantity > 1 ? ` \u00D7${ex.quantity}` : ""}`, fmtMoney(total, currency));
     }
     y -= GAP;

@@ -715,6 +715,7 @@ router.post("/public/bookings", async (req, res) => {
       quantity: e.quantity,
       pricePerUnit: e.price,
       pricingType: e.pricingType,
+      maxDays: e.maxDays,
     })),
     insurancePlan: body.insurancePlan?.trim() || undefined,
     paymentMethod: body.paymentMethod?.trim() || undefined,
