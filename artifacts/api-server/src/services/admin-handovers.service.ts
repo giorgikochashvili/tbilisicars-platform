@@ -71,54 +71,60 @@ export async function createHandover(data: {
     }
   }
 
-  // Insert the handover record
-  const [handover] = await db
-    .insert(bookingHandoverTable)
-    .values({
-      bookingId,
-      handoverType,
-      actionAt: new Date(actionAt),
-      mileage: mileage ?? null,
-      fuelLevel: fuelLevel ?? null,
-      performedByAdminId: performedByAdminId ?? null,
-      notes: notes ?? null,
-    })
-    .returning();
-
-  if (!handover) throw new Error("Failed to create handover record");
-
-  // Bulk-insert photos if provided
-  if (photoUrls.length > 0) {
-    const photoType = handoverType === "PICKUP" ? "PICKUP" : "RETURN";
-    await db.insert(bookingphotoTable).values(
-      photoUrls.map((url) => ({
+  // Atomic: all writes succeed or all roll back together.
+  // Pre-write read guards above remain outside the transaction (reads only).
+  const handover = await db.transaction(async (tx) => {
+    // Insert the handover record
+    const [handoverRow] = await tx
+      .insert(bookingHandoverTable)
+      .values({
         bookingId,
-        photoUrl: url,
-        photoType: photoType as "PICKUP" | "RETURN",
-      })),
-    );
-  }
+        handoverType,
+        actionAt: new Date(actionAt),
+        mileage: mileage ?? null,
+        fuelLevel: fuelLevel ?? null,
+        performedByAdminId: performedByAdminId ?? null,
+        notes: notes ?? null,
+      })
+      .returning();
 
-  // Advance booking status
-  const newStatus: "DELIVERED" | "RETURNED" =
-    handoverType === "PICKUP" ? "DELIVERED" : "RETURNED";
-  await applyAdminBookingStatus(bookingId, newStatus);
+    if (!handoverRow) throw new Error("Failed to create handover record");
 
-  // Write booking history entry
-  const parts: string[] = [];
-  if (mileage != null) parts.push(`mileage: ${mileage} km`);
-  if (fuelLevel != null) parts.push(`fuel: ${fuelLevel}%`);
-  if (photoUrls.length > 0) parts.push(`${photoUrls.length} photo(s)`);
-  const description =
-    `${handoverType === "PICKUP" ? "Pick Up" : "Drop Off"} recorded` +
-    (parts.length > 0 ? ` — ${parts.join(", ")}` : "");
+    // Bulk-insert photos if provided
+    if (photoUrls.length > 0) {
+      const photoType = handoverType === "PICKUP" ? "PICKUP" : "RETURN";
+      await tx.insert(bookingphotoTable).values(
+        photoUrls.map((url) => ({
+          bookingId,
+          photoUrl: url,
+          photoType: photoType as "PICKUP" | "RETURN",
+        })),
+      );
+    }
 
-  await db.insert(bookingHistoryTable).values({
-    bookingId,
-    changedById: performedByAdminId ?? null,
-    actionType: handoverType === "PICKUP" ? "PICKUP" : "DROPOFF",
-    newValue: newStatus,
-    description,
+    // Advance booking status (booking + vehicle + parking side-effects all inside tx)
+    const newStatus: "DELIVERED" | "RETURNED" =
+      handoverType === "PICKUP" ? "DELIVERED" : "RETURNED";
+    await applyAdminBookingStatus(bookingId, newStatus, tx);
+
+    // Write booking history entry
+    const parts: string[] = [];
+    if (mileage != null) parts.push(`mileage: ${mileage} km`);
+    if (fuelLevel != null) parts.push(`fuel: ${fuelLevel}%`);
+    if (photoUrls.length > 0) parts.push(`${photoUrls.length} photo(s)`);
+    const description =
+      `${handoverType === "PICKUP" ? "Pick Up" : "Drop Off"} recorded` +
+      (parts.length > 0 ? ` — ${parts.join(", ")}` : "");
+
+    await tx.insert(bookingHistoryTable).values({
+      bookingId,
+      changedById: performedByAdminId ?? null,
+      actionType: handoverType === "PICKUP" ? "PICKUP" : "DROPOFF",
+      newValue: newStatus,
+      description,
+    });
+
+    return handoverRow;
   });
 
   return handover;

@@ -33,6 +33,8 @@ import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 import { removeFromParkingByVehicle } from "./admin-parking.service.js";
 
+type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // ─── Alias tables ──────────────────────────────────────────────────────────────
 
 const pickupLoc = alias(locationTable, "pickup_loc");
@@ -697,8 +699,11 @@ type BookingStatus =
 export async function applyAdminBookingStatus(
   id: number,
   status: BookingStatus,
+  tx?: TxClient,
 ): Promise<void> {
-  const currentRows = await db
+  const client = tx ?? db;
+
+  const currentRows = await client
     .select({
       vehicleId: bookingTable.vehicleId,
       pickupLocationId: bookingTable.pickupLocationId,
@@ -712,7 +717,7 @@ export async function applyAdminBookingStatus(
   const current = currentRows[0];
   if (!current) throw new NotFoundError(`Booking ${id} not found`);
 
-  const [row] = await db
+  const [row] = await client
     .update(bookingTable)
     .set({ status, updatedAt: new Date() })
     .where(eq(bookingTable.id, id))
@@ -721,13 +726,13 @@ export async function applyAdminBookingStatus(
 
   if (current.vehicleId) {
     if (status === "DELIVERED") {
-      await db
+      await client
         .update(vehicleTable)
         .set({ status: "RENTED", locationId: current.pickupLocationId, updatedAt: new Date() })
         .where(eq(vehicleTable.id, current.vehicleId));
-      await removeFromParkingByVehicle(current.vehicleId);
+      await removeFromParkingByVehicle(current.vehicleId, tx);
     } else if (status === "RETURNED") {
-      await db
+      await client
         .update(vehicleTable)
         .set({
           status: "AVAILABLE",
@@ -736,7 +741,7 @@ export async function applyAdminBookingStatus(
         })
         .where(eq(vehicleTable.id, current.vehicleId));
     } else if (status === "CANCELED" || status === "NO_SHOW") {
-      const vehicleRows = await db
+      const vehicleRows = await client
         .select({ vehicleStatus: vehicleTable.status })
         .from(vehicleTable)
         .where(eq(vehicleTable.id, current.vehicleId))
@@ -744,7 +749,7 @@ export async function applyAdminBookingStatus(
 
       const vehicleStatus = vehicleRows[0]?.vehicleStatus;
       if (vehicleStatus === "RENTED" || vehicleStatus === "RESERVED") {
-        await db
+        await client
           .update(vehicleTable)
           .set({ status: "AVAILABLE", updatedAt: new Date() })
           .where(eq(vehicleTable.id, current.vehicleId));

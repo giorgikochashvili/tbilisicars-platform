@@ -8,6 +8,8 @@ import {
 import { and, eq, isNull } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 
+type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // ─── Zone capacity rules ────────────────────────────────────────────────────────
 
 export const ZONE_CAPACITIES: Record<string, number | null> = {
@@ -167,8 +169,8 @@ export async function removeFromParking(assignmentId: number) {
 
 // ─── Auto-remove by vehicleId (called on DELIVERED booking status) ─────────────
 
-export async function removeFromParkingByVehicle(vehicleId: number) {
-  await db
+export async function removeFromParkingByVehicle(vehicleId: number, tx?: TxClient) {
+  await (tx ?? db)
     .update(parkingAssignmentTable)
     .set({ removedAt: new Date(), updatedAt: new Date() })
     .where(
