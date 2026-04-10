@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -139,6 +140,7 @@ function ModelImage({ src, alt }: { src: string | null; alt: string }) {
 
 export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetailProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [openBookingId, setOpenBookingId] = useState<number | null>(null);
@@ -213,7 +215,7 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
       setLocationPickerOpen(false);
       toast({ title: `Vehicle region changed to ${city}` });
       fetchDetail();
-      window.dispatchEvent(new CustomEvent("fleetListRefresh"));
+      queryClient.invalidateQueries();
     } catch (e: any) {
       setLocationError(e.message || "Unexpected error");
     } finally {
