@@ -216,6 +216,9 @@ export default function VehicleDetail({ vehicleId, open, onClose }: VehicleDetai
       toast({ title: `Vehicle region changed to ${city}` });
       fetchDetail();
       queryClient.invalidateQueries();
+      if (vehicleId) {
+        window.dispatchEvent(new CustomEvent("vehicleDetailRefresh", { detail: { vehicleId } }));
+      }
     } catch (e: any) {
       setLocationError(e.message || "Unexpected error");
     } finally {
