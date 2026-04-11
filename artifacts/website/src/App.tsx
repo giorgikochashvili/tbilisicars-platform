@@ -14,6 +14,7 @@ import Services from "./pages/Services";
 import Booking from "./pages/Booking";
 import Login from "./pages/Login";
 import NotFound from "./pages/not-found";
+import ChatbotWidget from "./components/ChatbotWidget";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,7 @@ function App() {
               </Switch>
             </main>
             <Footer />
+            <ChatbotWidget />
           </div>
         </WouterRouter>
         <Toaster />
