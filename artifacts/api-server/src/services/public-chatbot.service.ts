@@ -21,7 +21,7 @@ interface KnowledgeTopic {
 }
 
 const SEARCH_CARS: ChatAction = { type: "link", label: "Search Cars", href: "/booking" };
-const CONTACT_EMAIL: ChatAction = { type: "external", label: "Email Support", href: "mailto:reservations@tbilisicars.com" };
+const CONTACT_EMAIL: ChatAction = { type: "external", label: "Contact Support", href: "mailto:reservations@tbilisicars.com" };
 const CALL_US: ChatAction = { type: "external", label: "Call Us", href: "tel:+995557376363" };
 const WHATSAPP: ChatAction = { type: "external", label: "WhatsApp", href: "https://wa.me/995557376363" };
 
@@ -32,7 +32,7 @@ const TOPICS: KnowledgeTopic[] = [
     actions: [SEARCH_CARS, CALL_US],
   },
   {
-    keywords: ["how to book", "make a booking", "how do i book", "how can i book", "how do i reserve", "book a car", "reserve a car", "make reservation", "place a booking", "booking process", "how does booking work", "how do i rent"],
+    keywords: ["how to book", "make a booking", "how do i book", "how can i book", "how do i reserve", "book a car", "reserve a car", "make reservation", "place a booking", "booking process", "how does booking work", "how do i rent", "find a car", "find car", "search car", "search cars", "search for a car", "looking for a car", "i need a car", "rent a car", "want to rent"],
     reply: "Booking is simple and free — no prepayment or credit card required upfront.\n\nYou can book directly on our website: just select your pickup and drop-off locations, choose your dates and time, pick a vehicle, and submit your request. Our team will confirm your booking shortly.\n\nYou can also reach us by email or phone to book directly with our team.",
     actions: [SEARCH_CARS, CONTACT_EMAIL],
   },

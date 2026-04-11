@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot } from "lucide-react";
+import { Link } from "wouter";
 
 interface ChatAction {
   type: "link" | "external";
@@ -116,7 +117,7 @@ export default function ChatbotWidget() {
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-white leading-none">Tbilisi Cars</div>
+              <div className="text-sm font-semibold text-white leading-none">Tbilisi Cars Assistant</div>
               <div className="text-[11px] text-green-400 mt-0.5">● Online · 24/7 support</div>
             </div>
             <button
@@ -147,17 +148,28 @@ export default function ChatbotWidget() {
                 {/* Action chips below assistant messages */}
                 {msg.role === "assistant" && msg.actions && msg.actions.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 max-w-[85%]">
-                    {msg.actions.map((action, ai) => (
-                      <a
-                        key={ai}
-                        href={action.href}
-                        target={action.type === "external" ? "_blank" : undefined}
-                        rel={action.type === "external" ? "noopener noreferrer" : undefined}
-                        className="inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-                      >
-                        {action.label}
-                      </a>
-                    ))}
+                    {msg.actions.map((action, ai) =>
+                      action.type === "link" ? (
+                        <Link
+                          key={ai}
+                          href={action.href}
+                          onClick={() => setOpen(false)}
+                          className="inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          {action.label}
+                        </Link>
+                      ) : (
+                        <a
+                          key={ai}
+                          href={action.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          {action.label}
+                        </a>
+                      )
+                    )}
                   </div>
                 )}
               </div>
