@@ -1,0 +1,203 @@
+We are continuing the existing Tbilisicars CRM & WEB project in Replit.
+
+IMPORTANT PROJECT CONTEXT:
+- This full project is already built and working in Replit
+- Do NOT re-architect anything
+- Do NOT refactor unrelated parts
+- Do NOT touch booking core logic
+- Do NOT touch CRM core logic
+- Do NOT touch payment logic
+- Do NOT break existing website behavior
+- Make only minimal, targeted, production-safe additions
+
+GOAL:
+Add a Stage 1 customer-facing chatbot widget to the public website.
+
+This is NOT a full booking bot yet.
+It is a safe FAQ / sales-assistant chatbot for website visitors.
+
+It should:
+- help users with common rental questions
+- guide users toward booking/search/support
+- answer using controlled knowledge
+- feel polished, comfortable, and premium
+
+It must NOT:
+- create bookings
+- edit bookings
+- modify CRM data
+- expose internal data
+- invent real-time availability
+- invent exact prices
+- access admin-only logic
+
+STAGE 1 FUNCTIONAL SCOPE:
+The chatbot should:
+- appear as a floating chat button on the public website
+- open a polished chat panel
+- support typed messages
+- support quick action buttons
+- call a safe backend public endpoint
+- return controlled FAQ / guidance answers
+- offer CTA actions like Search Cars or Contact Support
+
+ARCHITECTURE REQUIREMENTS:
+
+1. FRONTEND WIDGET
+Add a floating chatbot widget to the public website only.
+Do NOT show it in CRM.
+
+Requirements:
+- fixed bottom-right floating button
+- premium dark styling matching the current website
+- responsive on desktop and mobile
+- open/close chat panel
+- title/header such as “Need help?”
+- short welcome message
+- message history area
+- text input + send button
+- loading state
+- empty input prevention
+- clean scroll behavior
+- graceful error fallback
+
+Suggested quick action buttons:
+- Find a car
+- Rental requirements
+- Airport delivery
+- Contact support
+- Popular cars
+
+2. SAFE BACKEND ENDPOINT
+Create a public backend endpoint:
+
+POST /api/public/chatbot
+
+Request body:
+{
+  "message": "user text"
+}
+
+Response shape:
+{
+  "reply": "assistant reply",
+  "actions": [
+    { "type": "link", "label": "Search Cars", "href": "/booking" }
+  ]
+}
+
+This endpoint must:
+- be public-safe
+- do no DB writes
+- do no CRM access
+- do no booking creation
+- do no payment actions
+- return only controlled website-assistant answers
+
+3. KNOWLEDGE SOURCE FOR STAGE 1
+For now, the chatbot must use a structured internal knowledge file/config as its content source.
+
+Example:
+- artifacts/api-server/src/services/public-chatbot-knowledge.ts
+
+This file should contain organized, editable knowledge blocks for topics such as:
+- service regions and cities
+- airport pickup / delivery basics
+- general booking guidance
+- minimum driver age
+- required documents
+- support/contact guidance
+- vehicle category suggestions
+- general rental basics
+- safe fallback guidance
+
+IMPORTANT:
+- If exact policy/detail is not clearly known from current project context, do NOT invent it
+- Use safe fallback language like:
+  “Please contact support for this detail.”
+- Keep answers controlled and trustworthy
+
+4. RULE-BASED / CONTROLLED RESPONSE LOGIC
+For Stage 1, do NOT build a heavy AI system.
+Implement a controlled chatbot handler using intent/topic matching and curated replies from the knowledge source.
+
+It should handle common website visitor topics such as:
+- age requirements
+- airport service
+- contact / support
+- how booking works
+- vehicle recommendations
+- automatic / SUV / family / budget car suggestions
+- documents / requirements
+- popular cars
+- general rental help
+
+Examples:
+- If user asks how to book -> explain briefly and return Search Cars action
+- If user asks for recommendation -> suggest category, not exact live inventory
+- If user asks unsupported detail -> return fallback answer + support CTA
+
+5. CTA ACTIONS
+Support response actions under messages when relevant.
+
+Examples:
+- Search Cars -> /booking
+- Contact Support -> mailto:support@tbilisicars.com
+- View Cars -> homepage fleet/featured section if appropriate
+- WhatsApp -> only if an existing known support WhatsApp link already exists in the project; otherwise skip it for now
+
+6. DESIGN / UX EXPECTATION
+This chatbot must feel comfortable and polished, not basic or ugly.
+
+Requirements:
+- visually aligned with the existing premium dark website
+- smooth interaction
+- concise replies
+- helpful tone
+- mobile-friendly
+- not too large or intrusive
+- suitable for future improvement
+
+7. SAFETY RULES
+The chatbot must never:
+- claim exact availability unless truly connected to live availability logic
+- claim exact pricing unless truly sourced from live pricing
+- expose technical/internal details
+- expose CRM/admin information
+- make operational promises it cannot verify
+
+8. IMPLEMENTATION STYLE
+- Follow existing project structure and code style
+- Keep changes modular and minimal
+- Avoid unrelated edits
+- Preserve clean build behavior
+- Do not break existing routes/components
+
+9. FUTURE-PROOFING REQUIREMENT
+Very important:
+Build Stage 1 in a way that can later be upgraded to a CRM-managed chatbot knowledge page, WITHOUT rewriting the website widget or the public API contract.
+
+That means:
+- keep the widget reusable
+- keep the endpoint contract clean
+- isolate the chatbot knowledge source behind a service/helper layer
+- make it easy later to replace the knowledge file with CRM-managed content
+
+10. DELIVERABLES EXPECTED IN PLAN
+In your Plan response, clearly describe:
+- which frontend files/components you will add or edit
+- which backend route/service files you will add or edit
+- how the knowledge source will be structured
+- how the intent matching will work
+- how future CRM-managed upgrade will fit into this design
+- why this approach is safe for the already-built live project
+
+DONE LOOKS LIKE:
+- public website has a floating chatbot button
+- chat opens in a polished panel
+- user can type or use quick actions
+- frontend calls POST /api/public/chatbot
+- chatbot returns safe FAQ / sales-assistant answers
+- actions can guide users to booking/support
+- no booking, payment, or CRM logic is altered
+- implementation is future-ready for later CRM-managed chatbot content

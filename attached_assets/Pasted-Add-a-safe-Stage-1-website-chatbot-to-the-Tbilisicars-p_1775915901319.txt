@@ -1,0 +1,167 @@
+Add a safe Stage 1 website chatbot to the Tbilisicars public website.
+
+IMPORTANT:
+- Do NOT change booking logic
+- Do NOT change CRM logic
+- Do NOT change payment logic
+- Do NOT create or edit bookings
+- Do NOT touch existing search flow except optional safe redirects / CTA buttons
+- Keep implementation minimal, clean, and production-safe
+- Preserve existing website design language and dark premium style
+
+GOAL:
+Add a floating customer-facing chatbot widget to the public website that works as a FAQ / sales assistant.
+
+STAGE 1 SCOPE:
+This chatbot is NOT a real booking bot yet.
+It should only:
+- answer common customer questions
+- guide users toward booking/search
+- explain rental basics
+- redirect users to support / WhatsApp / booking page when needed
+
+It must NOT:
+- submit bookings
+- modify any DB data
+- access CRM
+- expose internal data
+- invent availability or prices
+
+FEATURES TO IMPLEMENT
+
+1. FRONTEND CHAT WIDGET
+Add a floating chat button on the website, fixed at bottom-right.
+When clicked, open a chat panel/drawer.
+
+Widget requirements:
+- responsive on desktop and mobile
+- dark theme matching website
+- smooth open/close
+- header with title like: “Need help?”
+- short welcome message
+- message list area
+- input field
+- send button
+- quick action chips/buttons above input
+
+Suggested quick actions:
+- Find a car
+- Rental requirements
+- Airport delivery
+- Contact support
+- Popular cars
+
+2. SAFE BACKEND ENDPOINT
+Create a public endpoint:
+POST /api/public/chatbot
+
+Input:
+{
+  "message": "user text here"
+}
+
+Output:
+{
+  "reply": "assistant response",
+  "actions": [
+    { "type": "link", "label": "Search Cars", "href": "/booking" }
+  ]
+}
+
+This endpoint must be safe and simple.
+No DB writes.
+No CRM access.
+No booking creation.
+No admin logic.
+
+3. KNOWLEDGE / RESPONSE LOGIC
+For Stage 1, implement controlled FAQ-style logic, not full AI reasoning.
+
+Create a dedicated safe knowledge source, for example:
+- artifacts/api-server/src/services/public-chatbot-knowledge.ts
+
+Include company-safe topics only, such as:
+- company regions and service cities
+- airport delivery / pickup support
+- office / delivery availability basics
+- minimum driver age
+- deposit / rental requirements (only if already defined in current project content)
+- fuel / support basics if known
+- booking guidance
+- contact support guidance
+
+If exact policy is not clearly defined in current project code/content, do NOT invent detailed policy.
+Use safe fallback language like:
+“Please contact support for this detail.”
+
+4. RULE-BASED HANDLER
+Implement simple intent matching for common topics:
+- age / driver age
+- airport / airport delivery
+- contact / support / WhatsApp
+- popular car / recommendation
+- booking help / how to book
+- automatic / SUV / family / budget suggestions
+- deposit / documents / requirements
+
+Behavior examples:
+- If user asks about finding a car, suggest using booking/search page
+- If user asks for recommendation, give a general category suggestion, not fake live availability
+- If user asks something unsupported, return a helpful fallback plus support CTA
+
+5. CTA ACTIONS
+Support action buttons in response payload.
+Examples:
+- Search Cars -> /booking
+- Contact Support -> mailto:support@tbilisicars.com
+- WhatsApp -> existing support link if already present in website; if no known link, skip this action
+- View Cars -> homepage featured/fleet section if appropriate
+
+6. FRONTEND INTEGRATION
+Create reusable website component(s), for example:
+- WebsiteChatWidget.tsx
+- WebsiteChatPanel.tsx
+
+Mount the widget globally on the public website layout so it appears on key pages.
+Do NOT show it inside CRM.
+
+7. UX DETAILS
+- First bot message should be friendly and short
+- Keep replies concise
+- Support action chips under bot replies when relevant
+- Show loading state while waiting for reply
+- Prevent empty sends
+- Preserve scroll behavior
+- Add basic error fallback:
+  “Sorry, I couldn’t process that. Please contact support.”
+
+8. SAFETY / GUARDRAILS
+- No hallucinated real-time availability
+- No made-up pricing
+- No promises about exact inventory
+- No hidden system prompts exposed
+- No internal technical details exposed
+- Only public-safe answers
+
+9. OPTIONAL LIGHT LOGGING
+If easy and safe, log chatbot requests server-side with message text and timestamp only.
+No invasive tracking.
+No DB schema changes unless absolutely necessary.
+If not necessary, skip logging.
+
+10. CODE QUALITY
+- Follow existing project structure and style
+- Minimal targeted changes only
+- No unrelated refactors
+- Keep code readable and modular
+- Do not break existing site routes or API routes
+
+DONE LOOKS LIKE
+- A floating chatbot button appears on the public website
+- Clicking opens a clean chat panel
+- User can type or click quick actions
+- Frontend calls POST /api/public/chatbot
+- Bot returns safe FAQ / sales-assistant answers
+- Bot can guide user to booking page or support
+- No booking flow or CRM behavior is changed
+- Build remains clean
