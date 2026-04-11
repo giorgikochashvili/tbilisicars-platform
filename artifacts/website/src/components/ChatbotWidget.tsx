@@ -16,7 +16,7 @@ interface Message {
 
 const WELCOME: Message = {
   role: "assistant",
-  text: "Hello! I'm the Tbilisi Cars assistant. I can help with questions about our car rental service in Georgia — locations, requirements, booking, and more. How can I help you today?",
+  text: "Hello! I'm the Tbilisicars assistant. I can help you find the perfect car, explain rental terms, and assist with your booking in Georgia. How can I help you today?",
   actions: [],
 };
 
@@ -117,7 +117,7 @@ export default function ChatbotWidget() {
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-white leading-none">Tbilisi Cars Assistant</div>
+              <div className="text-sm font-semibold text-white leading-none">Tbilisicars Assistant</div>
               <div className="text-[11px] text-green-400 mt-0.5">● Online · 24/7 support</div>
             </div>
             <button
