@@ -6,6 +6,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { EmailExtra } from "./email.service.js";
+import { calculateChargeableDays } from "../lib/pricing.js";
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const C = {
@@ -43,10 +44,6 @@ function fmtMoney(n: number, cur: string): string {
   return `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
 }
 
-function calcDays(pickup: string, dropoff: string): number {
-  const ms = new Date(dropoff).getTime() - new Date(pickup).getTime();
-  return Math.max(1, Math.ceil(ms / 864e5));
-}
 
 function trunc(s: string, max = 55): string {
   return s.length > max ? s.slice(0, max - 1) + "\u2026" : s;
@@ -70,6 +67,7 @@ export interface VoucherParams {
   age?: string;
   estimatedTotal?: number | null;
   baseTotal?: number | null;
+  oneWayFee?: number | null;
   promoCode?: string;
   discountAmount?: number | null;
   currency?: string;
@@ -83,12 +81,12 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     pickupLocation, dropoffLocation, pickupDatetime, dropoffDatetime,
     extras = [], insurancePlan, paymentMethod,
     flightNumber, nationality, age,
-    estimatedTotal, baseTotal, promoCode, discountAmount,
+    estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
     currency = "GEL",
     generatedPassword,
   } = params;
 
-  const days = calcDays(pickupDatetime, dropoffDatetime);
+  const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
 
   const pdfDoc  = await PDFDocument.create();
   const font     = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -182,6 +180,9 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
         : (ex.maxDays != null && ex.maxDays > 0 ? Math.min(days, ex.maxDays) : days);
       const total = ex.pricePerUnit * ex.quantity * billableDays;
       row(`${ex.name}${ex.quantity > 1 ? ` \u00D7${ex.quantity}` : ""}`, fmtMoney(total, currency));
+    }
+    if (oneWayFee != null && oneWayFee > 0) {
+      row("One-way transfer fee", fmtMoney(oneWayFee, currency));
     }
     if (promoCode && discountAmount != null && discountAmount > 0) {
       row(`Promo (${promoCode})`, `-${fmtMoney(discountAmount, currency)}`);

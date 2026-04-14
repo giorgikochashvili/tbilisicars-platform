@@ -56,7 +56,7 @@ export interface EmailExtra {
   name: string;
   quantity: number;
   pricePerUnit: number;
-  pricingType: "per_day" | "per_booking" | string;
+  pricingType: "per_day" | "per_trip" | string;
   maxDays?: number | null;
 }
 
@@ -78,6 +78,7 @@ export interface BookingConfirmationEmailParams {
   age?: string;
   estimatedTotal?: number | null;
   baseTotal?: number | null;
+  oneWayFee?: number | null;
   promoCode?: string;
   discountAmount?: number | null;
   currency?: string;
@@ -97,13 +98,13 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     extras = [],
     insurancePlan, paymentMethod, flightNumber,
     nationality, age,
-    estimatedTotal, baseTotal, promoCode, discountAmount,
+    estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
     currency = "GEL",
     generatedPassword,
     attachPdfVoucher = false,
   } = params;
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "support@tbilisicars.com";
   const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -140,6 +141,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <div class="section-title">Pricing Estimate</div>
           ${baseTotal != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(baseTotal)}</span></div>` : ""}
           ${extras.map(extraHtmlRow).join("")}
+          ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
           ${promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo (${esc(promoCode)})</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
           <div class="total-row">
             <span class="total-label">Estimated Total</span>
@@ -309,7 +311,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     : "";
 
   const pricingText = estimatedTotal != null
-    ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
+    ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
   const text = `
@@ -362,7 +364,7 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
         pickupDatetime, dropoffDatetime,
         extras, insurancePlan, paymentMethod,
         flightNumber, nationality, age,
-        estimatedTotal, baseTotal,
+        estimatedTotal, baseTotal, oneWayFee,
         promoCode, discountAmount,
         currency, generatedPassword,
       });
