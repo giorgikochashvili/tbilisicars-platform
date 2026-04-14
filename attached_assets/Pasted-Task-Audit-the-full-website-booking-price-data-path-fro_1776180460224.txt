@@ -1,0 +1,63 @@
+Task: Audit the full website booking price/data path from frontend calculation to CRM booking creation.
+
+Context:
+This is a live production-connected monorepo fully built in Replit. We are now moving from mobile handover stabilization to the core booking revenue path. Do NOT implement changes yet. This step is analysis only.
+
+CRITICAL RULES:
+- Do NOT refactor anything
+- Do NOT change code yet
+- Do NOT guess
+- We need the exact current flow as implemented in code
+
+Goal:
+Map the complete booking path for website bookings and identify any mismatch risks in price/data flow.
+
+We need exact answers for these questions:
+
+1. Frontend price calculation
+- Which files/functions calculate the website booking total?
+- Where are these components calculated:
+  - rental price
+  - extras
+  - one-way fee
+  - discounts/promo if present
+  - subtotal / total
+- How is rental day count determined?
+
+2. One-way fee source
+- From where does the website get one-way fees?
+- Is it using CRM-configured values from API, static config, or another source?
+- At what exact point is one-way fee added into the booking total?
+
+3. Booking payload sent from website
+- What exact booking/pricing fields are sent from website to backend when user confirms booking?
+- Which amount fields are included?
+- Is the booking tied to model only, or can a specific vehicle enter the payload anywhere?
+
+4. Backend booking creation path
+- Which backend route/service receives website booking requests?
+- How does backend validate/recalculate/store the pricing fields?
+- Which fields are persisted into the booking record for:
+  - rental amount
+  - extras
+  - one-way fee
+  - total
+  - currency
+  - source
+  - assigned vehicle vs model
+
+5. CRM reflection
+- After website booking is created, which CRM pages/components read and display those stored amounts?
+- Identify likely mismatch points where website-calculated values and CRM-displayed values could diverge
+
+Output format:
+A. Exact frontend flow (file → function → role)
+B. Exact backend flow (route → service → persistence)
+C. Exact fields involved in payload and persistence
+D. Clear answer: website booking is model-only or not
+E. List ONLY real mismatch-risk points found in code
+
+Scope:
+- Website booking flow only
+- CRM reflection only as it relates to website-created booking amounts/data
+- No implementation yet
