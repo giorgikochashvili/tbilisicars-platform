@@ -190,7 +190,9 @@ export default function Cabinet() {
         </div>
         {customer && (
           <p className="text-sm text-muted-foreground">
-            Signed in as <span className="text-white/80">{customer.email}</span>
+            {customer.fullName
+              ? <><span className="text-white/80">{customer.fullName}</span> · {customer.email}</>
+              : <span className="text-white/80">{customer.email}</span>}
           </p>
         )}
       </div>
