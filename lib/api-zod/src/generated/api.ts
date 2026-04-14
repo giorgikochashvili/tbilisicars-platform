@@ -2260,6 +2260,67 @@ export const GetAdminDashboardTodayResponse = zod.object({
 });
 
 /**
+ * @summary Recent website-originated bookings summary (admin)
+ */
+export const GetAdminDashboardWebsiteBookingsResponse = zod.object({
+  pendingCount: zod.number(),
+  confirmedCount: zod.number(),
+  recent: zod.array(
+    zod.object({
+      id: zod.number(),
+      status: zod.enum([
+        "PENDING",
+        "CONFIRMED",
+        "DELIVERED",
+        "RETURNED",
+        "CANCELED",
+        "NO_SHOW",
+      ]),
+      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
+      contactFullName: zod.string(),
+      contactEmail: zod.string().nullish(),
+      contactPhone: zod.string().nullish(),
+      pickupDatetime: zod.date(),
+      dropoffDatetime: zod.date(),
+      totalAmount: zod.string().nullish(),
+      currency: zod.string().nullish(),
+      source: zod.string().nullish(),
+      broker: zod.string().nullish(),
+      customer: zod.object({
+        id: zod.number(),
+        fullName: zod.string().nullish(),
+        email: zod.string().nullish(),
+      }),
+      vehicle: zod
+        .object({
+          id: zod.number(),
+          licensePlate: zod.string().nullish(),
+          modelName: zod.string().nullish(),
+          brandName: zod.string().nullish(),
+        })
+        .nullish(),
+      vehicleModelName: zod.string().nullish(),
+      vehicleModelBrandName: zod.string().nullish(),
+      pickupLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      dropoffLocation: zod.object({
+        id: zod.number(),
+        name: zod.string(),
+      }),
+      partner: zod
+        .object({
+          id: zod.number(),
+          name: zod.string(),
+        })
+        .nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+});
+
+/**
  * @summary Vehicle counts by status (admin)
  */
 export const GetAdminFleetSnapshotResponse = zod.object({

@@ -4,6 +4,7 @@ import {
   GetAdminDashboardTodayResponse,
   GetAdminFleetSnapshotResponse,
   GetAdminFleetCalendarResponse,
+  GetAdminDashboardWebsiteBookingsResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
@@ -11,6 +12,7 @@ import {
   getFleetSnapshot,
   getTodayActivity,
   getFleetCalendar,
+  getWebsiteBookings,
 } from "../services/admin-dashboard.service.js";
 
 const router = Router();
@@ -92,6 +94,12 @@ router.get("/admin/dashboard/fleet-calendar", requireAdmin, async (req, res) => 
       })),
     })),
   });
+});
+
+router.get("/admin/dashboard/website-bookings", requireAdmin, async (req, res) => {
+  const city = parseCity(req.query.city);
+  const data = await getWebsiteBookings(city);
+  res.json(GetAdminDashboardWebsiteBookingsResponse.parse(data));
 });
 
 export default router;

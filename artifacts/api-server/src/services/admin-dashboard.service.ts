@@ -13,6 +13,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gte,
   inArray,
@@ -467,5 +468,66 @@ export async function getFleetCalendar(startDate: Date, endDate: Date, city?: st
         dropoffDatetime: b.dropoffDatetime,
       })),
     })),
+  };
+}
+
+// ─── Service: website bookings summary ────────────────────────────────────────
+//
+// Returns count of PENDING and CONFIRMED website-originated bookings plus the
+// 5 most recently created, for the CRM Dashboard widget.
+// When city is provided, only bookings where pickup OR dropoff location is
+// in that city are counted.
+
+export async function getWebsiteBookings(city?: string) {
+  const notDeleted = isNull(bookingTable.deletedAt);
+  const isWebsite = eq(bookingTable.source, "website");
+  const isActive = inArray(bookingTable.status, ["PENDING", "CONFIRMED"]);
+
+  let cityCondition: ReturnType<typeof or> | undefined;
+  if (city) {
+    const locIds = await getCityLocationIds(city);
+    if (locIds.length === 0) {
+      return { pendingCount: 0, confirmedCount: 0, recent: [] };
+    }
+    cityCondition = or(
+      inArray(bookingTable.pickupLocationId, locIds),
+      inArray(bookingTable.dropoffLocationId, locIds),
+    );
+  }
+
+  const baseWhere = cityCondition
+    ? and(notDeleted, isWebsite, isActive, cityCondition)
+    : and(notDeleted, isWebsite, isActive);
+
+  const [pendingRes, confirmedRes, recentRows] = await Promise.all([
+    db
+      .select({ c: count() })
+      .from(bookingTable)
+      .where(and(baseWhere, eq(bookingTable.status, "PENDING"))),
+    db
+      .select({ c: count() })
+      .from(bookingTable)
+      .where(and(baseWhere, eq(bookingTable.status, "CONFIRMED"))),
+    db
+      .select(bookingRowSelect)
+      .from(bookingTable)
+      .innerJoin(userTable, eq(bookingTable.userId, userTable.id))
+      .leftJoin(vehicleTable, eq(bookingTable.vehicleId, vehicleTable.id))
+      .leftJoin(vehicleModelTable, eq(vehicleTable.vehicleModelId, vehicleModelTable.id))
+      .leftJoin(bookingModelTable, eq(bookingTable.vehicleModelId, bookingModelTable.id))
+      .leftJoin(vehicleBrandTable, eq(vehicleModelTable.brandId, vehicleBrandTable.id))
+      .leftJoin(bookingBrandTable, eq(bookingModelTable.brandId, bookingBrandTable.id))
+      .innerJoin(pickupLoc, eq(bookingTable.pickupLocationId, pickupLoc.id))
+      .innerJoin(dropoffLoc, eq(bookingTable.dropoffLocationId, dropoffLoc.id))
+      .leftJoin(partnerTable, eq(bookingTable.partnerId, partnerTable.id))
+      .where(baseWhere)
+      .orderBy(desc(bookingTable.createdAt))
+      .limit(5),
+  ]);
+
+  return {
+    pendingCount: pendingRes[0]?.c ?? 0,
+    confirmedCount: confirmedRes[0]?.c ?? 0,
+    recent: recentRows.map(mapToBookingRow),
   };
 }

@@ -15,7 +15,7 @@ import {
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
   Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  ClipboardList, Clock,
+  ClipboardList, Clock, Globe,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
@@ -46,6 +46,7 @@ interface BookingRow {
   dropoffDatetime: string;
   totalAmount: string | null;
   currency: string | null;
+  source?: string | null;
   customer: { id: number; fullName: string | null; email: string | null; phone?: string | null };
   vehicle: { id: number; licensePlate: string | null; modelName: string | null; brandName?: string | null } | null;
   vehicleModelName?: string | null;
@@ -53,6 +54,12 @@ interface BookingRow {
   pickupLocation: { id: number; name: string };
   dropoffLocation: { id: number; name: string };
   partner: { id: number; name: string } | null;
+}
+
+interface WebsiteBookingsSummary {
+  pendingCount: number;
+  confirmedCount: number;
+  recent: BookingRow[];
 }
 
 interface FleetSnapshot {
@@ -110,6 +117,7 @@ interface ParkingOverviewData {
 type SectionKey =
   | "myTasks"
   | "bookingOverview"
+  | "onlineBookings"
   | "fleetLiveStatus"
   | "parkingOverview"
   | "todaysOperations"
@@ -119,6 +127,7 @@ type SectionKey =
 const DEFAULT_SECTION_ORDER: SectionKey[] = [
   "myTasks",
   "bookingOverview",
+  "onlineBookings",
   "fleetLiveStatus",
   "parkingOverview",
   "todaysOperations",
@@ -145,6 +154,7 @@ const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
   sections: {
     myTasks: true,
     bookingOverview: true,
+    onlineBookings: true,
     fleetLiveStatus: true,
     parkingOverview: true,
     todaysOperations: true,
@@ -200,6 +210,7 @@ function saveWidgetConfig(cfg: WidgetConfig) {
 const SECTION_LABELS: Record<SectionKey, string> = {
   myTasks: "My Tasks",
   bookingOverview: "Booking Overview",
+  onlineBookings: "Online Bookings",
   fleetLiveStatus: "Fleet Live Status",
   parkingOverview: "TBS Air Parking",
   todaysOperations: "Today's Operations",
@@ -1111,6 +1122,12 @@ export default function Dashboard() {
     staleTime: 60_000,
   });
 
+  const websiteBookingsQuery = useQuery<WebsiteBookingsSummary>({
+    queryKey: ["dashboard-website-bookings", city],
+    queryFn: () => fetchJson<WebsiteBookingsSummary>(buildUrl("/admin/dashboard/website-bookings", city)),
+    staleTime: 30_000,
+  });
+
   const hasError = summaryQuery.isError || pickupQuery.isError || dropoffQuery.isError || fleetQuery.isError;
   const sc = widgetConfig.sections;
   const cc = widgetConfig.cards;
@@ -1220,6 +1237,77 @@ export default function Dashboard() {
               {cc.canceled && <StatCard title="Canceled" value={summaryQuery.data?.canceled} icon={XCircle} testId="stat-canceled" isLoading={summaryQuery.isLoading} />}
               {cc.noShow && <StatCard title="No Show" value={summaryQuery.data?.noShow} icon={UserX} testId="stat-noshow" isLoading={summaryQuery.isLoading} />}
             </div>
+          </div>
+        );
+
+        if (key === "onlineBookings") return (
+          <div key="onlineBookings">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-primary" /> Online Bookings
+            </h2>
+            <Card className="border border-border/40 bg-card/60 backdrop-blur-md shadow-sm max-w-sm">
+              <CardContent className="pt-4 pb-3 px-5">
+                {websiteBookingsQuery.isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-20" />
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-6 mb-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">Pending</p>
+                        <p className="text-3xl font-black font-display text-amber-400 leading-none">
+                          {websiteBookingsQuery.data?.pendingCount ?? 0}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">Confirmed</p>
+                        <p className="text-3xl font-black font-display text-blue-400 leading-none">
+                          {websiteBookingsQuery.data?.confirmedCount ?? 0}
+                        </p>
+                      </div>
+                    </div>
+                    {(websiteBookingsQuery.data?.recent?.length ?? 0) === 0 ? (
+                      <p className="text-xs text-muted-foreground">No active online bookings.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {websiteBookingsQuery.data!.recent.map((b) => (
+                          <button
+                            key={b.id}
+                            type="button"
+                            className="w-full flex items-center justify-between gap-2 text-left py-1 px-1.5 rounded hover:bg-muted/30 transition-colors group cursor-pointer"
+                            onClick={() => setDetailBookingId(b.id)}
+                          >
+                            <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
+                              #{b.id}
+                            </span>
+                            <span className="text-xs font-medium text-foreground truncate flex-1">
+                              {b.contactFullName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              {new Date(b.pickupDatetime).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}
+                            </span>
+                            <StatusBadge status={b.status} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-3 pt-2 border-t border-border/30 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[11px] text-primary hover:text-primary px-1.5"
+                        onClick={() => navigate("/bookings")}
+                      >
+                        View all →
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
         );
 
