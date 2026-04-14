@@ -461,6 +461,12 @@ function PricingSummaryContent({
                   <span className="text-green-400 font-medium">−{fmt(quote.discountAmount)}</span>
                 </div>
               )}
+              {quote.oneWayFee != null && quote.oneWayFee > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">One Way Fee (Drop off in different location)</span>
+                  <span className="text-white font-medium">+{fmt(quote.oneWayFee)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center pt-2 border-t border-border mt-1">
                 <span className="text-xs font-semibold text-white">Est. Total</span>
                 <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
