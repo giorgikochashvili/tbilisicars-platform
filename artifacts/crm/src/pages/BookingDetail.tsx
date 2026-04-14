@@ -503,6 +503,8 @@ function HandoverModal({
   const handleModalClose = () => {
     fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
     setFileItems([]);
+    setUploading(false);
+    setUploadBatchTotal(0);
     setSelectedZone(null);
     onClose();
   };
@@ -1061,16 +1063,23 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     try {
       const actionAt = new Date(`${handoverForm.actionDate}T${handoverForm.actionTime}:00`).toISOString();
       const endpoint = type === "pickup" ? "pickup" : "dropoff";
-      await apiFetch(`/admin/bookings/${bookingId}/${endpoint}`, {
-        method: "POST",
-        body: JSON.stringify({
-          actionAt,
-          mileage: handoverForm.mileage ? parseInt(handoverForm.mileage, 10) : null,
-          fuelLevel: handoverForm.fuelLevel ? parseInt(handoverForm.fuelLevel, 10) : null,
-          notes: handoverForm.notes || null,
-          photoUrls,
+      const SAVE_TIMEOUT_MS = 30_000;
+      const saveTimeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out — check your connection and try again.")), SAVE_TIMEOUT_MS),
+      );
+      await Promise.race([
+        apiFetch(`/admin/bookings/${bookingId}/${endpoint}`, {
+          method: "POST",
+          body: JSON.stringify({
+            actionAt,
+            mileage: handoverForm.mileage ? parseInt(handoverForm.mileage, 10) : null,
+            fuelLevel: handoverForm.fuelLevel ? parseInt(handoverForm.fuelLevel, 10) : null,
+            notes: handoverForm.notes || null,
+            photoUrls,
+          }),
         }),
-      });
+        saveTimeoutPromise,
+      ]);
 
       toast({
         title: type === "pickup" ? "Pick Up Recorded" : "Drop Off Recorded",
