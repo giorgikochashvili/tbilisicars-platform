@@ -1128,7 +1128,7 @@ export default function Dashboard() {
     staleTime: 30_000,
   });
 
-  const hasError = summaryQuery.isError || pickupQuery.isError || dropoffQuery.isError || fleetQuery.isError;
+  const hasError = summaryQuery.isError || pickupQuery.isError || dropoffQuery.isError || fleetQuery.isError || websiteBookingsQuery.isError;
   const sc = widgetConfig.sections;
   const cc = widgetConfig.cards;
 
