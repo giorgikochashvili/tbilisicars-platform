@@ -661,7 +661,7 @@ router.post("/public/bookings", async (req, res) => {
           dropoffDatetime: dropoffDate,
           vehicleModelId: Number(body.vehicleModelId),
           currency,
-          discount,
+          discount: serverDiscountAmount !== null ? String(serverDiscountAmount) : null,
           totalAmount,
           notes: combinedNotes,
           source: "website" as const,
