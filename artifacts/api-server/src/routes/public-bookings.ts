@@ -233,7 +233,7 @@ router.get("/public/booking-config", async (req, res) => {
     pool.query(`SELECT id, name, city FROM location ORDER BY city, name`),
     modelQueryPromise,
     pool.query(`
-      SELECT id, name, description, price, currency, pricing_type
+      SELECT id, name, description, price, currency, pricing_type, max_days
       FROM extra
       WHERE is_active = true
       ORDER BY name

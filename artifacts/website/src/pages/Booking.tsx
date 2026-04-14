@@ -27,7 +27,7 @@ interface VehicleModel {
   description: string | null; image_url: string | null; deposit: string | null;
   vehicle_count: string; min_price_per_day: string | null; price_currency: string | null;
 }
-interface Extra { id: number; name: string; description: string | null; price: string; currency: string; pricing_type: string; }
+interface Extra { id: number; name: string; description: string | null; price: string; currency: string; pricing_type: string; max_days: number | null; }
 interface BookingConfig { locations: Location[]; vehicleModels: VehicleModel[]; extras: Extra[]; }
 interface SelectedExtra { extraId: number; quantity: number; }
 
@@ -414,11 +414,13 @@ function PricingSummaryContent({
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Extras</div>
           <div className="space-y-1">
             {selectedExtras.map((e) => {
-              const multiplier = e.pricing_type === "per_day" ? days : 1;
+              const billableDays = e.pricing_type === "per_day"
+                ? (e.max_days != null && e.max_days > 0 ? Math.min(days, e.max_days) : days)
+                : 1;
               return (
                 <div key={e.id} className="flex justify-between text-xs">
                   <span className="text-muted-foreground truncate mr-2">{e.name}</span>
-                  <span className="text-white shrink-0">+{(Number(e.price) * multiplier).toLocaleString()} {e.currency}</span>
+                  <span className="text-white shrink-0">+{(Number(e.price) * billableDays).toLocaleString()} {e.currency}</span>
                 </div>
               );
             })}
