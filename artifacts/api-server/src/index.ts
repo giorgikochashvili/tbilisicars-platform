@@ -16,8 +16,12 @@ if (Number.isNaN(port) || port <= 0) {
 
 const resendKey = process.env["RESEND_API_KEY"];
 if (!resendKey || resendKey.trim() === "") {
-  console.error("❌ RESEND_API_KEY is missing or empty. Email service cannot function. Exiting.");
-  process.exit(1);
+  if (process.env["NODE_ENV"] === "production") {
+    console.error("❌ RESEND_API_KEY is missing or empty. Email service cannot function. Exiting.");
+    process.exit(1);
+  } else {
+    console.warn("⚠️  RESEND_API_KEY is not set — email sending will be disabled in this environment.");
+  }
 }
 
 app.listen(port, () => {
