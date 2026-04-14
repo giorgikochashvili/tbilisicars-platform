@@ -29,7 +29,7 @@ export default function Login() {
       });
 
       if (res.ok) {
-        navigate("/");
+        navigate("/cabinet");
       } else {
         const body: unknown = await res.json().catch(() => ({}));
         const errorMsg =

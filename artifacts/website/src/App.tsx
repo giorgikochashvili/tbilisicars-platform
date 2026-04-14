@@ -13,6 +13,7 @@ import Locations from "./pages/Locations";
 import Services from "./pages/Services";
 import Booking from "./pages/Booking";
 import Login from "./pages/Login";
+import Cabinet from "./pages/Cabinet";
 import NotFound from "./pages/not-found";
 import ChatbotWidget from "./components/ChatbotWidget";
 
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/services" component={Services} />
                 <Route path="/booking" component={Booking} />
                 <Route path="/login" component={Login} />
+                <Route path="/cabinet" component={Cabinet} />
                 <Route component={NotFound} />
               </Switch>
             </main>
