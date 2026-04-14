@@ -87,8 +87,8 @@ async function uploadFile(file: File): Promise<string> {
 }
 
 async function compressImage(file: File): Promise<File> {
-  const MAX_DIM = 1800;
-  const QUALITY = 0.82;
+  const MAX_DIM = 1600;
+  const QUALITY = 0.75;
   const TIMEOUT_MS = 15_000;
 
   const compress = new Promise<File>((resolve, reject) => {
