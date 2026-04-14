@@ -32,6 +32,27 @@ function isValidPriority(v: unknown): v is TaskPriority {
   return typeof v === "string" && (VALID_PRIORITIES as readonly string[]).includes(v);
 }
 
+// ─── Helper: normalize assignee input ─────────────────────────────────────────
+// Prefers assigneeIds[] (new format). Falls back to assignedToId (legacy).
+// Returns undefined if neither is present (meaning "no change" on update).
+
+function parseAssigneeIds(body: Record<string, unknown>): number[] | undefined {
+  if (Array.isArray(body.assigneeIds)) {
+    const ids = (body.assigneeIds as unknown[])
+      .map((v) => (typeof v === "number" ? v : parseInt(String(v), 10)))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    return ids;
+  }
+  if ("assignedToId" in body) {
+    // Legacy single-integer fallback
+    const raw = body.assignedToId;
+    if (raw === null) return [];
+    if (typeof raw === "number" && raw > 0) return [raw];
+    return [];
+  }
+  return undefined; // field not present — don't change assignees
+}
+
 // ─── Helper: resolve staff scope ──────────────────────────────────────────────
 // Admins and managers have full access. Rental agents are scoped to own tasks.
 
@@ -115,20 +136,9 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
     throw new ForbiddenError("Only admins and managers can create tasks");
   }
 
-  const body = req.body as {
-    title?: unknown;
-    description?: unknown;
-    assignedToId?: unknown;
-    priority?: unknown;
-    status?: unknown;
-    progressPercent?: unknown;
-    startDate?: unknown;
-    dueDate?: unknown;
-    relatedType?: unknown;
-    relatedId?: unknown;
-  };
+  const body = req.body as Record<string, unknown>;
 
-  if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+  if (!body.title || typeof body.title !== "string" || !(body.title as string).trim()) {
     res.status(400).json({ error: "title is required" });
     return;
   }
@@ -145,10 +155,13 @@ router.post("/admin/tasks", requireAdmin, async (req, res) => {
     return;
   }
 
+  // Normalize assignees: prefer assigneeIds[], fall back to legacy assignedToId
+  const assigneeIds = parseAssigneeIds(body) ?? [];
+
   const task = await createAdminTask({
-    title: body.title.trim(),
+    title: (body.title as string).trim(),
     description: typeof body.description === "string" ? body.description : null,
-    assignedToId: typeof body.assignedToId === "number" ? body.assignedToId : null,
+    assigneeIds,
     priority,
     status,
     progressPercent: typeof body.progressPercent === "number"
@@ -188,18 +201,7 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
   if (isNaN(id)) { res.status(400).json({ error: "invalid task id" }); return; }
   const { isFullAccess, adminId } = await resolveScope(req);
 
-  const body = req.body as {
-    title?: unknown;
-    description?: unknown;
-    assignedToId?: unknown;
-    priority?: unknown;
-    status?: unknown;
-    progressPercent?: unknown;
-    startDate?: unknown;
-    dueDate?: unknown;
-    relatedType?: unknown;
-    relatedId?: unknown;
-  };
+  const body = req.body as Record<string, unknown>;
 
   if (body.priority !== undefined && !isValidPriority(body.priority)) {
     res.status(400).json({ error: `priority must be one of: ${VALID_PRIORITIES.join(", ")}` });
@@ -218,9 +220,6 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
     if (body.description !== undefined) {
       input.description = typeof body.description === "string" ? body.description : null;
     }
-    if (body.assignedToId !== undefined) {
-      input.assignedToId = typeof body.assignedToId === "number" ? body.assignedToId : null;
-    }
     if (body.priority !== undefined) input.priority = body.priority as TaskPriority;
     if (body.startDate !== undefined) {
       input.startDate = typeof body.startDate === "string" ? body.startDate : null;
@@ -234,7 +233,14 @@ router.patch("/admin/tasks/:id", requireAdmin, async (req, res) => {
     if (body.relatedId !== undefined) {
       input.relatedId = typeof body.relatedId === "number" ? body.relatedId : null;
     }
+
+    // Parse assignees — only include in input if present in body
+    const assigneeIds = parseAssigneeIds(body);
+    if (assigneeIds !== undefined) {
+      input.assigneeIds = assigneeIds;
+    }
   }
+
   if (body.status !== undefined) input.status = body.status as TaskStatus;
   if (body.progressPercent !== undefined) {
     const raw = Number(body.progressPercent);

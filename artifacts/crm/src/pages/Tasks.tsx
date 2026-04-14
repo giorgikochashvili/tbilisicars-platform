@@ -5,7 +5,7 @@ import { format, isPast, isToday } from "date-fns";
 import {
   ClipboardList, Plus, RefreshCw, ChevronUp, ChevronDown,
   CheckCircle2, Clock, AlertTriangle, Flame, XCircle, Calendar,
-  User, MessageSquare, Activity, Send, Pencil, Trash2,
+  User, MessageSquare, Activity, Send, Pencil, Trash2, Check, ChevronsUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
@@ -32,6 +38,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
+
+interface AssigneeItem {
+  id: number;
+  fullName: string;
+}
 
 interface TaskListItem {
   id: number;
@@ -47,7 +58,8 @@ interface TaskListItem {
   relatedId: number | null;
   createdById: number;
   assignedToId: number | null;
-  assigneeName: string | null;
+  assigneeName: string | null; // backward compat — first assignee name
+  assignees: AssigneeItem[];   // all assignees (may be empty for very old legacy tasks)
   createdAt: string;
   updatedAt: string;
 }
@@ -77,6 +89,7 @@ interface TaskDetail extends TaskListItem {
   creatorName: string | null;
   comments: TaskComment[];
   activity: TaskActivity[];
+  // assignees inherited from TaskListItem
 }
 
 interface AdminOption {
@@ -226,10 +239,18 @@ interface TaskFormProps {
 
 function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormProps) {
   const { toast } = useToast();
+
+  const getInitialAssigneeIds = (task?: TaskDetail | null): number[] => {
+    if (!task) return [];
+    if (task.assignees && task.assignees.length > 0) return task.assignees.map((a) => a.id);
+    if (task.assignedToId) return [task.assignedToId];
+    return [];
+  };
+
   const [form, setForm] = useState({
     title: editTask?.title ?? "",
     description: editTask?.description ?? "",
-    assignedToId: editTask?.assignedToId ? String(editTask.assignedToId) : "",
+    assigneeIds: getInitialAssigneeIds(editTask),
     priority: editTask?.priority ?? "Medium",
     status: editTask?.status ?? "To Do",
     progressPercent: editTask?.progressPercent ?? 0,
@@ -239,12 +260,14 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
     relatedId: editTask?.relatedId ? String(editTask.relatedId) : "",
   });
 
+  const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+
   React.useEffect(() => {
     if (open) {
       setForm({
         title: editTask?.title ?? "",
         description: editTask?.description ?? "",
-        assignedToId: editTask?.assignedToId ? String(editTask.assignedToId) : "",
+        assigneeIds: getInitialAssigneeIds(editTask),
         priority: editTask?.priority ?? "Medium",
         status: editTask?.status ?? "To Do",
         progressPercent: editTask?.progressPercent ?? 0,
@@ -253,8 +276,30 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
         relatedType: editTask?.relatedType ?? "",
         relatedId: editTask?.relatedId ? String(editTask.relatedId) : "",
       });
+      setAssigneePopoverOpen(false);
     }
   }, [open, editTask]);
+
+  const toggleAssignee = (adminId: number) => {
+    setForm((f) => {
+      const already = f.assigneeIds.includes(adminId);
+      return {
+        ...f,
+        assigneeIds: already
+          ? f.assigneeIds.filter((id) => id !== adminId)
+          : [...f.assigneeIds, adminId],
+      };
+    });
+  };
+
+  const selectedAssigneeLabel = (): string => {
+    if (form.assigneeIds.length === 0) return "Unassigned";
+    const names = form.assigneeIds
+      .map((id) => admins.find((a) => a.id === id)?.fullName ?? `#${id}`)
+      .filter(Boolean);
+    if (names.length <= 2) return names.join(", ");
+    return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
+  };
 
   const isEdit = !!editTask;
   const [saving, setSaving] = useState(false);
@@ -269,7 +314,7 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
       const body = {
         title: form.title.trim(),
         description: form.description || null,
-        assignedToId: form.assignedToId ? parseInt(form.assignedToId, 10) : null,
+        assigneeIds: form.assigneeIds,
         priority: form.priority,
         status: form.status,
         progressPercent: Math.min(100, Math.max(0, Number(form.progressPercent))),
@@ -329,16 +374,44 @@ function TaskFormModal({ open, onClose, editTask, admins, onSaved }: TaskFormPro
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Assignee</Label>
-              <Select value={form.assignedToId || "none"} onValueChange={(v) => setForm((f) => ({ ...f, assignedToId: v === "none" ? "" : v }))}>
-                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Unassigned</SelectItem>
-                  {admins.map((a) => (
-                    <SelectItem key={a.id} value={String(a.id)}>{a.fullName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Assignees</Label>
+              <Popover open={assigneePopoverOpen} onOpenChange={setAssigneePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={assigneePopoverOpen}
+                    className="w-full justify-between font-normal h-9 text-sm"
+                  >
+                    <span className="truncate">{selectedAssigneeLabel()}</span>
+                    <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search staff…" className="h-8 text-sm" />
+                    <CommandList>
+                      <CommandEmpty>No staff found.</CommandEmpty>
+                      <CommandGroup>
+                        {admins.map((a) => {
+                          const selected = form.assigneeIds.includes(a.id);
+                          return (
+                            <CommandItem
+                              key={a.id}
+                              value={a.fullName}
+                              onSelect={() => toggleAssignee(a.id)}
+                              className="text-sm cursor-pointer"
+                            >
+                              <Check className={cn("mr-2 h-3.5 w-3.5", selected ? "opacity-100" : "opacity-0")} />
+                              {a.fullName}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1.5">
               <Label>Priority</Label>
@@ -564,8 +637,18 @@ function TaskDetailDrawer({
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Assignee</p>
-                    <p className="text-sm">{task.assigneeName ?? "Unassigned"}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                      {(task.assignees?.length ?? 0) > 1 ? "Assignees" : "Assignee"}
+                    </p>
+                    {task.assignees?.length ? (
+                      <div className="flex flex-col gap-0.5">
+                        {task.assignees.map((a) => (
+                          <p key={a.id} className="text-sm">{a.fullName}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm">{task.assigneeName ?? "Unassigned"}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Created by</p>
@@ -1056,7 +1139,16 @@ export default function TasksPage() {
                           <span className={cn(done && "line-through text-muted-foreground")}>{task.title}</span>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {task.assigneeName ?? <span className="italic text-muted-foreground/50">Unassigned</span>}
+                          {(() => {
+                            const names = task.assignees?.length
+                              ? task.assignees.map((a) => a.fullName)
+                              : task.assigneeName
+                              ? [task.assigneeName]
+                              : [];
+                            if (names.length === 0) return <span className="italic text-muted-foreground/50">Unassigned</span>;
+                            if (names.length <= 2) return names.join(", ");
+                            return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", PRIORITY_COLORS[task.priority])}>
