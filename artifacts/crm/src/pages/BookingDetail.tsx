@@ -89,46 +89,61 @@ async function uploadFile(file: File): Promise<string> {
 async function compressImage(file: File): Promise<File> {
   const MAX_DIM = 1800;
   const QUALITY = 0.82;
-  return new Promise((resolve, reject) => {
+  const TIMEOUT_MS = 15_000;
+
+  const compress = new Promise<File>((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width <= MAX_DIM && height <= MAX_DIM) {
+      try {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width <= MAX_DIM && height <= MAX_DIM) {
+          resolve(file);
+          return;
+        }
+        if (width > height) {
+          height = Math.round((height * MAX_DIM) / width);
+          width = MAX_DIM;
+        } else {
+          width = Math.round((width * MAX_DIM) / height);
+          height = MAX_DIM;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { resolve(file); return; }
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          QUALITY,
+        );
+      } catch {
         resolve(file);
-        return;
       }
-      if (width > height) {
-        height = Math.round((height * MAX_DIM) / width);
-        width = MAX_DIM;
-      } else {
-        width = Math.round((width * MAX_DIM) / height);
-        height = MAX_DIM;
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) { resolve(file); return; }
-          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
-        },
-        "image/jpeg",
-        QUALITY,
-      );
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
     img.src = url;
   });
+
+  const timeout = new Promise<File>((resolve) => setTimeout(() => resolve(file), TIMEOUT_MS));
+  return Promise.race([compress, timeout]);
 }
 
 async function uploadWithRetry(file: File, maxRetries = 3): Promise<string> {
+  const ATTEMPT_TIMEOUT_MS = 22_000;
   let lastErr: Error = new Error("Upload failed");
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await uploadFile(file);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Upload timed out")), ATTEMPT_TIMEOUT_MS),
+      );
+      return await Promise.race([uploadFile(file), timeoutPromise]);
     } catch (err) {
       lastErr = err as Error;
       if (attempt < maxRetries - 1) {
@@ -763,6 +778,12 @@ function HandoverModal({
                 ))}
               </div>
             )}
+            {uploading && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Uploading {fileItems.filter((fi) => fi.status === "uploading").length} photo
+                {fileItems.filter((fi) => fi.status === "uploading").length !== 1 ? "s" : ""}…
+              </p>
+            )}
           </div>
 
         </div>
@@ -772,6 +793,7 @@ function HandoverModal({
             Cancel
           </Button>
           <Button
+            type="button"
             size="sm"
             className="h-7 text-xs"
             onClick={handleRecord}
@@ -782,7 +804,11 @@ function HandoverModal({
               (type === "dropoff" && !!isAirportDropoff && !selectedZone)
             }
           >
-            {savingHandover || uploading ? "Saving…" : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
+            {savingHandover
+              ? "Saving…"
+              : uploading
+              ? "Uploading photos…"
+              : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
           </Button>
         </div>
       </DialogContent>
