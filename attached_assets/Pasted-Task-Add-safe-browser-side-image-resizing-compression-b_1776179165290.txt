@@ -1,0 +1,55 @@
+Task: Add safe browser-side image resizing/compression before upload in the CRM Pickup/Dropoff staff flow.
+
+Context:
+This project is fully built in Replit. We already stabilized mobile upload behavior in the handover flow. Now we want to reduce image size and improve reliability for staff using CRM on mobile devices during Pickup/Dropoff, without changing backend logic or breaking the current upload flow.
+
+Important clarification:
+This is NOT a public customer website upload flow.
+This is the internal CRM staff flow where employees upload vehicle photos during Pickup / Drop Off.
+Here, "client-side" means in the employee's browser/device before the file is uploaded.
+
+CRITICAL:
+- Do NOT refactor existing upload logic
+- Do NOT change API contracts
+- Do NOT change retry logic or queue behavior
+- Only enhance the image BEFORE it is uploaded
+- Keep the change strictly surgical
+
+Requirements:
+1. In the existing CRM Pickup/Dropoff image handling flow (before uploadFile is called), add a preprocessing step:
+   - Resize image to max width 1600px
+   - Keep aspect ratio
+   - Convert to JPEG
+   - Use quality around 0.75
+
+2. Implementation approach:
+   - Prefer native canvas, since compression logic already exists
+   - Reuse/adjust the existing compressImage logic if possible
+   - Do NOT duplicate a second compression pipeline unless truly necessary
+
+3. Safety:
+   - If resizing/compression fails, times out, or is unsupported → fall back to the original file
+   - Must never block upload
+   - Must not reintroduce the hanging Promise issue we just fixed
+
+4. Performance and device stability:
+   - Must be safe for iOS Safari and Android Chrome
+   - Avoid excessive memory usage
+   - Avoid creating unnecessary large canvases
+   - Keep staff workflow responsive on mobile
+
+5. Scope:
+   - ONLY artifacts/crm/src/pages/BookingDetail.tsx
+   - ONLY the Pickup/Dropoff handover image upload flow used by staff
+
+6. Do NOT:
+   - Change backend endpoints
+   - Change business logic
+   - Touch website/customer-facing upload flows
+   - Introduce new libraries unless absolutely necessary
+
+Output format:
+- Show exactly where preprocessing is inserted in the current flow
+- Show the minimal changes to existing functions
+- Explain how fallback to original file is handled
+- Explain how this avoids breaking the current staff handover workflow
