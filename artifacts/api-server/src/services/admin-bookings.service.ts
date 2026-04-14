@@ -599,6 +599,10 @@ export async function updateAdminBooking(
     dropoffLocationId: number;
     pickupDatetime: string;
     dropoffDatetime: string;
+    pickupType: string | null;
+    pickupAddress: string | null;
+    dropoffType: string | null;
+    dropoffAddress: string | null;
     rateId: number | null;
     rateTierId: number | null;
     pricePerDay: string | null;

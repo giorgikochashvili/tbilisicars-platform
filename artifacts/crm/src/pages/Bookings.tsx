@@ -447,13 +447,17 @@ export default function BookingsPage() {
     const dropoffDatetime = new Date(`${booking.dropoffDate}T${booking.dropoffTime}:00`).toISOString();
 
     const contactFullName = booking.customerMode === "existing"
-      ? (selectedCustomer?.fullName || "")
+      ? (selectedCustomer?.fullName ?? customerSnapshot?.fullName ?? "")
       : booking.newCustomerName;
 
     const payload: any = {
       contactFullName,
-      contactPhone: booking.customerMode === "new" ? (booking.newCustomerPhone || null) : (selectedCustomer?.phone || null),
-      contactEmail: booking.customerMode === "new" ? (booking.newCustomerEmail || null) : (selectedCustomer?.email || null),
+      contactPhone: booking.customerMode === "new"
+        ? (booking.newCustomerPhone || null)
+        : (selectedCustomer?.phone ?? customerSnapshot?.phone ?? null),
+      contactEmail: booking.customerMode === "new"
+        ? (booking.newCustomerEmail || null)
+        : (selectedCustomer?.email ?? customerSnapshot?.email ?? null),
       pickupLocationId: parseInt(booking.pickupLocationId),
       dropoffLocationId: parseInt(booking.dropoffLocationId),
       pickupDatetime,
@@ -987,137 +991,162 @@ export default function BookingsPage() {
             {/* Customer Section */}
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Customer</h3>
-              <Tabs value={booking.customerMode} onValueChange={(v: any) => {
-                setBooking({...booking, customerMode: v, customerId: "", newCustomerName: "", newCustomerPhone: "", newCustomerEmail: ""});
-                setCustomerSearch("");
-                setCustomerDropdownOpen(false);
-              }}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="new">New Customer</TabsTrigger>
-                  <TabsTrigger value="existing">Existing Customer</TabsTrigger>
-                </TabsList>
 
-                {/* Existing Customer — single typeahead search */}
-                <TabsContent value="existing" className="mt-3 space-y-2">
-                  <div className="grid gap-2 relative">
-                    <Label>Search Customer</Label>
-                    {/* Selected customer chip — use live query result or snapshot fallback */}
-                    {booking.customerId && (selectedCustomer || customerSnapshot) && (
-                      <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-                        <span className="flex-1 font-medium">
-                          {selectedCustomer?.fullName ?? customerSnapshot?.fullName}
-                        </span>
-                        {(selectedCustomer?.phone ?? customerSnapshot?.phone) && (
-                          <span className="text-xs text-muted-foreground">
-                            {selectedCustomer?.phone ?? customerSnapshot?.phone}
+              {isEditMode ? (
+                /* Read-only in edit mode — customer cannot be re-assigned */
+                <div className="space-y-1.5">
+                  <div className="rounded-md border border-border/50 bg-background/60 px-3 py-2.5 text-sm">
+                    <div className="font-medium">
+                      {(selectedCustomer?.fullName ?? customerSnapshot?.fullName ?? booking.newCustomerName) || "—"}
+                    </div>
+                    {(selectedCustomer?.phone ?? customerSnapshot?.phone ?? booking.newCustomerPhone) && (
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {selectedCustomer?.phone ?? customerSnapshot?.phone ?? booking.newCustomerPhone}
+                      </div>
+                    )}
+                    {(selectedCustomer?.email ?? customerSnapshot?.email ?? booking.newCustomerEmail) && (
+                      <div className="text-xs text-muted-foreground">
+                        {selectedCustomer?.email ?? customerSnapshot?.email ?? booking.newCustomerEmail}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Customer cannot be changed after booking is created.</p>
+                </div>
+              ) : (
+                <Tabs value={booking.customerMode} onValueChange={(v: any) => {
+                  setBooking({...booking, customerMode: v, customerId: "", newCustomerName: "", newCustomerPhone: "", newCustomerEmail: ""});
+                  setCustomerSearch("");
+                  setCustomerDropdownOpen(false);
+                }}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="new">New Customer</TabsTrigger>
+                    <TabsTrigger value="existing">Existing Customer</TabsTrigger>
+                  </TabsList>
+
+                  {/* Existing Customer — single typeahead search */}
+                  <TabsContent value="existing" className="mt-3 space-y-2">
+                    <div className="grid gap-2 relative">
+                      <Label>Search Customer</Label>
+                      {/* Selected customer chip — use live query result or snapshot fallback */}
+                      {booking.customerId && (selectedCustomer || customerSnapshot) && (
+                        <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                          <span className="flex-1 font-medium">
+                            {selectedCustomer?.fullName ?? customerSnapshot?.fullName}
                           </span>
-                        )}
-                        <button
-                          type="button"
-                          className="ml-1 text-muted-foreground hover:text-foreground"
-                          onClick={() => {
-                            setBooking({...booking, customerId: ""});
-                            setCustomerSearch("");
-                            setCustomerSnapshot(null);
-                            customerSearchRef.current?.focus();
-                          }}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                    {!booking.customerId && (
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                        <Input
-                          ref={customerSearchRef}
-                          value={customerSearch}
-                          onChange={(e) => {
-                            setCustomerSearch(e.target.value);
-                            setCustomerDropdownOpen(true);
-                          }}
-                          onFocus={() => setCustomerDropdownOpen(true)}
-                          className="pl-8"
-                        />
-                        {customerDropdownOpen && allCustomers.length > 0 && (
-                          <div
-                            ref={customerDropdownRef}
-                            className="absolute z-50 top-full mt-1 w-full rounded-md border border-border/50 bg-popover shadow-lg overflow-hidden"
+                          {(selectedCustomer?.phone ?? customerSnapshot?.phone) && (
+                            <span className="text-xs text-muted-foreground">
+                              {selectedCustomer?.phone ?? customerSnapshot?.phone}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="ml-1 text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              setBooking({...booking, customerId: ""});
+                              setCustomerSearch("");
+                              setCustomerSnapshot(null);
+                              customerSearchRef.current?.focus();
+                            }}
                           >
-                            {allCustomers.slice(0, 8).map((c: any) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                className="w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-accent transition-colors text-left border-b border-border/20 last:border-0"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setBooking({...booking, customerId: c.id.toString()});
-                                  setCustomerSearch(c.fullName || "");
-                                  setCustomerDropdownOpen(false);
-                                }}
-                              >
-                                <span className="font-medium">{c.fullName}</span>
-                                {(c.phone || c.email) && (
-                                  <span className="text-xs text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(" · ")}</span>
-                                )}
-                              </button>
-                            ))}
-                            {allCustomers.length === 0 && (
-                              <div className="px-3 py-2 text-sm text-muted-foreground">No customers found</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      {!booking.customerId && (
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <Input
+                            ref={customerSearchRef}
+                            value={customerSearch}
+                            onChange={(e) => {
+                              setCustomerSearch(e.target.value);
+                              setCustomerDropdownOpen(true);
+                            }}
+                            onFocus={() => setCustomerDropdownOpen(true)}
+                            className="pl-8"
+                          />
+                          {customerDropdownOpen && allCustomers.length > 0 && (
+                            <div
+                              ref={customerDropdownRef}
+                              className="absolute z-50 top-full mt-1 w-full rounded-md border border-border/50 bg-popover shadow-lg overflow-hidden"
+                            >
+                              {allCustomers.slice(0, 8).map((c: any) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  className="w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-accent transition-colors text-left border-b border-border/20 last:border-0"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setBooking({...booking, customerId: c.id.toString()});
+                                    setCustomerSearch(c.fullName || "");
+                                    setCustomerDropdownOpen(false);
+                                  }}
+                                >
+                                  <span className="font-medium">{c.fullName}</span>
+                                  {(c.phone || c.email) && (
+                                    <span className="text-xs text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(" · ")}</span>
+                                  )}
+                                </button>
+                              ))}
+                              {allCustomers.length === 0 && (
+                                <div className="px-3 py-2 text-sm text-muted-foreground">No customers found</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
 
-                <TabsContent value="new" className="mt-3 space-y-3">
-                  <div className="grid gap-2">
-                    <Label>Full Name <span className="text-destructive">*</span></Label>
-                    <Input 
-                      value={booking.newCustomerName}
-                      onChange={e => setBooking({...booking, newCustomerName: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <TabsContent value="new" className="mt-3 space-y-3">
                     <div className="grid gap-2">
-                      <Label>Phone</Label>
+                      <Label>Full Name <span className="text-destructive">*</span></Label>
                       <Input 
-                        value={booking.newCustomerPhone}
-                        onChange={e => setBooking({...booking, newCustomerPhone: e.target.value})}
+                        value={booking.newCustomerName}
+                        onChange={e => setBooking({...booking, newCustomerName: e.target.value})}
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label>Email</Label>
-                      <Input 
-                        type="email"
-                        value={booking.newCustomerEmail}
-                        onChange={e => setBooking({...booking, newCustomerEmail: e.target.value})}
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-2">
+                        <Label>Phone</Label>
+                        <Input 
+                          value={booking.newCustomerPhone}
+                          onChange={e => setBooking({...booking, newCustomerPhone: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Email</Label>
+                        <Input 
+                          type="email"
+                          value={booking.newCustomerEmail}
+                          onChange={e => setBooking({...booking, newCustomerEmail: e.target.value})}
+                        />
+                      </div>
                     </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  </TabsContent>
+                </Tabs>
+              )}
             </div>
 
             {/* Reservation Status — moved here, above Vehicle */}
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Reservation</h3>
-              <div className="grid gap-2">
-                <Label>Booking Status</Label>
-                <Select value={booking.status} onValueChange={(v: any) => setBooking({...booking, status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                    <SelectItem value="RETURNED">Returned</SelectItem>
-                    <SelectItem value="CANCELED">Canceled</SelectItem>
-                    <SelectItem value="NO_SHOW">No Show</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isEditMode && (
+                <div className="grid gap-2">
+                  <Label>Booking Status</Label>
+                  <Select value={booking.status} onValueChange={(v: any) => setBooking({...booking, status: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                      <SelectItem value="DELIVERED">Delivered</SelectItem>
+                      <SelectItem value="RETURNED">Returned</SelectItem>
+                      <SelectItem value="CANCELED">Canceled</SelectItem>
+                      <SelectItem value="NO_SHOW">No Show</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Source</Label>

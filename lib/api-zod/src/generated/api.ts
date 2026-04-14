@@ -1996,16 +1996,10 @@ export const UpdateAdminBookingBody = zod.object({
   dropoffLocationId: zod.number().optional(),
   pickupDatetime: zod.coerce.date().optional(),
   dropoffDatetime: zod.coerce.date().optional(),
-  status: zod
-    .enum([
-      "PENDING",
-      "CONFIRMED",
-      "DELIVERED",
-      "RETURNED",
-      "CANCELED",
-      "NO_SHOW",
-    ])
-    .optional(),
+  pickupType: zod.string().optional(),
+  pickupAddress: zod.string().nullish(),
+  dropoffType: zod.string().optional(),
+  dropoffAddress: zod.string().nullish(),
   paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]).optional(),
   rateId: zod.number().optional(),
   rateTierId: zod.number().optional(),
