@@ -1,0 +1,66 @@
+Task: Audit and stabilize customer registration, login, and customer cabinet flow for website bookings
+
+Context:
+This is a live production-connected monorepo fully built in Replit. We have already stabilized website booking pricing, CRM reflection, dashboard online bookings visibility, and the confirmation email + PDF voucher chain. Now we need to verify the full customer-side account flow after booking.
+
+CRITICAL RULES:
+- Do NOT refactor architecture
+- Do NOT change unrelated booking logic
+- Do NOT change email/provider logic unless a direct issue is found in this flow
+- Do NOT implement changes yet unless a real issue is clearly identified
+- First map the exact current flow and find only real problems
+
+Goal:
+Ensure the post-booking customer account flow is correct and reliable:
+1. New customer registration/creation works correctly during website booking
+2. Existing customer path works correctly
+3. Generated password behavior is correct
+4. Customer login works
+5. Customer cabinet shows the correct booking data
+6. No silent failures or mismatches occur
+
+Audit Scope:
+
+1. Customer creation path during website booking
+- Identify exactly where a website booking creates or finds a customer
+- Determine how the system distinguishes:
+  - existing customer
+  - new customer
+- Determine when generatedPassword is created and returned
+
+2. Generated password flow
+- Confirm:
+  - it is generated only when appropriate
+  - it is returned in the booking response only when appropriate
+  - it is shown conditionally on the booking confirmation page only when present
+- Identify any mismatch risk between backend response and frontend rendering
+
+3. Customer login flow
+- Identify login endpoint(s), frontend login page/component, and auth/session handling
+- Confirm whether a newly created customer can log in with the generated password after booking
+- Identify any likely failure points:
+  - password not persisted
+  - wrong email matching
+  - session/cookie issue
+  - redirect issue
+
+4. Customer cabinet / dashboard flow
+- Identify the customer-facing cabinet page(s)/component(s)
+- Confirm how bookings are fetched and shown there
+- Verify that a website-created booking appears correctly for the correct customer
+- Check whether pricing fields shown there can diverge from stored values
+
+5. Failure handling
+- Identify any silent failure risks in:
+  - customer creation
+  - login
+  - cabinet booking retrieval
+- Note any cases where the booking succeeds but the account flow becomes inconsistent
+
+Output format:
+A. Exact backend flow (route/service/functions)
+B. Exact frontend flow (pages/components/hooks)
+C. Generated password conditions
+D. Real issues found only
+E. Minimal fix plan only for real issues
+F. If no real issues are found, explicitly say: "No fixes required"

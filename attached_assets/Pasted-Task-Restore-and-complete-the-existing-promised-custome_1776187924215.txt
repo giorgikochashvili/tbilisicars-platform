@@ -1,0 +1,49 @@
+Task: Restore and complete the existing promised customer cabinet flow as a minimal MVP
+
+Context:
+This project is fully built in Replit and already has an existing customer account foundation:
+- website booking can create/find a customer
+- generatedPassword is returned after booking when appropriate
+- customer login endpoint/session flow already exists
+- the product/UI already implies a customer booking cabinet experience
+
+So this is NOT a brand new feature invention.
+We need to restore/complete the missing customer-facing cabinet flow in the safest possible way, using the existing account/session foundation.
+
+CRITICAL RULES:
+- Do NOT refactor architecture
+- Do NOT redesign the website
+- Do NOT change booking creation logic
+- Do NOT change email logic
+- Do NOT change CRM/admin logic except only what is strictly required to expose customer bookings
+- Keep this as a minimal MVP completion of an already-promised flow
+
+Goal:
+Make the existing customer account experience actually usable end-to-end:
+1. Customer can book
+2. Customer gets generated password when appropriate
+3. Customer can log in
+4. Customer can access a simple cabinet page and see their bookings
+
+Requirements:
+1. First verify exactly what already exists in the current codebase:
+   - customer auth endpoints
+   - generated password return path
+   - any existing customer-facing cabinet/account components, routes, or partial UI
+   - any existing logout flow
+2. Then propose only the minimal missing pieces required to make the promised customer cabinet flow work
+3. Keep scope strictly limited to:
+   - one customer bookings API endpoint if missing
+   - one /cabinet route/page if missing
+   - login redirect to /cabinet if needed
+   - minimal Header logged-in state + logout if needed
+4. Do NOT add profile editing, booking actions, filters, pagination UI, or dashboard complexity
+5. Reuse existing styles, patterns, and auth/session logic wherever possible
+6. If any part already exists, do NOT rebuild it — only connect/fix what is missing
+
+Output format:
+A. What already exists today
+B. What is actually missing
+C. Minimal MVP implementation plan only
+D. Exact files that need changes
+E. Why this stays low-risk
