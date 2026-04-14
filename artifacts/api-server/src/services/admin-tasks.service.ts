@@ -296,7 +296,7 @@ export async function createAdminTask(input: CreateTaskInput) {
   const progressPercent = status === "Done" ? 100 : (input.progressPercent ?? 0);
   const completedAt = status === "Done" ? new Date() : null;
 
-  const assigneeIds = resolveAssigneeIds(input);
+  const assigneeIds = [...new Set(resolveAssigneeIds(input))]; // deduped, stable order
   const primaryAssigneeId = assigneeIds[0] ?? null;
 
   const rows = await db
@@ -371,28 +371,27 @@ export async function updateAdminTask(id: number, input: UpdateTaskInput, actorI
     updates.priority = input.priority;
   }
 
-  // Handle assignee update — only when assigneeIds or assignedToId is explicitly provided
+  // Handle assignee update — only when assigneeIds or assignedToId is explicitly provided.
+  // Always write junction rows (no set-equality short-circuit) so legacy tasks missing
+  // junction rows are fully migrated to the new model on first edit.
   const hasAssigneeChange = input.assigneeIds !== undefined || input.assignedToId !== undefined;
   if (hasAssigneeChange) {
-    const newAssigneeIds = resolveAssigneeIds(input);
-    const existingAssigneeIds = existing.assignees.map((a) => a.id).sort();
-    const newSorted = [...newAssigneeIds].sort();
-    const changed = JSON.stringify(existingAssigneeIds) !== JSON.stringify(newSorted);
+    const newAssigneeIds = [...new Set(resolveAssigneeIds(input))]; // deduped, stable order
+    const existingAssigneeIds = existing.assignees.map((a) => a.id);
+    const primaryAssigneeId = newAssigneeIds[0] ?? null;
+    updates.assignedToId = primaryAssigneeId;
 
-    if (changed) {
-      const primaryAssigneeId = newAssigneeIds[0] ?? null;
-      updates.assignedToId = primaryAssigneeId;
+    // Always sync junction table: delete old rows, insert new unique set
+    await db.delete(taskAssigneesTable).where(eq(taskAssigneesTable.taskId, id));
+    if (newAssigneeIds.length > 0) {
+      await db.insert(taskAssigneesTable).values(
+        newAssigneeIds.map((adminId) => ({ taskId: id, adminId }))
+      );
+    }
 
-      // Sync junction table: delete old, insert new
-      await db.delete(taskAssigneesTable).where(eq(taskAssigneesTable.taskId, id));
-      if (newAssigneeIds.length > 0) {
-        await db.insert(taskAssigneesTable).values(
-          newAssigneeIds.map((adminId) => ({ taskId: id, adminId }))
-        );
-      }
-
-      const oldStr = existingAssigneeIds.join(", ") || "";
-      const newStr = newAssigneeIds.join(", ") || "";
+    const oldStr = existingAssigneeIds.join(", ") || "";
+    const newStr = newAssigneeIds.join(", ") || "";
+    if (oldStr !== newStr) {
       activities.push({ action: "assigned", from: oldStr, to: newStr });
     }
   }

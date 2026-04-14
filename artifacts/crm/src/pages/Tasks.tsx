@@ -1147,7 +1147,7 @@ export default function TasksPage() {
                               : [];
                             if (names.length === 0) return <span className="italic text-muted-foreground/50">Unassigned</span>;
                             if (names.length <= 2) return names.join(", ");
-                            return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+                            return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
                           })()}
                         </TableCell>
                         <TableCell>
