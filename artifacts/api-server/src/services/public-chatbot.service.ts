@@ -20,20 +20,30 @@ interface KnowledgeTopic {
   actions?: ChatAction[];
 }
 
-const SEARCH_CARS: ChatAction = { type: "link", label: "Search Cars", href: "/booking" };
-const CONTACT_EMAIL: ChatAction = { type: "external", label: "Contact Support", href: "mailto:reservations@tbilisicars.com" };
+const SEARCH_CARS: ChatAction = { type: "link", label: "Book your car now", href: "/booking" };
+const CONTACT_EMAIL: ChatAction = { type: "external", label: "Contact Support", href: "mailto:support@tbilisicars.com" };
 const CALL_US: ChatAction = { type: "external", label: "Call Us", href: "tel:+995557376363" };
 const WHATSAPP: ChatAction = { type: "external", label: "WhatsApp", href: "https://wa.me/995557376363" };
 
 const TOPICS: KnowledgeTopic[] = [
   {
     keywords: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "greetings", "howdy"],
-    reply: "Hello! Welcome to Tbilisi Cars. I'm here to help with any questions about our car rental service in Georgia. What can I help you with today?",
+    reply: "Hello! Welcome to Tbilisicars. I'm here to help with any questions about our car rental service in Georgia. What can I help you with today?",
     actions: [SEARCH_CARS, CALL_US],
   },
   {
-    keywords: ["how to book", "make a booking", "how do i book", "how can i book", "how do i reserve", "book a car", "reserve a car", "make reservation", "place a booking", "booking process", "how does booking work", "how do i rent", "find a car", "find car", "search car", "search cars", "search for a car", "looking for a car", "i need a car", "rent a car", "want to rent"],
-    reply: "Booking is simple and free — no prepayment or credit card required upfront.\n\nYou can book directly on our website: just select your pickup and drop-off locations, choose your dates and time, pick a vehicle, and submit your request. Our team will confirm your booking shortly.\n\nYou can also reach us by email or phone to book directly with our team.",
+    keywords: ["find a car", "find car", "search car", "search cars", "search for a car", "looking for a car", "i need a car", "want to rent"],
+    reply: "Great! I'll help you find the right car for your trip 🚗\n\nTo get started, I need a few details:\n\n• Which city are you traveling in? (Tbilisi, Kutaisi, Batumi)\n• Where would you like to pick up and return the car?\n• How many people are traveling?\n\nOnce I have this, I can suggest the best options for you 👇",
+    actions: [SEARCH_CARS, CONTACT_EMAIL],
+  },
+  {
+    keywords: ["how to book", "make a booking", "how do i book", "how can i book", "how do i reserve", "book a car", "reserve a car", "make reservation", "place a booking", "booking process", "how does booking work", "how do i rent", "rent a car"],
+    reply: "Booking is quick and simple 👍\n\nHere's how it works:\n\n1. Choose your car\n2. Add extras or services if needed\n3. Select insurance option\n4. Enter your details\n5. Choose payment method\n6. Confirm your booking\n\nYou don't need to pay in advance — you can complete everything and pay on arrival.",
+    actions: [SEARCH_CARS, CONTACT_EMAIL],
+  },
+  {
+    keywords: ["rental conditions", "rental condition", "rent conditions", "conditions"],
+    reply: "Here are the basic rental requirements:\n\n• Minimum age: 21 years\n• Valid driving license (at least 2 years)\n• Passport or ID\n\nIf you're unsure about anything, I can help clarify 👍",
     actions: [SEARCH_CARS, CONTACT_EMAIL],
   },
   {
@@ -48,7 +58,7 @@ const TOPICS: KnowledgeTopic[] = [
   },
   {
     keywords: ["airport", "airports", "tbilisi airport", "kutaisi airport", "batumi airport", "pick me up", "airport pickup", "airport delivery", "arrive at airport", "arriving at airport", "meet at airport", "tbs", "bus"],
-    reply: "We serve all three of Georgia's major international airports:\n\n✈ Tbilisi International Airport — our office is inside the arrivals hall. Rental agreement completed in ~5 minutes. Agent escorts you to the parking area (50 m from terminal).\n\n✈ Kutaisi International Airport — our representative meets you in front of arrivals. Transfer to our office ~2 km from the airport.\n\n✈ Batumi International Airport — our representative meets you inside arrivals. Vehicle delivered in airport parking ~30 m from the terminal.",
+    reply: "Yes, we offer airport service in all major cities ✈️\n\nHere's how it works:\n\n🇬🇪 Tbilisi Airport\nYou can go directly to our office in the arrival hall — fast and easy pickup.\n\n🇬🇪 Kutaisi Airport\nWhen you arrive and are ready, our team will meet you outside the terminal and take you to our nearby office (just 2 minutes away).\n\n🇬🇪 Batumi Airport\nWe provide meet & greet service — our staff will meet you in the arrival hall and guide you to your car just outside the terminal.\n\n📞 One day before your arrival, our team will contact you to coordinate everything and ensure a smooth pickup.\n\n👉 You can select airport pickup during booking.",
     actions: [SEARCH_CARS, CALL_US],
   },
   {
@@ -57,8 +67,8 @@ const TOPICS: KnowledgeTopic[] = [
     actions: [CONTACT_EMAIL, CALL_US, WHATSAPP],
   },
   {
-    keywords: ["payment", "pay", "price", "cost", "how much", "pricing", "cash", "card", "credit card", "debit card", "revolut", "stripe", "bank transfer", "currency", "fee", "charge", "deposit", "prepayment"],
-    reply: "Standard reservations require no advance payment — you pay at vehicle pickup.\n\nAccepted payment methods:\n• Cash (EUR / USD / GEL)\n• Credit Card / Debit Card\n• Revolut transfers\n• Bank transfers\n• Stripe payments\n\nNo additional payment processing fees apply. For pricing details, please use our search tool to get an instant quote for your dates.",
+    keywords: ["payment", "pay", "price", "cost", "how much", "pricing", "prices", "offers", "cash", "card", "credit card", "debit card", "revolut", "wise", "apple pay", "google pay", "bank transfer", "currency", "fee", "charge", "deposit", "prepayment"],
+    reply: "We make payment simple and flexible 👍\n\n• No prepayment is required\n• You can pay on arrival\n\nWe accept:\n• Credit & Debit Cards\n• Cash\n• Apple Pay / Google Pay\n• Bank transfer\n• Revolut, Wise and more\n\nYou can choose the most convenient option for you.",
     actions: [SEARCH_CARS, CONTACT_EMAIL],
   },
   {
@@ -93,7 +103,7 @@ const TOPICS: KnowledgeTopic[] = [
   },
   {
     keywords: ["automatic", "automatic car", "automatic transmission", "auto car", "no manual", "automatic gearbox", "auto gearbox"],
-    reply: "We have automatic transmission vehicles available. To see which automatics are available for your specific dates and route, please use our search tool or contact our team directly.",
+    reply: "Yes, most of our cars are automatic 👍\n\nIf you have a specific preference, I can help you find the right option.",
     actions: [SEARCH_CARS, CONTACT_EMAIL],
   },
   {
@@ -113,13 +123,13 @@ const TOPICS: KnowledgeTopic[] = [
   },
   {
     keywords: ["contact", "support", "help", "phone", "call", "whatsapp", "telegram", "email", "reach", "get in touch", "speak to", "talk to", "message", "chat with"],
-    reply: "Our team is available 24/7 to assist you.\n\n📞 Phone / WhatsApp / Telegram:\n+995 557 37 63 63 (Tbilisi & Batumi)\n+995 595 28 66 00 (Kutaisi)\n\n✉ Email:\nreservations@tbilisicars.com\n\nWe're also available via Viber, WeChat, Signal, and other messaging platforms.",
+    reply: "If you'd like, our team can assist you directly.\n\n📞 Contact us:\n• Phone / WhatsApp: +995 557 37 63 63 (Tbilisi & Batumi)\n• Phone / WhatsApp: +995 595 28 66 00 (Kutaisi)\n• Email: support@tbilisicars.com\n\nWe usually respond very quickly.",
     actions: [CALL_US, WHATSAPP, CONTACT_EMAIL],
   },
 ];
 
 const FALLBACK: { reply: string; actions: ChatAction[] } = {
-  reply: "I don't have a specific answer for that, but our team is happy to help. You can reach us by phone, WhatsApp, or email — we're available 24/7.",
+  reply: "I'm not sure I understood that 🤔\n\nI can help with:\n• Car selection\n• Prices\n• Rental conditions\n• Booking process\n\nOr you can contact our team directly:\n👉 support@tbilisicars.com",
   actions: [CALL_US, WHATSAPP, CONTACT_EMAIL],
 };
 

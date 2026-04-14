@@ -16,14 +16,15 @@ interface Message {
 
 const WELCOME: Message = {
   role: "assistant",
-  text: "Hello! I'm the Tbilisicars assistant. I can help you find the perfect car, explain rental terms, and assist with your booking in Georgia. How can I help you today?",
+  text: "Hello! I'm the Tbilisicars assistant 🚗\n\nI can help you:\n• Find the right car for your trip\n• Explain rental terms\n• Guide you through booking\n\nYou can also start by choosing one of the options below 👇",
   actions: [],
 };
 
 const QUICK_ACTIONS = [
   "Find a car",
-  "Airport pickup",
-  "Rental requirements",
+  "Prices & offers",
+  "Airport delivery",
+  "Rental conditions",
   "Contact support",
 ];
 
