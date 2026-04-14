@@ -1,0 +1,59 @@
+Task: Audit and stabilize CRM booking edit flow for correctness and reliability
+
+Context:
+This is a live production-connected monorepo fully built in Replit. We have already stabilized website booking pricing, CRM online booking visibility, confirmation email/PDF chain, and customer cabinet flow. The next high-priority operational area is CRM booking editing.
+
+CRITICAL RULES:
+- Do NOT refactor architecture
+- Do NOT redesign the CRM
+- Do NOT change unrelated booking creation logic
+- Do NOT implement changes yet unless a real issue is clearly identified
+- First map the exact current edit/update flow and identify only real problems
+
+Goal:
+Ensure CRM booking edit works reliably and preserves all important booking data without corruption or silent mismatches.
+
+Audit Scope:
+
+1. Booking edit entry points
+- Identify all CRM booking edit entry points
+  - from bookings list
+  - from booking detail page
+  - any modal/page variants
+- Confirm whether they all use the same form/state logic or not
+
+2. Data loading into edit form
+- Verify that existing booking data is loaded correctly into edit state:
+  - pickup/dropoff locations
+  - dates/times
+  - vehicle/model
+  - customer data
+  - extras
+  - payment-related fields
+  - pricing/amount fields
+  - notes/source/external reservation code if applicable
+
+3. Save/update path
+- Identify the backend route/service used by booking edit save
+- Confirm how updates are validated and persisted
+- Check whether recalculation/update logic can overwrite or lose existing values
+
+4. Real mismatch or corruption risks
+Focus especially on:
+- locations disappearing
+- amount/payment fields becoming inconsistent
+- extras not persisting
+- vehicle/model assignment mismatch
+- partial update behavior
+- edit from one screen behaving differently from edit from another
+
+5. Failure handling
+- Identify any silent failure paths
+- Identify any cases where save appears successful but data is incomplete or wrong
+
+Output format:
+A. Exact frontend edit flow (pages/components/hooks)
+B. Exact backend update flow (route/service/functions)
+C. Real issues found only
+D. Minimal fix plan only for real issues
+E. If no real issues are found, explicitly say: "No fixes required"
