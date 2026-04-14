@@ -1,0 +1,88 @@
+We are continuing the existing Tbilisicars CRM & WEB project in Replit.
+
+IMPORTANT CONTEXT:
+- This is a live production-connected system
+- Current issue: the API process exits on startup because RESEND_API_KEY is missing
+- This is currently blocking stable API runtime and CRM login
+- Mail/domain is not fully connected yet, so email sending must be temporarily non-blocking
+- We need a minimal safe fix only
+- Do NOT re-architect anything
+- Do NOT refactor unrelated code
+- Do NOT change booking logic
+- Do NOT change CRM logic
+- Do NOT change payment logic
+- Do NOT change chatbot logic
+- Do NOT change email template contents
+- Only fix startup behavior so missing RESEND_API_KEY does NOT kill the whole API process
+
+GOAL:
+Make email functionality temporarily optional at startup.
+
+REQUIRED BEHAVIOR:
+- If RESEND_API_KEY exists and is non-empty:
+  - existing email behavior should remain unchanged
+- If RESEND_API_KEY is missing or empty:
+  - API server must still start normally
+  - CRM login and all non-email features must work normally
+  - system must log a clear warning that email sending is disabled
+  - email send attempts must fail gracefully without crashing the process
+
+TASKS:
+
+1. Locate the current startup fail-fast check for RESEND_API_KEY
+Likely in:
+- artifacts/api-server/src/index.ts
+or related startup/bootstrap file
+
+2. Replace the current fatal exit behavior
+Current behavior likely does something like:
+- log error
+- process.exit(1)
+
+Change this so that:
+- missing RESEND_API_KEY only logs a warning
+- startup continues normally
+
+Desired style:
+- clear warning message
+- no process exit
+- no thrown startup error for missing RESEND_API_KEY
+
+3. Ensure email sending paths are safe when RESEND_API_KEY is missing
+Locate the email sending service(s), likely:
+- artifacts/api-server/src/services/email.service.ts
+- and any related mail helper/service
+
+Required behavior:
+- if RESEND_API_KEY is missing, sending logic must not crash the API
+- it should fail gracefully and log a warning like:
+  "Email sending skipped: RESEND_API_KEY is not configured."
+- booking creation / confirmation flow must continue safely unless that flow already explicitly depends on email success
+- do not break existing business flow
+
+4. Keep current future production readiness easy
+Do NOT remove support for RESEND
+Do NOT delete validation entirely
+Just make it non-fatal for now
+
+5. Verification
+After the change:
+- API should start even without RESEND_API_KEY
+- CRM login should work again
+- non-email routes should function normally
+- TypeScript should pass with no new errors
+
+OUT OF SCOPE:
+- connecting real email provider
+- changing sender email
+- modifying PDF generation
+- altering booking confirmation content
+- adding retries/queues
+- any unrelated cleanup
+
+DONE LOOKS LIKE:
+- missing RESEND_API_KEY no longer prevents API startup
+- CRM login works
+- website/chatbot/API work normally
+- email is temporarily disabled gracefully
+- change is minimal and isolated
