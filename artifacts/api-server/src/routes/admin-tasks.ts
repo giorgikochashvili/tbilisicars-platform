@@ -2,7 +2,7 @@ import { Router, Request } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { db, adminsTable, auditLogsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { ForbiddenError } from "../lib/errors.js";
+import { ForbiddenError, ValidationError } from "../lib/errors.js";
 import {
   listAdminTasks,
   getAdminTask,
@@ -38,9 +38,16 @@ function isValidPriority(v: unknown): v is TaskPriority {
 
 function parseAssigneeIds(body: Record<string, unknown>): number[] | undefined {
   if (Array.isArray(body.assigneeIds)) {
-    const ids = (body.assigneeIds as unknown[])
-      .map((v) => (typeof v === "number" ? v : parseInt(String(v), 10)))
-      .filter((v) => Number.isFinite(v) && v > 0);
+    // Strict validation: every entry must be a positive integer
+    for (const v of body.assigneeIds as unknown[]) {
+      const n = typeof v === "number" ? v : Number(v);
+      if (!Number.isInteger(n) || n <= 0) {
+        throw new ValidationError("assigneeIds must be an array of positive integers");
+      }
+    }
+    const ids = (body.assigneeIds as unknown[]).map((v) =>
+      typeof v === "number" ? v : Number(v)
+    );
     return ids;
   }
   if ("assignedToId" in body) {
