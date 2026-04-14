@@ -492,6 +492,7 @@ function HandoverModal({
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadBatchTotal, setUploadBatchTotal] = useState(0);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
@@ -548,6 +549,7 @@ function HandoverModal({
 
     if (toUpload.length > 0) {
       setUploading(true);
+      setUploadBatchTotal(toUpload.length);
       setFileItems((prev) =>
         prev.map((fi) =>
           fi.status === "pending" || fi.status === "error"
@@ -780,8 +782,8 @@ function HandoverModal({
             )}
             {uploading && (
               <p className="text-[11px] text-muted-foreground mt-1">
-                Uploading {fileItems.filter((fi) => fi.status === "uploading").length} photo
-                {fileItems.filter((fi) => fi.status === "uploading").length !== 1 ? "s" : ""}…
+                Uploading {uploadBatchTotal - fileItems.filter((fi) => fi.status === "uploading").length} of {uploadBatchTotal} photo
+                {uploadBatchTotal !== 1 ? "s" : ""}…
               </p>
             )}
           </div>
