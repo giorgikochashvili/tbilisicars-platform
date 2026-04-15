@@ -1,7 +1,7 @@
 /**
  * Email service using Resend.
  * Sends booking confirmation emails non-blockingly.
- * If RESEND_API_KEY is not set, emails are silently skipped.
+ * If RESEND_API_KEY is not set, the email is skipped and logged.
  */
 import { Resend } from "resend";
 import { generateBookingVoucherPdf } from "./pdf-voucher.service.js";
@@ -31,6 +31,11 @@ function formatDT(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
@@ -64,6 +69,7 @@ export interface BookingConfirmationEmailParams {
   toEmail: string;
   toName: string;
   reference: string;
+  bookingId?: number;
   vehicle: string;
   pickupLocation: string;
   dropoffLocation: string;
@@ -84,14 +90,15 @@ export interface BookingConfirmationEmailParams {
   currency?: string;
   generatedPassword?: string | null;
   attachPdfVoucher?: boolean;
+  bookingStatus?: string;
+  paymentStatus?: string;
+  customerNotes?: string | null;
 }
 
 export async function sendBookingConfirmationEmail(params: BookingConfirmationEmailParams): Promise<void> {
-  const resend = getResend();
-  if (!resend) return;
-
   const {
-    toEmail, toName, reference, vehicle,
+    toEmail, toName, reference, bookingId,
+    vehicle,
     pickupLocation, dropoffLocation,
     pickupDatetime, dropoffDatetime,
     pickupCity,
@@ -102,16 +109,27 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     currency = "GEL",
     generatedPassword,
     attachPdfVoucher = false,
+    bookingStatus = "PENDING",
+    paymentStatus = "UNPAID",
+    customerNotes,
   } = params;
+
+  console.log(`[email] preparing ref=${reference} bookingId=${bookingId ?? "?"} to=${toEmail}`);
+
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[email] skipped_no_api_key ref=${reference}`);
+    return;
+  }
+
+  const bookingStatusDisplay = capitalize(bookingStatus);
+  const paymentStatusDisplay = capitalize(paymentStatus);
 
   const fromAddress = process.env.RESEND_FROM_EMAIL ?? "support@tbilisicars.com";
   const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
-  // Compute a single extra's line total using the same rules as computeExtrasTotal:
-  //   per_trip → pricePerUnit × quantity (flat, once per booking)
-  //   per_day  → pricePerUnit × quantity × min(days, maxDays ?? days)
   function extraLineTotal(ex: EmailExtra): number {
     if (ex.pricingType === "per_trip") {
       return ex.pricePerUnit * ex.quantity;
@@ -121,21 +139,18 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     return ex.pricePerUnit * ex.quantity * billableDays;
   }
 
-  // Build per-extra HTML row.
   function extraHtmlRow(ex: EmailExtra): string {
     const lineTotal = extraLineTotal(ex);
     const label = `${esc(ex.name)}${ex.quantity > 1 ? ` &times;${ex.quantity}` : ""}`;
     return `<div class="row"><span class="label">${label}</span><span class="value">${fmt(lineTotal)}</span></div>`;
   }
 
-  // Build per-extra text line
   function extraTextLine(ex: EmailExtra): string {
     const lineTotal = extraLineTotal(ex);
     return `  • ${ex.name}${ex.quantity > 1 ? ` ×${ex.quantity}` : ""}: ${fmt(lineTotal)}`;
   }
 
   // ── HTML sections ──────────────────────────────────────────────────────────
-  // Pricing section: shown when we have an estimated total
   const pricingSection = estimatedTotal != null ? `
         <div class="pricing-section">
           <div class="section-title">Pricing Estimate</div>
@@ -150,7 +165,6 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">Final pricing is confirmed before any charge is made.</p>
         </div>` : "";
 
-  // Extras-only section: shown for on-request vehicles (no estimated total) that still have extras
   const extrasOnlySection = estimatedTotal == null && extras.length > 0 ? `
         <div class="section">
           <div class="section-title">Add-ons &amp; Extras</div>
@@ -175,7 +189,9 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 24px; }
     .ref-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 4px; }
     .ref-value { font-size: 28px; font-weight: 800; color: #e05c72; letter-spacing: 2px; }
-    .status-badge { display: inline-block; background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); color: #fbbf24; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-top: 6px; }
+    .status-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .status-badge { display: inline-block; background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); color: #fbbf24; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .status-badge-gray { display: inline-block; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .section { margin-bottom: 20px; }
     .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #64748b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #1e3a5f; }
     .row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid #1a2f4a; font-size: 14px; gap: 12px; }
@@ -194,8 +210,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .payment-box { background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.18); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
     .payment-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #4ade80; margin-bottom: 6px; }
     .payment-box p { margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .info-box { background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.18); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .info-box strong { color: #e2e8f0; }
+    .pdf-note { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
     .contact-section { background: #0d1b2a; border-radius: 10px; padding: 16px 20px; }
     .contact-section p { margin: 0 0 8px; font-size: 13px; color: #94a3b8; }
     .contact-section a { color: #e05c72; text-decoration: none; }
@@ -224,7 +239,10 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
         <div class="ref-block">
           <div class="ref-label">Booking Reference</div>
           <div class="ref-value">${esc(reference)}</div>
-          <div class="status-badge">Pending Confirmation</div>
+          <div class="status-row">
+            <span class="status-badge">Booking: ${esc(bookingStatusDisplay)}</span>
+            <span class="status-badge-gray">Payment: ${esc(paymentStatusDisplay)}</span>
+          </div>
         </div>
 
         <div class="section">
@@ -283,10 +301,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <p class="acct-note">We created this account automatically using your booking email. You can change your password from your cabinet.</p>
         </div>` : ""}
 
-        <div class="info-box">
-          <strong>What happens next?</strong><br/>
-          Our team will review your request and send a confirmation within a few hours. If you have a flight arriving soon, please contact us directly so we can ensure your car is ready on time.
-        </div>
+        <p class="pdf-note">Your full booking details are attached as a PDF. Our team will review your request and confirm within a few hours.</p>
 
         <div class="contact-section">
           <p><strong style="color:#e2e8f0;">Need help? Contact us anytime:</strong></p>
@@ -319,10 +334,11 @@ Tbilisicars — Booking Confirmation
 
 Dear ${toName},
 
-Thank you for choosing Tbilisicars! We have received your booking request and will confirm shortly.
+Thank you for choosing Tbilisicars. We have received your booking request and will confirm shortly.
 
 BOOKING REFERENCE: ${reference}
-Status: Pending Confirmation
+Booking Status: ${bookingStatusDisplay}
+Payment Status: ${paymentStatusDisplay}
 
 TRIP DETAILS
   Vehicle: ${vehicle}
@@ -336,9 +352,8 @@ ${insurancePlan ? `INSURANCE\n  Plan: ${insurancePlan} Cover\n\n` : ""}${pricing
 ${paymentMethod ? `PAYMENT\n  ${paymentMethodNote(paymentMethod)}\n\n` : ""}${nationality || age ? `ADDITIONAL DETAILS\n${nationality ? `  Nationality: ${nationality}\n` : ""}${age ? `  Driver Age: ${age}\n` : ""}\n` : ""}PICKUP INSTRUCTIONS
   ${pickupInstructions}
 
-WHAT HAPPENS NEXT?
-  Our team will review your request and send a confirmation within a few hours.
-  If you have a flight arriving soon, please contact us directly.
+Your full booking details are attached as a PDF.
+Our team will review your request and confirm within a few hours.
 
 ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
   Email:    ${toEmail}
@@ -367,9 +382,13 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
         estimatedTotal, baseTotal, oneWayFee,
         promoCode, discountAmount,
         currency, generatedPassword,
+        bookingStatus,
+        paymentStatus,
+        customerNotes,
       });
+      console.log(`[email] pdf_generated ref=${reference}`);
     } catch (pdfErr) {
-      console.error("[email] PDF generation failed — sending without attachment:", pdfErr);
+      console.error(`[email] pdf_failed ref=${reference} error=${pdfErr instanceof Error ? pdfErr.message : String(pdfErr)}`);
     }
   }
 
@@ -377,14 +396,15 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
     await resend.emails.send({
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: toEmail,
-      subject: `Booking Request Received: ${reference} — ${vehicle}`,
+      subject: `Booking Confirmed: ${reference} — ${vehicle}`,
       html,
       text,
       ...(pdfBuffer != null
-        ? { attachments: [{ filename: `booking-voucher-${reference}.pdf`, content: pdfBuffer }] }
+        ? { attachments: [{ filename: `booking-${reference}.pdf`, content: pdfBuffer }] }
         : {}),
     });
+    console.log(`[email] sent_ok ref=${reference}`);
   } catch (err) {
-    console.error("[email] Failed to send booking confirmation:", err);
+    console.error(`[email] send_failed ref=${reference} error=${err instanceof Error ? err.message : String(err)}`);
   }
 }

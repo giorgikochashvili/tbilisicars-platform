@@ -44,9 +44,33 @@ function fmtMoney(n: number, cur: string): string {
   return `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
 }
 
-
 function trunc(s: string, max = 55): string {
   return s.length > max ? s.slice(0, max - 1) + "\u2026" : s;
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/** Wrap text to lines of at most `maxChars` characters, breaking on spaces. */
+function wrapText(text: string, maxChars: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    if (!word) continue;
+    if (current.length === 0) {
+      current = word;
+    } else if (current.length + 1 + word.length <= maxChars) {
+      current += " " + word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
 }
 
 // ── Param type ────────────────────────────────────────────────────────────────
@@ -72,6 +96,9 @@ export interface VoucherParams {
   discountAmount?: number | null;
   currency?: string;
   generatedPassword?: string | null;
+  bookingStatus?: string;
+  paymentStatus?: string;
+  customerNotes?: string | null;
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -84,7 +111,13 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
     currency = "GEL",
     generatedPassword,
+    bookingStatus = "PENDING",
+    paymentStatus = "UNPAID",
+    customerNotes,
   } = params;
+
+  const bookingStatusDisplay = capitalize(bookingStatus);
+  const paymentStatusDisplay = capitalize(paymentStatus);
 
   const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
 
@@ -112,20 +145,27 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
 
   y = PAGE_H - HEADER_H - 18;
 
-  // ── Reference block ──────────────────────────────────────────────────────────
-  const refH = 54;
+  // ── Reference block (taller to fit two status rows) ───────────────────────
+  const refH = 70;
   page.drawRectangle({ x: MARGIN, y: y - refH, width: CW, height: refH, color: C.refBg });
   page.drawRectangle({ x: MARGIN, y: y - refH, width: CW, height: refH,
     borderColor: C.accentRed, borderWidth: 0.8 });
 
+  // Left: label + reference number
   page.drawText("BOOKING REFERENCE", {
     x: MARGIN + 12, y: y - 16, size: 7.5, font, color: C.muted,
   });
   page.drawText(reference, {
-    x: MARGIN + 12, y: y - 36, size: 17, font: fontBold, color: C.accentLite,
+    x: MARGIN + 12, y: y - 40, size: 17, font: fontBold, color: C.accentLite,
   });
-  page.drawText("Status: Pending Confirmation", {
-    x: MARGIN + CW - 148, y: y - 28, size: 8.5, font: fontBold, color: C.amber,
+
+  // Right: two separate status lines
+  const statusX = MARGIN + CW - 145;
+  page.drawText(`Booking Status: ${bookingStatusDisplay}`, {
+    x: statusX, y: y - 24, size: 8, font: fontBold, color: C.amber,
+  });
+  page.drawText(`Payment Status: ${paymentStatusDisplay}`, {
+    x: statusX, y: y - 40, size: 8, font, color: C.muted,
   });
 
   y -= refH + GAP + 6;
@@ -219,7 +259,21 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   if (nationality) row("Nationality", nationality);
   if (age) row("Age", age);
   if (paymentMethod) row("Payment Method", paymentMethod);
+  row("Booking Status", bookingStatusDisplay);
+  row("Payment Status", paymentStatusDisplay);
   y -= GAP;
+
+  // ── Booking Notes (customer-supplied free text only) ─────────────────────────
+  const trimmedNotes = customerNotes?.trim();
+  if (trimmedNotes) {
+    sectionHeader("BOOKING NOTES");
+    const noteLines = wrapText(trimmedNotes, 72);
+    for (const line of noteLines) {
+      page.drawText(line, { x: MARGIN, y, size: 9, font, color: C.dark });
+      y -= ROW_H;
+    }
+    y -= GAP;
+  }
 
   // ── Account block (new accounts only) ────────────────────────────────────────
   if (generatedPassword != null && generatedPassword !== "") {

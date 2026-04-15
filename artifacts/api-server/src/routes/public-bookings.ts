@@ -715,6 +715,7 @@ router.post("/public/bookings", async (req, res) => {
     toEmail: body.email!.trim(),
     toName: contactFullName,
     reference,
+    bookingId,
     vehicle: vehicleName,
     pickupDatetime: body.pickupDatetime!,
     dropoffDatetime: body.dropoffDatetime!,
@@ -742,6 +743,9 @@ router.post("/public/bookings", async (req, res) => {
     dropoffLocationId: Number(body.dropoffLocationId),
     rentalDays,
     generatedPassword: generatedPassword ?? null,
+    bookingStatus: "PENDING",
+    paymentStatus: "UNPAID",
+    customerNotes: body.notes?.trim() || null,
   };
 
   setImmediate(() => {
@@ -767,6 +771,7 @@ router.post("/public/bookings", async (req, res) => {
           toEmail: emailParams.toEmail,
           toName: emailParams.toName,
           reference: emailParams.reference,
+          bookingId: emailParams.bookingId,
           vehicle: emailParams.vehicle,
           pickupLocation,
           dropoffLocation,
@@ -787,9 +792,12 @@ router.post("/public/bookings", async (req, res) => {
           currency: emailParams.currency,
           generatedPassword: emailParams.generatedPassword,
           attachPdfVoucher: true,
+          bookingStatus: emailParams.bookingStatus,
+          paymentStatus: emailParams.paymentStatus,
+          customerNotes: emailParams.customerNotes,
         });
       } catch (err) {
-        console.error("[email] Failed to prepare/send confirmation:", err);
+        console.error(`[email] Failed to prepare/send confirmation ref=${emailParams.reference}:`, err);
       }
     })();
   });
