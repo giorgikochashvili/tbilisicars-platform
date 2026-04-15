@@ -254,6 +254,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <div class="row"><span class="label">Return Date &amp; Time</span><span class="value">${esc(formatDT(dropoffDatetime))}</span></div>
           <div class="row"><span class="label">Duration</span><span class="value">${days} ${days === 1 ? "day" : "days"}</span></div>
           ${flightNumber ? `<div class="row"><span class="label">Flight Number</span><span class="value">${esc(flightNumber)}</span></div>` : ""}
+          <div class="row"><span class="label">Booking Status</span><span class="value">${esc(bookingStatusDisplay)}</span></div>
+          <div class="row"><span class="label">Payment Status</span><span class="value">${esc(paymentStatusDisplay)}</span></div>
         </div>
 
         ${insurancePlan ? `
@@ -337,8 +339,6 @@ Dear ${toName},
 Thank you for choosing Tbilisicars. We have received your booking request and will confirm shortly.
 
 BOOKING REFERENCE: ${reference}
-Booking Status: ${bookingStatusDisplay}
-Payment Status: ${paymentStatusDisplay}
 
 TRIP DETAILS
   Vehicle: ${vehicle}
@@ -347,7 +347,8 @@ TRIP DETAILS
   Pickup Date & Time: ${formatDT(pickupDatetime)}
   Return Date & Time: ${formatDT(dropoffDatetime)}
   Duration: ${days} ${days === 1 ? "day" : "days"}
-${flightNumber ? `  Flight Number: ${flightNumber}\n` : ""}
+${flightNumber ? `  Flight Number: ${flightNumber}\n` : ""}  Booking Status: ${bookingStatusDisplay}
+  Payment Status: ${paymentStatusDisplay}
 ${insurancePlan ? `INSURANCE\n  Plan: ${insurancePlan} Cover\n\n` : ""}${pricingText}
 ${paymentMethod ? `PAYMENT\n  ${paymentMethodNote(paymentMethod)}\n\n` : ""}${nationality || age ? `ADDITIONAL DETAILS\n${nationality ? `  Nationality: ${nationality}\n` : ""}${age ? `  Driver Age: ${age}\n` : ""}\n` : ""}PICKUP INSTRUCTIONS
   ${pickupInstructions}
@@ -396,7 +397,7 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
     await resend.emails.send({
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: toEmail,
-      subject: `Booking Confirmed: ${reference} — ${vehicle}`,
+      subject: `Booking Request Received: ${reference} — ${vehicle}`,
       html,
       text,
       ...(pdfBuffer != null
