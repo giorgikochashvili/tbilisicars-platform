@@ -53,6 +53,25 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+/**
+ * Remove internal system-generated note blocks from combined booking notes
+ * before rendering customer-facing output. Strips paragraphs that begin with
+ * [WEBSITE DATA] or [RATE EXPIRED — these are staff-only blocks that must
+ * never appear in customer-facing documents.
+ */
+function stripInternalBlocks(notes: string | null | undefined): string | null {
+  if (!notes) return null;
+  const clean = notes
+    .split(/\n\n+/)
+    .filter(p => {
+      const t = p.trimStart();
+      return !t.startsWith("[WEBSITE DATA]") && !t.startsWith("[RATE EXPIRED");
+    })
+    .join("\n\n")
+    .trim();
+  return clean || null;
+}
+
 /** Wrap text to lines of at most `maxChars` characters, breaking on spaces. */
 function wrapText(text: string, maxChars: number): string[] {
   const words = text.split(/\s+/);
@@ -263,8 +282,10 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   row("Payment Status", paymentStatusDisplay);
   y -= GAP;
 
-  // ── Booking Notes (customer-supplied free text only) ─────────────────────────
-  const trimmedNotes = bookingNotes?.trim();
+  // ── Booking Notes (customer-facing portion only) ─────────────────────────────
+  // stripInternalBlocks removes [WEBSITE DATA] and [RATE EXPIRED] paragraphs
+  // so internal staff blocks never appear in the customer-facing PDF.
+  const trimmedNotes = stripInternalBlocks(bookingNotes);
   if (trimmedNotes) {
     sectionHeader("BOOKING NOTES");
     const noteLines = wrapText(trimmedNotes, 72);
