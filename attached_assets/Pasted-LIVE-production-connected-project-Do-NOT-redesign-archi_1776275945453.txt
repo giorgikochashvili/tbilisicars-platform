@@ -1,0 +1,60 @@
+LIVE production-connected project. Do NOT redesign architecture. Do NOT refactor unrelated code. Do NOT touch infrastructure/server configs. Work only inside the existing Replit monorepo codebase.
+
+Current real state:
+
+* Production domain is now Tbilisicars.com only
+* Batumicars.com is abandoned and must no longer remain anywhere in product logic
+* Infra migration is already complete and working live
+* Goal of this task is INSPECTION + REPORT ONLY first, not blind replacement
+
+Task:
+Perform a precise codebase-wide inspection for any remaining Batumicars-specific references and prepare a surgical cleanup report for Tbilisicars-only operation.
+
+Search for all occurrences related to:
+
+* "batumicars"
+* "batumicars.com"
+* "[www.batumicars.com](http://www.batumicars.com)"
+* "Batumicars"
+* old canonical/base URLs
+* old CORS origins
+* old email sender / reply-to / support URLs
+* SEO metadata / canonical / og:url / sitemap / robots / schema
+* frontend links / navigation / redirects
+* auth / cookie / session domain-related constants
+* payment / booking confirmation / PDF / email templates
+* CRM/public website configs
+* env examples / README / deployment docs if they affect future confusion
+* any hardcoded strings shown to users that still mention Batumicars
+
+Important:
+
+1. Do NOT change any code yet.
+2. First produce a structured findings report grouped by category:
+
+   * Critical runtime/domain logic
+   * SEO/meta/public URLs
+   * Email/PDF/template text
+   * Config/env/docs
+   * Cosmetic text only
+3. For each finding include:
+
+   * exact file path
+   * exact line(s) or code snippet
+   * why it matters
+   * risk level if left unchanged
+   * recommended minimal change
+4. Also clearly mark which findings are safe to change immediately and which must be handled carefully to avoid breaking live flows.
+5. At the end, propose a tiny ordered cleanup batch plan:
+
+   * Batch 1 = safest/high-value changes
+   * Batch 2 = careful public-facing URL/meta cleanup
+   * Batch 3 = optional docs/comments cleanup
+6. Do NOT make edits in this step.
+
+Definition of done:
+
+* Full inspection completed
+* No code changed
+* Structured cleanup report ready for surgical execution
+* Focus is exact continuity with existing Tbilisicars CRM & WEB codebase

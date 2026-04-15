@@ -1,0 +1,152 @@
+LIVE production-connected system. Continue from existing Tbilisicars CRM & WEB project. Do NOT redesign or refactor anything.
+
+TASK: Implement complete email flow for website bookings (customer + internal staff notification).
+
+IMPORTANT:
+
+* This is NOT a new system.
+* Use existing booking flow in:
+  artifacts/api-server/src/routes/public-bookings.ts
+* Use existing email service:
+  artifacts/api-server/src/services/email.service.ts
+* Make only surgical additions.
+* Do NOT break current working customer email logic.
+
+---
+
+🎯 GOAL
+
+When a booking is created from the website:
+
+1. Customer must receive confirmation email (already exists — improve reliability/logging only)
+2. Staff must receive internal notification email at:
+   [Reservations@tbilisicars.com](mailto:Reservations@tbilisicars.com)
+
+---
+
+🧩 PART 1 — KEEP EXISTING CUSTOMER EMAIL (IMPROVE LOGGING ONLY)
+
+File:
+artifacts/api-server/src/routes/public-bookings.ts
+
+Inside existing setImmediate email block:
+
+ADD structured logs:
+
+Before sending:
+console.log(`[email] preparing_customer_email bookingId=${booking.id}`)
+
+After success:
+console.log(`[email] customer_email_sent bookingId=${booking.id}`)
+
+On failure:
+console.error(`[email] customer_email_failed bookingId=${booking.id}`, error)
+
+DO NOT change logic.
+DO NOT block response.
+DO NOT refactor.
+
+---
+
+🧩 PART 2 — ADD INTERNAL RESERVATIONS EMAIL
+
+File:
+artifacts/api-server/src/services/email.service.ts
+
+ADD new function:
+
+export async function sendNewBookingInternalEmail(params: {
+bookingId: number;
+referenceNumber: string;
+customerName: string;
+customerEmail: string;
+customerPhone?: string;
+pickupDate: Date;
+dropoffDate: Date;
+pickupLocation: string;
+dropoffLocation: string;
+vehicleModel: string;
+totalAmount: number;
+currency: string;
+notes?: string;
+})
+
+Requirements:
+
+* to: "[Reservations@tbilisicars.com](mailto:Reservations@tbilisicars.com)"
+
+* subject: "New Website Booking — {referenceNumber}"
+
+* HTML must include:
+  Booking Reference
+  Customer Name
+  Email
+  Phone
+  Pickup → Dropoff
+  Dates
+  Vehicle
+  Total price
+  Notes (if exists)
+  Source: WEBSITE
+
+* Use existing resend client (DO NOT create new client)
+
+* Same sender as customer emails
+
+* Add logs:
+  [email] reservations_email_sent
+  [email] reservations_email_failed
+
+---
+
+🧩 PART 3 — TRIGGER INTERNAL EMAIL
+
+Back to:
+artifacts/api-server/src/routes/public-bookings.ts
+
+Inside SAME setImmediate block (after customer email):
+
+CALL:
+await sendNewBookingInternalEmail({...})
+
+Use SAME booking data already available.
+
+IMPORTANT:
+
+* DO NOT duplicate calculations
+* DO NOT re-query DB
+* Use existing variables from booking flow
+
+---
+
+🧩 PART 4 — SAFETY RULES
+
+* Do NOT change booking logic
+* Do NOT change DB schema
+* Do NOT change API response
+* Do NOT block booking if email fails
+* Emails must be fire-and-forget (same as now)
+
+---
+
+🧪 EXPECTED RESULT
+
+After build:
+
+✔ Customer receives confirmation email
+✔ Reservations receives notification email
+✔ Logs clearly show:
+
+* customer email status
+* reservations email status
+
+---
+
+OUTPUT FORMAT:
+
+1. Files changed
+2. Exact code snippets (diff-style if possible)
+3. Confirmation that:
+
+   * existing logic untouched
+   * only additions made
