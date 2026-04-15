@@ -1,0 +1,155 @@
+Revise the current plan set (#104 Booking UI/UX Polish and #105 Booking Flow State Hardening) to ensure both are implemented safely together in a single build without conflicts.
+
+IMPORTANT:
+
+* This is a LIVE production-connected system
+* The project is already fully built in Replit — continue from the current real codebase
+* Do NOT redesign architecture
+* Do NOT refactor unrelated code
+* All changes must remain surgical and production-safe
+
+---
+
+🎯 GOAL
+
+Merge UI/UX improvements (#104) and state hardening (#105) into a single coordinated implementation, ensuring:
+
+* No conflicting edits in Booking.tsx
+* No overwritten logic between tasks
+* No unstable navigation behavior
+* No booking flow breakage
+
+---
+
+🔧 REQUIRED REVISIONS
+
+1. UNIFY CHANGES IN Booking.tsx
+
+Both tasks modify:
+artifacts/website/src/pages/Booking.tsx
+
+Ensure:
+
+* UI changes (insurance, modal, dropdown, sticky panels, age input)
+* AND state logic (sessionStorage restore, validation, step handling)
+
+are implemented together in ONE coherent version of the file.
+
+Do NOT:
+
+* duplicate logic
+* overwrite one task with another
+* split logic across conflicting hooks
+
+---
+
+2. SESSION STORAGE — SAFE IMPLEMENTATION
+
+Keep:
+
+* sessionStorage draft save/restore (step + formData)
+* clear draft on:
+
+  * successful booking
+  * explicit reset
+
+Add:
+
+* validation after config load:
+
+  * vehicleModelId
+  * pickupLocationId
+  * dropoffLocationId
+
+If invalid:
+
+* clear affected fields
+* return user safely to step 1
+* show non-blocking message
+
+---
+
+3. HISTORY / BACK BUTTON — SIMPLIFY (VERY IMPORTANT)
+
+Revise previous approach:
+
+❌ DO NOT:
+
+* implement aggressive popstate interception
+* create synthetic history entries on every step
+* risk navigation loops or trapping user in booking
+
+✅ INSTEAD:
+
+* keep browser navigation stable and natural
+* if a minimal safe step-back handling exists, use it
+* otherwise:
+
+  * prioritize session restore over history manipulation
+  * allow normal browser back behavior
+
+IMPORTANT:
+Stability > clever navigation tricks
+
+---
+
+4. TERMS / PRIVACY MODAL
+
+Ensure:
+
+* modal does NOT interfere with sessionStorage logic
+* opening/closing modal does NOT reset state
+* no re-mount side effects
+
+---
+
+5. INSURANCE SIMPLIFICATION
+
+Ensure:
+
+* Full Insurance default selection does NOT break restored state
+* if restoring session, previously selected insurance is respected
+
+---
+
+6. VEHICLE ORDERING
+
+Ensure:
+
+* "On Request" sorting logic does NOT interfere with restored selection
+* restored vehicleModelId still correctly maps after sorting
+
+---
+
+7. NO SIDE EFFECT COLLISIONS
+
+Ensure:
+
+* useEffect hooks do NOT conflict
+* no infinite loops from:
+
+  * session restore
+  * config validation
+  * UI re-renders
+
+---
+
+📦 OUTPUT FORMAT
+
+1. Unified implementation plan (combined #104 + #105)
+2. Exact files to modify
+3. Conflict-resolution explanation
+4. Confirmation that:
+
+   * no logic is overwritten
+   * no navigation instability introduced
+   * Booking flow remains intact
+5. Final verdict: Build ready
+
+---
+
+⚠️ RULE
+
+If any part cannot be implemented safely without introducing instability:
+→ simplify it
+→ do NOT overengineer
