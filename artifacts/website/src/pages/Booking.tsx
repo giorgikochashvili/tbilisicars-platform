@@ -68,7 +68,7 @@ const INSURANCE_PLANS: Array<{
   id: string; label: string; deposit: number; excess: number; desc: string; recommended?: boolean;
 }> = [
   { id: "basic",   label: "Basic",   deposit: 300, excess: 300, desc: "Standard cover for everyday driving" },
-  { id: "full",    label: "Full",    deposit: 300, excess: 100, desc: "Reduced excess for added peace of mind" },
+  { id: "full",    label: "Full",    deposit: 100, excess: 100, desc: "Reduced excess for added peace of mind" },
   { id: "premium", label: "Premium", deposit: 100, excess: 100, desc: "Maximum cover, minimum liability", recommended: true },
 ];
 
