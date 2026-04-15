@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info, ChevronDown } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -185,6 +185,16 @@ export default function ServicePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiFetch(`/api/admin/service/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => {
+      toast({ title: "Status updated" });
+      queryClient.invalidateQueries({ queryKey: ["service-records"] });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   // ── Handlers ──────────────────────────────────────────────────────
 
   const handleOpenModal = (record: any = null) => {
@@ -225,7 +235,7 @@ export default function ServicePage() {
       toast({ title: "Validation Error", description: "Vehicle is required", variant: "destructive" });
       return;
     }
-    if (selectedCategories.length === 0) {
+    if (!editingRecord && selectedCategories.length === 0) {
       toast({ title: "Validation Error", description: "At least one service category is required", variant: "destructive" });
       return;
     }
@@ -393,7 +403,7 @@ export default function ServicePage() {
             Service Records
             {meta && (
               <span className="font-normal text-muted-foreground ml-2 text-sm">
-                ({meta.total} total)
+                ({vehicleSearch ? `${records.length} found` : `${meta.total} total`})
               </span>
             )}
           </CardTitle>
@@ -482,14 +492,37 @@ export default function ServicePage() {
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuContent align="end" className="w-52">
                             {r.vehicleId && (
                               <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
                                 <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <span className="w-4 h-4 mr-2 inline-flex items-center justify-center">⚡</span> Change Status
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {(Object.entries(STATUS_LABELS) as [string, string][]).map(([value, label]) => (
+                                  <DropdownMenuItem
+                                    key={value}
+                                    disabled={r.status === value || statusMutation.isPending}
+                                    onClick={() => statusMutation.mutate({ id: r.id, status: value })}
+                                  >
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs mr-2 px-1.5 py-0 ${STATUS_COLORS[value] ?? ""}`}
+                                    >
+                                      {label}
+                                    </Badge>
+                                    {r.status === value && <span className="ml-auto text-muted-foreground text-xs">current</span>}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleOpenModal(r)}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit
+                              <Edit className="w-4 h-4 mr-2" /> Edit Full Record
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(r.id)} className="text-destructive focus:text-destructive">
                               <Trash2 className="w-4 h-4 mr-2" /> Delete

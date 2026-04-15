@@ -1,0 +1,65 @@
+Build these exact Service module fixes from the approved audit.
+
+Context:
+This is a live production-connected monorepo built in Replit.
+Do NOT refactor architecture.
+Do NOT redesign the Service module.
+Do NOT change unrelated flows.
+Make only the minimal, surgical fixes described below.
+
+Approved issues to fix:
+1. Status change has too much operational friction because it is only possible through the full edit modal
+2. Legacy records can be blocked from status-only edits because edit mode still requires at least one selected category
+3. Vehicle search result count is misleading because total does not match filtered rows
+
+Required fixes:
+
+FIX 1 — Quick status change path
+Goal:
+Allow staff to change a service record status directly from the list view without opening the full edit modal.
+
+Requirements:
+- Add a quick status-change action from the existing row actions area in the Service list
+- It must update only the status field
+- It must call the existing PATCH /api/admin/service/:id endpoint
+- Send only the minimal payload needed for status update
+- Do NOT route this action through the full modal form
+- Do NOT trigger full-form validations for this quick status change
+- Keep UI simple and consistent with the existing Service page style
+- After success, refresh the list correctly and show a normal success toast
+- Handle failure with a normal error toast
+- Do NOT add a new page or large redesign
+
+FIX 2 — Do not block edit-mode saves on empty categories for legacy records
+Goal:
+If editing an existing service record, the form must not be blocked just because selectedCategories is empty.
+
+Requirements:
+- Keep creation-time validation intact for new records
+- In edit mode, do NOT require at least one selected category in order to save unrelated changes like status, notes, cost, etc.
+- Do not break the existing Georgian category UI
+- Keep the change minimal and local
+
+FIX 3 — Make vehicle-search total match visible rows
+Goal:
+When vehicle search is used, the displayed total/count must match the actually shown filtered records.
+
+Requirements:
+- Fix the mismatch between displayed total and visible filtered rows
+- Prefer the cleanest minimal solution
+- If a frontend-only fix is enough, that is acceptable
+- Do NOT redesign pagination/search architecture unless truly necessary
+- Final displayed count must be accurate for staff
+
+Implementation rules:
+- Keep all existing business logic intact
+- No schema redesign
+- No broad refactor
+- No unrelated cleanup
+- Preserve compatibility with current service record data
+
+After implementation, output:
+1. Exact files changed
+2. What was changed in each file
+3. Any edge cases handled
+4. Very short manual test checklist
