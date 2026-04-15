@@ -137,6 +137,26 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
 
 function cn(...cls: (string | undefined | false | null)[]) { return cls.filter(Boolean).join(" "); }
 
+function sortLocations<T extends { name: string; city: string }>(locs: T[]): T[] {
+  function typePriority(name: string): number {
+    if (name.includes("Airport")) return 1;
+    if (name.includes("Downtown")) return 2;
+    if (name.includes("Hotel")) return 3;
+    return 4;
+  }
+  function cityPriority(city: string): number {
+    if (city === "Tbilisi") return 1;
+    if (city === "Kutaisi") return 2;
+    if (city === "Batumi") return 3;
+    return 4;
+  }
+  return [...locs].sort((a, b) => {
+    const dt = typePriority(a.name) - typePriority(b.name);
+    if (dt !== 0) return dt;
+    return cityPriority(a.city) - cityPriority(b.city);
+  });
+}
+
 function formatDT(iso: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi", hour12: false });
@@ -612,7 +632,7 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; locations: Location[];
   onClose?: () => void;
 }) {
-  const cities = Array.from(new Set(locations.map((l) => l.city))).sort();
+  const cities = Array.from(new Set(locations.map((l) => l.city)));
   const LocOpts = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <Sel value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">Select location…</option>
@@ -2205,7 +2225,7 @@ export default function Booking() {
   );
 
   const models = config?.vehicleModels ?? [];
-  const locations = config?.locations ?? [];
+  const locations = sortLocations(config?.locations ?? []);
   const extras = config?.extras ?? [];
 
   // ── Step 1: dedicated layout — stepper above, true left-rail + vehicle grid ──

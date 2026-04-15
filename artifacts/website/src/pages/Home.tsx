@@ -98,6 +98,26 @@ const WHY_CARDS = [
   },
 ];
 
+function sortLocations<T extends { name: string; city: string }>(locs: T[]): T[] {
+  function typePriority(name: string): number {
+    if (name.includes("Airport")) return 1;
+    if (name.includes("Downtown")) return 2;
+    if (name.includes("Hotel")) return 3;
+    return 4;
+  }
+  function cityPriority(city: string): number {
+    if (city === "Tbilisi") return 1;
+    if (city === "Kutaisi") return 2;
+    if (city === "Batumi") return 3;
+    return 4;
+  }
+  return [...locs].sort((a, b) => {
+    const dt = typePriority(a.name) - typePriority(b.name);
+    if (dt !== 0) return dt;
+    return cityPriority(a.city) - cityPriority(b.city);
+  });
+}
+
 interface LocationOption { id: number; name: string; city: string; }
 function LocationSelect({
   value, onChange, options, placeholder,
@@ -199,8 +219,8 @@ export default function Home() {
     el.scrollBy({ left: dir === "left" ? -340 : 340, behavior: "smooth" });
   }
 
-  const locations = config?.locations ?? [];
-  const cities = Array.from(new Set(locations.map((l) => l.city))).sort();
+  const locations = sortLocations(config?.locations ?? []);
+  const cities = Array.from(new Set(locations.map((l) => l.city)));
 
   useEffect(() => {
     if (sameLocation) setDropoffLocationId(pickupLocationId);
@@ -365,6 +385,18 @@ export default function Home() {
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Maintenance notice */}
+          <p className="mt-4 text-xs text-muted-foreground/55 text-center max-w-sm mx-auto leading-relaxed">
+            We are currently updating parts of our website to improve your experience.
+            If you notice any issue, please contact us directly at{" "}
+            <a
+              href="mailto:support@tbilisicars.com"
+              className="text-primary/70 hover:text-primary transition-colors"
+            >
+              support@tbilisicars.com
+            </a>.
+          </p>
 
           {/* Stats strip */}
           <div className="flex flex-wrap justify-center gap-6 mt-6 lg:mt-4">
