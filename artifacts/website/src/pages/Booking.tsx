@@ -13,10 +13,12 @@ import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ChevronUp, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
-  Lock, Copy, Package, Baby, Wifi, Clock,
+  Lock, Copy, Package, Baby, Wifi, Clock, X,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker } from "@/components/DateTimePicker";
+import { TERMS_SECTIONS } from "./Terms";
+import { PRIVACY_SECTIONS } from "./Privacy";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,6 +103,8 @@ const INSURANCE_VISUAL = {
 };
 
 const STEP_LABELS = ["Vehicle", "Extras & Services", "Insurance", "Your Info", "Payment", "Confirm"];
+
+const BOOKING_DRAFT_KEY = "tc_booking_draft";
 
 const SEAT_BUCKETS: Array<{ label: string; value: string; match: (s: number) => boolean }> = [
   { label: "2 seats",  value: "2",  match: (s) => s === 2 },
@@ -269,7 +273,10 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (v: strin
               className="w-full rounded-lg bg-secondary/40 border border-input px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/60"
             />
           </div>
-          <div className="overflow-y-auto" style={{ maxHeight: 200 }}>
+          <div
+            className="overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-secondary/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
+            style={{ maxHeight: 200 }}
+          >
             {filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-3">No match</p>
             ) : filtered.map((c) => (
@@ -279,7 +286,7 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (v: strin
                 onClick={() => { onChange(c); setOpen(false); }}
                 className={cn(
                   "w-full text-left px-3 py-2 text-sm transition-colors",
-                  c === value ? "text-primary font-medium bg-primary/10" : "text-foreground hover:bg-primary/10 hover:text-white",
+                  c === value ? "text-primary font-medium bg-primary/10" : "text-foreground hover:bg-secondary/60 hover:text-white",
                 )}
               >
                 {c}
@@ -288,6 +295,92 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (v: strin
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Legal Modal (Terms & Privacy) ────────────────────────────────────────────
+
+type LegalModalType = "terms" | "privacy" | null;
+
+function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => void }) {
+  useEffect(() => {
+    if (!type) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [type, onClose]);
+
+  if (!type) return null;
+
+  const isTerms = type === "terms";
+  const title = isTerms ? "Rental Terms & Conditions" : "Privacy Policy";
+  const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS;
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative z-10 w-full sm:max-w-2xl max-h-[90dvh] sm:max-h-[80vh] flex flex-col bg-[#0f1e30] border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" />
+            <h2 className="text-base font-semibold text-white">{title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-5 py-5 space-y-4
+          [&::-webkit-scrollbar]:w-1.5
+          [&::-webkit-scrollbar-track]:bg-white/5
+          [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30
+          [&::-webkit-scrollbar-thumb]:rounded-full">
+          {sections.map((s) => (
+            <div key={s.title} className="bg-card/60 border border-border/60 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
+              {"intro" in s && s.intro && (
+                <p className="text-xs text-muted-foreground mb-2">{(s as any).intro}</p>
+              )}
+              <ul className="space-y-1.5">
+                {s.content.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-muted-foreground">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-primary shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              {"note" in s && (s as any).note && (
+                <p className="mt-2 text-xs text-muted-foreground italic">{(s as any).note}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-border shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium py-2.5 hover:bg-primary/25 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -760,7 +853,10 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
       const pb = b.min_price_per_day ? Number(b.min_price_per_day) : -Infinity;
       return pb - pa;
     }
-    return 0;
+    // Default: available models first, On Request (vehicle_count === 0) last
+    const aAvail = Number(a.vehicle_count) > 0 ? 0 : 1;
+    const bAvail = Number(b.vehicle_count) > 0 ? 0 : 1;
+    return aAvail - bAvail;
   });
 
   function clearFilters() { setFilters({ category: "", transmission: "", seats: "", fuelType: "" }); }
@@ -778,7 +874,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
     <div className="lg:grid lg:grid-cols-[320px_1fr] gap-6 items-start">
 
       {/* ── Left sticky rail ─────────────────────────────────────────────── */}
-      <div className="mb-4 lg:mb-0">
+      <div className="mb-4 lg:mb-0 lg:self-start">
         <div className="lg:sticky lg:top-6 space-y-3">
 
           {/* 1. Edit Search — trip details edit form or compact summary */}
@@ -1225,76 +1321,102 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
 
 // ─── Step 3: Insurance ────────────────────────────────────────────────────────
 
+const FULL_PLAN = INSURANCE_PLANS.find((p) => p.id === "full")!;
+const FULL_VISUAL = INSURANCE_VISUAL.full;
+
 function Step3({ form, setForm, onNext, onBack }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>;
   onNext: () => void; onBack: () => void;
 }) {
+  // Auto-select Full if nothing is already chosen (respects session-restored value)
+  useEffect(() => {
+    if (!form.insurancePlan) {
+      setForm((f) => ({ ...f, insurancePlan: "full" }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function validate() {
     if (!form.insurancePlan) { toast({ title: "Please select an insurance plan", variant: "destructive" }); return; }
     onNext();
   }
+
+  const selected = form.insurancePlan === "full" || !form.insurancePlan;
+
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Insurance Plan</h2>
-      <p className="text-muted-foreground text-sm mb-6">Choose the level of coverage that suits you. Selecting a plan updates your price summary.</p>
+      <p className="text-muted-foreground text-sm mb-6">Full coverage is included with every booking for your peace of mind.</p>
 
       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
         <Shield className="w-3.5 h-3.5 text-primary" />
-        Choose Your Coverage Level
+        Your Coverage
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {INSURANCE_PLANS.map((plan) => {
-          const selected = form.insurancePlan === plan.id;
-          const visual = INSURANCE_VISUAL[plan.id as keyof typeof INSURANCE_VISUAL];
-          return (
-            <button key={plan.id} type="button" onClick={() => setForm((f) => ({ ...f, insurancePlan: plan.id }))}
-              className={cn(
-                "relative w-full text-left rounded-xl border-2 p-5 transition-all duration-200",
-                selected
-                  ? cn("shadow-lg", visual.activeBorder, visual.activeBg)
-                  : "border-border bg-card hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
-              )}>
-              {plan.recommended && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap shadow-md">
-                  ★ Recommended
-                </span>
-              )}
-              {/* Shield icon */}
-              <div className={cn(
-                "w-12 h-12 rounded-xl border flex items-center justify-center mb-4 transition-colors duration-200",
-                selected ? visual.iconWrapper : "bg-secondary/30 border-border"
-              )}>
-                <Shield className={cn("w-6 h-6 transition-colors duration-200", selected ? visual.iconColor : "text-muted-foreground")} />
-              </div>
-              {/* Tier badge */}
-              <div className="mb-1">
-                <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors duration-200", selected ? visual.tierColor : "text-muted-foreground/60")}>
-                  {visual.tierLabel}
-                </span>
-              </div>
-              <div className="font-bold text-white text-lg mb-2">{plan.label}</div>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed min-h-[32px]">{plan.desc}</p>
-              {/* Stats */}
-              <div className="space-y-2 pt-3 border-t border-border">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Deposit</span>
-                  <span className={cn("font-bold transition-colors", selected ? visual.iconColor : "text-white")}>{plan.deposit}€</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Excess</span>
-                  <span className={cn("font-bold transition-colors", selected ? visual.iconColor : "text-white")}>{plan.excess}€</span>
-                </div>
-              </div>
-              {/* Selected check */}
-              {selected && (
-                <div className={cn("absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-sm", visual.checkBg)}>
-                  <Check className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
-            </button>
-          );
-        })}
+      {/* Single Full Insurance card */}
+      <div className={cn(
+        "relative w-full rounded-xl border-2 p-5 shadow-lg mb-6",
+        FULL_VISUAL.activeBorder, FULL_VISUAL.activeBg,
+      )}>
+        <div className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center shadow-sm bg-blue-400">
+          <Check className="w-3.5 h-3.5 text-white" />
+        </div>
+        <div className="flex items-center gap-4 mb-4">
+          <div className={cn("w-12 h-12 rounded-xl border flex items-center justify-center shrink-0", FULL_VISUAL.iconWrapper)}>
+            <Shield className={cn("w-6 h-6", FULL_VISUAL.iconColor)} />
+          </div>
+          <div>
+            <span className={cn("text-[10px] font-bold uppercase tracking-wider", FULL_VISUAL.tierColor)}>
+              {FULL_VISUAL.tierLabel}
+            </span>
+            <div className="font-bold text-white text-lg leading-tight">{FULL_PLAN.label} Insurance</div>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{FULL_PLAN.desc}</p>
+
+        {/* Detail grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          {/* Covered */}
+          <div className="rounded-xl bg-blue-500/10 border border-blue-400/20 p-4">
+            <div className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5" /> What's Covered
+            </div>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li className="flex gap-2"><span className="text-blue-400 shrink-0 mt-0.5">✓</span> Third-party liability</li>
+              <li className="flex gap-2"><span className="text-blue-400 shrink-0 mt-0.5">✓</span> Collision damage (excess applies)</li>
+              <li className="flex gap-2"><span className="text-blue-400 shrink-0 mt-0.5">✓</span> Theft protection</li>
+              <li className="flex gap-2"><span className="text-blue-400 shrink-0 mt-0.5">✓</span> Windscreen &amp; glass</li>
+              <li className="flex gap-2"><span className="text-blue-400 shrink-0 mt-0.5">✓</span> 24/7 roadside assistance</li>
+            </ul>
+          </div>
+          {/* Not covered */}
+          <div className="rounded-xl bg-secondary/20 border border-border p-4">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <X className="w-3.5 h-3.5" /> Not Covered
+            </div>
+            <ul className="space-y-1.5 text-xs text-muted-foreground">
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Driver negligence or recklessness</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Driving under influence (DUI)</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Restricted zones (Abkhazia etc.)</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Intentional damage</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Personal belongings</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Deposit / Excess */}
+        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-blue-400/20">
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-1">Security Deposit</div>
+            <div className={cn("text-2xl font-black", FULL_VISUAL.iconColor)}>{FULL_PLAN.deposit}€</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Pre-authorised at pickup</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-1">Damage Excess</div>
+            <div className={cn("text-2xl font-black", FULL_VISUAL.iconColor)}>{FULL_PLAN.excess}€</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Max liability if damage occurs</div>
+          </div>
+        </div>
       </div>
 
       <div className="p-4 rounded-xl bg-secondary/20 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
@@ -1315,6 +1437,8 @@ function Step3({ form, setForm, onNext, onBack }: {
 function Step4({ form, setForm, onNext, onBack }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; onNext: () => void; onBack: () => void;
 }) {
+  const [legalModal, setLegalModal] = useState<LegalModalType>(null);
+
   function validate() {
     if (!form.firstName.trim()) { toast({ title: "First name is required", variant: "destructive" }); return; }
     if (!form.lastName.trim()) { toast({ title: "Last name is required", variant: "destructive" }); return; }
@@ -1378,8 +1502,13 @@ function Step4({ form, setForm, onNext, onBack }: {
           </div>
           <div>
             <FieldLabel>Age</FieldLabel>
-            <Inp type="number" min="21" max="99" value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 · Valid driving licence required for at least 2 years</p>
+            <Inp
+              type="number" min="21" max="70"
+              value={form.age}
+              onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Minimum age: 21 · Maximum age: 70</p>
           </div>
         </div>
         <div>
@@ -1414,7 +1543,11 @@ function Step4({ form, setForm, onNext, onBack }: {
           <Checkbox checked={form.agreeToTerms} onChange={() => setForm((f) => ({ ...f, agreeToTerms: !f.agreeToTerms }))} />
           <span className="text-sm text-muted-foreground leading-relaxed">
             I have read and agree to the{" "}
-            <Link href="/terms" className="text-primary hover:underline font-medium">Terms & Conditions</Link>.
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setLegalModal("terms"); }}
+              className="text-primary hover:underline font-medium"
+            >Terms &amp; Conditions</button>.
             {" "}I confirm I am at least 21 years old and hold a valid driving licence.
           </span>
         </label>
@@ -1422,7 +1555,11 @@ function Step4({ form, setForm, onNext, onBack }: {
           <Checkbox checked={form.agreeToPrivacy} onChange={() => setForm((f) => ({ ...f, agreeToPrivacy: !f.agreeToPrivacy }))} />
           <span className="text-sm text-muted-foreground leading-relaxed">
             I have read and agree to the{" "}
-            <Link href="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</Link>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setLegalModal("privacy"); }}
+              className="text-primary hover:underline font-medium"
+            >Privacy Policy</button>
             {" "}and consent to the processing of my personal data for the purpose of this booking.
           </span>
         </label>
@@ -1432,6 +1569,9 @@ function Step4({ form, setForm, onNext, onBack }: {
         <Btn variant="outline" onClick={onBack}><ChevronLeft className="w-4 h-4" /> Back</Btn>
         <Btn onClick={validate}>Continue →</Btn>
       </div>
+
+      {/* Legal modal — zero interaction with form state or sessionStorage */}
+      <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
     </div>
   );
 }
@@ -1656,6 +1796,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         }),
       });
       setResult(data);
+      try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* ignore */ }
     } catch (err: any) {
       toast({ title: "Booking failed", description: err.message ?? "Please try again", variant: "destructive" });
     } finally {
@@ -2146,6 +2287,27 @@ export default function Booking() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(getInitialForm);
 
+  // ── Session draft restore (mount-only) ──────────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as { step: number; form: FormData };
+        if (draft.step && draft.form) {
+          setStep(draft.step);
+          setForm(draft.form);
+        }
+      }
+    } catch { /* ignore parse/storage errors */ }
+  }, []); // mount only — runs once before config loads
+
+  // ── Session draft save (runs on every step or form change) ──────────────────
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify({ step, form }));
+    } catch { /* ignore quota/storage errors */ }
+  }, [step, form]);
+
   // ── Lifted quote state (used by sidebar on steps 1–5) ──────────────────────
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -2203,10 +2365,47 @@ export default function Booking() {
     },
   });
 
+  // ── One-shot config validation after first load (guards restored IDs) ────────
+  const configValidatedRef = useRef(false);
+  useEffect(() => {
+    if (!config || configValidatedRef.current) return;
+    configValidatedRef.current = true;
+
+    const locationIds = new Set((config.locations ?? []).map((l) => String(l.id)));
+    const modelIds = new Set((config.vehicleModels ?? []).map((m) => String(m.id)));
+
+    // Read current form values at validation time (closure capture is safe here —
+    // this effect intentionally fires only once when config first resolves)
+    setForm((currentForm) => {
+      const modelInvalid = !!currentForm.vehicleModelId && !modelIds.has(currentForm.vehicleModelId);
+      const pickupInvalid = !!currentForm.pickupLocationId && !locationIds.has(currentForm.pickupLocationId);
+      const dropoffInvalid = !!currentForm.dropoffLocationId && !locationIds.has(currentForm.dropoffLocationId);
+
+      if (!modelInvalid && !pickupInvalid && !dropoffInvalid) return currentForm;
+
+      setTimeout(() => {
+        setStep(1);
+        toast({ title: "Session restored — please re-confirm your vehicle selection." });
+      }, 0);
+
+      return {
+        ...currentForm,
+        vehicleModelId: modelInvalid ? "" : currentForm.vehicleModelId,
+        pickupLocationId: pickupInvalid ? "" : currentForm.pickupLocationId,
+        dropoffLocationId: dropoffInvalid ? "" : currentForm.dropoffLocationId,
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]); // intentionally omit form — effect runs once, form is read via functional setForm
+
   function next() { setStep((s) => s + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function back() { setStep((s) => s - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function goToStep(n: number) { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function reset() { setStep(1); setForm(getInitialForm()); }
+  function reset() {
+    setStep(1);
+    setForm(getInitialForm());
+    try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* ignore */ }
+  }
 
   if (isLoading) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-3">

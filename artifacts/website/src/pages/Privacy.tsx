@@ -1,4 +1,4 @@
-const SECTIONS = [
+export const PRIVACY_SECTIONS = [
   {
     title: "Information We Collect",
     content: [
@@ -75,7 +75,7 @@ export default function Privacy() {
 
         {/* Sections */}
         <div className="space-y-4 mb-8">
-          {SECTIONS.map((s) => (
+          {PRIVACY_SECTIONS.map((s) => (
             <div key={s.title} className="bg-card border border-border rounded-xl p-6">
               <h2 className="text-base font-semibold text-white mb-3">{s.title}</h2>
               {s.intro && (

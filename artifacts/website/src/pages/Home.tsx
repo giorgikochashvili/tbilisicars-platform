@@ -59,6 +59,8 @@ function getMinDatetime() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
+const SHOW_STATS = false;
+
 const STATS = [
   { value: "12K+", label: "Trusted By Customers" },
   { value: "250+", label: "Vehicles" },
@@ -398,15 +400,17 @@ export default function Home() {
             </a>.
           </p>
 
-          {/* Stats strip */}
-          <div className="flex flex-wrap justify-center gap-6 mt-6 lg:mt-4">
-            {STATS.map((s) => (
-              <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-2xl font-bold text-primary">{s.value}</span>
-                <span className="text-xs text-muted-foreground mt-0.5">{s.label}</span>
-              </div>
-            ))}
-          </div>
+          {/* Stats strip — set SHOW_STATS = true to restore */}
+          {SHOW_STATS && (
+            <div className="flex flex-wrap justify-center gap-6 mt-6 lg:mt-4">
+              {STATS.map((s) => (
+                <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
+                  <span className="text-2xl font-bold text-primary">{s.value}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

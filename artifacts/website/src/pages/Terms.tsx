@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-const SECTIONS = [
+export const TERMS_SECTIONS = [
   {
     title: "1. Service Coverage",
     content: [
@@ -174,7 +174,7 @@ export default function Terms() {
 
         {/* Sections */}
         <div className="space-y-3 mb-8">
-          {SECTIONS.map((s) => (
+          {TERMS_SECTIONS.map((s) => (
             <TermsSection key={s.title} title={s.title} content={s.content} />
           ))}
         </div>
