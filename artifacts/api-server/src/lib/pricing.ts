@@ -81,6 +81,7 @@ export async function resolveRateTier(
        AND (r.rate_type = 'web' OR r.rate_type IS NULL)
        AND r.valid_from::date <= $2::date
        AND r.valid_until::date >= $2::date
+       AND rt.price_per_day > 0
        AND rt.from_days <= $3
        AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= $3)
        AND ($3 >= COALESCE(r.min_days, 0) OR r.min_days IS NULL OR r.min_days = 0)
