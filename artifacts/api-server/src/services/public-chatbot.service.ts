@@ -21,7 +21,7 @@ interface KnowledgeTopic {
 }
 
 const SEARCH_CARS: ChatAction = { type: "link", label: "Book your car now", href: "/booking" };
-const CONTACT_EMAIL: ChatAction = { type: "external", label: "Contact Support", href: "mailto:support@tbilisicars.com" };
+const CONTACT_EMAIL: ChatAction = { type: "external", label: "Contact Support", href: "mailto:reservations@tbilisicars.com" };
 const CALL_US: ChatAction = { type: "external", label: "Call Us", href: "tel:+995557376363" };
 const WHATSAPP: ChatAction = { type: "external", label: "WhatsApp", href: "https://wa.me/995557376363" };
 
@@ -123,13 +123,13 @@ const TOPICS: KnowledgeTopic[] = [
   },
   {
     keywords: ["contact", "support", "help", "phone", "call", "whatsapp", "telegram", "email", "reach", "get in touch", "speak to", "talk to", "message", "chat with"],
-    reply: "If you'd like, our team can assist you directly.\n\n📞 Contact us:\n• Phone / WhatsApp: +995 557 37 63 63 (Tbilisi & Batumi)\n• Phone / WhatsApp: +995 595 28 66 00 (Kutaisi)\n• Email: support@tbilisicars.com\n\nWe usually respond very quickly.",
+    reply: "If you'd like, our team can assist you directly.\n\n📞 Contact us:\n• Phone / WhatsApp: +995 557 37 63 63 (Tbilisi & Batumi)\n• Phone / WhatsApp: +995 595 28 66 00 (Kutaisi)\n• Email: reservations@tbilisicars.com\n\nWe usually respond very quickly.",
     actions: [CALL_US, WHATSAPP, CONTACT_EMAIL],
   },
 ];
 
 const FALLBACK: { reply: string; actions: ChatAction[] } = {
-  reply: "I'm not sure I understood that 🤔\n\nI can help with:\n• Car selection\n• Prices\n• Rental conditions\n• Booking process\n\nOr you can contact our team directly:\n👉 support@tbilisicars.com",
+  reply: "I'm not sure I understood that 🤔\n\nI can help with:\n• Car selection\n• Prices\n• Rental conditions\n• Booking process\n\nOr you can contact our team directly:\n👉 reservations@tbilisicars.com",
   actions: [CALL_US, WHATSAPP, CONTACT_EMAIL],
 };
 

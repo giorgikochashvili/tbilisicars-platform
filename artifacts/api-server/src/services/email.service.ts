@@ -125,7 +125,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   const bookingStatusDisplay = capitalize(bookingStatus);
   const paymentStatusDisplay = capitalize(paymentStatus);
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "support@tbilisicars.com";
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
   const days = calculateChargeableDays(new Date(pickupDatetime), new Date(dropoffDatetime));
   const pickupInstructions = getPickupInstructions(pickupCity);
   const fmt = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;

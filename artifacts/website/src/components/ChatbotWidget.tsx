@@ -72,7 +72,7 @@ export default function ChatbotWidget() {
           role: "assistant",
           text: "Sorry, I couldn't connect right now. Please try again or contact our team directly.",
           actions: [
-            { type: "external", label: "Email Us", href: "mailto:support@tbilisicars.com" },
+            { type: "external", label: "Email Us", href: "mailto:reservations@tbilisicars.com" },
             { type: "external", label: "Call Us", href: "tel:+995557376363" },
           ],
         },

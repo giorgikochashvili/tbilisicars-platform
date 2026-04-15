@@ -391,10 +391,10 @@ export default function Home() {
             We are currently updating parts of our website to improve your experience.
             If you notice any issue, please contact us directly at{" "}
             <a
-              href="mailto:support@tbilisicars.com"
+              href="mailto:reservations@tbilisicars.com"
               className="text-primary/70 hover:text-primary transition-colors"
             >
-              support@tbilisicars.com
+              reservations@tbilisicars.com
             </a>.
           </p>
 

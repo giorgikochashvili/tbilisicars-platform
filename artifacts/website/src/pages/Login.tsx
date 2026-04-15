@@ -71,10 +71,10 @@ export default function Login() {
               <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 text-center mb-6">
                 <p className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wide font-medium">Email us at</p>
                 <a
-                  href="mailto:support@tbilisicars.com"
+                  href="mailto:reservations@tbilisicars.com"
                   className="text-primary font-semibold hover:underline text-sm"
                 >
-                  support@tbilisicars.com
+                  reservations@tbilisicars.com
                 </a>
               </div>
 
