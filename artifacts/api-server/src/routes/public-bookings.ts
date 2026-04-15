@@ -87,7 +87,7 @@ router.get("/public/booking-config", async (req, res) => {
           LIMIT 1
         )
       ORDER BY
-        ${filterDays ? `(CASE WHEN rt.min_days <= ${daysInt} AND rt.max_days >= ${daysInt} THEN 0 ELSE 1 END) ASC,` : ""}
+        ${filterDays ? `(CASE WHEN rt.from_days <= ${daysInt} AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= ${daysInt}) THEN 0 ELSE 1 END) ASC,` : ""}
         rt.price_per_day ASC
       LIMIT 1
     ) price_info ON true`;

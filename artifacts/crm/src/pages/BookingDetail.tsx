@@ -833,12 +833,6 @@ interface BookingDetailProps {
 export default function BookingDetail({ bookingId, open, onClose, onPaymentChanged, onEditBooking }: BookingDetailProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  // Normalize BASE_URL: guarantee a leading "/" so window.open() always builds
-  // an absolute path from the domain root (e.g. "/crm/") rather than a path
-  // relative to the current page (e.g. "crm/" when BASE_PATH lacks the slash).
-  const crmBase = import.meta.env.BASE_URL.startsWith("/")
-    ? import.meta.env.BASE_URL
-    : `/${import.meta.env.BASE_URL}`;
   const [booking, setBooking] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -1252,7 +1246,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`${crmBase}document/${bookingId}/agreement`, "_blank")}
+                onClick={() => window.open(`/crm/document/${bookingId}/agreement`, "_blank")}
               >
                 <FileText className="w-3 h-3" />
                 Rental Agreement
@@ -1261,7 +1255,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`${crmBase}document/${bookingId}/voucher`, "_blank")}
+                onClick={() => window.open(`/crm/document/${bookingId}/voucher`, "_blank")}
               >
                 <Ticket className="w-3 h-3" />
                 Booking Voucher
@@ -1270,7 +1264,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`${crmBase}handover/${bookingId}/pickup`, "_blank")}
+                onClick={() => window.open(`/crm/handover/${bookingId}/pickup`, "_blank")}
               >
                 <ClipboardList className="w-3 h-3" />
                 Handover Sheet
@@ -1279,7 +1273,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`${crmBase}handover/${bookingId}/return`, "_blank")}
+                onClick={() => window.open(`/crm/handover/${bookingId}/return`, "_blank")}
               >
                 <ClipboardCheck className="w-3 h-3" />
                 Return Sheet
@@ -1733,14 +1727,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                                     <DropdownMenuContent align="end" className="text-xs">
                                       <DropdownMenuItem
                                         className="text-xs gap-1.5"
-                                        onClick={() => window.open(`${crmBase}payment-doc/${bookingId}/${p.id}/receipt`, "_blank")}
+                                        onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/receipt`, "_blank")}
                                       >
                                         <Receipt className="w-3 h-3" /> Payment Receipt
                                       </DropdownMenuItem>
                                       {p.paymentType === "DEPOSIT_RECEIVED" && (
                                         <DropdownMenuItem
                                           className="text-xs gap-1.5"
-                                          onClick={() => window.open(`${crmBase}payment-doc/${bookingId}/${p.id}/deposit-receipt`, "_blank")}
+                                          onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/deposit-receipt`, "_blank")}
                                         >
                                           <FileText className="w-3 h-3" /> Deposit Receipt
                                         </DropdownMenuItem>
@@ -1748,7 +1742,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                                       {p.paymentType === "DEPOSIT_RETURNED" && (
                                         <DropdownMenuItem
                                           className="text-xs gap-1.5"
-                                          onClick={() => window.open(`${crmBase}payment-doc/${bookingId}/${p.id}/deposit-return`, "_blank")}
+                                          onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/deposit-return`, "_blank")}
                                         >
                                           <Ticket className="w-3 h-3" /> Deposit Return
                                         </DropdownMenuItem>
