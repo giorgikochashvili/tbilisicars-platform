@@ -1,0 +1,45 @@
+Task: Stage A — unify live contact/sender email to reservations@tbilisicars.com in active runtime code only
+
+Context:
+This is the live Tbilisicars CRM&WEB monorepo in Replit.
+We are preparing for the final production move to Tbilisicars.com.
+Work surgically and safely.
+Do NOT change architecture.
+Do NOT refactor unrelated code.
+Do NOT touch DNS, Resend dashboard setup, env secrets, nginx, SSL, database, CRM logic, booking logic, or pricing logic.
+
+Goal:
+In active runtime source code only, replace all remaining uses of:
+support@tbilisicars.com
+with:
+reservations@tbilisicars.com
+
+Important safety rules:
+- Change ONLY active runtime source files
+- Do NOT edit historical notes, attached_assets, task files, local metadata, audit notes, or documentation unless they are clearly rendered/used in production
+- Do NOT touch any city/location names like Batumi/Kutaisi/Tbilisi
+- Do NOT perform blind global replace across the repo
+- Do NOT change any business logic
+- Do NOT remove fallback logic unless the only change is the email address value itself
+- Preserve formatting and surrounding text unless needed for consistency
+
+Known likely active files to inspect first:
+- artifacts/website/src/pages/Login.tsx
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/ChatbotWidget.tsx
+- artifacts/api-server/src/services/public-chatbot.service.ts
+- artifacts/api-server/src/services/email.service.ts
+
+What to do:
+1) Inspect the active runtime files above and any other truly active runtime files that still reference support@tbilisicars.com
+2) Replace only those active runtime references with reservations@tbilisicars.com
+3) In email.service.ts, if there is a default/fallback from-address using support@tbilisicars.com, change only that fallback value to reservations@tbilisicars.com
+4) Do not change env variable names; only change literal fallback/default/contact values where needed
+5) Run/build-check only as needed to confirm no breakage
+
+Deliverables:
+- List exact files changed
+- Show each changed occurrence summary
+- Confirm that no business logic changed
+- Confirm that only active runtime files were edited
+- Mention if any support@tbilisicars.com references remain outside runtime code and where, but do NOT change them in this task
