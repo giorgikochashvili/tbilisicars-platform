@@ -1,0 +1,100 @@
+Task: Temporary UX adjustments + Location dropdown ordering
+
+Context:
+LIVE Tbilisicars CRM&WEB project in Replit.
+Do NOT change architecture.
+Do NOT refactor unrelated code.
+Make only surgical frontend changes.
+
+--------------------------------
+PART 1 — Customer Log in TEMP PAUSE
+--------------------------------
+
+- Keep Staff Log in working normally
+- Customer Log in should NOT go to real login flow for now
+
+Instead:
+- On click → show modal or simple page:
+
+Title:
+Customer Cabinet Coming Soon
+
+Text:
+We are currently improving our customer cabinet and it will be available soon.
+For immediate assistance, please contact us directly.
+
+Email:
+support@tbilisicars.com
+
+--------------------------------
+PART 2 — Homepage Notice
+--------------------------------
+
+Add small elegant notice near booking section:
+
+Text:
+We are currently updating parts of our website to improve your experience.
+If you notice any issue, please contact us directly at support@tbilisicars.com.
+
+- Must match design (dark theme, not aggressive warning)
+- Responsive (mobile-safe)
+
+--------------------------------
+PART 3 — Location Dropdown ORDER (IMPORTANT)
+--------------------------------
+
+Fix ordering of pickup/dropoff locations.
+
+Current issue:
+Locations are shown in random / DB order.
+
+Goal:
+Sort locations in THIS EXACT PRIORITY:
+
+1) Airports first:
+- Tbilisi International Airport
+- Kutaisi International Airport
+- Batumi International Airport
+
+2) Then Downtown:
+- Tbilisi Downtown
+- Kutaisi Downtown
+- Batumi Downtown
+
+3) Then Hotel Delivery:
+- Tbilisi Hotel Delivery
+- Kutaisi Hotel Delivery
+- Batumi Hotel Delivery
+
+Implementation rules:
+- Do NOT change backend
+- Do NOT change database
+- Do NOT break existing location logic
+
+Implement sorting in frontend:
+- After fetching locations, apply custom sorting function
+
+Sorting logic (example):
+- Detect type by name:
+  "Airport" → priority 1
+  "Downtown" → priority 2
+  "Hotel" → priority 3
+
+- Then inside each group sort by city:
+  Tbilisi → 1
+  Kutaisi → 2
+  Batumi → 3
+
+Final sort = (typePriority, cityPriority)
+
+--------------------------------
+DELIVERABLES
+--------------------------------
+
+- Show exact files changed
+- Show sorting function implementation
+- Confirm:
+  ✔ booking flow unchanged
+  ✔ staff login unchanged
+  ✔ dropdown order correct
+  ✔ mobile layout not broken
