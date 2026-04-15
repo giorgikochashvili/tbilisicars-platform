@@ -98,7 +98,7 @@ export interface VoucherParams {
   generatedPassword?: string | null;
   bookingStatus?: string;
   paymentStatus?: string;
-  customerNotes?: string | null;
+  bookingNotes?: string | null;
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     generatedPassword,
     bookingStatus = "PENDING",
     paymentStatus = "UNPAID",
-    customerNotes,
+    bookingNotes,
   } = params;
 
   const bookingStatusDisplay = capitalize(bookingStatus);
@@ -264,7 +264,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   y -= GAP;
 
   // ── Booking Notes (customer-supplied free text only) ─────────────────────────
-  const trimmedNotes = customerNotes?.trim();
+  const trimmedNotes = bookingNotes?.trim();
   if (trimmedNotes) {
     sectionHeader("BOOKING NOTES");
     const noteLines = wrapText(trimmedNotes, 72);

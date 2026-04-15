@@ -92,7 +92,7 @@ export interface BookingConfirmationEmailParams {
   attachPdfVoucher?: boolean;
   bookingStatus?: string;
   paymentStatus?: string;
-  customerNotes?: string | null;
+  bookingNotes?: string | null;
 }
 
 export async function sendBookingConfirmationEmail(params: BookingConfirmationEmailParams): Promise<void> {
@@ -111,7 +111,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     attachPdfVoucher = false,
     bookingStatus = "PENDING",
     paymentStatus = "UNPAID",
-    customerNotes,
+    bookingNotes,
   } = params;
 
   console.log(`[email] preparing ref=${reference} bookingId=${bookingId ?? "?"} to=${toEmail}`);
@@ -385,7 +385,7 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
         currency, generatedPassword,
         bookingStatus,
         paymentStatus,
-        customerNotes,
+        bookingNotes,
       });
       console.log(`[email] pdf_generated ref=${reference}`);
     } catch (pdfErr) {

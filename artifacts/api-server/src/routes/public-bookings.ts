@@ -745,7 +745,10 @@ router.post("/public/bookings", async (req, res) => {
     generatedPassword: generatedPassword ?? null,
     bookingStatus: "PENDING",
     paymentStatus: "UNPAID",
-    customerNotes: body.notes?.trim() || null,
+    // Pass only the customer's own free-text notes.
+    // combinedNotes (saved to DB) also contains internal [WEBSITE DATA] and
+    // [RATE EXPIRED] blocks that must not appear in customer-facing output.
+    bookingNotes: body.notes?.trim() || null,
   };
 
   setImmediate(() => {
@@ -794,7 +797,7 @@ router.post("/public/bookings", async (req, res) => {
           attachPdfVoucher: true,
           bookingStatus: emailParams.bookingStatus,
           paymentStatus: emailParams.paymentStatus,
-          customerNotes: emailParams.customerNotes,
+          bookingNotes: emailParams.bookingNotes,
         });
       } catch (err) {
         console.error(`[email] Failed to prepare/send confirmation ref=${emailParams.reference}:`, err);
