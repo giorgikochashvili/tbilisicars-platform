@@ -275,7 +275,7 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (v: strin
           </div>
           <div
             className="overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-secondary/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full"
-            style={{ maxHeight: 200 }}
+            style={{ maxHeight: 200, scrollbarWidth: "thin", scrollbarColor: "rgba(160,160,160,0.3) transparent" }}
           >
             {filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-3">No match</p>
@@ -301,6 +301,13 @@ function CountrySelect({ value, onChange }: { value: string; onChange: (v: strin
 
 // ─── Legal Modal (Terms & Privacy) ────────────────────────────────────────────
 
+type LegalSection = {
+  title: string;
+  content: string[];
+  intro?: string;
+  note?: string;
+};
+
 type LegalModalType = "terms" | "privacy" | null;
 
 function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => void }) {
@@ -315,7 +322,7 @@ function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => vo
 
   const isTerms = type === "terms";
   const title = isTerms ? "Rental Terms & Conditions" : "Privacy Policy";
-  const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS;
+  const sections: LegalSection[] = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS;
 
   return (
     <div
@@ -352,8 +359,8 @@ function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => vo
           {sections.map((s) => (
             <div key={s.title} className="bg-card/60 border border-border/60 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-white mb-2">{s.title}</h3>
-              {"intro" in s && s.intro && (
-                <p className="text-xs text-muted-foreground mb-2">{(s as any).intro}</p>
+              {s.intro && (
+                <p className="text-xs text-muted-foreground mb-2">{s.intro}</p>
               )}
               <ul className="space-y-1.5">
                 {s.content.map((item, i) => (
@@ -363,8 +370,8 @@ function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => vo
                   </li>
                 ))}
               </ul>
-              {"note" in s && (s as any).note && (
-                <p className="mt-2 text-xs text-muted-foreground italic">{(s as any).note}</p>
+              {s.note && (
+                <p className="mt-2 text-xs text-muted-foreground italic">{s.note}</p>
               )}
             </div>
           ))}
@@ -853,10 +860,13 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
       const pb = b.min_price_per_day ? Number(b.min_price_per_day) : -Infinity;
       return pb - pa;
     }
-    // Default: available models first, On Request (vehicle_count === 0) last
+    // Default: available models first, On Request (vehicle_count === 0) last; alphabetical tie-break
     const aAvail = Number(a.vehicle_count) > 0 ? 0 : 1;
     const bAvail = Number(b.vehicle_count) > 0 ? 0 : 1;
-    return aAvail - bAvail;
+    if (aAvail !== bAvail) return aAvail - bAvail;
+    const aName = `${a.brand ?? ""} ${a.model ?? ""}`.trim().toLowerCase();
+    const bName = `${b.brand ?? ""} ${b.model ?? ""}`.trim().toLowerCase();
+    return aName.localeCompare(bName);
   });
 
   function clearFilters() { setFilters({ category: "", transmission: "", seats: "", fuelType: "" }); }
