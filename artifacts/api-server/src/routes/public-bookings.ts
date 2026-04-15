@@ -6,7 +6,7 @@ import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
 import { db, bookingextraTable, bookingTable, promoTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { sendBookingConfirmationEmail } from "../services/email.service.js";
+import { sendBookingConfirmationEmail, sendNewBookingInternalEmail } from "../services/email.service.js";
 import {
   calculateChargeableDays,
   resolveRateTier,
@@ -743,6 +743,7 @@ router.post("/public/bookings", async (req, res) => {
     dropoffLocationId: Number(body.dropoffLocationId),
     rentalDays,
     generatedPassword: generatedPassword ?? null,
+    customerPhone: body.phone?.trim() || undefined,
     bookingStatus: "PENDING",
     paymentStatus: "UNPAID",
     // Full notes including internal blocks — rendering layer strips [WEBSITE DATA]
@@ -769,35 +770,63 @@ router.post("/public/bookings", async (req, res) => {
           ? emailParams.resolvedBaseRate * emailParams.rentalDays
           : null;
 
-        await sendBookingConfirmationEmail({
-          toEmail: emailParams.toEmail,
-          toName: emailParams.toName,
-          reference: emailParams.reference,
-          bookingId: emailParams.bookingId,
-          vehicle: emailParams.vehicle,
-          pickupLocation,
-          dropoffLocation,
-          pickupDatetime: emailParams.pickupDatetime,
-          dropoffDatetime: emailParams.dropoffDatetime,
-          pickupCity,
-          extras: emailParams.estimatedExtras,
-          insurancePlan: emailParams.insurancePlan,
-          paymentMethod: emailParams.paymentMethod,
-          flightNumber: emailParams.flightNumber,
-          nationality: emailParams.nationality,
-          age: emailParams.age,
-          estimatedTotal: emailParams.estimatedTotal,
-          baseTotal,
-          oneWayFee: emailParams.oneWayFee,
-          promoCode: emailParams.promoCode,
-          discountAmount: emailParams.discountAmount,
-          currency: emailParams.currency,
-          generatedPassword: emailParams.generatedPassword,
-          attachPdfVoucher: true,
-          bookingStatus: emailParams.bookingStatus,
-          paymentStatus: emailParams.paymentStatus,
-          bookingNotes: emailParams.bookingNotes,
-        });
+        // ── Customer confirmation email ─────────────────────────────────────
+        console.log(`[email] preparing_customer_email bookingId=${emailParams.bookingId}`);
+        try {
+          await sendBookingConfirmationEmail({
+            toEmail: emailParams.toEmail,
+            toName: emailParams.toName,
+            reference: emailParams.reference,
+            bookingId: emailParams.bookingId,
+            vehicle: emailParams.vehicle,
+            pickupLocation,
+            dropoffLocation,
+            pickupDatetime: emailParams.pickupDatetime,
+            dropoffDatetime: emailParams.dropoffDatetime,
+            pickupCity,
+            extras: emailParams.estimatedExtras,
+            insurancePlan: emailParams.insurancePlan,
+            paymentMethod: emailParams.paymentMethod,
+            flightNumber: emailParams.flightNumber,
+            nationality: emailParams.nationality,
+            age: emailParams.age,
+            estimatedTotal: emailParams.estimatedTotal,
+            baseTotal,
+            oneWayFee: emailParams.oneWayFee,
+            promoCode: emailParams.promoCode,
+            discountAmount: emailParams.discountAmount,
+            currency: emailParams.currency,
+            generatedPassword: emailParams.generatedPassword,
+            attachPdfVoucher: true,
+            bookingStatus: emailParams.bookingStatus,
+            paymentStatus: emailParams.paymentStatus,
+            bookingNotes: emailParams.bookingNotes,
+          });
+          console.log(`[email] customer_email_sent bookingId=${emailParams.bookingId}`);
+        } catch (err) {
+          console.error(`[email] customer_email_failed bookingId=${emailParams.bookingId}`, err);
+        }
+
+        // ── Internal staff notification ─────────────────────────────────────
+        try {
+          await sendNewBookingInternalEmail({
+            bookingId: emailParams.bookingId,
+            referenceNumber: emailParams.reference,
+            customerName: emailParams.toName,
+            customerEmail: emailParams.toEmail,
+            customerPhone: emailParams.customerPhone,
+            pickupDate: new Date(emailParams.pickupDatetime),
+            dropoffDate: new Date(emailParams.dropoffDatetime),
+            pickupLocation,
+            dropoffLocation,
+            vehicleModel: emailParams.vehicle,
+            totalAmount: emailParams.estimatedTotal ?? 0,
+            currency: emailParams.currency,
+            notes: emailParams.bookingNotes || undefined,
+          });
+        } catch (err) {
+          console.error(`[email] reservations_email_failed bookingId=${emailParams.bookingId}`, err);
+        }
       } catch (err) {
         console.error(`[email] Failed to prepare/send confirmation ref=${emailParams.reference}:`, err);
       }

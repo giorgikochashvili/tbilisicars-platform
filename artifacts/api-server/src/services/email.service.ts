@@ -409,3 +409,121 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
     console.error(`[email] send_failed ref=${reference} error=${err instanceof Error ? err.message : String(err)}`);
   }
 }
+
+// ─── Internal staff notification ─────────────────────────────────────────────
+
+interface InternalBookingEmailParams {
+  bookingId: number;
+  referenceNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  pickupDate: Date;
+  dropoffDate: Date;
+  pickupLocation: string;
+  dropoffLocation: string;
+  vehicleModel: string;
+  totalAmount: number;
+  currency: string;
+  notes?: string;
+}
+
+export async function sendNewBookingInternalEmail(params: InternalBookingEmailParams): Promise<void> {
+  const {
+    bookingId, referenceNumber, customerName, customerEmail, customerPhone,
+    pickupDate, dropoffDate, pickupLocation, dropoffLocation,
+    vehicleModel, totalAmount, currency, notes,
+  } = params;
+
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[email] reservations_email_skipped_no_api_key bookingId=${bookingId}`);
+    return;
+  }
+
+  const fromAddress = process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
+
+  function fmtDate(d: Date): string {
+    try {
+      return d.toLocaleString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi",
+      }) + " (Tbilisi time)";
+    } catch { return d.toISOString(); }
+  }
+
+  function row(label: string, value: string): string {
+    return `<tr>
+      <td style="padding:9px 0;font-size:13px;color:#9ca3af;width:38%;vertical-align:top;border-bottom:1px solid rgba(255,255,255,0.05);">${esc(label)}</td>
+      <td style="padding:9px 0;font-size:13px;color:#e4e4e7;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.05);">${value}</td>
+    </tr>`;
+  }
+
+  const totalFmt = `${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+
+  const rows = [
+    row("Booking Reference", esc(referenceNumber)),
+    row("Customer Name", esc(customerName)),
+    row("Customer Email", `<a href="mailto:${esc(customerEmail)}" style="color:#e05c72;">${esc(customerEmail)}</a>`),
+    row("Customer Phone", customerPhone ? esc(customerPhone) : "—"),
+    row("Pickup Location", esc(pickupLocation)),
+    row("Drop-off Location", esc(dropoffLocation)),
+    row("Pickup Date", esc(fmtDate(pickupDate))),
+    row("Return Date", esc(fmtDate(dropoffDate))),
+    row("Vehicle", esc(vehicleModel)),
+    row("Estimated Total", esc(totalFmt)),
+    row("Source", "<strong>WEBSITE</strong>"),
+    ...(notes ? [row("Notes", `<span style="white-space:pre-wrap;">${esc(notes)}</span>`)] : []),
+  ].join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;font-family:Inter,Helvetica,Arial,sans-serif;background:#0d1b2a;color:#e4e4e7;">
+  <div style="max-width:600px;margin:32px auto;background:#13243a;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#c0384f 0%,#a02040 100%);padding:24px 32px;">
+      <h1 style="margin:0;font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.3px;">&#128337; New Website Booking</h1>
+      <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">Reference: <strong>${esc(referenceNumber)}</strong></p>
+    </div>
+    <div style="padding:28px 32px;">
+      <table style="width:100%;border-collapse:collapse;">
+        ${rows}
+      </table>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding:14px 32px;font-size:12px;color:#6b7280;text-align:center;">
+      Tbilisicars CRM &middot; Internal Notification &middot; Please do not reply to this email.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = [
+    `NEW WEBSITE BOOKING — ${referenceNumber}`,
+    ``,
+    `Reference:       ${referenceNumber}`,
+    `Customer:        ${customerName}`,
+    `Email:           ${customerEmail}`,
+    `Phone:           ${customerPhone ?? "—"}`,
+    `Pickup:          ${pickupLocation}`,
+    `Drop-off:        ${dropoffLocation}`,
+    `Pickup date:     ${fmtDate(pickupDate)}`,
+    `Return date:     ${fmtDate(dropoffDate)}`,
+    `Vehicle:         ${vehicleModel}`,
+    `Total:           ${totalFmt}`,
+    `Source:          WEBSITE`,
+    ...(notes ? [`Notes:\n${notes}`] : []),
+  ].join("\n");
+
+  try {
+    await resend.emails.send({
+      from: `Tbilisicars Reservations <${fromAddress}>`,
+      to: "reservations@tbilisicars.com",
+      subject: `New Website Booking — ${referenceNumber}`,
+      html,
+      text,
+    });
+    console.log(`[email] reservations_email_sent bookingId=${bookingId}`);
+  } catch (err) {
+    console.error(`[email] reservations_email_failed bookingId=${bookingId} error=${err instanceof Error ? err.message : String(err)}`);
+  }
+}
