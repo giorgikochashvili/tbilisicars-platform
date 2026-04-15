@@ -3,12 +3,10 @@ import app from "./app";
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
+  console.warn("⚠️  PORT not set — defaulting to 5000");
 }
 
-const port = Number(rawPort);
+const port = Number(rawPort ?? "5000");
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
