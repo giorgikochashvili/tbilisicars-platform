@@ -1,0 +1,75 @@
+Build the approved fix set from Plan #96.
+
+Context:
+This is a live production-connected monorepo (Tbilisicars CRM & WEB), currently operating on Batumicars.com as the temporary domain.
+We are in operational stabilization phase.
+Do NOT refactor architecture.
+Do NOT redesign pages/modules.
+Do NOT change unrelated flows.
+Implement only the approved minimal fixes below.
+
+Approved fixes to implement:
+
+1) Service — inline status selector in row
+Goal:
+Make service status editable directly from the list row without opening the 3-dot menu.
+
+Requirements:
+- Replace the static status display in the Service table row with a compact inline status control in the row itself
+- It must call the existing status update mutation/path
+- It must update status directly and show normal success/error toast behavior
+- Keep UI compact and visually consistent with the Service page
+- Remove the now-redundant "Change Status" submenu from the 3-dot menu
+- Preserve other row actions, especially:
+  - Edit Full Record
+  - Delete
+  - View Vehicle Detail (if currently present)
+- Do NOT redesign the whole table
+- Do NOT change full edit behavior
+
+2) Website — duration-aware vehicle card price
+Goal:
+Vehicle cards in the booking/vehicle step must show the price that matches the currently selected rental duration.
+
+Requirements:
+- Add an optional integer `days` query parameter to `/api/public/booking-config`
+- This must be fully backward-compatible:
+  - if `days` is missing, current behavior must remain unchanged
+- When `days` is present:
+  - select the tier matching the actual duration range
+  - use that to determine `min_price_per_day`
+- Do NOT change the actual quote/pricing engine if it is already correct
+- On the frontend:
+  - compute days from pickupDatetime and dropoffDatetime using the same business logic already expected for booking duration in this flow
+  - include `days` in the booking-config request params
+  - include `days` in the query key / cache key so stale wrong-price data is not reused
+- Vehicle card displayed price must align with the real quote logic for the selected trip length
+
+3) BookingDetail — normalize BASE_URL for document links
+Goal:
+Fix broken navigation for booking detail document buttons caused by malformed relative paths.
+
+Requirements:
+- Normalize `import.meta.env.BASE_URL` before building the URLs
+- Ensure constructed document URLs always resolve from the domain root correctly
+- Fix these booking detail top buttons:
+  - Rental Agreement
+  - Booking Voucher
+  - Handover Sheet
+  - Return Sheet
+- Also apply the same normalization to the payment document buttons that use the same URL construction pattern
+- Do NOT redesign button UI
+- Do NOT change document page behavior beyond fixing the broken paths
+
+Implementation rules:
+- Minimal surgical changes only
+- Preserve existing business logic
+- Preserve compatibility
+- No unrelated cleanup/refactor
+- No schema redesign
+
+After implementation, output:
+1. Exact files changed
+2. What changed in each file
+3. Any compatibility considerations
+4. Very short manual test checklist

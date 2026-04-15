@@ -2163,18 +2163,21 @@ export default function Booking() {
   }, [form.vehicleModelId, form.pickupDatetime, form.dropoffDatetime, form.pickupLocationId, form.dropoffLocationId, form.extras, form.promoCode]);
   // ───────────────────────────────────────────────────────────────────────────
 
+  const configDays = calcDays(form.pickupDatetime, form.dropoffDatetime);
   const { data: config, isLoading, isFetching: configFetching, error } = useQuery<BookingConfig>({
     queryKey: [
       "booking-config",
       form.pickupLocationId || null,
       form.pickupDatetime || null,
       form.dropoffDatetime || null,
+      configDays > 0 ? configDays : null,
     ],
     queryFn: () => {
       const params = new URLSearchParams();
       if (form.pickupLocationId) params.set("location_id", form.pickupLocationId);
       if (form.pickupDatetime) params.set("pickup_datetime", form.pickupDatetime);
       if (form.dropoffDatetime) params.set("dropoff_datetime", form.dropoffDatetime);
+      if (configDays > 0) params.set("days", String(configDays));
       const qs = params.toString();
       return apiFetch(qs ? `/api/public/booking-config?${qs}` : "/api/public/booking-config");
     },

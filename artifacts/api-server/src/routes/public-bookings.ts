@@ -43,6 +43,12 @@ router.get("/public/booking-config", async (req, res) => {
     !isNaN(new Date(pickupDt).getTime()) &&
     !isNaN(new Date(dropoffDt).getTime());
 
+  // Optional: select the rate tier matching the given trip duration so vehicle
+  // cards display the correct per-day price rather than the global minimum.
+  const daysRaw = req.query.days;
+  const daysInt = daysRaw && !Array.isArray(daysRaw) ? parseInt(String(daysRaw), 10) : NaN;
+  const filterDays = !isNaN(daysInt) && daysInt > 0;
+
   // Shared price lateral — identical across all four query variants.
   // Only WEB rates that are currently valid contribute to the "from" price;
   // broker rates and expired/future rates are excluded.
@@ -80,7 +86,9 @@ router.get("/public/booking-config", async (req, res) => {
             r2.valid_from DESC
           LIMIT 1
         )
-      ORDER BY rt.price_per_day ASC
+      ORDER BY
+        ${filterDays ? `(CASE WHEN rt.min_days <= ${daysInt} AND rt.max_days >= ${daysInt} THEN 0 ELSE 1 END) ASC,` : ""}
+        rt.price_per_day ASC
       LIMIT 1
     ) price_info ON true`;
 

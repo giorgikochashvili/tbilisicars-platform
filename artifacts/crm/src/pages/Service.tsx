@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info, ChevronDown } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
 async function apiFetch(path: string, opts?: RequestInit) {
@@ -480,10 +480,25 @@ export default function ServicePage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {r.shopName || r.mechanicName || "—"}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-xs ${STATUS_COLORS[r.status] ?? ""}`}>
-                          {STATUS_LABELS[r.status] ?? r.status}
-                        </Badge>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={r.status}
+                          onValueChange={(val) => statusMutation.mutate({ id: r.id, status: val })}
+                          disabled={statusMutation.isPending}
+                        >
+                          <SelectTrigger className={`h-7 text-xs w-36 border ${STATUS_COLORS[r.status] ?? ""}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.entries(STATUS_LABELS) as [string, string][]).map(([val, label]) => (
+                              <SelectItem key={val} value={val} className="text-xs">
+                                <Badge variant="outline" className={`text-xs ${STATUS_COLORS[val] ?? ""}`}>
+                                  {label}
+                                </Badge>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -498,29 +513,6 @@ export default function ServicePage() {
                                 <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger>
-                                <span className="w-4 h-4 mr-2 inline-flex items-center justify-center">⚡</span> Change Status
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent>
-                                {(Object.entries(STATUS_LABELS) as [string, string][]).map(([value, label]) => (
-                                  <DropdownMenuItem
-                                    key={value}
-                                    disabled={r.status === value || statusMutation.isPending}
-                                    onClick={() => statusMutation.mutate({ id: r.id, status: value })}
-                                  >
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-xs mr-2 px-1.5 py-0 ${STATUS_COLORS[value] ?? ""}`}
-                                    >
-                                      {label}
-                                    </Badge>
-                                    {r.status === value && <span className="ml-auto text-muted-foreground text-xs">current</span>}
-                                  </DropdownMenuItem>
-                                ))}
-                              </DropdownMenuSubContent>
-                            </DropdownMenuSub>
-                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleOpenModal(r)}>
                               <Edit className="w-4 h-4 mr-2" /> Edit Full Record
                             </DropdownMenuItem>
