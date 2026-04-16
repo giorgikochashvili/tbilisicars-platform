@@ -10,6 +10,7 @@ import {
   adminsTable,
   vehicleTable,
   vehicleModelTable,
+  brandTable,
   paymentTable,
   parkingAssignmentTable,
   userTable,
@@ -64,7 +65,42 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
     conditions.push(eq(pickupAlias.performedByAdminId, filters.performerId));
   }
 
-  const rows = await db
+  // Explicit row type — works around a drizzle-orm@0.45.1 inference-depth
+  // quirk where chaining 8+ leftJoins makes the resolved row type collapse to
+  // `never[]`. Runtime select shape below must stay in sync with this type.
+  type MonitoringRow = {
+    bookingId: number;
+    reservationCode: string | null;
+    status: typeof bookingTable.status._.data;
+    paymentStatus: typeof bookingTable.paymentStatus._.data;
+    currency: string;
+    totalAmount: string;
+    contactFullName: string | null;
+    contactPhone: string | null;
+    contactEmail: string | null;
+    nationality: string | null;
+    pickupDatetime: Date;
+    dropoffDatetime: Date;
+    vehiclePlate: string | null;
+    vehicleModel: string | null;
+    vehicleBrand: string | null;
+    pickupActionAt: Date | null;
+    pickupNotes: string | null;
+    pickupMileage: number | null;
+    pickupFuel: number | null;
+    pickupSatisfaction: SatisfactionMark | null;
+    pickupPerformerId: number | null;
+    pickupPerformerName: string | null;
+    dropoffActionAt: Date | null;
+    dropoffNotes: string | null;
+    dropoffMileage: number | null;
+    dropoffFuel: number | null;
+    dropoffPerformerId: number | null;
+    dropoffPerformerName: string | null;
+    parkingZone: string | null;
+  };
+
+  const rows: MonitoringRow[] = await db
     .select({
       bookingId: bookingTable.id,
       reservationCode: bookingTable.reservationCode,
@@ -78,9 +114,9 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
       nationality: userTable.country,
       pickupDatetime: bookingTable.pickupDatetime,
       dropoffDatetime: bookingTable.dropoffDatetime,
-      vehiclePlate: vehicleTable.plate,
-      vehicleModel: vehicleModelTable.modelName,
-      vehicleBrand: vehicleModelTable.brand,
+      vehiclePlate: vehicleTable.licensePlate,
+      vehicleModel: vehicleModelTable.name,
+      vehicleBrand: brandTable.name,
       pickupActionAt: pickupAlias.actionAt,
       pickupNotes: pickupAlias.notes,
       pickupMileage: pickupAlias.mileage,
@@ -119,6 +155,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
       vehicleModelTable,
       eq(vehicleModelTable.id, bookingTable.vehicleModelId),
     )
+    .leftJoin(brandTable, eq(brandTable.id, vehicleModelTable.brandId))
     .leftJoin(
       parkingAssignmentTable,
       and(
