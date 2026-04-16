@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft } from "lucide-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, Search, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +54,19 @@ interface ZoneMap {
   [zone: string]: ZoneData;
 }
 
+interface FleetVehicle {
+  id: number;
+  vehicleModelId: number | null;
+  licensePlate: string | null;
+  color: string | null;
+  status: string | null;
+  vehicleModel: {
+    id: number;
+    name: string | null;
+    brand: { id: number; name: string | null } | null;
+  } | null;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function TbsAirParking() {
@@ -60,11 +74,20 @@ export default function TbsAirParking() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
 
-  // Modal state — sequential steps
+  // Modal state
   const [selectedZone, setSelectedZone] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+
+  // Quick-add by plate
+  const [plateQuery, setPlateQuery] = useState("");
+  const [plateOpen, setPlateOpen] = useState(false);
+  const [pickedVehicle, setPickedVehicle] = useState<FleetVehicle | null>(null);
+  const plateBoxRef = useRef<HTMLDivElement>(null);
+
+  // Fallback browse state
+  const [browseMode, setBrowseMode] = useState(false);
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedModelId, setSelectedModelId] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState("");
 
   // ─── Data fetching ──────────────────────────────────────────────────────────
 
@@ -74,41 +97,84 @@ export default function TbsAirParking() {
     refetchInterval: 30_000,
   });
 
-  const { data: brands } = useQuery<any[]>({
+  // Single Tbilisi-scoped vehicle fetch — used by both quick-add (autocomplete)
+  // and browse fallback. Mirrors the Service.tsx client-side filter pattern
+  // because /admin/fleet/vehicles has no `search` query param.
+  const { data: tbilisiVehiclesResp, isLoading: vehiclesLoading } = useQuery<{ data: FleetVehicle[] }>({
+    queryKey: ["fleet-vehicles-tbilisi-all"],
+    queryFn: () => apiFetch(`/admin/fleet/vehicles?city=Tbilisi&limit=500`),
+    enabled: showModal,
+    staleTime: 30_000,
+  });
+  const tbilisiVehicles: FleetVehicle[] = Array.isArray(tbilisiVehiclesResp)
+    ? (tbilisiVehiclesResp as FleetVehicle[])
+    : (tbilisiVehiclesResp?.data ?? []);
+
+  const { data: brands } = useQuery<{ id: number; name: string }[]>({
     queryKey: ["fleet-brands"],
     queryFn: () => apiFetch("/admin/fleet/brands"),
-    enabled: showModal,
+    enabled: showModal && browseMode,
   });
 
-  const { data: allModels } = useQuery<any[]>({
-    queryKey: ["fleet-models"],
-    queryFn: () => apiFetch("/admin/fleet/models"),
-    enabled: showModal,
-  });
+  const parkedVehicleIds = useMemo(() => {
+    return new Set<number>(
+      Object.values(zones ?? {}).flatMap((z) =>
+        (z.assignments ?? []).map((a) => a.vehicleId),
+      ),
+    );
+  }, [zones]);
 
-  const modelsForBrand = (allModels ?? []).filter(
-    (m: any) => !selectedBrandId || String(m.brandId) === selectedBrandId,
+  const eligibleVehicles = useMemo(
+    () => tbilisiVehicles.filter((v) => v.status !== "INACTIVE" && !parkedVehicleIds.has(v.id)),
+    [tbilisiVehicles, parkedVehicleIds],
   );
 
-  const { data: vehicleResult, isLoading: vehiclesLoading } = useQuery<any>({
-    queryKey: ["fleet-vehicles-tbilisi", selectedModelId],
-    queryFn: () => apiFetch(`/admin/fleet/vehicles?modelId=${selectedModelId}&city=Tbilisi&limit=200`),
-    enabled: showModal && !!selectedModelId,
-  });
+  // Plate-first autocomplete: prefix match on plate ranks above brand/model substring.
+  const plateMatches = useMemo(() => {
+    const q = plateQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const prefix: FleetVehicle[] = [];
+    const substr: FleetVehicle[] = [];
+    for (const v of eligibleVehicles) {
+      const plate = (v.licensePlate ?? "").toLowerCase();
+      const brand = (v.vehicleModel?.brand?.name ?? "").toLowerCase();
+      const model = (v.vehicleModel?.name ?? "").toLowerCase();
+      if (plate.startsWith(q)) prefix.push(v);
+      else if (plate.includes(q) || brand.includes(q) || model.includes(q)) substr.push(v);
+      if (prefix.length + substr.length >= 30) break;
+    }
+    return [...prefix, ...substr].slice(0, 10);
+  }, [plateQuery, eligibleVehicles]);
 
-  const parkedVehicleIds = new Set<number>(
-    Object.values(zones ?? {}).flatMap((z: any) =>
-      (z.assignments ?? []).map((a: any) => a.vehicleId)
-    )
-  );
+  // Close plate dropdown on outside click
+  useEffect(() => {
+    if (!plateOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (plateBoxRef.current && !plateBoxRef.current.contains(e.target as Node)) {
+        setPlateOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [plateOpen]);
 
-  const vehicleList: any[] = Array.isArray(vehicleResult)
-    ? vehicleResult
-    : (vehicleResult?.data ?? []);
+  // Browse mode: derived brand/model lists from the same Tbilisi pool.
+  const modelsForBrand = useMemo(() => {
+    if (!selectedBrandId) return [] as { id: number; name: string }[];
+    const map = new Map<number, { id: number; name: string }>();
+    for (const v of tbilisiVehicles) {
+      const m = v.vehicleModel;
+      if (m?.id != null && m.brand?.id?.toString() === selectedBrandId) {
+        map.set(m.id, { id: m.id, name: m.name ?? `#${m.id}` });
+      }
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [tbilisiVehicles, selectedBrandId]);
 
-  const availableVehicles = vehicleList.filter(
-    (v: any) => v.status !== "INACTIVE" && !parkedVehicleIds.has(v.id)
-  );
+  const browseVehicles = useMemo(() => {
+    if (!selectedModelId) return [];
+    return eligibleVehicles.filter((v) => v.vehicleModelId?.toString() === selectedModelId);
+  }, [eligibleVehicles, selectedModelId]);
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
@@ -129,8 +195,7 @@ export default function TbsAirParking() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiFetch(`/admin/parking/${id}`, { method: "DELETE" }),
+    mutationFn: (id: number) => apiFetch(`/admin/parking/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       toast({ title: "Vehicle removed from parking" });
       queryClient.invalidateQueries({ queryKey: ["parking-zones"] });
@@ -157,23 +222,49 @@ export default function TbsAirParking() {
 
   // ─── Modal helpers ──────────────────────────────────────────────────────────
 
-  function handleOpenModal() {
+  function resetModalState() {
     setSelectedZone("");
+    setSelectedVehicleId("");
+    setPlateQuery("");
+    setPlateOpen(false);
+    setPickedVehicle(null);
+    setBrowseMode(false);
     setSelectedBrandId("");
     setSelectedModelId("");
-    setSelectedVehicleId("");
+  }
+
+  function handleOpenModal() {
+    resetModalState();
     setShowModal(true);
   }
 
   function handleCloseModal() {
     setShowModal(false);
-    setSelectedZone("");
-    setSelectedBrandId("");
-    setSelectedModelId("");
-    setSelectedVehicleId("");
+    resetModalState();
   }
 
-  const canSubmit = selectedZone && selectedVehicleId && !assignMutation.isPending;
+  function handlePickVehicle(v: FleetVehicle) {
+    setPickedVehicle(v);
+    setSelectedVehicleId(String(v.id));
+    setPlateQuery(v.licensePlate ?? "");
+    setPlateOpen(false);
+  }
+
+  function clearPickedVehicle() {
+    setPickedVehicle(null);
+    setSelectedVehicleId("");
+    setPlateQuery("");
+    setPlateOpen(false);
+  }
+
+  // Capacity check used to disable submit before hitting the server.
+  const selectedZoneData = selectedZone ? zones?.[selectedZone] : undefined;
+  const selectedZoneDef = selectedZone ? ZONES.find((z) => z.name === selectedZone) : undefined;
+  const selectedZoneFull =
+    selectedZoneDef?.capacity != null &&
+    (selectedZoneData?.assignments.length ?? 0) >= selectedZoneDef.capacity;
+
+  const canSubmit = !!selectedZone && !!selectedVehicleId && !selectedZoneFull && !assignMutation.isPending;
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -206,10 +297,7 @@ export default function TbsAirParking() {
           const isOverflow = cap !== null && count > cap;
 
           return (
-            <Card
-              key={zoneDef.name}
-              className={`border ${zoneDef.borderColor} bg-card/80 hover-elevate`}
-            >
+            <Card key={zoneDef.name} className={`border ${zoneDef.borderColor} bg-card/80 hover-elevate`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -234,16 +322,11 @@ export default function TbsAirParking() {
                     )}
                   </div>
                 </div>
-                {/* Capacity bar for capped zones */}
                 {cap !== null && (
                   <div className="mt-2 h-1.5 rounded-full bg-border/50 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        isOverflow
-                          ? "bg-orange-500"
-                          : isFull
-                          ? "bg-red-500"
-                          : zoneDef.color.replace("text-", "bg-")
+                        isOverflow ? "bg-orange-500" : isFull ? "bg-red-500" : zoneDef.color.replace("text-", "bg-")
                       }`}
                       style={{ width: `${Math.min((count / cap) * 100, 100)}%` }}
                     />
@@ -257,9 +340,7 @@ export default function TbsAirParking() {
                     <Skeleton className="h-10 w-full" />
                   </>
                 ) : zoneData.assignments.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground text-sm">
-                    No vehicles parked
-                  </div>
+                  <div className="text-center py-6 text-muted-foreground text-sm">No vehicles parked</div>
                 ) : (
                   zoneData.assignments.map((entry) => (
                     <div
@@ -280,7 +361,6 @@ export default function TbsAirParking() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        {/* Move to zone */}
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -313,7 +393,6 @@ export default function TbsAirParking() {
                             </div>
                           </PopoverContent>
                         </Popover>
-                        {/* Remove */}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -345,23 +424,177 @@ export default function TbsAirParking() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Step 1: Zone */}
+            {/* ─── Quick add by plate ────────────────────────────────────────── */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                1. Parking Zone
+                1. Vehicle (search by plate)
               </Label>
-              <Select
-                value={selectedZone}
-                onValueChange={(v) => {
-                  setSelectedZone(v);
-                  setSelectedBrandId("");
-                  setSelectedModelId("");
-                  setSelectedVehicleId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select zone…" />
-                </SelectTrigger>
+
+              {pickedVehicle ? (
+                <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-mono font-bold tracking-wider text-foreground">
+                      {pickedVehicle.licensePlate ?? `#${pickedVehicle.id}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {[pickedVehicle.vehicleModel?.brand?.name, pickedVehicle.vehicleModel?.name].filter(Boolean).join(" ") || "—"}
+                      {pickedVehicle.color ? ` · ${pickedVehicle.color}` : ""}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearPickedVehicle} title="Clear">
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div ref={plateBoxRef} className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={plateQuery}
+                    onChange={(e) => {
+                      setPlateQuery(e.target.value);
+                      setPlateOpen(true);
+                    }}
+                    onFocus={() => setPlateOpen(true)}
+                    placeholder={vehiclesLoading ? "Loading vehicles…" : "Type plate, brand or model…"}
+                    className="pl-9 font-mono uppercase tracking-wider"
+                    autoComplete="off"
+                  />
+                  {plateOpen && plateQuery.trim().length >= 2 && (
+                    <div className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
+                      {plateMatches.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">No matches in Tbilisi.</div>
+                      ) : (
+                        plateMatches.map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            className="w-full text-left px-3 py-2 hover:bg-muted/60 flex items-center justify-between gap-2"
+                            onClick={() => handlePickVehicle(v)}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-mono font-bold tracking-wider truncate">
+                                {v.licensePlate ?? `#${v.id}`}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {[v.vehicleModel?.brand?.name, v.vehicleModel?.name].filter(Boolean).join(" ") || "—"}
+                              </p>
+                            </div>
+                            {v.color && (
+                              <span className="text-[10px] text-muted-foreground flex-shrink-0">{v.color}</span>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!pickedVehicle && (
+                <button
+                  type="button"
+                  onClick={() => setBrowseMode((b) => !b)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1"
+                >
+                  {browseMode ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {browseMode ? "Hide browse" : "Browse vehicles instead"}
+                </button>
+              )}
+            </div>
+
+            {/* ─── Browse fallback (collapsed by default) ─────────────────────── */}
+            {!pickedVehicle && browseMode && (
+              <div className="space-y-3 rounded-md border border-border/40 bg-muted/20 p-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Brand</Label>
+                  <Select
+                    value={selectedBrandId}
+                    onValueChange={(v) => {
+                      setSelectedBrandId(v);
+                      setSelectedModelId("");
+                      setSelectedVehicleId("");
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select brand…" /></SelectTrigger>
+                    <SelectContent>
+                      {(brands ?? []).map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Model</Label>
+                  <Select
+                    value={selectedModelId}
+                    disabled={!selectedBrandId}
+                    onValueChange={(v) => {
+                      setSelectedModelId(v);
+                      setSelectedVehicleId("");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!selectedBrandId ? "Select a brand first" : "Select model…"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {modelsForBrand.length === 0 ? (
+                        <SelectItem value="none" disabled>No models for this brand in Tbilisi</SelectItem>
+                      ) : (
+                        modelsForBrand.map((m) => (
+                          <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Vehicle <span className="ml-1.5 normal-case font-normal text-muted-foreground/70">(Tbilisi only)</span>
+                  </Label>
+                  <Select
+                    value={selectedVehicleId}
+                    disabled={!selectedModelId || vehiclesLoading}
+                    onValueChange={(val) => {
+                      setSelectedVehicleId(val);
+                      const found = browseVehicles.find((v) => String(v.id) === val);
+                      if (found) setPickedVehicle(found);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          !selectedModelId ? "Select a model first" : vehiclesLoading ? "Loading vehicles…" : "Select vehicle…"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!selectedModelId ? null : vehiclesLoading ? (
+                        <SelectItem value="loading" disabled>Loading…</SelectItem>
+                      ) : browseVehicles.length === 0 ? (
+                        <SelectItem value="none" disabled>No available vehicles in Tbilisi</SelectItem>
+                      ) : (
+                        browseVehicles.map((v) => (
+                          <SelectItem key={v.id} value={String(v.id)}>
+                            {v.licensePlate ?? `#${v.id}`}
+                            {v.color ? ` · ${v.color}` : ""}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Zone (always shown after a vehicle is picked) ─────────────── */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                2. Parking Zone
+              </Label>
+              <Select value={selectedZone} onValueChange={setSelectedZone}>
+                <SelectTrigger><SelectValue placeholder="Select zone…" /></SelectTrigger>
                 <SelectContent>
                   {ZONES.map((z) => {
                     const zoneData = zones?.[z.name];
@@ -388,102 +621,9 @@ export default function TbsAirParking() {
                   })}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Step 2: Brand */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                2. Brand
-              </Label>
-              <Select
-                value={selectedBrandId}
-                disabled={!selectedZone}
-                onValueChange={(v) => {
-                  setSelectedBrandId(v);
-                  setSelectedModelId("");
-                  setSelectedVehicleId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={!selectedZone ? "Select a zone first" : "Select brand…"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(brands ?? []).map((b: any) => (
-                    <SelectItem key={b.id} value={String(b.id)}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Step 3: Model */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                3. Model
-              </Label>
-              <Select
-                value={selectedModelId}
-                disabled={!selectedBrandId}
-                onValueChange={(v) => {
-                  setSelectedModelId(v);
-                  setSelectedVehicleId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={!selectedBrandId ? "Select a brand first" : "Select model…"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelsForBrand.length === 0 ? (
-                    <SelectItem value="none" disabled>No models for this brand</SelectItem>
-                  ) : (
-                    modelsForBrand.map((m: any) => (
-                      <SelectItem key={m.id} value={String(m.id)}>
-                        {m.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Step 4: Vehicle */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                4. Vehicle
-                <span className="ml-1.5 normal-case font-normal text-muted-foreground/70">(Tbilisi only)</span>
-              </Label>
-              <Select
-                value={selectedVehicleId}
-                disabled={!selectedModelId || vehiclesLoading}
-                onValueChange={setSelectedVehicleId}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      !selectedModelId
-                        ? "Select a model first"
-                        : vehiclesLoading
-                        ? "Loading vehicles…"
-                        : "Select vehicle…"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {!selectedModelId ? null : vehiclesLoading ? (
-                    <SelectItem value="loading" disabled>Loading…</SelectItem>
-                  ) : availableVehicles.length === 0 ? (
-                    <SelectItem value="none" disabled>No available vehicles in Tbilisi</SelectItem>
-                  ) : (
-                    availableVehicles.map((v: any) => (
-                      <SelectItem key={v.id} value={String(v.id)}>
-                        {v.licensePlate ?? `#${v.id}`}
-                        {v.color ? ` · ${v.color}` : ""}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              {selectedZoneFull && (
+                <p className="text-xs text-destructive">This zone is at capacity. Pick another zone.</p>
+              )}
             </div>
           </div>
 
