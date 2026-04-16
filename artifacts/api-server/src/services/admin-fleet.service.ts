@@ -146,15 +146,21 @@ export async function listAdminModels(filters: { city?: string } = {}) {
     brandLogoUrl: brandTable.logoUrl,
   };
 
-  // When city is provided, restrict to models that have at least one vehicle
-  // in that city. Used by the booking-detail "Assign Vehicle" dialog so the
-  // model selector only lists models the dispatcher can actually assign.
+  // When city is provided, restrict to models that have at least one
+  // ASSIGNABLE vehicle (status AVAILABLE) in that city. Used by the
+  // booking-detail "Assign Vehicle" dialog so the model selector only
+  // lists models the dispatcher can actually assign right now.
   const cityModelIds = filters.city
     ? db
         .selectDistinct({ id: vehicleTable.vehicleModelId })
         .from(vehicleTable)
         .innerJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
-        .where(eq(locationTable.city, filters.city))
+        .where(
+          and(
+            eq(locationTable.city, filters.city),
+            eq(vehicleTable.status, "AVAILABLE"),
+          ),
+        )
     : null;
 
   const rows = cityModelIds

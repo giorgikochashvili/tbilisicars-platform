@@ -681,6 +681,10 @@ interface HandoverModalProps {
   savingHandover: boolean;
   onSubmit: (type: "pickup" | "dropoff", photoUrls: string[], parkingZone?: string) => Promise<void>;
   isAirportDropoff?: boolean;
+  // Number of pickup photos already persisted on this booking via the
+  // pre-pickup PhotoAppendDialog flow. When > 0 the "at least one pickup
+  // photo" gate is already satisfied without selecting new files here.
+  existingPickupPhotoCount?: number;
 }
 
 function HandoverModal({
@@ -688,6 +692,7 @@ function HandoverModal({
   handoverForm, setHandoverForm,
   savingHandover, onSubmit,
   isAirportDropoff,
+  existingPickupPhotoCount = 0,
 }: HandoverModalProps) {
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
@@ -703,7 +708,9 @@ function HandoverModal({
   const doneCount = fileItems.filter((fi) => fi.status === "done").length;
   const errorCount = fileItems.filter((fi) => fi.status === "error").length;
   const anyInFlight = uploadingCount > 0;
-  const photoBlock = requirePhoto && doneCount === 0;
+  // Pickup requires AT LEAST ONE photo across (a) pre-pickup uploads already
+  // persisted on the booking and (b) photos selected in this modal.
+  const photoBlock = requirePhoto && doneCount + existingPickupPhotoCount === 0;
 
   const handleModalClose = () => {
     if (anyInFlight) return;
@@ -1448,10 +1455,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               photo is uploaded via PhotoAppendDialog. */}
           {(() => {
             if (loadingBooking || !booking) return null;
-            const hasPickupRecord = !!handovers.pickup;
+            // Banner fires whenever the booking is in (or past) the delivered
+            // post-pickup state with zero pickup photos on file. Clears once
+            // any pickup photo is uploaded or once dropoff is recorded.
             const pickupPhotoCount = handovers.pickup?.photos?.length ?? 0;
-            const isPostPickup = booking.status === "DELIVERED";
-            if (!isPostPickup || !hasPickupRecord || pickupPhotoCount > 0 || handovers.dropoff) return null;
+            const isPostPickup = booking.status === "DELIVERED" || booking.status === "RETURNED";
+            if (!isPostPickup || pickupPhotoCount > 0 || handovers.dropoff) return null;
             return (
               <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -2123,6 +2132,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         setHandoverForm={setHandoverForm}
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
+        existingPickupPhotoCount={booking?.pickupPhotoCount ?? 0}
       />
 
       {/* Photo Append Dialog (pre-pickup uploads + post-pickup additions) */}
