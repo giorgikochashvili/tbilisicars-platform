@@ -349,13 +349,34 @@ function SendMailDialog({
               Thank you for choosing Tbilisicars and picking up your <strong>{vehicle}</strong>{" "}
               today (booking <strong>{reference}</strong>). We hope everything is going smoothly.
             </p>
-            <p className="mt-2">
-              If you have a moment, a short public review really helps — Google and Trustpilot links
-              are included.
-            </p>
+            <p className="mt-2">If you have a moment, a short public review really helps:</p>
+            <ul className="mt-1 ml-4 list-disc space-y-0.5">
+              <li>
+                <a
+                  href="https://search.google.com/local/writereview?placeid=tbilisicars"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  Leave a Google review
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.trustpilot.com/evaluate/tbilisicars.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  Review us on Trustpilot
+                </a>
+              </li>
+            </ul>
             <p className="mt-2 text-muted-foreground">
-              Closes with the Tbilisicars contact line and signature.
+              If anything is less than perfect, just reply to this email or call
+              +995 557 37 63 63.
             </p>
+            <p className="mt-2">Safe travels,<br />The Tbilisicars Team</p>
           </div>
         </div>
         <DialogFooter>
@@ -701,19 +722,22 @@ export default function Monitoring() {
                           {[row.vehicleBrand, row.vehicleModel].filter(Boolean).join(" ") || "—"}
                         </div>
                       </div>
-                      <div className="hidden lg:flex flex-col min-w-[150px]">
-                        <div className="text-[11px] text-muted-foreground">Pickup</div>
-                        <div className="text-xs font-mono">{formatDateTime(row.pickupActionAt)}</div>
-                        {row.pickupPerformerName && (
-                          <div className="text-[10px] text-muted-foreground">by {row.pickupPerformerName}</div>
-                        )}
+                      <div className="hidden lg:flex flex-col min-w-[160px]">
+                        <div className="text-[11px] text-muted-foreground">Pickup (scheduled)</div>
+                        <div className="text-xs font-mono">{formatDateTime(row.pickupDatetime)}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          handed over {formatDateTime(row.pickupActionAt)}
+                          {row.pickupPerformerName && <> · by {row.pickupPerformerName}</>}
+                        </div>
                       </div>
-                      <div className="hidden lg:flex flex-col min-w-[150px]">
-                        <div className="text-[11px] text-muted-foreground">Drop Off</div>
-                        <div className="text-xs font-mono">{row.dropoffActionAt ? formatDateTime(row.dropoffActionAt) : "—"}</div>
-                        {row.dropoffPerformerName && (
-                          <div className="text-[10px] text-muted-foreground">by {row.dropoffPerformerName}</div>
-                        )}
+                      <div className="hidden lg:flex flex-col min-w-[160px]">
+                        <div className="text-[11px] text-muted-foreground">Drop Off (scheduled)</div>
+                        <div className="text-xs font-mono">{formatDateTime(row.dropoffDatetime)}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {row.dropoffActionAt
+                            ? <>returned {formatDateTime(row.dropoffActionAt)}{row.dropoffPerformerName && <> · by {row.dropoffPerformerName}</>}</>
+                            : "not returned yet"}
+                        </div>
                       </div>
                       <div className="hidden sm:block min-w-[100px]">
                         <PaidCell map={row.paidByCurrency} currency={row.currency} />
