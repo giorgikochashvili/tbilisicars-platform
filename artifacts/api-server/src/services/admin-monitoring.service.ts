@@ -12,6 +12,7 @@ import {
   vehicleModelTable,
   paymentTable,
   parkingAssignmentTable,
+  userTable,
 } from "@workspace/db";
 import { aliasedTable } from "drizzle-orm";
 import { and, eq, gte, lte, desc, asc, isNull, sql } from "drizzle-orm";
@@ -74,6 +75,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
       contactFullName: bookingTable.contactFullName,
       contactPhone: bookingTable.contactPhone,
       contactEmail: bookingTable.contactEmail,
+      nationality: userTable.country,
       pickupDatetime: bookingTable.pickupDatetime,
       dropoffDatetime: bookingTable.dropoffDatetime,
       vehiclePlate: vehicleTable.plate,
@@ -111,6 +113,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
       dropoffAdminAlias,
       eq(dropoffAdminAlias.id, dropoffAlias.performedByAdminId),
     )
+    .leftJoin(userTable, eq(userTable.id, bookingTable.userId))
     .leftJoin(vehicleTable, eq(vehicleTable.id, bookingTable.vehicleId))
     .leftJoin(
       vehicleModelTable,

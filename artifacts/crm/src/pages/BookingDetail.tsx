@@ -1067,6 +1067,7 @@ function HandoverModal({
               anyInFlight ||
               errorCount > 0 ||
               photoBlock ||
+              (type === "pickup" && !satisfaction) ||
               (type === "dropoff" && !!isAirportDropoff && !selectedZone)
             }
           >

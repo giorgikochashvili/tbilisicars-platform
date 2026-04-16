@@ -42,6 +42,10 @@ router.get("/admin/monitoring/performers", requireAdmin, async (_req, res) => {
   res.json(performers);
 });
 
+router.get("/admin/monitoring/config", requireAdmin, (_req, res) => {
+  res.json({ emailEnabled: !!process.env.RESEND_API_KEY });
+});
+
 router.get(
   "/admin/monitoring/:bookingId/notes",
   requireAdmin,

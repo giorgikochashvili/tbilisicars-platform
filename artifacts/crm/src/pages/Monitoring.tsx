@@ -45,8 +45,14 @@ async function apiFetch(path: string, opts?: RequestInit) {
     ...opts,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body?.error ?? res.statusText);
+    const body = await res
+      .json()
+      .catch(() => ({}) as Record<string, unknown>);
+    const reason =
+      (body as { error?: string; reason?: string }).error ??
+      (body as { error?: string; reason?: string }).reason ??
+      res.statusText;
+    throw new Error(reason);
   }
   return res.json();
 }
@@ -65,6 +71,7 @@ interface MonitoringRow {
   contactFullName: string;
   contactPhone: string | null;
   contactEmail: string | null;
+  nationality: string | null;
   pickupDatetime: string;
   dropoffDatetime: string;
   vehiclePlate: string | null;
@@ -455,8 +462,6 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Monitoring() {
-  const { toast: _toast } = useToast();
-  void _toast;
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -467,6 +472,12 @@ export default function Monitoring() {
     queryFn: () => apiFetch(`/admin/monitoring/performers`),
   });
   const performers = performersData ?? [];
+
+  const { data: configData } = useQuery<{ emailEnabled: boolean }>({
+    queryKey: ["monitoring-config"],
+    queryFn: () => apiFetch(`/admin/monitoring/config`),
+  });
+  const emailEnabled = configData?.emailEnabled ?? false;
 
   const queryString = useMemo(() => {
     const p = new URLSearchParams();
@@ -666,7 +677,14 @@ export default function Monitoring() {
                         <span className="font-mono text-xs font-semibold text-primary">{row.reservationCode ?? `#${row.bookingId}`}</span>
                       </div>
                       <div className="flex-1 min-w-[160px]">
-                        <div className="text-xs font-medium truncate">{row.contactFullName}</div>
+                        <div className="text-xs font-medium truncate flex items-center gap-1.5">
+                          <span>{row.contactFullName}</span>
+                          {row.nationality && (
+                            <span className="text-[10px] text-muted-foreground font-normal" title="Nationality">
+                              ({row.nationality})
+                            </span>
+                          )}
+                        </div>
                         {row.contactPhone && (
                           <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                             <Phone className="w-2.5 h-2.5" />
@@ -709,6 +727,14 @@ export default function Monitoring() {
                         variant="outline"
                         className="h-7 text-xs gap-1.5"
                         onClick={(e) => { e.stopPropagation(); setMailRow(row); }}
+                        disabled={!emailEnabled || !row.contactEmail}
+                        title={
+                          !emailEnabled
+                            ? "Email sending is not configured (RESEND_API_KEY missing)"
+                            : !row.contactEmail
+                              ? "No customer email on file"
+                              : "Send thank-you email"
+                        }
                         data-testid={`button-send-mail-${row.bookingId}`}
                       >
                         <Mail className="w-3 h-3" />
