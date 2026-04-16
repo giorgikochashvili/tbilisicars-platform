@@ -658,7 +658,7 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
             size="sm"
             className="h-7 text-xs"
             onClick={handleSubmit}
-            disabled={saving || anyInFlight || doneCount === 0}
+            disabled={saving || anyInFlight || errorCount > 0 || doneCount === 0}
           >
             {saving ? "Saving…" : anyInFlight ? "Uploading…" : `Save ${doneCount} photo${doneCount !== 1 ? "s" : ""}`}
           </Button>
@@ -977,6 +977,7 @@ function HandoverModal({
             disabled={
               savingHandover ||
               anyInFlight ||
+              errorCount > 0 ||
               photoBlock ||
               (type === "dropoff" && !!isAirportDropoff && !selectedZone)
             }
@@ -1091,10 +1092,31 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     try {
       // Restrict the model dropdown and the initial vehicle list to the
       // pickup city so dispatchers don't see vehicles in unrelated cities.
-      // overviewLocations is loaded as part of the booking detail open flow.
-      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
-      const cityParam = pickupCity ? `&city=${encodeURIComponent(pickupCity)}` : "";
-      const cityQs = pickupCity ? `?city=${encodeURIComponent(pickupCity)}` : "";
+      // We REQUIRE pickupCity here — fall back to fetching overviewLocations
+      // on demand if it hasn't been loaded yet, so the dialog never issues
+      // unfiltered model/vehicle queries when a city is set on the booking.
+      let locations = overviewLocations;
+      if (locations.length === 0) {
+        try {
+          const data = await apiFetch("/admin/locations");
+          locations = data ?? [];
+          setOverviewLocations(locations);
+        } catch {
+          // Non-critical; pickupCity will simply be undefined below
+        }
+      }
+      const pickupCity = locations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
+      if (!pickupCity) {
+        toast({
+          title: "Pickup city missing",
+          description: "Cannot list vehicles without a pickup city. Set the pickup location first.",
+          variant: "destructive",
+        });
+        setIsAssignOpen(false);
+        return;
+      }
+      const cityParam = `&city=${encodeURIComponent(pickupCity)}`;
+      const cityQs = `?city=${encodeURIComponent(pickupCity)}`;
       const [modelsData, vehiclesData] = await Promise.all([
         apiFetch(`/admin/fleet/models${cityQs}`),
         modelId
@@ -1415,6 +1437,28 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           </DialogHeader>
 
           {/* Document generation + action buttons */}
+          {/* Top-level missing-photo banner: when pickup is recorded without photos
+              AND dropoff has not been recorded yet. Clears automatically once
+              dropoff is recorded (vehicle returned, evidence less critical) or
+              once any pickup photo is uploaded via PhotoAppendDialog. */}
+          {!loadingBooking && booking && handovers.pickup && (handovers.pickup.photos?.length ?? 0) === 0 && !handovers.dropoff && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">Missing pickup photos for this booking.</p>
+                <p className="text-[11px] text-amber-300/80">Pickup was recorded with no photos on file. Add them to document the vehicle's condition.</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
+                onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
+              >
+                <Upload className="w-3 h-3" /> Upload
+              </Button>
+            </div>
+          )}
+
           {!loadingBooking && booking && (
             <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30 min-w-0">
               {onEditBooking && (
@@ -1965,24 +2009,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 }
               >
                 <div className="space-y-2">
-                  {/* Missing-photo warning: pickup recorded but with zero photos */}
-                  {handovers.pickup && (handovers.pickup.photos?.length ?? 0) === 0 && (
-                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium">No pickup photos on file.</p>
-                        <p className="text-[11px] text-amber-300/80">Add photos now to document the vehicle's pickup condition.</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
-                        onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
-                      >
-                        <Upload className="w-3 h-3" /> Upload
-                      </Button>
-                    </div>
-                  )}
+                  {/* Missing-photo banner now lives at the top of the dialog;
+                      see the AlertTriangle banner above the actions row. */}
                   {handovers.pickup ? (
                     <>
                       <HandoverDisplay handover={handovers.pickup} type="pickup" />
