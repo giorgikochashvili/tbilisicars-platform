@@ -603,15 +603,26 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                           <StatusBadge status={formData.status} />
                           <span className="text-xs text-muted-foreground">{note}</span>
                         </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-fit text-xs"
-                          onClick={() => setFormData({ ...formData, status: "INACTIVE" })}
-                        >
-                          Switch to Inactive
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setFormData({ ...formData, status: "AVAILABLE" })}
+                          >
+                            Set Available
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setFormData({ ...formData, status: "INACTIVE" })}
+                          >
+                            Set Inactive
+                          </Button>
+                        </div>
                       </div>
                     );
                   }
