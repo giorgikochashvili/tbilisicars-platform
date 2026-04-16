@@ -1,16 +1,16 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, Search, ChevronDown, ChevronUp, X } from "lucide-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { PlateSearchInput, type PlateSearchVehicle } from "@/components/PlateSearchInput";
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api${path}`, {
@@ -54,17 +54,8 @@ interface ZoneMap {
   [zone: string]: ZoneData;
 }
 
-interface FleetVehicle {
-  id: number;
+interface FleetVehicle extends PlateSearchVehicle {
   vehicleModelId: number | null;
-  licensePlate: string | null;
-  color: string | null;
-  status: string | null;
-  vehicleModel: {
-    id: number;
-    name: string | null;
-    brand: { id: number; name: string | null } | null;
-  } | null;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -77,12 +68,7 @@ export default function TbsAirParking() {
   // Modal state
   const [selectedZone, setSelectedZone] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-
-  // Quick-add by plate
-  const [plateQuery, setPlateQuery] = useState("");
-  const [plateOpen, setPlateOpen] = useState(false);
   const [pickedVehicle, setPickedVehicle] = useState<FleetVehicle | null>(null);
-  const plateBoxRef = useRef<HTMLDivElement>(null);
 
   // Fallback browse state
   const [browseMode, setBrowseMode] = useState(false);
@@ -128,35 +114,6 @@ export default function TbsAirParking() {
     () => tbilisiVehicles.filter((v) => v.status !== "INACTIVE" && !parkedVehicleIds.has(v.id)),
     [tbilisiVehicles, parkedVehicleIds],
   );
-
-  // Plate-first autocomplete: prefix match on plate ranks above brand/model substring.
-  const plateMatches = useMemo(() => {
-    const q = plateQuery.trim().toLowerCase();
-    if (q.length < 2) return [];
-    const prefix: FleetVehicle[] = [];
-    const substr: FleetVehicle[] = [];
-    for (const v of eligibleVehicles) {
-      const plate = (v.licensePlate ?? "").toLowerCase();
-      const brand = (v.vehicleModel?.brand?.name ?? "").toLowerCase();
-      const model = (v.vehicleModel?.name ?? "").toLowerCase();
-      if (plate.startsWith(q)) prefix.push(v);
-      else if (plate.includes(q) || brand.includes(q) || model.includes(q)) substr.push(v);
-      if (prefix.length + substr.length >= 30) break;
-    }
-    return [...prefix, ...substr].slice(0, 10);
-  }, [plateQuery, eligibleVehicles]);
-
-  // Close plate dropdown on outside click
-  useEffect(() => {
-    if (!plateOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (plateBoxRef.current && !plateBoxRef.current.contains(e.target as Node)) {
-        setPlateOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [plateOpen]);
 
   // Browse mode: derived brand/model lists from the same Tbilisi pool.
   const modelsForBrand = useMemo(() => {
@@ -225,8 +182,6 @@ export default function TbsAirParking() {
   function resetModalState() {
     setSelectedZone("");
     setSelectedVehicleId("");
-    setPlateQuery("");
-    setPlateOpen(false);
     setPickedVehicle(null);
     setBrowseMode(false);
     setSelectedBrandId("");
@@ -243,18 +198,14 @@ export default function TbsAirParking() {
     resetModalState();
   }
 
-  function handlePickVehicle(v: FleetVehicle) {
-    setPickedVehicle(v);
+  function handlePickVehicle(v: PlateSearchVehicle) {
+    setPickedVehicle(v as FleetVehicle);
     setSelectedVehicleId(String(v.id));
-    setPlateQuery(v.licensePlate ?? "");
-    setPlateOpen(false);
   }
 
   function clearPickedVehicle() {
     setPickedVehicle(null);
     setSelectedVehicleId("");
-    setPlateQuery("");
-    setPlateOpen(false);
   }
 
   // Capacity check used to disable submit before hitting the server.
@@ -430,65 +381,14 @@ export default function TbsAirParking() {
                 1. Vehicle (search by plate)
               </Label>
 
-              {pickedVehicle ? (
-                <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5">
-                  <div className="min-w-0">
-                    <p className="text-sm font-mono font-bold tracking-wider text-foreground">
-                      {pickedVehicle.licensePlate ?? `#${pickedVehicle.id}`}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {[pickedVehicle.vehicleModel?.brand?.name, pickedVehicle.vehicleModel?.name].filter(Boolean).join(" ") || "—"}
-                      {pickedVehicle.color ? ` · ${pickedVehicle.color}` : ""}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearPickedVehicle} title="Clear">
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ) : (
-                <div ref={plateBoxRef} className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    value={plateQuery}
-                    onChange={(e) => {
-                      setPlateQuery(e.target.value);
-                      setPlateOpen(true);
-                    }}
-                    onFocus={() => setPlateOpen(true)}
-                    placeholder={vehiclesLoading ? "Loading vehicles…" : "Type plate, brand or model…"}
-                    className="pl-9 font-mono uppercase tracking-wider"
-                    autoComplete="off"
-                  />
-                  {plateOpen && plateQuery.trim().length >= 2 && (
-                    <div className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
-                      {plateMatches.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-muted-foreground">No matches in Tbilisi.</div>
-                      ) : (
-                        plateMatches.map((v) => (
-                          <button
-                            key={v.id}
-                            type="button"
-                            className="w-full text-left px-3 py-2 hover:bg-muted/60 flex items-center justify-between gap-2"
-                            onClick={() => handlePickVehicle(v)}
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-mono font-bold tracking-wider truncate">
-                                {v.licensePlate ?? `#${v.id}`}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {[v.vehicleModel?.brand?.name, v.vehicleModel?.name].filter(Boolean).join(" ") || "—"}
-                              </p>
-                            </div>
-                            {v.color && (
-                              <span className="text-[10px] text-muted-foreground flex-shrink-0">{v.color}</span>
-                            )}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              <PlateSearchInput
+                vehicles={eligibleVehicles}
+                selected={pickedVehicle}
+                onSelect={handlePickVehicle}
+                onClear={clearPickedVehicle}
+                loading={vehiclesLoading}
+                cityLabel="Tbilisi"
+              />
 
               {!pickedVehicle && (
                 <button
