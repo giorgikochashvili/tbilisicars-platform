@@ -2,6 +2,7 @@ import {
   db,
   bookingTable,
   bookingHandoverTable,
+  maintenanceServicesTable,
   userTable,
   vehicleTable,
   vehicleModelTable,
@@ -359,6 +360,9 @@ export async function getFleetSnapshot(city?: string) {
 
   const where = vehicleIds ? inArray(vehicleTable.id, vehicleIds) : undefined;
 
+  // Per-status counts come from vehicle.status as before, EXCEPT for
+  // maintenance — see below. We still read MAINTENANCE rows here only
+  // to keep the query shape simple; the value is overwritten.
   const rows = await db
     .select({ status: vehicleTable.status, c: count() })
     .from(vehicleTable)
@@ -371,11 +375,27 @@ export async function getFleetSnapshot(city?: string) {
     switch (row.status) {
       case "AVAILABLE":   snapshot.available = row.c;   break;
       case "RENTED":      snapshot.rented = row.c;      break;
-      case "MAINTENANCE": snapshot.maintenance = row.c; break;
       case "RESERVED":    snapshot.reserved = row.c;    break;
       case "INACTIVE":    snapshot.inactive = row.c;    break;
+      // MAINTENANCE intentionally ignored — derived below from
+      // active service records, not vehicle.status.
     }
   }
+
+  // Maintenance truth source: distinct vehicles with an active
+  // (SCHEDULED or IN_PROGRESS) maintenance_services row. Scoped to
+  // vehicleIds when a city filter is in effect.
+  const maintenanceWhere = and(
+    inArray(maintenanceServicesTable.status, ["SCHEDULED", "IN_PROGRESS"]),
+    ...(vehicleIds ? [inArray(maintenanceServicesTable.vehicleId, vehicleIds)] : []),
+  );
+  const [maintRow] = await db
+    .select({
+      c: sql<number>`count(distinct ${maintenanceServicesTable.vehicleId})::int`,
+    })
+    .from(maintenanceServicesTable)
+    .where(maintenanceWhere);
+  snapshot.maintenance = maintRow?.c ?? 0;
 
   return snapshot;
 }

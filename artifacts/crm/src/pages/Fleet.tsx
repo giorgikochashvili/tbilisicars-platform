@@ -593,16 +593,42 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               </div>
               <div className="grid gap-2">
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(val: any) => setFormData({...formData, status: val})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="AVAILABLE">Available</SelectItem>
-                    <SelectItem value="RENTED">Rented</SelectItem>
-                    <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                    <SelectItem value="RESERVED">Reserved</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                {(() => {
+                  const managed = formData.status === "RENTED" || formData.status === "MAINTENANCE" || formData.status === "RESERVED";
+                  if (managed) {
+                    const note = formData.status === "MAINTENANCE" ? "managed by service" : "managed by bookings";
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={formData.status} />
+                          <span className="text-xs text-muted-foreground">{note}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-fit text-xs"
+                          onClick={() => setFormData({ ...formData, status: "INACTIVE" })}
+                        >
+                          Switch to Inactive
+                        </Button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Select value={formData.status} onValueChange={(val) => {
+                      if (val === "AVAILABLE" || val === "INACTIVE") {
+                        setFormData({ ...formData, status: val });
+                      }
+                    }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AVAILABLE">Available</SelectItem>
+                        <SelectItem value="INACTIVE">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  );
+                })()}
               </div>
             </div>
 
@@ -619,11 +645,17 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                   setFormData({ ...formData, locationId: val });
                 }
               }}>
-                <SelectTrigger><SelectValue placeholder="Select region..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={regionLocations.length === 0 ? "Loading regions…" : "Select region..."} />
+                </SelectTrigger>
                 <SelectContent>
-                  {regionLocations.map((r) => (
-                    <SelectItem key={r.id} value={r.id.toString()}>{r.city}</SelectItem>
-                  ))}
+                  {regionLocations.length === 0 ? (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">Loading regions…</div>
+                  ) : (
+                    regionLocations.map((r) => (
+                      <SelectItem key={r.id} value={r.id.toString()}>{r.city}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
