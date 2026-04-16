@@ -42,6 +42,7 @@ import {
   ParkingSquare,
   AlertTriangle,
   MessageCircle,
+  Smile,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -393,6 +394,21 @@ function FuelBar({ level }: { level: number }) {
 
 // ─── Handover display ────────────────────────────────────────────────────────
 
+function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" }) {
+  const map = {
+    HAPPY: { emoji: "🙂", label: "Happy", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
+    NEUTRAL: { emoji: "😐", label: "Neutral", cls: "bg-amber-500/15 text-amber-400 border-amber-500/40" },
+    SAD: { emoji: "☹️", label: "Sad", cls: "bg-red-500/15 text-red-400 border-red-500/40" },
+  } as const;
+  const m = map[value];
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md border ${m.cls}`}>
+      <span className="text-sm leading-none">{m.emoji}</span>
+      <span>{m.label}</span>
+    </span>
+  );
+}
+
 function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "dropoff" }) {
   return (
     <div className="space-y-3">
@@ -427,6 +443,14 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
               <User className="w-3 h-3" /> Performed By
             </div>
             <div className="text-sm font-medium">{handover.performedByAdminName}</div>
+          </div>
+        )}
+        {type === "pickup" && handover.pickupSatisfaction && (
+          <div>
+            <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
+              <Smile className="w-3 h-3" /> Customer Satisfaction
+            </div>
+            <SatisfactionBadge value={handover.pickupSatisfaction} />
           </div>
         )}
         {handover.notes && (
@@ -679,7 +703,12 @@ interface HandoverModalProps {
   handoverForm: { actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string };
   setHandoverForm: React.Dispatch<React.SetStateAction<{ actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string }>>;
   savingHandover: boolean;
-  onSubmit: (type: "pickup" | "dropoff", photoUrls: string[], parkingZone?: string) => Promise<void>;
+  onSubmit: (
+    type: "pickup" | "dropoff",
+    photoUrls: string[],
+    parkingZone?: string,
+    pickupSatisfaction?: "HAPPY" | "NEUTRAL" | "SAD" | null,
+  ) => Promise<void>;
   isAirportDropoff?: boolean;
   // Number of pickup photos already persisted on this booking via the
   // pre-pickup PhotoAppendDialog flow. When > 0 the "at least one pickup
@@ -697,6 +726,9 @@ function HandoverModal({
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [satisfaction, setSatisfaction] = useState<
+    "HAPPY" | "NEUTRAL" | "SAD" | null
+  >(null);
 
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
   const Icon = type === "pickup" ? Car : RotateCcw;
@@ -717,6 +749,7 @@ function HandoverModal({
     fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
     setFileItems([]);
     setSelectedZone(null);
+    setSatisfaction(null);
     onClose();
   };
 
@@ -789,6 +822,14 @@ function HandoverModal({
       toast({ title: "Parking zone required", description: "Select a TBS AIR PARKING zone before recording the drop off.", variant: "destructive" });
       return;
     }
+    if (type === "pickup" && !satisfaction) {
+      toast({
+        title: "Satisfaction required",
+        description: "Mark the customer's satisfaction (Happy, Neutral, or Sad) before recording pickup.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (anyInFlight) {
       toast({ title: "Wait for uploads", description: "Some photos are still uploading.", variant: "destructive" });
       return;
@@ -799,7 +840,7 @@ function HandoverModal({
     }
     const photoUrls = fileItems.filter((fi) => fi.status === "done" && fi.path).map((fi) => fi.path as string);
     try {
-      await onSubmit(type, photoUrls, selectedZone ?? undefined);
+      await onSubmit(type, photoUrls, selectedZone ?? undefined, satisfaction);
       // Clear file state on success (including any leftover errored items)
       setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
     } catch {
@@ -866,6 +907,46 @@ function HandoverModal({
               />
             </div>
           </div>
+
+          {/* Customer satisfaction — required for PICKUP only */}
+          {type === "pickup" && (
+            <div className="grid gap-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Smile className="w-3 h-3 text-emerald-400" />
+                Customer Satisfaction <span className="text-red-400">*</span>
+              </Label>
+              <div className="flex gap-2">
+                {(
+                  [
+                    { v: "HAPPY", label: "Happy", emoji: "🙂", active: "border-emerald-500 bg-emerald-500/10 text-emerald-400" },
+                    { v: "NEUTRAL", label: "Neutral", emoji: "😐", active: "border-amber-500 bg-amber-500/10 text-amber-400" },
+                    { v: "SAD", label: "Sad", emoji: "☹️", active: "border-red-500 bg-red-500/10 text-red-400" },
+                  ] as const
+                ).map((opt) => {
+                  const isOn = satisfaction === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setSatisfaction(opt.v)}
+                      data-testid={`button-satisfaction-${opt.v.toLowerCase()}`}
+                      className={`flex-1 text-xs h-10 rounded-md border transition-colors flex items-center justify-center gap-1.5 ${
+                        isOn
+                          ? `${opt.active} font-medium`
+                          : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                      }`}
+                    >
+                      <span className="text-base leading-none">{opt.emoji}</span>
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {!satisfaction && (
+                <p className="text-[10px] text-amber-400/90">Required — pick the customer's mood at handover.</p>
+              )}
+            </div>
+          )}
 
           {/* TBS Airport parking zone — dropoff at Tbilisi International Airport only */}
           {type === "dropoff" && isAirportDropoff && (
@@ -1292,10 +1373,19 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     }
   };
 
-  const handleHandoverSubmit = async (type: "pickup" | "dropoff", photoUrls: string[], parkingZone?: string) => {
+  const handleHandoverSubmit = async (
+    type: "pickup" | "dropoff",
+    photoUrls: string[],
+    parkingZone?: string,
+    pickupSatisfaction?: "HAPPY" | "NEUTRAL" | "SAD" | null,
+  ) => {
     if (!bookingId) return;
     if (!handoverForm.actionDate) {
       toast({ title: "Validation", description: "Action date is required.", variant: "destructive" });
+      return;
+    }
+    if (type === "pickup" && !pickupSatisfaction) {
+      toast({ title: "Validation", description: "Customer satisfaction is required for pickup.", variant: "destructive" });
       return;
     }
 
@@ -1319,6 +1409,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
             fuelLevel: handoverForm.fuelLevel ? parseInt(handoverForm.fuelLevel, 10) : null,
             notes: handoverForm.notes || null,
             photoUrls,
+            ...(type === "pickup" ? { pickupSatisfaction } : {}),
           }),
         }),
         saveTimeoutPromise,

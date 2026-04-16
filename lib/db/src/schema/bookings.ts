@@ -48,6 +48,12 @@ export const bookingPhotoTypeEnum = pgEnum("bookingphototypeenum", [
   "RETURN",
 ]);
 
+export const pickupSatisfactionEnum = pgEnum("pickupsatisfactionenum", [
+  "HAPPY",
+  "NEUTRAL",
+  "SAD",
+]);
+
 // ─── Booking ──────────────────────────────────────────────────────────────────
 
 export const bookingTable = pgTable(
@@ -256,12 +262,39 @@ export const bookingHandoverTable = pgTable(
       { onDelete: "set null" },
     ),
     notes: text("notes"),
+    // Captured at PICKUP only — three-state customer satisfaction signal.
+    // NULL for legacy pickup rows recorded before the Monitoring module was added.
+    pickupSatisfaction: pickupSatisfactionEnum("pickup_satisfaction"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
     index("idx_booking_handover_booking_id").on(t.bookingId),
     index("idx_booking_handover_type").on(t.handoverType),
+  ],
+);
+
+// ─── Monitoring Notes ─────────────────────────────────────────────────────────
+// Internal append-only notes attached to a booking by Monitoring users.
+// Visible only inside the CRM Monitoring page.
+
+export const monitoringNoteTable = pgTable(
+  "monitoring_notes",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .references(() => bookingTable.id, { onDelete: "cascade" }),
+    authorAdminId: integer("author_admin_id").references(
+      () => adminsTable.id,
+      { onDelete: "set null" },
+    ),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_monitoring_notes_booking_id").on(t.bookingId),
+    index("idx_monitoring_notes_created_at").on(t.createdAt),
   ],
 );
 

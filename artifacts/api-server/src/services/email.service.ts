@@ -410,6 +410,114 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
   }
 }
 
+// ─── Pickup thank-you / review request ───────────────────────────────────────
+// Sent from the Monitoring page after a successful pickup. Includes Google
+// Review and Trustpilot links and is personalised with the customer's first
+// name. Returns a `{ skipped: true, reason }` result when Resend is unset so
+// the UI can surface a clear reason.
+
+export interface ThankYouEmailParams {
+  toEmail: string;
+  firstName: string;
+  reference: string;
+  vehicle: string;
+}
+
+export interface ThankYouEmailResult {
+  ok: boolean;
+  skipped?: boolean;
+  reason?: string;
+}
+
+const GOOGLE_REVIEW_URL =
+  "https://search.google.com/local/writereview?placeid=ChIJtbilisicars";
+const TRUSTPILOT_URL = "https://www.trustpilot.com/review/tbilisicars.com";
+
+export function renderThankYouEmail(params: ThankYouEmailParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const { firstName, reference, vehicle } = params;
+  const safeFirst = firstName?.trim() || "there";
+  const subject = `Thanks for choosing Tbilisicars, ${safeFirst}!`;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /></head>
+<body style="margin:0;padding:0;background:#0d1b2a;font-family:'Segoe UI',Arial,sans-serif;color:#e2e8f0;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#132033;border:1px solid #1e3a5f;border-radius:16px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#7f1d2e 0%,#9f2535 100%);padding:28px;text-align:center;">
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Thank you, ${esc(safeFirst)}!</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars · Premium Car Rental in Georgia</p>
+      </div>
+      <div style="padding:28px;font-size:14px;line-height:1.6;">
+        <p>It was a pleasure handing over your <strong>${esc(vehicle)}</strong> today (booking <strong>${esc(reference)}</strong>). We hope you're enjoying the road and that everything is running smoothly.</p>
+        <p>If you have a moment, a short public review really helps us reach more travellers in Georgia. Either of these takes about a minute:</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px auto;">
+          <tr>
+            <td style="padding:0 6px;">
+              <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;background:#e05c72;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">Review us on Google</a>
+            </td>
+            <td style="padding:0 6px;">
+              <a href="${TRUSTPILOT_URL}" style="display:inline-block;background:#1e3a5f;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">Review us on Trustpilot</a>
+            </td>
+          </tr>
+        </table>
+        <p>If anything is less than perfect, just reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> — we'd rather fix it than have you leave anything but a five-star review.</p>
+        <p style="margin-top:24px;">Safe travels,<br/><strong>The Tbilisicars Team</strong></p>
+      </div>
+      <div style="text-align:center;padding:18px 28px;font-size:12px;color:#475569;">
+        © 2026 Tbilisicars · <a href="https://tbilisicars.com" style="color:#64748b;">tbilisicars.com</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  const text = `Hi ${safeFirst},
+
+Thank you for choosing Tbilisicars and picking up your ${vehicle} today (booking ${reference}). We hope everything is going smoothly so far.
+
+If you have a moment, a short public review goes a long way:
+  Google:     ${GOOGLE_REVIEW_URL}
+  Trustpilot: ${TRUSTPILOT_URL}
+
+If anything is less than perfect, just reply to this email or call +995 557 37 63 63 — we'd rather fix it.
+
+Safe travels,
+The Tbilisicars Team
+`;
+  return { subject, html, text };
+}
+
+export async function sendPickupThankYouEmail(
+  params: ThankYouEmailParams,
+): Promise<ThankYouEmailResult> {
+  const resend = getResend();
+  if (!resend) {
+    console.log(`[email] thank_you_skipped_no_api_key ref=${params.reference}`);
+    return { ok: false, skipped: true, reason: "RESEND_API_KEY is not set" };
+  }
+  const fromAddress =
+    process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
+  const { subject, html, text } = renderThankYouEmail(params);
+  try {
+    await resend.emails.send({
+      from: `Tbilisicars Reservations <${fromAddress}>`,
+      to: params.toEmail,
+      subject,
+      html,
+      text,
+    });
+    console.log(`[email] thank_you_sent_ok ref=${params.reference}`);
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[email] thank_you_send_failed ref=${params.reference} ${msg}`);
+    return { ok: false, reason: msg };
+  }
+}
+
 // ─── Internal staff notification ─────────────────────────────────────────────
 
 interface InternalBookingEmailParams {

@@ -10,6 +10,8 @@ import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { applyAdminBookingStatus } from "./admin-bookings.service.js";
 
+export type PickupSatisfaction = "HAPPY" | "NEUTRAL" | "SAD";
+
 export async function createHandover(data: {
   bookingId: number;
   handoverType: "PICKUP" | "DROPOFF";
@@ -19,6 +21,7 @@ export async function createHandover(data: {
   performedByAdminId?: number | null;
   notes?: string | null;
   photoUrls?: string[];
+  pickupSatisfaction?: PickupSatisfaction | null;
 }) {
   const {
     bookingId,
@@ -29,7 +32,13 @@ export async function createHandover(data: {
     performedByAdminId,
     notes,
     photoUrls = [],
+    pickupSatisfaction = null,
   } = data;
+
+  // Satisfaction is required for PICKUP only.
+  if (handoverType === "PICKUP" && !pickupSatisfaction) {
+    throw new Error("pickupSatisfaction is required for PICKUP handovers");
+  }
 
   // Verify booking exists before any inserts (avoids raw FK constraint violation → 500)
   const bookingRows = await db
@@ -85,6 +94,8 @@ export async function createHandover(data: {
         fuelLevel: fuelLevel ?? null,
         performedByAdminId: performedByAdminId ?? null,
         notes: notes ?? null,
+        pickupSatisfaction:
+          handoverType === "PICKUP" ? pickupSatisfaction ?? null : null,
       })
       .returning();
 
@@ -158,6 +169,7 @@ export async function getHandoversForBooking(bookingId: number) {
       performedByAdminId: bookingHandoverTable.performedByAdminId,
       performedByAdminName: adminsTable.fullName,
       notes: bookingHandoverTable.notes,
+      pickupSatisfaction: bookingHandoverTable.pickupSatisfaction,
       createdAt: bookingHandoverTable.createdAt,
     })
     .from(bookingHandoverTable)

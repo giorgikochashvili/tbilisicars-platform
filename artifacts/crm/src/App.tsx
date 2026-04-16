@@ -28,6 +28,7 @@ import PaymentDocument from "@/pages/PaymentDocument";
 import HandoverDocument from "@/pages/HandoverDocument";
 import AuditLogs from "@/pages/AuditLogs";
 import TbsAirParking from "@/pages/TbsAirParking";
+import Monitoring from "@/pages/Monitoring";
 import AdminAI from "@/pages/AdminAI";
 import TasksPage from "@/pages/Tasks";
 import FeaturedSliderPage from "@/pages/FeaturedSlider";
@@ -147,6 +148,7 @@ function Router() {
       <Route path="/alerts"><ProtectedRoute component={AlertsPage} permissionKey="canViewAlerts" /></Route>
       <Route path="/audit-logs"><ProtectedRoute component={AuditLogs} permissionKey="canViewAuditLog" /></Route>
       <Route path="/tbs-parking"><ProtectedRoute component={TbsAirParking} permissionKey="canManageParking" /></Route>
+      <Route path="/monitoring"><ProtectedRoute component={Monitoring} permissionKey="canManageBookings" /></Route>
       <Route path="/admin-ai"><ProtectedRoute component={AdminAI} permissionKey="canUseAdminAI" /></Route>
       <Route path="/tasks"><ProtectedRoute component={TasksPage} permissionKey="canManageTasks" /></Route>
       <Route path="/featured-cars"><ProtectedRoute component={FeaturedSliderPage} permissionKey="canManageVehicles" /></Route>

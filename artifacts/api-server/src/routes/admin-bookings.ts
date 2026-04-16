@@ -273,15 +273,26 @@ router.post("/admin/bookings/:id/pickup", requireAdmin, async (req, res) => {
     res.status(400).json({ error: "Invalid booking ID" });
     return;
   }
-  const { actionAt, mileage, fuelLevel, notes, photoUrls } = req.body as {
-    actionAt?: string;
-    mileage?: number | null;
-    fuelLevel?: number | null;
-    notes?: string | null;
-    photoUrls?: string[];
-  };
+  const { actionAt, mileage, fuelLevel, notes, photoUrls, pickupSatisfaction } =
+    req.body as {
+      actionAt?: string;
+      mileage?: number | null;
+      fuelLevel?: number | null;
+      notes?: string | null;
+      photoUrls?: string[];
+      pickupSatisfaction?: "HAPPY" | "NEUTRAL" | "SAD" | null;
+    };
   if (!actionAt) {
     res.status(400).json({ error: "actionAt is required" });
+    return;
+  }
+  if (
+    !pickupSatisfaction ||
+    !["HAPPY", "NEUTRAL", "SAD"].includes(pickupSatisfaction)
+  ) {
+    res
+      .status(400)
+      .json({ error: "pickupSatisfaction (HAPPY|NEUTRAL|SAD) is required" });
     return;
   }
   const handover = await createHandover({
@@ -293,6 +304,7 @@ router.post("/admin/bookings/:id/pickup", requireAdmin, async (req, res) => {
     performedByAdminId: req.session.adminId ?? null,
     notes: notes ?? null,
     photoUrls: photoUrls ?? [],
+    pickupSatisfaction,
   });
   logAudit({
     actorId: req.session.adminId ?? null,
@@ -301,7 +313,12 @@ router.post("/admin/bookings/:id/pickup", requireAdmin, async (req, res) => {
     entityRef: bookingRef(id),
     action: "pickup",
     summary: `Admin recorded Pick Up for booking ${bookingRef(id)}`,
-    afterData: { mileage, fuelLevel, photoCount: (photoUrls ?? []).length },
+    afterData: {
+      mileage,
+      fuelLevel,
+      photoCount: (photoUrls ?? []).length,
+      pickupSatisfaction,
+    },
   });
   res.status(201).json(handover);
 });
