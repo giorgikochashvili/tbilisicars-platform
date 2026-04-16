@@ -1117,11 +1117,15 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       }
       const cityParam = `&city=${encodeURIComponent(pickupCity)}`;
       const cityQs = `?city=${encodeURIComponent(pickupCity)}`;
+      // Initial vehicle list: when a model is already assigned, restrict to
+      // that model; otherwise list all city-filtered vehicles so dispatchers
+      // can browse availability before committing to a model.
+      const vehiclesUrl = modelId
+        ? `/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`
+        : `/admin/fleet/vehicles?limit=100${cityParam}`;
       const [modelsData, vehiclesData] = await Promise.all([
         apiFetch(`/admin/fleet/models${cityQs}`),
-        modelId
-          ? apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`)
-          : Promise.resolve({ data: [] }),
+        apiFetch(vehiclesUrl),
       ]);
       setAssignModels(modelsData ?? []);
       setAssignVehicles(vehiclesData?.data ?? []);
@@ -1441,7 +1445,10 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               AND dropoff has not been recorded yet. Clears automatically once
               dropoff is recorded (vehicle returned, evidence less critical) or
               once any pickup photo is uploaded via PhotoAppendDialog. */}
-          {!loadingBooking && booking && handovers.pickup && (handovers.pickup.photos?.length ?? 0) === 0 && !handovers.dropoff && (
+          {!loadingBooking && booking &&
+            (booking.status === "DELIVERED" || booking.status === "CONFIRMED") &&
+            (handovers.pickup?.photos?.length ?? 0) === 0 &&
+            !handovers.dropoff && (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
               <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1">
@@ -2027,13 +2034,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     </>
                   ) : (
                     <div className="text-center py-6 text-sm text-muted-foreground">
-                      {canPickUp ? (
+                      {/* Pre-pickup uploads are available for any post-confirmation
+                          status that hasn't reached dropoff yet (CONFIRMED + DELIVERED). */}
+                      {(booking?.status === "CONFIRMED" || booking?.status === "DELIVERED") ? (
                         <div className="space-y-2">
                           <p>No pick up recorded yet.</p>
                           <div className="flex flex-wrap items-center justify-center gap-2">
-                            <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openHandoverModal("pickup")}>
-                              <Car className="w-3 h-3" /> Record Pick Up
-                            </Button>
+                            {canPickUp && (
+                              <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openHandoverModal("pickup")}>
+                                <Car className="w-3 h-3" /> Record Pick Up
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -2140,7 +2151,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
       {/* Assign Vehicle Dialog */}
       <Dialog open={isAssignOpen} onOpenChange={(v) => { if (!savingAssign) setIsAssignOpen(v); }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-sm overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Assign Vehicle</DialogTitle>
             <DialogDescription>
