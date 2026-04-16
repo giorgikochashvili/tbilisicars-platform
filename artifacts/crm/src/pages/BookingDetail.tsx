@@ -1148,8 +1148,30 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     setAssignSelectedModelId(modelId);
     setLoadingAssignVehicles(true);
     try {
-      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
-      const cityParam = pickupCity ? `&city=${encodeURIComponent(pickupCity)}` : "";
+      // Resolve pickupCity from overviewLocations, falling back to a fresh
+      // locations fetch so that a model-change refetch is NEVER allowed to
+      // hit /admin/fleet/vehicles without a city filter (matches openAssignDialog).
+      let locations = overviewLocations;
+      if (locations.length === 0) {
+        try {
+          const locResp = await apiFetch(`/admin/locations?status=ACTIVE`);
+          locations = locResp?.data ?? [];
+          setOverviewLocations(locations);
+        } catch {
+          /* non-critical; pickupCity will be undefined and we'll abort below */
+        }
+      }
+      const pickupCity = locations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
+      if (!pickupCity) {
+        toast({
+          title: "Pickup city unavailable",
+          description: "Cannot list vehicles without the booking's pickup city.",
+          variant: "destructive",
+        });
+        setAssignVehicles([]);
+        return;
+      }
+      const cityParam = `&city=${encodeURIComponent(pickupCity)}`;
       const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`);
       setAssignVehicles(data?.data ?? []);
     } catch (e: any) {
@@ -1157,7 +1179,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     } finally {
       setLoadingAssignVehicles(false);
     }
-  }, [booking?.pickupLocation?.id, overviewLocations]);
+  }, [booking?.pickupLocation?.id, overviewLocations, toast]);
 
   const handleAssignVehicle = useCallback(async (vehicleId: number) => {
     if (!bookingId) return;
@@ -1455,10 +1477,11 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               photo is uploaded via PhotoAppendDialog. */}
           {(() => {
             if (loadingBooking || !booking) return null;
-            // Banner fires whenever the booking is in (or past) the delivered
-            // post-pickup state with zero pickup photos on file. Clears once
-            // any pickup photo is uploaded or once dropoff is recorded.
-            const pickupPhotoCount = handovers.pickup?.photos?.length ?? 0;
+            // Use the canonical backend count (booking.pickupPhotoCount) as
+            // the single source of truth — it filters photo_archived_at IS NULL
+            // and matches the list-view badge semantics. Handover photos are
+            // for display only and are not authoritative for this banner.
+            const pickupPhotoCount = booking.pickupPhotoCount ?? 0;
             const isPostPickup = booking.status === "DELIVERED" || booking.status === "RETURNED";
             if (!isPostPickup || pickupPhotoCount > 0 || handovers.dropoff) return null;
             return (
