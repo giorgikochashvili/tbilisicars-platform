@@ -108,6 +108,45 @@ interface FormState {
   paymentStatus: string;
 }
 
+/**
+ * Translate a backend `reason` code into a user-facing message.
+ * Returns null for unknown reasons so the caller can fall back to its
+ * existing generic warning.
+ */
+function describeExtractionReason(
+  reason: string,
+  providerMessage?: string,
+): string | null {
+  switch (reason) {
+    case "no_response":
+      return "AI returned an empty response. Please fill in details manually.";
+    case "no_json":
+      return "AI response did not contain JSON. Please fill in details manually.";
+    case "parse_error":
+      return "Could not parse AI response as JSON. Please fill in details manually.";
+    case "empty_extraction":
+      return "AI could not find any booking data on this voucher. Please fill in details manually.";
+    case "openai_auth":
+      return "OpenAI credentials are missing or invalid. Contact an administrator.";
+    case "openai_rate_limit":
+      return "OpenAI is rate limited right now. Try again in a moment.";
+    case "openai_model_not_found":
+      return "OpenAI model is unavailable. Contact an administrator.";
+    case "openai_server_error":
+      return "OpenAI service error. Try again in a moment.";
+    case "openai_request_failed":
+      return providerMessage
+        ? `OpenAI request failed: ${providerMessage}`
+        : "OpenAI request failed. Please fill in details manually.";
+    case "pdf_render_failed":
+      return "Scanned PDF could not be rendered to an image (pdftoppm unavailable). Please upload an image of the voucher instead.";
+    case "pdf_parse_failed":
+      return "PDF could not be read. Please upload an image of the voucher or fill in details manually.";
+    default:
+      return null;
+  }
+}
+
 function parseIsoDate(iso: string | null | undefined): { date: string; time: string } {
   if (!iso) return { date: "", time: "10:00" };
   try {
@@ -364,6 +403,12 @@ export default function VoucherImportDialog({
           resolvedDropoffLocationId = json.resolvedDropoffLocationId ?? null;
           objectPath = json.objectPath ?? null;
           setExtractedDraft(extracted);
+          // Replace the generic "AI extraction failed" warning with a
+          // specific reason so the operator knows what to do next.
+          if (extractionFailed && typeof json.reason === "string") {
+            const specific = describeExtractionReason(json.reason, json.providerMessage);
+            if (specific) extractWarnings = [specific, ...extractWarnings.filter((w) => w !== "AI extraction failed — please fill in details manually.")];
+          }
         } else {
           extractWarnings = ["Failed to extract data from file. Please fill in details manually."];
           extractionFailed = true;

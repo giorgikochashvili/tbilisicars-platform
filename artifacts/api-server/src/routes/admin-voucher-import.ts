@@ -164,11 +164,24 @@ router.post(
       const result = await extractVoucherFromText(text);
       res.json({ ...result, objectPath });
     } catch (err) {
-      console.error("[voucher-import] PDF parse error:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      const reason = message.includes("pdftoppm") ? "pdf_render_failed" : "pdf_parse_failed";
+      console.log(
+        `[voucher-import] ${JSON.stringify({
+          kind: "pdf",
+          bytes: file.size,
+          model: "n/a",
+          success: false,
+          reason,
+          rawPreview: message.slice(0, 500),
+        })}`,
+      );
       res.json({
         extracted: {},
         warnings: ["Could not read PDF content. Please fill in all booking details manually."],
         extractionFailed: true,
+        reason,
+        providerMessage: message.slice(0, 500),
         unresolvedFields: ["contactFullName", "pickupLocation", "dropoffLocation", "pickupDatetime", "dropoffDatetime"],
         resolvedPickupLocationId: null,
         resolvedDropoffLocationId: null,

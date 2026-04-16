@@ -41,6 +41,16 @@ export interface ExtractResult {
   extracted: ExtractedVoucherData;
   warnings: string[];
   extractionFailed: boolean;
+  /**
+   * Machine-friendly failure category surfaced when extractionFailed=true.
+   * Frontend uses this to render a specific message instead of a generic error.
+   * Examples: "no_response", "no_json", "parse_error", "empty_extraction",
+   * "openai_auth", "openai_rate_limit", "openai_model_not_found",
+   * "openai_request_failed", "pdf_render_failed", "pdf_parse_failed".
+   */
+  reason?: string;
+  /** Verbatim provider error message (truncated) — for diagnosis only. */
+  providerMessage?: string;
   unresolvedFields: string[];
   resolvedPickupLocationId: number | null;
   resolvedDropoffLocationId: number | null;
@@ -137,6 +147,8 @@ async function resolveAndBuildResult(
   extracted: ExtractedVoucherData,
   warnings: string[],
   extractionFailed: boolean,
+  reason?: string,
+  providerMessage?: string,
 ): Promise<ExtractResult> {
   const locations = await getActiveLocations();
   const resolvedPickupLocationId = normalizeLocationHint(
@@ -161,10 +173,56 @@ async function resolveAndBuildResult(
     extracted,
     warnings,
     extractionFailed,
+    reason,
+    providerMessage,
     unresolvedFields: [...new Set(unresolvedFields)],
     resolvedPickupLocationId,
     resolvedDropoffLocationId,
   };
+}
+
+interface ProviderError {
+  status?: number;
+  code?: string;
+  type?: string;
+  message?: string;
+  name?: string;
+}
+
+/** Categorize an OpenAI SDK error into a stable {reason, message} pair. */
+function classifyOpenAIError(err: unknown): {
+  reason: string;
+  providerMessage: string;
+} {
+  const e = (err ?? {}) as ProviderError;
+  const status = e.status;
+  const message = (e.message ?? String(err)).slice(0, 500);
+  if (status === 401 || status === 403) return { reason: "openai_auth", providerMessage: message };
+  if (status === 404) return { reason: "openai_model_not_found", providerMessage: message };
+  if (status === 429) return { reason: "openai_rate_limit", providerMessage: message };
+  if (status && status >= 500) return { reason: "openai_server_error", providerMessage: message };
+  return { reason: "openai_request_failed", providerMessage: message };
+}
+
+const EXTRACT_MODEL = "gpt-4o";
+
+interface ExtractionLogPayload {
+  kind: "image" | "text";
+  bytes: number;
+  durationMs: number;
+  model: string;
+  success: boolean;
+  reason?: string;
+  rawPreview?: string;
+}
+
+function logExtraction(p: ExtractionLogPayload): void {
+  const safe = {
+    ...p,
+    rawPreview: p.rawPreview ? p.rawPreview.slice(0, 500) : undefined,
+  };
+  // Single-line structured log so failures are diagnosable from logs alone.
+  console.log(`[voucher-import] ${JSON.stringify(safe)}`);
 }
 
 export async function extractVoucherFromImage(
@@ -172,10 +230,14 @@ export async function extractVoucherFromImage(
   mimeType: string,
 ): Promise<ExtractResult> {
   const warnings: string[] = [];
+  const start = Date.now();
+  // base64 expands payload by ~4/3, so approx the underlying image size.
+  const bytes = Math.round((base64Image.length * 3) / 4);
 
+  let raw = "";
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: EXTRACT_MODEL,
       max_tokens: 1024,
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
@@ -198,16 +260,36 @@ export async function extractVoucherFromImage(
       ],
     });
 
-    const raw = response.choices[0]?.message?.content ?? "";
-    const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
-    return resolveAndBuildResult(extracted, warnings, parseFailed);
+    raw = response.choices[0]?.message?.content ?? "";
+    const parsed = parseExtractionJson(raw, warnings);
+    logExtraction({
+      kind: "image",
+      bytes,
+      durationMs: Date.now() - start,
+      model: EXTRACT_MODEL,
+      success: !parsed.parseFailed,
+      reason: parsed.reason,
+      rawPreview: parsed.parseFailed ? raw : undefined,
+    });
+    return resolveAndBuildResult(
+      parsed.data,
+      warnings,
+      parsed.parseFailed,
+      parsed.reason,
+    );
   } catch (err: unknown) {
-    const status = (err as { status?: number })?.status;
-    const message = (err as { message?: string })?.message;
-    const name = (err as { name?: string })?.name;
-    console.error(`[voucher-import] AI image extraction error name=${name} status=${status ?? "?"} message=${message ?? String(err)}`);
+    const { reason, providerMessage } = classifyOpenAIError(err);
+    logExtraction({
+      kind: "image",
+      bytes,
+      durationMs: Date.now() - start,
+      model: EXTRACT_MODEL,
+      success: false,
+      reason,
+      rawPreview: providerMessage,
+    });
     warnings.push("AI extraction failed — please fill in details manually.");
-    return resolveAndBuildResult({}, warnings, true);
+    return resolveAndBuildResult({}, warnings, true, reason, providerMessage);
   }
 }
 
@@ -215,60 +297,157 @@ export async function extractVoucherFromText(
   pdfText: string,
 ): Promise<ExtractResult> {
   const warnings: string[] = [];
+  const start = Date.now();
+  const truncated = pdfText.slice(0, 8000);
+  const bytes = Buffer.byteLength(truncated, "utf8");
 
+  let raw = "";
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: EXTRACT_MODEL,
       max_tokens: 1024,
       messages: [
         { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Extract the booking data from this voucher text:\n\n${pdfText.slice(0, 8000)}`,
+          content: `Extract the booking data from this voucher text:\n\n${truncated}`,
         },
       ],
     });
 
-    const raw = response.choices[0]?.message?.content ?? "";
-    const { data: extracted, parseFailed } = parseExtractionJson(raw, warnings);
-    return resolveAndBuildResult(extracted, warnings, parseFailed);
+    raw = response.choices[0]?.message?.content ?? "";
+    const parsed = parseExtractionJson(raw, warnings);
+    logExtraction({
+      kind: "text",
+      bytes,
+      durationMs: Date.now() - start,
+      model: EXTRACT_MODEL,
+      success: !parsed.parseFailed,
+      reason: parsed.reason,
+      rawPreview: parsed.parseFailed ? raw : undefined,
+    });
+    return resolveAndBuildResult(
+      parsed.data,
+      warnings,
+      parsed.parseFailed,
+      parsed.reason,
+    );
   } catch (err: unknown) {
-    const status = (err as { status?: number })?.status;
-    const message = (err as { message?: string })?.message;
-    const name = (err as { name?: string })?.name;
-    console.error(`[voucher-import] AI text extraction error name=${name} status=${status ?? "?"} message=${message ?? String(err)}`);
+    const { reason, providerMessage } = classifyOpenAIError(err);
+    logExtraction({
+      kind: "text",
+      bytes,
+      durationMs: Date.now() - start,
+      model: EXTRACT_MODEL,
+      success: false,
+      reason,
+      rawPreview: providerMessage,
+    });
     warnings.push("AI extraction failed — please fill in details manually.");
-    return resolveAndBuildResult({}, warnings, true);
+    return resolveAndBuildResult({}, warnings, true, reason, providerMessage);
   }
 }
 
+/**
+ * Robust JSON extraction from a chat-model response.
+ *
+ * Handles, in order:
+ *   1. Empty / whitespace-only response       → reason "no_response"
+ *   2. ```json ... ``` or ``` ... ``` fences  → strip and JSON.parse
+ *   3. First balanced {...} block in the text → JSON.parse
+ *   4. Greedy {...} fallback                  → JSON.parse
+ * Then validates that at least one field is non-empty (else "empty_extraction").
+ */
 function parseExtractionJson(
   raw: string,
   warnings: string[],
-): { data: ExtractedVoucherData; parseFailed: boolean } {
-  try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      warnings.push(
-        "Could not parse AI response — please fill in details manually.",
-      );
-      return { data: {}, parseFailed: true };
-    }
-    const data = JSON.parse(jsonMatch[0]) as ExtractedVoucherData;
-    const hasAnyValue = Object.values(data).some((v) => v != null && v !== "");
-    if (!hasAnyValue) {
-      warnings.push(
-        "AI returned empty extraction — please fill in details manually.",
-      );
-      return { data: {}, parseFailed: true };
-    }
-    return { data, parseFailed: false };
-  } catch {
-    warnings.push(
-      "Could not parse AI response — please fill in details manually.",
-    );
-    return { data: {}, parseFailed: true };
+): {
+  data: ExtractedVoucherData;
+  parseFailed: boolean;
+  reason?: string;
+} {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) {
+    warnings.push("AI returned an empty response — please fill in details manually.");
+    return { data: {}, parseFailed: true, reason: "no_response" };
   }
+
+  const candidates = collectJsonCandidates(trimmed);
+  if (candidates.length === 0) {
+    warnings.push("AI response did not contain JSON — please fill in details manually.");
+    return { data: {}, parseFailed: true, reason: "no_json" };
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const data = JSON.parse(candidate) as ExtractedVoucherData;
+      const hasAnyValue = Object.values(data).some(
+        (v) => v != null && v !== "",
+      );
+      if (!hasAnyValue) {
+        warnings.push("AI returned empty extraction — please fill in details manually.");
+        return { data: {}, parseFailed: true, reason: "empty_extraction" };
+      }
+      return { data, parseFailed: false };
+    } catch {
+      // try next candidate
+    }
+  }
+
+  warnings.push("Could not parse AI response — please fill in details manually.");
+  return { data: {}, parseFailed: true, reason: "parse_error" };
+}
+
+/**
+ * Returns ordered JSON-object candidate strings to try parsing.
+ * Strips fenced blocks first (```json or ```), then a balanced {...} scan,
+ * then the legacy greedy regex as a last resort.
+ */
+function collectJsonCandidates(text: string): string[] {
+  const out: string[] = [];
+
+  // 1. Fenced code blocks (```json ... ``` and ``` ... ```)
+  const fenceRe = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let m: RegExpExecArray | null;
+  while ((m = fenceRe.exec(text)) !== null) {
+    const inner = m[1].trim();
+    if (inner.startsWith("{")) out.push(inner);
+  }
+
+  // 2. First balanced {...} block (handles nested objects, ignores braces in strings)
+  const balanced = findFirstBalancedObject(text);
+  if (balanced) out.push(balanced);
+
+  // 3. Greedy fallback (legacy behavior — last resort)
+  const greedy = text.match(/\{[\s\S]*\}/);
+  if (greedy) out.push(greedy[0]);
+
+  // De-duplicate while preserving order
+  return [...new Set(out)];
+}
+
+function findFirstBalancedObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
 }
 
 // ─── Duplicate Check ───────────────────────────────────────────────────────────
