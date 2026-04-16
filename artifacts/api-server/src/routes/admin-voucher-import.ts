@@ -141,6 +141,7 @@ router.post(
     }
 
     // PDF: try pdf-parse v2 text extraction
+    const pdfStart = Date.now();
     try {
       const { PDFParse } = await import("pdf-parse");
       const parser = new (PDFParse as new (opts: { data: Buffer }) => { getText: () => Promise<{ text: string }> })({ data: file.buffer });
@@ -170,6 +171,7 @@ router.post(
         `[voucher-import] ${JSON.stringify({
           kind: "pdf",
           bytes: file.size,
+          durationMs: Date.now() - pdfStart,
           model: "n/a",
           success: false,
           reason,
