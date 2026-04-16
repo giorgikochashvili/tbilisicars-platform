@@ -28,6 +28,7 @@ import {
   lte,
   ne,
   or,
+  sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
@@ -456,7 +457,7 @@ export async function getAdminBooking(id: number) {
   const row = rows[0];
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
 
-  const [extras, payments] = await Promise.all([
+  const [extras, payments, pickupPhotoCountRows] = await Promise.all([
     db
       .select({
         id: bookingextraTable.id,
@@ -481,8 +482,19 @@ export async function getAdminBooking(id: number) {
       .from(paymentTable)
       .where(eq(paymentTable.bookingId, id))
       .orderBy(asc(paymentTable.id)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(bookingphotoTable)
+      .where(
+        and(
+          eq(bookingphotoTable.bookingId, id),
+          eq(bookingphotoTable.photoType, "PICKUP"),
+          isNull(bookingphotoTable.photoArchivedAt),
+        ),
+      ),
   ]);
 
+  const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
   const base = mapToBookingRow(row);
 
   return {

@@ -2144,7 +2144,11 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         title={photoAppend?.title ?? "Upload photos"}
         description={photoAppend?.description}
         onUploaded={() => {
+          // Refresh both: handovers (so the per-handover photo strip updates)
+          // AND the booking (so booking.pickupPhotoCount is current — it gates
+          // the HandoverModal pickup submit and the missing-photo banner).
           fetchHandovers();
+          fetchBooking();
           if (onPaymentChanged) onPaymentChanged();
         }}
       />
@@ -2211,9 +2215,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Vehicle</Label>
               <div className="max-h-52 overflow-y-auto space-y-1">
-                {!assignSelectedModelId ? (
-                  <div className="text-center py-4 text-sm text-muted-foreground">Select a model first.</div>
-                ) : loadingAssignVehicles ? (
+                {loadingAssignVehicles ? (
                   <div className="text-center py-4 text-sm text-muted-foreground">Loading vehicles…</div>
                 ) : assignVehicles.length === 0 ? (
                   <div className="text-center py-4 text-sm text-muted-foreground">No vehicles available for this model.</div>
