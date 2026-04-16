@@ -382,7 +382,7 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
         [ids],
       ),
       pool.query<{ booking_id: number; cnt: number }>(
-        `SELECT booking_id, COUNT(*)::int AS cnt FROM bookingphoto WHERE booking_id = ANY($1) AND photo_type = 'PICKUP' GROUP BY booking_id`,
+        `SELECT booking_id, COUNT(*)::int AS cnt FROM bookingphoto WHERE booking_id = ANY($1) AND photo_type = 'PICKUP' AND photo_archived_at IS NULL GROUP BY booking_id`,
         [ids],
       ),
     ]);
@@ -527,6 +527,7 @@ export async function getAdminBooking(id: number) {
     externalReservationCode: row.externalReservationCode,
     extras,
     payments,
+    pickupPhotoCount,
   };
 }
 

@@ -1976,6 +1976,7 @@ export const GetAdminBookingResponse = zod
           paidAt: zod.date().nullish(),
         }),
       ),
+      pickupPhotoCount: zod.number().nullish(),
     }),
   );
 
