@@ -1441,30 +1441,35 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           </DialogHeader>
 
           {/* Document generation + action buttons */}
-          {/* Top-level missing-photo banner: when pickup is recorded without photos
-              AND dropoff has not been recorded yet. Clears automatically once
-              dropoff is recorded (vehicle returned, evidence less critical) or
-              once any pickup photo is uploaded via PhotoAppendDialog. */}
-          {!loadingBooking && booking &&
-            (booking.status === "DELIVERED" || booking.status === "CONFIRMED") &&
-            (handovers.pickup?.photos?.length ?? 0) === 0 &&
-            !handovers.dropoff && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
-              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">Missing pickup photos for this booking.</p>
-                <p className="text-[11px] text-amber-300/80">Pickup was recorded with no photos on file. Add them to document the vehicle's condition.</p>
+          {/* Top-level missing-photo banner: only fires in true post-pickup state
+              (booking.status === DELIVERED) when no pickup photos exist on the
+              pickup handover record. Clears automatically once the booking
+              moves out of DELIVERED (e.g. dropoff/RETURNED) or any pickup
+              photo is uploaded via PhotoAppendDialog. */}
+          {(() => {
+            if (loadingBooking || !booking) return null;
+            const hasPickupRecord = !!handovers.pickup;
+            const pickupPhotoCount = handovers.pickup?.photos?.length ?? 0;
+            const isPostPickup = booking.status === "DELIVERED";
+            if (!isPostPickup || !hasPickupRecord || pickupPhotoCount > 0 || handovers.dropoff) return null;
+            return (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">Missing pickup photos for this booking.</p>
+                  <p className="text-[11px] text-amber-300/80 break-words">Pickup was recorded with no photos on file. Add them to document the vehicle's condition.</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
+                  onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
+                >
+                  <Upload className="w-3 h-3" /> Upload
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
-                onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
-              >
-                <Upload className="w-3 h-3" /> Upload
-              </Button>
-            </div>
-          )}
+            );
+          })()}
 
           {!loadingBooking && booking && (
             <div className="flex flex-wrap gap-2 mt-1 pb-1 border-b border-border/30 min-w-0">
