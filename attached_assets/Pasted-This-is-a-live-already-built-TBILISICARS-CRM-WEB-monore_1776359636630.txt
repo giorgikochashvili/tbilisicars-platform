@@ -1,0 +1,100 @@
+This is a live, already-built TBILISICARS CRM&WEB monorepo project created in Replit. Do NOT re-architect anything. Do NOT refactor unrelated code. Do NOT change existing working flows unless explicitly required below. We need a careful implementation plan only for the following issues. First return a precise PLAN grouped by scope, dependencies, affected files/modules, risk points, and recommended implementation order. Do not code yet.
+
+Current rules:
+- Work only from the current project state in Replit.
+- Ignore any separate previous-chat pricing discussions.
+- Preserve existing architecture, styling system, routing, API structure, and current business flows unless explicitly changed below.
+- All fixes must be safe for desktop and mobile (Android/iOS), and must not break CRM, website, API, booking, fleet, parking, service, voucher import, or email flows.
+
+Required scopes:
+
+1) PICK UP PHOTO UPLOAD FLOW + BOOKING WINDOW PHOTO UPLOAD
+Problem:
+- Pick Up photo uploads are unreliable.
+- Sometimes upload partially succeeds and Pick Up still completes.
+- Sometimes Pick Up completes with zero saved photos.
+- Completed Pick Up currently does not allow later photo add.
+- Also, even if Pick Up has not yet been done, photos must still be uploadable from the booking detail window.
+
+Required end state:
+- As soon as staff selects photos, upload must start immediately (pre-upload flow).
+- Record Pick Up must not be available / must not complete until all selected photos are uploaded successfully.
+- No silent success with missing photos.
+- UI must clearly show uploading/uploaded/failed states per photo.
+- After Pick Up is completed, it must still be possible to add more pickup photos later.
+- Even before Pick Up is done, booking detail must allow photo upload from the booking window.
+- Keep current image compression logic in mind and make this stable on slower internet.
+
+2) IMPORT VOUCHER IS BROKEN
+Problem:
+- Voucher Import opens but AI extraction fails and key fields are not extracted.
+
+Required plan:
+- Diagnose exact failure point (frontend request, backend route/service, AI provider call, env/API key, parsing, timeout, etc.).
+- Restore working AI extraction without changing unrelated flows.
+- Improve diagnosability of failure reason.
+
+3) SERVICE MODULE VS FLEET STATUS / VEHICLE FORM LOGIC MUST BE CLEANED UP
+Required end state:
+- Service records with active maintenance meaning must immediately affect Fleet Live Status maintenance counts/cards.
+- Clicking Maintenance card must navigate to Service & Maintenance page, not Fleet page.
+- Maintenance state must be controlled from Service module/service records, not from vehicle form status choices.
+- In Add Vehicle / Edit Vehicle form, status must be simplified to only:
+  - Available
+  - Inactive
+- Remove other extra statuses from the Add/Edit Vehicle form status selector.
+- Available = vehicle is active/usable and ready for operations.
+- Inactive = vehicle is temporarily disabled and not currently usable.
+- Current Location in Add/Edit Vehicle currently behaves inconsistently (sometimes visible, sometimes not). Diagnose and fix this instability so location selection is reliable.
+- Do not break existing fleet operational views.
+- Maintenance must be managed through the Service module, not manually through vehicle form status.
+
+4) BOOKING DETAIL MOBILE RESPONSIVENESS
+Problem:
+- Some booking detail views render correctly on mobile, some overflow and break layout/functionality.
+
+Required end state:
+- Booking detail must fit correctly on mobile for all content types and statuses.
+- No horizontal overflow.
+- Action buttons must not break layout.
+- Long content must wrap/truncate correctly.
+- Keep desktop behavior intact.
+
+5) TBS AIR PARKING QUICK ADD BY LICENSE PLATE
+Required end state:
+- In TBS AIR PARKING, staff must be able to enter a vehicle by typing the license plate directly.
+- Matching vehicle should auto-fill the related vehicle information and allow quick add to parking zone.
+- This must speed up airport operations without removing existing safe flows.
+
+6) ALERT FOR DELIVERED / PICKUP-RECORDED BOOKINGS WITH NO PICKUP PHOTOS
+Required end state:
+- Add an alert when a booking has Pick Up completed / delivered state but has zero pickup photos.
+- Alert remains until pickup photos are uploaded or until Drop Off/Return is completed.
+
+7) VEHICLE ASSIGNMENT MUST RESPECT PICKUP CITY
+Required end state:
+- When assigning a vehicle to a booking, candidate vehicles must be filtered by the booking pickup city/location.
+- Example: Tbilisi pickup booking must not show Kutaisi or Batumi vehicles as assignable options.
+
+8) NEW CRM MODULE: MONITORING
+Required end state:
+- Add a Monitoring module/page for booking-level operational monitoring.
+- Show key info such as booking/reference, vehicle, customer name, nationality, phone, paid amount, pickup/dropoff info, pickup performer, dropoff performer, current status.
+- On Pick Up, staff must be required to select exactly one customer satisfaction mark:
+  - Happy :)
+  - Inertive :|
+  - Ugly :(
+- Pick Up must not complete without this selection.
+- Satisfaction mark must be visible on booking page and Monitoring page.
+- Monitoring UI should show compact primary rows with expandable/collapsible additional details.
+- Add Send Mail action from Monitoring to send thank-you/review email including Google review links and Trustpilot link.
+- Add internal comments/notes capability per monitoring entry.
+
+Important:
+- Return only a precise implementation plan.
+- Group the work into phases.
+- Separate bug fixes / business logic corrections / new module work.
+- Identify which items should be done first to reduce risk.
+- Identify any DB schema changes, API changes, UI changes, and migration risks.
+- Explicitly call out any ambiguity before implementation.
+- Do not start coding yet.
