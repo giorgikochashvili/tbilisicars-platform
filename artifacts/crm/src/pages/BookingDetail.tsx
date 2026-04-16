@@ -1155,7 +1155,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       if (locations.length === 0) {
         try {
           const locResp = await apiFetch(`/admin/locations?status=ACTIVE`);
-          locations = locResp?.data ?? [];
+          // /admin/locations returns a bare array, not { data: [...] }.
+          // Accept both shapes defensively.
+          locations = Array.isArray(locResp) ? locResp : (locResp?.data ?? []);
           setOverviewLocations(locations);
         } catch {
           /* non-critical; pickupCity will be undefined and we'll abort below */
