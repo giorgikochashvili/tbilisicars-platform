@@ -1795,6 +1795,7 @@ export const ListAdminBookingsResponse = zod.object({
         .nullish(),
       createdAt: zod.date(),
       paymentRecordCount: zod.number(),
+      pickupPhotoCount: zod.number(),
     }),
   ),
   meta: zod.object({

@@ -11,6 +11,7 @@ import {
   bookingextraTable,
   extraTable,
   paymentTable,
+  bookingphotoTable,
 } from "@workspace/db";
 import {
   and,
@@ -369,23 +370,64 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
 
   const mappedRows = rows.map(mapToBookingRow);
 
-  // Batch-fetch payment record counts for all booking IDs in this page
+  // Batch-fetch payment record counts + pickup photo counts for all booking IDs in this page
   const paymentCountMap = new Map<number, number>();
+  const pickupPhotoCountMap = new Map<number, number>();
   if (mappedRows.length > 0) {
     const ids = mappedRows.map((r) => r.id);
-    const { rows: countRows } = await pool.query<{ booking_id: number; cnt: number }>(
-      `SELECT booking_id, COUNT(*)::int AS cnt FROM booking_payment WHERE booking_id = ANY($1) GROUP BY booking_id`,
-      [ids],
-    );
-    for (const r of countRows) {
-      paymentCountMap.set(r.booking_id, r.cnt);
-    }
+    const [{ rows: countRows }, { rows: photoRows }] = await Promise.all([
+      pool.query<{ booking_id: number; cnt: number }>(
+        `SELECT booking_id, COUNT(*)::int AS cnt FROM booking_payment WHERE booking_id = ANY($1) GROUP BY booking_id`,
+        [ids],
+      ),
+      pool.query<{ booking_id: number; cnt: number }>(
+        `SELECT booking_id, COUNT(*)::int AS cnt FROM bookingphoto WHERE booking_id = ANY($1) AND photo_type = 'PICKUP' GROUP BY booking_id`,
+        [ids],
+      ),
+    ]);
+    for (const r of countRows) paymentCountMap.set(r.booking_id, r.cnt);
+    for (const r of photoRows) pickupPhotoCountMap.set(r.booking_id, r.cnt);
   }
 
   return {
-    data: mappedRows.map((r) => ({ ...r, paymentRecordCount: paymentCountMap.get(r.id) ?? 0 })),
+    data: mappedRows.map((r) => ({
+      ...r,
+      paymentRecordCount: paymentCountMap.get(r.id) ?? 0,
+      pickupPhotoCount: pickupPhotoCountMap.get(r.id) ?? 0,
+    })),
     meta: { page, limit, total: totalRows[0]?.total ?? 0 },
   };
+}
+
+// ─── Service: append photos to a booking ──────────────────────────────────────
+// Adds bookingphoto rows of a given type without touching booking_handover and
+// without advancing booking status. Used for pre-pickup uploads and for adding
+// more pickup photos after pickup has already been recorded.
+
+export async function appendBookingPhotos(
+  bookingId: number,
+  photoType: "PICKUP" | "RETURN" | "GENERAL",
+  photoUrls: string[],
+) {
+  if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
+    return { added: 0 };
+  }
+  const existing = await db
+    .select({ id: bookingTable.id })
+    .from(bookingTable)
+    .where(and(eq(bookingTable.id, bookingId), isNull(bookingTable.deletedAt)))
+    .limit(1);
+  if (existing.length === 0) {
+    throw new NotFoundError(`Booking ${bookingId} not found`);
+  }
+  await db.insert(bookingphotoTable).values(
+    photoUrls.map((url) => ({
+      bookingId,
+      photoUrl: url,
+      photoType,
+    })),
+  );
+  return { added: photoUrls.length };
 }
 
 // ─── Service: get single booking detail ───────────────────────────────────────

@@ -125,30 +125,50 @@ export async function deleteAdminBrand(id: number) {
   return { message: "Brand deleted" };
 }
 
-export async function listAdminModels() {
-  const rows = await db
-    .select({
-      id: vehicleModelTable.id,
-      brandId: vehicleModelTable.brandId,
-      name: vehicleModelTable.name,
-      category: vehicleModelTable.category,
-      active: vehicleModelTable.active,
-      availableForExternalSystems: vehicleModelTable.availableForExternalSystems,
-      seats: vehicleModelTable.seats,
-      doors: vehicleModelTable.doors,
-      transmission: vehicleModelTable.transmission,
-      fuelType: vehicleModelTable.fuelType,
-      luggageCapacity: vehicleModelTable.luggageCapacity,
-      imageUrl: vehicleModelTable.imageUrl,
-      deposit: vehicleModelTable.deposit,
-      createdAt: vehicleModelTable.createdAt,
-      updatedAt: vehicleModelTable.updatedAt,
-      brandName: brandTable.name,
-      brandLogoUrl: brandTable.logoUrl,
-    })
-    .from(vehicleModelTable)
-    .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
-    .orderBy(asc(vehicleModelTable.name));
+export async function listAdminModels(filters: { city?: string } = {}) {
+  const baseSelect = {
+    id: vehicleModelTable.id,
+    brandId: vehicleModelTable.brandId,
+    name: vehicleModelTable.name,
+    category: vehicleModelTable.category,
+    active: vehicleModelTable.active,
+    availableForExternalSystems: vehicleModelTable.availableForExternalSystems,
+    seats: vehicleModelTable.seats,
+    doors: vehicleModelTable.doors,
+    transmission: vehicleModelTable.transmission,
+    fuelType: vehicleModelTable.fuelType,
+    luggageCapacity: vehicleModelTable.luggageCapacity,
+    imageUrl: vehicleModelTable.imageUrl,
+    deposit: vehicleModelTable.deposit,
+    createdAt: vehicleModelTable.createdAt,
+    updatedAt: vehicleModelTable.updatedAt,
+    brandName: brandTable.name,
+    brandLogoUrl: brandTable.logoUrl,
+  };
+
+  // When city is provided, restrict to models that have at least one vehicle
+  // in that city. Used by the booking-detail "Assign Vehicle" dialog so the
+  // model selector only lists models the dispatcher can actually assign.
+  const cityModelIds = filters.city
+    ? db
+        .selectDistinct({ id: vehicleTable.vehicleModelId })
+        .from(vehicleTable)
+        .innerJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
+        .where(eq(locationTable.city, filters.city))
+    : null;
+
+  const rows = cityModelIds
+    ? await db
+        .select(baseSelect)
+        .from(vehicleModelTable)
+        .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+        .where(inArray(vehicleModelTable.id, cityModelIds))
+        .orderBy(asc(vehicleModelTable.name))
+    : await db
+        .select(baseSelect)
+        .from(vehicleModelTable)
+        .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+        .orderBy(asc(vehicleModelTable.name));
 
   return rows.map(({ brandName, brandLogoUrl, ...m }) => ({
     ...m,

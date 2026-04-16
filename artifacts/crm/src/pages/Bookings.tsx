@@ -942,6 +942,11 @@ export default function BookingsPage() {
                           Record Payment
                         </span>
                       )}
+                      {b.status === "DELIVERED" && b.pickupPhotoCount === 0 && (
+                        <span className="inline-flex items-center gap-1 mt-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                          No Pickup Photos
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

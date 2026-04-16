@@ -98,8 +98,9 @@ router.delete("/admin/fleet/brands/:id", requireAdmin, requirePermission("canMan
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
-router.get("/admin/fleet/models", requireAdmin, async (_req, res) => {
-  const data = await listAdminModels();
+router.get("/admin/fleet/models", requireAdmin, async (req, res) => {
+  const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
+  const data = await listAdminModels({ city });
   res.json(ListAdminModelsResponse.parse(data));
 });
 

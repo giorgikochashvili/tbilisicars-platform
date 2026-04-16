@@ -468,6 +468,206 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
   );
 }
 
+// ─── Photo Append Dialog ──────────────────────────────────────────────────────
+// Lightweight modal for appending photos to a booking without recording or
+// modifying handovers. Used pre-pickup (CONFIRMED bookings) and post-pickup
+// (when extra photos are needed). Shares the immediate-upload pipeline
+// (compressImage + uploadWithRetry) used by HandoverModal.
+
+interface PhotoAppendDialogProps {
+  open: boolean;
+  onClose: () => void;
+  bookingId: number | null;
+  photoType: "PICKUP" | "RETURN" | "GENERAL";
+  title: string;
+  description?: string;
+  onUploaded?: () => void;
+}
+
+function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, description, onUploaded }: PhotoAppendDialogProps) {
+  const { toast } = useToast();
+  const [fileItems, setFileItems] = useState<FileItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const MAX_MB = 20;
+
+  const uploadingCount = fileItems.filter((fi) => fi.status === "uploading").length;
+  const doneCount = fileItems.filter((fi) => fi.status === "done").length;
+  const errorCount = fileItems.filter((fi) => fi.status === "error").length;
+  const anyInFlight = uploadingCount > 0;
+
+  const reset = () => {
+    fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
+    setFileItems([]);
+  };
+
+  const handleClose = () => {
+    if (anyInFlight || saving) return;
+    reset();
+    onClose();
+  };
+
+  const startUpload = useCallback(async (id: string, file: File) => {
+    setFileItems((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, status: "uploading", error: undefined } : f)),
+    );
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadWithRetry(compressed);
+      setFileItems((prev) => prev.map((f) => (f.id === id ? { ...f, status: "done", path } : f)));
+    } catch (err) {
+      setFileItems((prev) =>
+        prev.map((f) =>
+          f.id === id ? { ...f, status: "error", error: (err as Error)?.message ?? "Upload failed" } : f,
+        ),
+      );
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const accepted: FileItem[] = [];
+    const skipped: string[] = [];
+    for (const f of Array.from(e.target.files ?? [])) {
+      const isDupe =
+        fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size) ||
+        accepted.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
+      if (isDupe) skipped.push(`${f.name} (duplicate)`);
+      else if (f.size > MAX_MB * 1024 * 1024) skipped.push(`${f.name} (too large)`);
+      else if (!f.type.startsWith("image/")) skipped.push(`${f.name} (not an image)`);
+      else accepted.push({ id: crypto.randomUUID(), file: f, preview: URL.createObjectURL(f), status: "pending" });
+    }
+    if (skipped.length) toast({ title: "Files skipped", description: skipped.join(", "), variant: "destructive" });
+    setFileItems((prev) => [...prev, ...accepted]);
+    e.target.value = "";
+    for (const fi of accepted) void startUpload(fi.id, fi.file);
+  };
+
+  const handleRetry = (id: string) => {
+    const fi = fileItems.find((f) => f.id === id);
+    if (fi) void startUpload(id, fi.file);
+  };
+
+  const handleRemove = (id: string) => {
+    setFileItems((prev) => {
+      const fi = prev.find((f) => f.id === id);
+      if (fi) URL.revokeObjectURL(fi.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!bookingId) return;
+    if (anyInFlight) {
+      toast({ title: "Wait for uploads", description: "Some photos are still uploading.", variant: "destructive" });
+      return;
+    }
+    const photoUrls = fileItems.filter((fi) => fi.status === "done" && fi.path).map((fi) => fi.path as string);
+    if (photoUrls.length === 0) {
+      toast({ title: "Nothing to upload", description: "Add at least one photo.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/photos`, {
+        method: "POST",
+        body: JSON.stringify({ photoType, photoUrls }),
+      });
+      toast({ title: "Photos uploaded", description: `${photoUrls.length} photo${photoUrls.length !== 1 ? "s" : ""} added.` });
+      reset();
+      onClose();
+      onUploaded?.();
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message ?? "Could not save photos.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
+        <div className="grid gap-1.5">
+          <div className="rounded-lg border border-dashed border-border/60 p-3 bg-muted/10">
+            <label className="flex flex-col items-center gap-1.5 cursor-pointer">
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Click to add photos</span>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+          {fileItems.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {fileItems.map((fi) => (
+                <div
+                  key={fi.id}
+                  className={`relative w-16 h-16 rounded-lg overflow-hidden border bg-muted/20 ${
+                    fi.status === "error" ? "border-red-500/60" : fi.status === "done" ? "border-emerald-500/40" : "border-border/40"
+                  }`}
+                >
+                  <img src={fi.preview} alt={fi.file.name} className="w-full h-full object-cover" />
+                  {fi.status === "uploading" && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                  {fi.status === "done" && (
+                    <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  )}
+                  {fi.status === "error" && (
+                    <button
+                      type="button"
+                      title={`Retry: ${fi.error ?? "Upload failed"}`}
+                      className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-0.5 bg-red-500/90 hover:bg-red-400 text-white rounded-b-lg py-0.5"
+                      onClick={() => handleRetry(fi.id)}
+                    >
+                      <RotateCcw className="w-2 h-2" />
+                      <span className="text-[8px] font-bold uppercase tracking-wide">Retry</span>
+                    </button>
+                  )}
+                  {fi.status !== "uploading" && (
+                    <button
+                      type="button"
+                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80"
+                      onClick={() => handleRemove(fi.id)}
+                    >
+                      <X className="w-2.5 h-2.5 text-white" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {(anyInFlight || errorCount > 0) && (
+            <p className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+              {anyInFlight
+                ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
+                : `${errorCount} upload${errorCount !== 1 ? "s" : ""} failed — tap to retry.`}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2 justify-end pt-3 border-t border-border/40 mt-1">
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleClose} disabled={saving || anyInFlight}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleSubmit}
+            disabled={saving || anyInFlight || doneCount === 0}
+          >
+            {saving ? "Saving…" : anyInFlight ? "Uploading…" : `Save ${doneCount} photo${doneCount !== 1 ? "s" : ""}`}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Handover Modal (top-level — must NOT be defined inside BookingDetail) ────
 // Defining it inside BookingDetail would create a new component reference on
 // every render, causing React to unmount/remount the Dialog on every keystroke.
@@ -491,8 +691,6 @@ function HandoverModal({
 }: HandoverModalProps) {
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadBatchTotal, setUploadBatchTotal] = useState(0);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
@@ -500,14 +698,44 @@ function HandoverModal({
   const accentClass = type === "pickup" ? "text-emerald-400" : "text-blue-400";
   const MAX_MB = 20;
 
+  const requirePhoto = type === "pickup";
+  const uploadingCount = fileItems.filter((fi) => fi.status === "uploading").length;
+  const doneCount = fileItems.filter((fi) => fi.status === "done").length;
+  const errorCount = fileItems.filter((fi) => fi.status === "error").length;
+  const anyInFlight = uploadingCount > 0;
+  const photoBlock = requirePhoto && doneCount === 0;
+
   const handleModalClose = () => {
+    if (anyInFlight) return;
     fileItems.forEach((fi) => URL.revokeObjectURL(fi.preview));
     setFileItems([]);
-    setUploading(false);
-    setUploadBatchTotal(0);
     setSelectedZone(null);
     onClose();
   };
+
+  // Kick off upload for a single item. Marks the item as uploading, runs the
+  // existing compress + retry pipeline, and updates status when done/failed.
+  // Defined as a stable callback so it can also be used by the retry button.
+  const startUpload = useCallback(async (id: string, file: File) => {
+    setFileItems((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, status: "uploading", error: undefined } : f)),
+    );
+    try {
+      const compressed = await compressImage(file);
+      const path = await uploadWithRetry(compressed);
+      setFileItems((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, status: "done", path } : f)),
+      );
+    } catch (err) {
+      setFileItems((prev) =>
+        prev.map((f) =>
+          f.id === id
+            ? { ...f, status: "error", error: (err as Error)?.message ?? "Upload failed" }
+            : f,
+        ),
+      );
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const accepted: FileItem[] = [];
@@ -531,6 +759,14 @@ function HandoverModal({
     }
     setFileItems((prev) => [...prev, ...accepted]);
     e.target.value = "";
+    // Pre-upload pipeline: start each upload immediately so the submit just
+    // reads already-finished URLs. Reuses the existing compress + retry helpers.
+    for (const fi of accepted) void startUpload(fi.id, fi.file);
+  };
+
+  const handleRetry = (id: string) => {
+    const fi = fileItems.find((f) => f.id === id);
+    if (fi) void startUpload(id, fi.file);
   };
 
   const handleRemove = (id: string) => {
@@ -546,81 +782,21 @@ function HandoverModal({
       toast({ title: "Parking zone required", description: "Select a TBS AIR PARKING zone before recording the drop off.", variant: "destructive" });
       return;
     }
-
-    const toUpload = fileItems.filter((fi) => fi.status === "pending" || fi.status === "error");
-
-    if (toUpload.length > 0) {
-      setUploading(true);
-      setUploadBatchTotal(toUpload.length);
-      setFileItems((prev) =>
-        prev.map((fi) =>
-          fi.status === "pending" || fi.status === "error"
-            ? { ...fi, status: "uploading", error: undefined }
-            : fi
-        )
-      );
-
-      const newPaths = new Map<string, string>();
-      let hasError = false;
-
-      await runConcurrentQueue(toUpload, 3, async (fi) => {
-        try {
-          const compressed = await compressImage(fi.file);
-          const path = await uploadWithRetry(compressed);
-          newPaths.set(fi.id, path);
-          setFileItems((prev) =>
-            prev.map((f) => (f.id === fi.id ? { ...f, status: "done" as const, path } : f))
-          );
-        } catch (err) {
-          hasError = true;
-          setFileItems((prev) =>
-            prev.map((f) =>
-              f.id === fi.id
-                ? { ...f, status: "error" as const, error: (err as Error)?.message ?? "Upload failed" }
-                : f
-            )
-          );
-        }
-      });
-
-      setUploading(false);
-
-      if (hasError) {
-        toast({
-          title: "Some uploads failed",
-          description: "Proceeding with successfully uploaded photos. Retry failed items later.",
-          variant: "destructive",
-        });
-      }
-
-      // Already-done files (not in this upload batch) + newly uploaded — skip failed ones
-      const uploadedIds = new Set(toUpload.map((fi) => fi.id));
-      const prevDone = fileItems
-        .filter((fi) => fi.status === "done" && !uploadedIds.has(fi.id))
-        .map((fi) => fi.path!);
-      const photoUrls = [...prevDone, ...Array.from(newPaths.values())];
-      try {
-        await onSubmit(type, photoUrls, selectedZone ?? undefined);
-        // Clear only successfully uploaded/done files; leave errored ones in place
-        setFileItems((prev) => {
-          const toKeep = prev.filter((fi) => fi.status === "error");
-          prev.filter((fi) => fi.status !== "error").forEach((fi) => URL.revokeObjectURL(fi.preview));
-          return toKeep;
-        });
-      } catch {
-        // onSubmit (handleHandoverSubmit) already shows a toast and rethrows;
-        // catch here prevents unhandled-promise-rejection noise in the console.
-      }
-    } else {
-      // No pending files — submit with already-done file paths
-      const photoUrls = fileItems.filter((fi) => fi.status === "done").map((fi) => fi.path!);
-      try {
-        await onSubmit(type, photoUrls, selectedZone ?? undefined);
-        // Clear file state after successful submit
-        setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
-      } catch {
-        // onSubmit already toasts; catch to prevent unhandled rejection.
-      }
+    if (anyInFlight) {
+      toast({ title: "Wait for uploads", description: "Some photos are still uploading.", variant: "destructive" });
+      return;
+    }
+    if (photoBlock) {
+      toast({ title: "Photo required", description: "Add at least one pickup photo before recording.", variant: "destructive" });
+      return;
+    }
+    const photoUrls = fileItems.filter((fi) => fi.status === "done" && fi.path).map((fi) => fi.path as string);
+    try {
+      await onSubmit(type, photoUrls, selectedZone ?? undefined);
+      // Clear file state on success (including any leftover errored items)
+      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+    } catch {
+      // onSubmit already toasts; catch to prevent unhandled rejection.
     }
   };
 
@@ -757,13 +933,7 @@ function HandoverModal({
                         title={`Retry: ${fi.error ?? "Upload failed"}`}
                         aria-label="Retry upload"
                         className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-0.5 bg-red-500/90 hover:bg-red-400 transition-colors text-white rounded-b-lg py-0.5"
-                        onClick={() =>
-                          setFileItems((prev) =>
-                            prev.map((f) =>
-                              f.id === fi.id ? { ...f, status: "pending", error: undefined } : f
-                            )
-                          )
-                        }
+                        onClick={() => handleRetry(fi.id)}
                       >
                         <RotateCcw className="w-2 h-2" />
                         <span className="text-[8px] font-bold uppercase tracking-wide">Retry</span>
@@ -782,10 +952,13 @@ function HandoverModal({
                 ))}
               </div>
             )}
-            {uploading && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Uploading {uploadBatchTotal - fileItems.filter((fi) => fi.status === "uploading").length} of {uploadBatchTotal} photo
-                {uploadBatchTotal !== 1 ? "s" : ""}…
+            {(anyInFlight || errorCount > 0 || (requirePhoto && fileItems.length === 0)) && (
+              <p className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                {anyInFlight
+                  ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
+                  : errorCount > 0
+                  ? `${errorCount} upload${errorCount !== 1 ? "s" : ""} failed — tap to retry.`
+                  : `At least one pickup photo is required.`}
               </p>
             )}
           </div>
@@ -793,7 +966,7 @@ function HandoverModal({
         </div>
 
         <div className="flex-shrink-0 sticky bottom-0 flex gap-2 justify-end pt-3 border-t border-border/40 mt-1 bg-background/95 backdrop-blur-sm">
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || uploading}>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || anyInFlight}>
             Cancel
           </Button>
           <Button
@@ -803,14 +976,14 @@ function HandoverModal({
             onClick={handleRecord}
             disabled={
               savingHandover ||
-              uploading ||
-              fileItems.some((fi) => fi.status === "uploading") ||
+              anyInFlight ||
+              photoBlock ||
               (type === "dropoff" && !!isAirportDropoff && !selectedZone)
             }
           >
             {savingHandover
               ? "Saving…"
-              : uploading
+              : anyInFlight
               ? "Uploading photos…"
               : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
           </Button>
@@ -848,6 +1021,13 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const [showDropoffModal, setShowDropoffModal] = useState(false);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
   const [savingHandover, setSavingHandover] = useState(false);
+
+  // Photo append dialog: pre-pickup uploads (CONFIRMED, no pickup yet) and
+  // post-pickup additions ("forgot to upload" flow).
+  const [photoAppend, setPhotoAppend] = useState<
+    | { type: "PICKUP" | "RETURN" | "GENERAL"; title: string; description?: string }
+    | null
+  >(null);
 
   // Overview quick-edit state
   const [isOverviewEditing, setIsOverviewEditing] = useState(false);
@@ -909,10 +1089,16 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     setLoadingAssignModels(true);
     setLoadingAssignVehicles(true);
     try {
+      // Restrict the model dropdown and the initial vehicle list to the
+      // pickup city so dispatchers don't see vehicles in unrelated cities.
+      // overviewLocations is loaded as part of the booking detail open flow.
+      const pickupCity = overviewLocations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
+      const cityParam = pickupCity ? `&city=${encodeURIComponent(pickupCity)}` : "";
+      const cityQs = pickupCity ? `?city=${encodeURIComponent(pickupCity)}` : "";
       const [modelsData, vehiclesData] = await Promise.all([
-        apiFetch("/admin/fleet/models"),
+        apiFetch(`/admin/fleet/models${cityQs}`),
         modelId
-          ? apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100`)
+          ? apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`)
           : Promise.resolve({ data: [] }),
       ]);
       setAssignModels(modelsData ?? []);
@@ -923,7 +1109,7 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       setLoadingAssignModels(false);
       setLoadingAssignVehicles(false);
     }
-  }, [booking?.vehicleModelId]);
+  }, [booking?.vehicleModelId, booking?.pickupLocation?.id, overviewLocations]);
 
   const handleModelChange = useCallback(async (modelId: number) => {
     setAssignSelectedModelId(modelId);
@@ -1778,17 +1964,57 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   ) : undefined
                 }
               >
-                <div>
+                <div className="space-y-2">
+                  {/* Missing-photo warning: pickup recorded but with zero photos */}
+                  {handovers.pickup && (handovers.pickup.photos?.length ?? 0) === 0 && (
+                    <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">No pickup photos on file.</p>
+                        <p className="text-[11px] text-amber-300/80">Add photos now to document the vehicle's pickup condition.</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
+                        onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
+                      >
+                        <Upload className="w-3 h-3" /> Upload
+                      </Button>
+                    </div>
+                  )}
                   {handovers.pickup ? (
-                    <HandoverDisplay handover={handovers.pickup} type="pickup" />
+                    <>
+                      <HandoverDisplay handover={handovers.pickup} type="pickup" />
+                      <div className="pt-1 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
+                          onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add more pickup photos", description: "These will be appended to the existing pickup photos." })}
+                        >
+                          <Upload className="w-3 h-3" /> Add more pickup photos
+                        </Button>
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-6 text-sm text-muted-foreground">
                       {canPickUp ? (
                         <div className="space-y-2">
                           <p>No pick up recorded yet.</p>
-                          <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openHandoverModal("pickup")}>
-                            <Car className="w-3 h-3" /> Record Pick Up
-                          </Button>
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openHandoverModal("pickup")}>
+                              <Car className="w-3 h-3" /> Record Pick Up
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1.5"
+                              onClick={() => setPhotoAppend({ type: "PICKUP", title: "Upload pickup photos", description: "Save photos now and finish the pickup record later." })}
+                            >
+                              <Upload className="w-3 h-3" /> Upload Photos
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         <p>No pick up recorded yet. Available once booking is Confirmed.</p>
@@ -1853,6 +2079,20 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         setHandoverForm={setHandoverForm}
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
+      />
+
+      {/* Photo Append Dialog (pre-pickup uploads + post-pickup additions) */}
+      <PhotoAppendDialog
+        open={photoAppend !== null}
+        onClose={() => setPhotoAppend(null)}
+        bookingId={bookingId}
+        photoType={photoAppend?.type ?? "GENERAL"}
+        title={photoAppend?.title ?? "Upload photos"}
+        description={photoAppend?.description}
+        onUploaded={() => {
+          fetchHandovers();
+          if (onPaymentChanged) onPaymentChanged();
+        }}
       />
 
       {/* Drop Off Modal */}

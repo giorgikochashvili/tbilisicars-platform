@@ -23,6 +23,7 @@ import {
   updateAdminBooking,
   updateAdminBookingStatus,
   deleteAdminBooking,
+  appendBookingPhotos,
 } from "../services/admin-bookings.service.js";
 import {
   createHandover,
@@ -343,6 +344,43 @@ router.post("/admin/bookings/:id/dropoff", requireAdmin, async (req, res) => {
     afterData: { mileage, fuelLevel, photoCount: (photoUrls ?? []).length },
   });
   res.status(201).json(handover);
+});
+
+// Append photos to a booking without touching booking_handover or status.
+// Used for pre-pickup uploads and for adding more pickup photos after pickup
+// has already been recorded. Hand-rolled (no zod codegen) to keep blast radius small.
+router.post("/admin/bookings/:id/photos", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const body = req.body as { photoType?: string; photoUrls?: unknown };
+  const photoType = body.photoType;
+  if (photoType !== "PICKUP" && photoType !== "RETURN" && photoType !== "GENERAL") {
+    res.status(400).json({ error: "photoType must be PICKUP, RETURN, or GENERAL" });
+    return;
+  }
+  if (!Array.isArray(body.photoUrls) || body.photoUrls.some((u) => typeof u !== "string")) {
+    res.status(400).json({ error: "photoUrls must be an array of strings" });
+    return;
+  }
+  const photoUrls = body.photoUrls as string[];
+  if (photoUrls.length === 0) {
+    res.status(400).json({ error: "At least one photoUrl is required" });
+    return;
+  }
+  const result = await appendBookingPhotos(id, photoType, photoUrls);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "photos_appended",
+    summary: `Admin appended ${result.added} ${photoType.toLowerCase()} photo(s) to booking ${bookingRef(id)}`,
+    afterData: { photoType, count: result.added },
+  });
+  res.status(201).json(result);
 });
 
 export default router;
