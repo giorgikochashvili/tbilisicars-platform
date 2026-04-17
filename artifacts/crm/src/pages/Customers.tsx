@@ -32,7 +32,7 @@ export default function CustomersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -120,20 +120,23 @@ export default function CustomersPage() {
     }
   };
 
-  // Auto-open customer edit modal when navigated here with ?customerId=<id>
+  // Auto-open customer edit modal when navigated here with ?customerId=<id>.
+  // Depends on `location` so it fires both on initial mount and on any
+  // subsequent in-app navigation that arrives at this page with the param.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawId = params.get("customerId");
     if (!rawId) return;
     const id = parseInt(rawId, 10);
     if (isNaN(id)) return;
+    // Clear the param immediately so refresh / back-button won't re-open the modal
     setLocation("/customers", { replace: true });
     fetch(`${BASE}/admin/customers/${id}`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((customer) => handleOpenModal(customer))
       .catch(() => { /* customer not found, silently skip */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location]);
 
   const customers = (data as any)?.data || [];
   const meta = (data as any)?.meta;
