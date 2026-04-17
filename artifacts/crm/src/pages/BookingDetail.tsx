@@ -1465,7 +1465,9 @@ export default function BookingDetail({
     pickupTime: "09:00",
     dropoffDate: "",
     dropoffTime: "09:00",
+    contactPhone: "",
   });
+  const [changingStatus, setChangingStatus] = useState(false);
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
 
@@ -1912,8 +1914,25 @@ export default function BookingDetail({
       pickupTime: pu.time,
       dropoffDate: dr.date,
       dropoffTime: dr.time,
+      contactPhone: booking?.contactPhone ?? booking?.customer?.phone ?? "",
     });
     setIsOverviewEditing(true);
+  };
+
+  const handleDetailStatusChange = async (newStatus: string) => {
+    setChangingStatus(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      await fetchBooking();
+      toast({ title: "Status updated", description: `Booking #${bookingId} → ${newStatus.replace("_", " ")}` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setChangingStatus(false);
+    }
   };
 
   const saveOverview = async () => {
@@ -1947,6 +1966,7 @@ export default function BookingDetail({
                 ).toISOString(),
               }
             : {}),
+          contactPhone: overviewDraft.contactPhone || null,
         }),
       });
       setIsOverviewEditing(false);
@@ -1996,12 +2016,23 @@ export default function BookingDetail({
             <DialogTitle className="font-display text-xl flex flex-wrap items-center gap-2">
               Booking #{bookingId}
               {booking?.status && (
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-bold uppercase"
+                <Select
+                  value={booking.status}
+                  onValueChange={handleDetailStatusChange}
+                  disabled={changingStatus}
                 >
-                  {booking.status.replace("_", " ")}
-                </Badge>
+                  <SelectTrigger className="h-auto py-0.5 px-2 text-[10px] font-bold uppercase border border-border/60 rounded-md bg-transparent w-auto gap-1 focus:ring-0 focus:ring-offset-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING" className="text-xs">Pending</SelectItem>
+                    <SelectItem value="CONFIRMED" className="text-xs">Confirmed</SelectItem>
+                    <SelectItem value="DELIVERED" className="text-xs">Delivered</SelectItem>
+                    <SelectItem value="RETURNED" className="text-xs">Returned</SelectItem>
+                    <SelectItem value="CANCELED" className="text-xs">Canceled</SelectItem>
+                    <SelectItem value="NO_SHOW" className="text-xs">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
               )}
             </DialogTitle>
             <DialogDescription>
@@ -2183,11 +2214,24 @@ export default function BookingDetail({
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Customer
                       </div>
-                      <div className="font-medium">
-                        {booking.customer?.fullName ||
-                          booking.contactFullName ||
-                          "—"}
-                      </div>
+                      {booking.customer?.id ? (
+                        <button
+                          className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
+                          onClick={() => {
+                            onClose();
+                            setLocation(`/customers?customerId=${booking.customer.id}`);
+                          }}
+                        >
+                          <span className="truncate">
+                            {booking.customer.fullName || booking.contactFullName || "—"}
+                          </span>
+                          <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                        </button>
+                      ) : (
+                        <div className="font-medium">
+                          {booking.contactFullName || "—"}
+                        </div>
+                      )}
                       {booking.contactPhone || booking.customer?.phone ? (
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-xs text-muted-foreground">
@@ -2444,6 +2488,22 @@ export default function BookingDetail({
                           setOverviewDraft((p) => ({ ...p, dropoffTime: t }))
                         }
                       />
+                      {/* Contact Phone */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Contact Phone</Label>
+                        <Input
+                          type="tel"
+                          placeholder="e.g. +995 599 000 000"
+                          value={overviewDraft.contactPhone}
+                          onChange={(e) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              contactPhone: e.target.value,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
                       {/* Notes */}
                       <div className="col-span-2 sm:col-span-3 grid gap-1.5">
                         <Label className="text-xs">Notes</Label>

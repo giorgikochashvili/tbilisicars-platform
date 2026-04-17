@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useListAdminCustomers,
@@ -23,12 +24,15 @@ const EMPTY_FORM = {
   country: "", passportId: "", drivingLicense: "", notes: ""
 };
 
+const BASE = "/api";
+
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [, setLocation] = useLocation();
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -115,6 +119,21 @@ export default function CustomersPage() {
       );
     }
   };
+
+  // Auto-open customer edit modal when navigated here with ?customerId=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const rawId = params.get("customerId");
+    if (!rawId) return;
+    const id = parseInt(rawId, 10);
+    if (isNaN(id)) return;
+    setLocation("/customers", { replace: true });
+    fetch(`${BASE}/admin/customers/${id}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((customer) => handleOpenModal(customer))
+      .catch(() => { /* customer not found, silently skip */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const customers = (data as any)?.data || [];
   const meta = (data as any)?.meta;
