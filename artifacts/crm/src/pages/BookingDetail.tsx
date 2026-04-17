@@ -1,14 +1,37 @@
 import { useState, useEffect, useCallback, type ReactElement } from "react";
 import { useLocation } from "wouter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -74,7 +97,11 @@ async function uploadFile(file: File): Promise<string> {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "application/octet-stream" }),
+    body: JSON.stringify({
+      name: file.name,
+      size: file.size,
+      contentType: file.type || "application/octet-stream",
+    }),
   });
   if (!metaRes.ok) throw new Error("Failed to get upload URL");
   const { uploadURL, objectPath } = await metaRes.json();
@@ -114,12 +141,22 @@ async function compressImage(file: File): Promise<File> {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { resolve(file); return; }
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
         ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => {
-            if (!blob) { resolve(file); return; }
-            resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            resolve(
+              new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                type: "image/jpeg",
+              }),
+            );
           },
           "image/jpeg",
           QUALITY,
@@ -128,11 +165,16 @@ async function compressImage(file: File): Promise<File> {
         resolve(file);
       }
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load image"));
+    };
     img.src = url;
   });
 
-  const timeout = new Promise<File>((resolve) => setTimeout(() => resolve(file), TIMEOUT_MS));
+  const timeout = new Promise<File>((resolve) =>
+    setTimeout(() => resolve(file), TIMEOUT_MS),
+  );
   return Promise.race([compress, timeout]);
 }
 
@@ -142,7 +184,10 @@ async function uploadWithRetry(file: File, maxRetries = 3): Promise<string> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Upload timed out")), ATTEMPT_TIMEOUT_MS),
+        setTimeout(
+          () => reject(new Error("Upload timed out")),
+          ATTEMPT_TIMEOUT_MS,
+        ),
       );
       return await Promise.race([uploadFile(file), timeoutPromise]);
     } catch (err) {
@@ -161,12 +206,15 @@ async function runConcurrentQueue<T>(
   fn: (item: T) => Promise<void>,
 ): Promise<void> {
   let i = 0;
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (i < items.length) {
-      const idx = i++;
-      await fn(items[idx]);
-    }
-  });
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (i < items.length) {
+        const idx = i++;
+        await fn(items[idx]);
+      }
+    },
+  );
   await Promise.all(workers);
 }
 
@@ -243,7 +291,9 @@ function CollapsibleSection({
       >
         <div className="flex items-center gap-2">
           {icon && <span className="text-muted-foreground">{icon}</span>}
-          <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
+          <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </span>
           {badge}
         </div>
         <div className="flex items-center gap-2">
@@ -264,12 +314,28 @@ function CollapsibleSection({
 
 // ─── Payment Summary Card ────────────────────────────────────────────────────
 
-function SummaryCard({ label, value, sub, gelSub }: { label: string; value: string; sub?: string; gelSub?: string }) {
+function SummaryCard({
+  label,
+  value,
+  sub,
+  gelSub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  gelSub?: string;
+}) {
   return (
     <div className="rounded-lg border border-border/40 bg-muted/20 p-3 flex flex-col gap-0.5">
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+        {label}
+      </span>
       <span className="text-lg font-bold font-mono">{value}</span>
-      {gelSub && <span className="text-[11px] text-muted-foreground font-mono">≈ {gelSub}</span>}
+      {gelSub && (
+        <span className="text-[11px] text-muted-foreground font-mono">
+          ≈ {gelSub}
+        </span>
+      )}
       {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
     </div>
   );
@@ -308,7 +374,9 @@ const EMPTY_HANDOVER = {
 // ─── 15-minute time slots for HandoverDateTimePicker ─────────────────────────
 
 const HAND_TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
-  const h = Math.floor(i / 4).toString().padStart(2, "0");
+  const h = Math.floor(i / 4)
+    .toString()
+    .padStart(2, "0");
   const m = ((i % 4) * 15).toString().padStart(2, "0");
   return `${h}:${m}`;
 });
@@ -341,11 +409,16 @@ function HandoverDateTimePicker({
       <div className="flex gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="flex-1 justify-start text-left font-normal h-8 text-xs">
+            <Button
+              variant="outline"
+              className="flex-1 justify-start text-left font-normal h-8 text-xs"
+            >
               <Calendar className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-              {dateValue
-                ? format(new Date(dateValue + "T12:00:00"), "MMM d, yyyy")
-                : <span className="text-muted-foreground">Pick date…</span>}
+              {dateValue ? (
+                format(new Date(dateValue + "T12:00:00"), "MMM d, yyyy")
+              ) : (
+                <span className="text-muted-foreground">Pick date…</span>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -368,7 +441,9 @@ function HandoverDateTimePicker({
           </SelectTrigger>
           <SelectContent className="max-h-60">
             {HAND_TIME_SLOTS.map((t) => (
-              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+              <SelectItem key={t} value={t} className="text-xs">
+                {t}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -381,11 +456,15 @@ function HandoverDateTimePicker({
 
 function FuelBar({ level }: { level: number }) {
   const pct = Math.max(0, Math.min(100, level));
-  const color = pct >= 70 ? "bg-emerald-500" : pct >= 30 ? "bg-amber-500" : "bg-red-500";
+  const color =
+    pct >= 70 ? "bg-emerald-500" : pct >= 30 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
       <div className="w-24 h-2 rounded-full bg-muted/40 overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full ${color}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <span className="text-xs font-mono text-muted-foreground">{pct}%</span>
     </div>
@@ -396,20 +475,40 @@ function FuelBar({ level }: { level: number }) {
 
 function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" }) {
   const map = {
-    HAPPY: { emoji: "🙂", label: "Happy", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
-    NEUTRAL: { emoji: "😐", label: "Neutral", cls: "bg-amber-500/15 text-amber-400 border-amber-500/40" },
-    SAD: { emoji: "☹️", label: "Sad", cls: "bg-red-500/15 text-red-400 border-red-500/40" },
+    HAPPY: {
+      emoji: "🙂",
+      label: "Happy",
+      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40",
+    },
+    NEUTRAL: {
+      emoji: "😐",
+      label: "Neutral",
+      cls: "bg-amber-500/15 text-amber-400 border-amber-500/40",
+    },
+    SAD: {
+      emoji: "☹️",
+      label: "Sad",
+      cls: "bg-red-500/15 text-red-400 border-red-500/40",
+    },
   } as const;
   const m = map[value];
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md border ${m.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md border ${m.cls}`}
+    >
       <span className="text-sm leading-none">{m.emoji}</span>
       <span>{m.label}</span>
     </span>
   );
 }
 
-function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "dropoff" }) {
+function HandoverDisplay({
+  handover,
+  type,
+}: {
+  handover: any;
+  type: "pickup" | "dropoff";
+}) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -426,7 +525,9 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
               <Gauge className="w-3 h-3" /> Mileage
             </div>
-            <div className="text-sm font-mono font-medium">{handover.mileage.toLocaleString()} km</div>
+            <div className="text-sm font-mono font-medium">
+              {handover.mileage.toLocaleString()} km
+            </div>
           </div>
         )}
         {handover.fuelLevel != null && (
@@ -442,7 +543,9 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
               <User className="w-3 h-3" /> Performed By
             </div>
-            <div className="text-sm font-medium">{handover.performedByAdminName}</div>
+            <div className="text-sm font-medium">
+              {handover.performedByAdminName}
+            </div>
           </div>
         )}
         {type === "pickup" && handover.pickupSatisfaction && (
@@ -455,8 +558,12 @@ function HandoverDisplay({ handover, type }: { handover: any; type: "pickup" | "
         )}
         {handover.notes && (
           <div className="col-span-2 sm:col-span-3">
-            <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">Notes</div>
-            <div className="text-sm text-muted-foreground">{handover.notes}</div>
+            <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
+              Notes
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {handover.notes}
+            </div>
           </div>
         )}
       </div>
@@ -508,13 +615,23 @@ interface PhotoAppendDialogProps {
   onUploaded?: () => void;
 }
 
-function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, description, onUploaded }: PhotoAppendDialogProps) {
+function PhotoAppendDialog({
+  open,
+  onClose,
+  bookingId,
+  photoType,
+  title,
+  description,
+  onUploaded,
+}: PhotoAppendDialogProps) {
   const { toast } = useToast();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [saving, setSaving] = useState(false);
   const MAX_MB = 20;
 
-  const uploadingCount = fileItems.filter((fi) => fi.status === "uploading").length;
+  const uploadingCount = fileItems.filter(
+    (fi) => fi.status === "uploading",
+  ).length;
   const doneCount = fileItems.filter((fi) => fi.status === "done").length;
   const errorCount = fileItems.filter((fi) => fi.status === "error").length;
   const anyInFlight = uploadingCount > 0;
@@ -532,16 +649,26 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
 
   const startUpload = useCallback(async (id: string, file: File) => {
     setFileItems((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "uploading", error: undefined } : f)),
+      prev.map((f) =>
+        f.id === id ? { ...f, status: "uploading", error: undefined } : f,
+      ),
     );
     try {
       const compressed = await compressImage(file);
       const path = await uploadWithRetry(compressed);
-      setFileItems((prev) => prev.map((f) => (f.id === id ? { ...f, status: "done", path } : f)));
+      setFileItems((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, status: "done", path } : f)),
+      );
     } catch (err) {
       setFileItems((prev) =>
         prev.map((f) =>
-          f.id === id ? { ...f, status: "error", error: (err as Error)?.message ?? "Upload failed" } : f,
+          f.id === id
+            ? {
+                ...f,
+                status: "error",
+                error: (err as Error)?.message ?? "Upload failed",
+              }
+            : f,
         ),
       );
     }
@@ -552,14 +679,31 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
     const skipped: string[] = [];
     for (const f of Array.from(e.target.files ?? [])) {
       const isDupe =
-        fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size) ||
-        accepted.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
+        fileItems.some(
+          (fi) => fi.file.name === f.name && fi.file.size === f.size,
+        ) ||
+        accepted.some(
+          (fi) => fi.file.name === f.name && fi.file.size === f.size,
+        );
       if (isDupe) skipped.push(`${f.name} (duplicate)`);
-      else if (f.size > MAX_MB * 1024 * 1024) skipped.push(`${f.name} (too large)`);
-      else if (!f.type.startsWith("image/")) skipped.push(`${f.name} (not an image)`);
-      else accepted.push({ id: crypto.randomUUID(), file: f, preview: URL.createObjectURL(f), status: "pending" });
+      else if (f.size > MAX_MB * 1024 * 1024)
+        skipped.push(`${f.name} (too large)`);
+      else if (!f.type.startsWith("image/"))
+        skipped.push(`${f.name} (not an image)`);
+      else
+        accepted.push({
+          id: crypto.randomUUID(),
+          file: f,
+          preview: URL.createObjectURL(f),
+          status: "pending",
+        });
     }
-    if (skipped.length) toast({ title: "Files skipped", description: skipped.join(", "), variant: "destructive" });
+    if (skipped.length)
+      toast({
+        title: "Files skipped",
+        description: skipped.join(", "),
+        variant: "destructive",
+      });
     setFileItems((prev) => [...prev, ...accepted]);
     e.target.value = "";
     for (const fi of accepted) void startUpload(fi.id, fi.file);
@@ -581,12 +725,22 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
   const handleSubmit = async () => {
     if (!bookingId) return;
     if (anyInFlight) {
-      toast({ title: "Wait for uploads", description: "Some photos are still uploading.", variant: "destructive" });
+      toast({
+        title: "Wait for uploads",
+        description: "Some photos are still uploading.",
+        variant: "destructive",
+      });
       return;
     }
-    const photoUrls = fileItems.filter((fi) => fi.status === "done" && fi.path).map((fi) => fi.path as string);
+    const photoUrls = fileItems
+      .filter((fi) => fi.status === "done" && fi.path)
+      .map((fi) => fi.path as string);
     if (photoUrls.length === 0) {
-      toast({ title: "Nothing to upload", description: "Add at least one photo.", variant: "destructive" });
+      toast({
+        title: "Nothing to upload",
+        description: "Add at least one photo.",
+        variant: "destructive",
+      });
       return;
     }
     setSaving(true);
@@ -595,19 +749,31 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
         method: "POST",
         body: JSON.stringify({ photoType, photoUrls }),
       });
-      toast({ title: "Photos uploaded", description: `${photoUrls.length} photo${photoUrls.length !== 1 ? "s" : ""} added.` });
+      toast({
+        title: "Photos uploaded",
+        description: `${photoUrls.length} photo${photoUrls.length !== 1 ? "s" : ""} added.`,
+      });
       reset();
       onClose();
       onUploaded?.();
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e?.message ?? "Could not save photos.", variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: e?.message ?? "Could not save photos.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -617,8 +783,16 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
           <div className="rounded-lg border border-dashed border-border/60 p-3 bg-muted/10">
             <label className="flex flex-col items-center gap-1.5 cursor-pointer">
               <Upload className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Click to add photos</span>
-              <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+              <span className="text-xs text-muted-foreground">
+                Click to add photos
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </label>
           </div>
           {fileItems.length > 0 && (
@@ -627,10 +801,18 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
                 <div
                   key={fi.id}
                   className={`relative w-16 h-16 rounded-lg overflow-hidden border bg-muted/20 ${
-                    fi.status === "error" ? "border-red-500/60" : fi.status === "done" ? "border-emerald-500/40" : "border-border/40"
+                    fi.status === "error"
+                      ? "border-red-500/60"
+                      : fi.status === "done"
+                        ? "border-emerald-500/40"
+                        : "border-border/40"
                   }`}
                 >
-                  <img src={fi.preview} alt={fi.file.name} className="w-full h-full object-cover" />
+                  <img
+                    src={fi.preview}
+                    alt={fi.file.name}
+                    className="w-full h-full object-cover"
+                  />
                   {fi.status === "uploading" && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -649,7 +831,9 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
                       onClick={() => handleRetry(fi.id)}
                     >
                       <RotateCcw className="w-2 h-2" />
-                      <span className="text-[8px] font-bold uppercase tracking-wide">Retry</span>
+                      <span className="text-[8px] font-bold uppercase tracking-wide">
+                        Retry
+                      </span>
                     </button>
                   )}
                   {fi.status !== "uploading" && (
@@ -666,7 +850,9 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
             </div>
           )}
           {(anyInFlight || errorCount > 0) && (
-            <p className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+            <p
+              className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}
+            >
               {anyInFlight
                 ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
                 : `${errorCount} upload${errorCount !== 1 ? "s" : ""} failed — tap to retry.`}
@@ -674,7 +860,13 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
           )}
         </div>
         <div className="flex gap-2 justify-end pt-3 border-t border-border/40 mt-1">
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleClose} disabled={saving || anyInFlight}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleClose}
+            disabled={saving || anyInFlight}
+          >
             Cancel
           </Button>
           <Button
@@ -682,9 +874,15 @@ function PhotoAppendDialog({ open, onClose, bookingId, photoType, title, descrip
             size="sm"
             className="h-7 text-xs"
             onClick={handleSubmit}
-            disabled={saving || anyInFlight || errorCount > 0 || doneCount === 0}
+            disabled={
+              saving || anyInFlight || errorCount > 0 || doneCount === 0
+            }
           >
-            {saving ? "Saving…" : anyInFlight ? "Uploading…" : `Save ${doneCount} photo${doneCount !== 1 ? "s" : ""}`}
+            {saving
+              ? "Saving…"
+              : anyInFlight
+                ? "Uploading…"
+                : `Save ${doneCount} photo${doneCount !== 1 ? "s" : ""}`}
           </Button>
         </div>
       </DialogContent>
@@ -700,8 +898,22 @@ interface HandoverModalProps {
   type: "pickup" | "dropoff";
   open: boolean;
   onClose: () => void;
-  handoverForm: { actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string };
-  setHandoverForm: React.Dispatch<React.SetStateAction<{ actionDate: string; actionTime: string; mileage: string; fuelLevel: string; notes: string }>>;
+  handoverForm: {
+    actionDate: string;
+    actionTime: string;
+    mileage: string;
+    fuelLevel: string;
+    notes: string;
+  };
+  setHandoverForm: React.Dispatch<
+    React.SetStateAction<{
+      actionDate: string;
+      actionTime: string;
+      mileage: string;
+      fuelLevel: string;
+      notes: string;
+    }>
+  >;
   savingHandover: boolean;
   onSubmit: (
     type: "pickup" | "dropoff",
@@ -717,9 +929,13 @@ interface HandoverModalProps {
 }
 
 function HandoverModal({
-  type, open, onClose,
-  handoverForm, setHandoverForm,
-  savingHandover, onSubmit,
+  type,
+  open,
+  onClose,
+  handoverForm,
+  setHandoverForm,
+  savingHandover,
+  onSubmit,
   isAirportDropoff,
   existingPickupPhotoCount = 0,
 }: HandoverModalProps) {
@@ -729,6 +945,7 @@ function HandoverModal({
   const [satisfaction, setSatisfaction] = useState<
     "HAPPY" | "NEUTRAL" | "SAD" | null
   >(null);
+  const [confirmNoPhotos, setConfirmNoPhotos] = useState(false);
 
   const title = type === "pickup" ? "Record Pick Up" : "Record Drop Off";
   const Icon = type === "pickup" ? Car : RotateCcw;
@@ -736,7 +953,9 @@ function HandoverModal({
   const MAX_MB = 20;
 
   const requirePhoto = type === "pickup";
-  const uploadingCount = fileItems.filter((fi) => fi.status === "uploading").length;
+  const uploadingCount = fileItems.filter(
+    (fi) => fi.status === "uploading",
+  ).length;
   const doneCount = fileItems.filter((fi) => fi.status === "done").length;
   const errorCount = fileItems.filter((fi) => fi.status === "error").length;
   const anyInFlight = uploadingCount > 0;
@@ -750,6 +969,7 @@ function HandoverModal({
     setFileItems([]);
     setSelectedZone(null);
     setSatisfaction(null);
+    setConfirmNoPhotos(false);
     onClose();
   };
 
@@ -758,7 +978,9 @@ function HandoverModal({
   // Defined as a stable callback so it can also be used by the retry button.
   const startUpload = useCallback(async (id: string, file: File) => {
     setFileItems((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "uploading", error: undefined } : f)),
+      prev.map((f) =>
+        f.id === id ? { ...f, status: "uploading", error: undefined } : f,
+      ),
     );
     try {
       const compressed = await compressImage(file);
@@ -770,7 +992,11 @@ function HandoverModal({
       setFileItems((prev) =>
         prev.map((f) =>
           f.id === id
-            ? { ...f, status: "error", error: (err as Error)?.message ?? "Upload failed" }
+            ? {
+                ...f,
+                status: "error",
+                error: (err as Error)?.message ?? "Upload failed",
+              }
             : f,
         ),
       );
@@ -782,8 +1008,12 @@ function HandoverModal({
     const skipped: string[] = [];
     for (const f of Array.from(e.target.files ?? [])) {
       const isDupe =
-        fileItems.some((fi) => fi.file.name === f.name && fi.file.size === f.size) ||
-        accepted.some((fi) => fi.file.name === f.name && fi.file.size === f.size);
+        fileItems.some(
+          (fi) => fi.file.name === f.name && fi.file.size === f.size,
+        ) ||
+        accepted.some(
+          (fi) => fi.file.name === f.name && fi.file.size === f.size,
+        );
       if (isDupe) {
         skipped.push(`${f.name} (duplicate)`);
       } else if (f.size > MAX_MB * 1024 * 1024) {
@@ -791,11 +1021,20 @@ function HandoverModal({
       } else if (!f.type.startsWith("image/")) {
         skipped.push(`${f.name} (not an image)`);
       } else {
-        accepted.push({ id: crypto.randomUUID(), file: f, preview: URL.createObjectURL(f), status: "pending" });
+        accepted.push({
+          id: crypto.randomUUID(),
+          file: f,
+          preview: URL.createObjectURL(f),
+          status: "pending",
+        });
       }
     }
     if (skipped.length) {
-      toast({ title: "Files skipped", description: skipped.join(", "), variant: "destructive" });
+      toast({
+        title: "Files skipped",
+        description: skipped.join(", "),
+        variant: "destructive",
+      });
     }
     setFileItems((prev) => [...prev, ...accepted]);
     e.target.value = "";
@@ -819,37 +1058,61 @@ function HandoverModal({
 
   const handleRecord = async () => {
     if (type === "dropoff" && isAirportDropoff && !selectedZone) {
-      toast({ title: "Parking zone required", description: "Select a TBS AIR PARKING zone before recording the drop off.", variant: "destructive" });
+      toast({
+        title: "Parking zone required",
+        description:
+          "Select a TBS AIR PARKING zone before recording the drop off.",
+        variant: "destructive",
+      });
       return;
     }
     if (type === "pickup" && !satisfaction) {
       toast({
         title: "Satisfaction required",
-        description: "Mark the customer's satisfaction (Happy, Neutral, or Sad) before recording pickup.",
+        description:
+          "Mark the customer's satisfaction (Happy, Neutral, or Sad) before recording pickup.",
         variant: "destructive",
       });
       return;
     }
     if (anyInFlight) {
-      toast({ title: "Wait for uploads", description: "Some photos are still uploading.", variant: "destructive" });
+      toast({
+        title: "Wait for uploads",
+        description: "Some photos are still uploading.",
+        variant: "destructive",
+      });
       return;
     }
-    if (photoBlock) {
-      toast({ title: "Photo required", description: "Add at least one pickup photo before recording.", variant: "destructive" });
+    if (
+      requirePhoto &&
+      doneCount + existingPickupPhotoCount === 0 &&
+      !confirmNoPhotos
+    ) {
+      setConfirmNoPhotos(true);
       return;
     }
-    const photoUrls = fileItems.filter((fi) => fi.status === "done" && fi.path).map((fi) => fi.path as string);
+    const photoUrls = fileItems
+      .filter((fi) => fi.status === "done" && fi.path)
+      .map((fi) => fi.path as string);
     try {
       await onSubmit(type, photoUrls, selectedZone ?? undefined, satisfaction);
       // Clear file state on success (including any leftover errored items)
-      setFileItems((prev) => { prev.forEach((fi) => URL.revokeObjectURL(fi.preview)); return []; });
+      setFileItems((prev) => {
+        prev.forEach((fi) => URL.revokeObjectURL(fi.preview));
+        return [];
+      });
     } catch {
       // onSubmit already toasts; catch to prevent unhandled rejection.
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) handleModalClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) handleModalClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
@@ -857,7 +1120,8 @@ function HandoverModal({
             {title}
           </DialogTitle>
           <DialogDescription>
-            Record the vehicle {type === "pickup" ? "pick up" : "drop off"} details. This will update the booking status.
+            Record the vehicle {type === "pickup" ? "pick up" : "drop off"}{" "}
+            details. This will update the booking status.
           </DialogDescription>
         </DialogHeader>
 
@@ -868,8 +1132,12 @@ function HandoverModal({
                 label="Action Date & Time"
                 dateValue={handoverForm.actionDate}
                 timeValue={handoverForm.actionTime}
-                onDateChange={(d) => setHandoverForm((prev) => ({ ...prev, actionDate: d }))}
-                onTimeChange={(t) => setHandoverForm((prev) => ({ ...prev, actionTime: t }))}
+                onDateChange={(d) =>
+                  setHandoverForm((prev) => ({ ...prev, actionDate: d }))
+                }
+                onTimeChange={(t) =>
+                  setHandoverForm((prev) => ({ ...prev, actionTime: t }))
+                }
                 required
               />
             </div>
@@ -880,7 +1148,12 @@ function HandoverModal({
                 min="0"
                 placeholder="e.g. 45200"
                 value={handoverForm.mileage}
-                onChange={(e) => setHandoverForm((prev) => ({ ...prev, mileage: e.target.value }))}
+                onChange={(e) =>
+                  setHandoverForm((prev) => ({
+                    ...prev,
+                    mileage: e.target.value,
+                  }))
+                }
                 className="h-8 text-xs"
               />
             </div>
@@ -892,7 +1165,12 @@ function HandoverModal({
                 max="100"
                 placeholder="e.g. 75"
                 value={handoverForm.fuelLevel}
-                onChange={(e) => setHandoverForm((prev) => ({ ...prev, fuelLevel: e.target.value }))}
+                onChange={(e) =>
+                  setHandoverForm((prev) => ({
+                    ...prev,
+                    fuelLevel: e.target.value,
+                  }))
+                }
                 className="h-8 text-xs"
               />
             </div>
@@ -901,7 +1179,12 @@ function HandoverModal({
               <Textarea
                 placeholder="Optional notes about the vehicle condition…"
                 value={handoverForm.notes}
-                onChange={(e) => setHandoverForm((prev) => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) =>
+                  setHandoverForm((prev) => ({
+                    ...prev,
+                    notes: e.target.value,
+                  }))
+                }
                 className="text-xs resize-none"
                 rows={2}
               />
@@ -918,9 +1201,25 @@ function HandoverModal({
               <div className="flex gap-2">
                 {(
                   [
-                    { v: "HAPPY", label: "Happy", emoji: "🙂", active: "border-emerald-500 bg-emerald-500/10 text-emerald-400" },
-                    { v: "NEUTRAL", label: "Neutral", emoji: "😐", active: "border-amber-500 bg-amber-500/10 text-amber-400" },
-                    { v: "SAD", label: "Sad", emoji: "☹️", active: "border-red-500 bg-red-500/10 text-red-400" },
+                    {
+                      v: "HAPPY",
+                      label: "Happy",
+                      emoji: "🙂",
+                      active:
+                        "border-emerald-500 bg-emerald-500/10 text-emerald-400",
+                    },
+                    {
+                      v: "NEUTRAL",
+                      label: "Neutral",
+                      emoji: "😐",
+                      active: "border-amber-500 bg-amber-500/10 text-amber-400",
+                    },
+                    {
+                      v: "SAD",
+                      label: "Sad",
+                      emoji: "☹️",
+                      active: "border-red-500 bg-red-500/10 text-red-400",
+                    },
                   ] as const
                 ).map((opt) => {
                   const isOn = satisfaction === opt.v;
@@ -936,14 +1235,18 @@ function HandoverModal({
                           : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
                       }`}
                     >
-                      <span className="text-base leading-none">{opt.emoji}</span>
+                      <span className="text-base leading-none">
+                        {opt.emoji}
+                      </span>
                       <span>{opt.label}</span>
                     </button>
                   );
                 })}
               </div>
               {!satisfaction && (
-                <p className="text-[10px] text-amber-400/90">Required — pick the customer's mood at handover.</p>
+                <p className="text-[10px] text-amber-400/90">
+                  Required — pick the customer's mood at handover.
+                </p>
               )}
             </div>
           )}
@@ -960,7 +1263,9 @@ function HandoverModal({
                   <button
                     key={zone}
                     type="button"
-                    onClick={() => setSelectedZone(selectedZone === zone ? null : zone)}
+                    onClick={() =>
+                      setSelectedZone(selectedZone === zone ? null : zone)
+                    }
                     className={`flex-1 text-xs h-8 rounded-md border transition-colors ${
                       selectedZone === zone
                         ? "border-blue-500 bg-blue-500/10 text-blue-400 font-medium"
@@ -971,7 +1276,9 @@ function HandoverModal({
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-amber-400/90">Required — select a zone before recording drop off.</p>
+              <p className="text-[10px] text-amber-400/90">
+                Required — select a zone before recording drop off.
+              </p>
             </div>
           )}
 
@@ -981,7 +1288,9 @@ function HandoverModal({
             <div className="rounded-lg border border-dashed border-border/60 p-3 bg-muted/10">
               <label className="flex flex-col items-center gap-1.5 cursor-pointer">
                 <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Click to add photos</span>
+                <span className="text-xs text-muted-foreground">
+                  Click to add photos
+                </span>
                 <input
                   type="file"
                   multiple
@@ -1000,11 +1309,15 @@ function HandoverModal({
                       fi.status === "error"
                         ? "border-red-500/60"
                         : fi.status === "done"
-                        ? "border-emerald-500/40"
-                        : "border-border/40"
+                          ? "border-emerald-500/40"
+                          : "border-border/40"
                     }`}
                   >
-                    <img src={fi.preview} alt={fi.file.name} className="w-full h-full object-cover" />
+                    <img
+                      src={fi.preview}
+                      alt={fi.file.name}
+                      className="w-full h-full object-cover"
+                    />
                     {fi.status === "uploading" && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1024,7 +1337,9 @@ function HandoverModal({
                         onClick={() => handleRetry(fi.id)}
                       >
                         <RotateCcw className="w-2 h-2" />
-                        <span className="text-[8px] font-bold uppercase tracking-wide">Retry</span>
+                        <span className="text-[8px] font-bold uppercase tracking-wide">
+                          Retry
+                        </span>
                       </button>
                     )}
                     {fi.status !== "uploading" && (
@@ -1040,21 +1355,30 @@ function HandoverModal({
                 ))}
               </div>
             )}
-            {(anyInFlight || errorCount > 0 || (requirePhoto && fileItems.length === 0)) && (
-              <p className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+            {(anyInFlight ||
+              errorCount > 0 ||
+              (requirePhoto && fileItems.length === 0)) && (
+              <p
+                className={`text-[11px] mt-1 ${errorCount > 0 ? "text-red-400" : "text-muted-foreground"}`}
+              >
                 {anyInFlight
                   ? `Uploading ${uploadingCount} photo${uploadingCount !== 1 ? "s" : ""}…`
                   : errorCount > 0
-                  ? `${errorCount} upload${errorCount !== 1 ? "s" : ""} failed — tap to retry.`
-                  : `At least one pickup photo is required.`}
+                    ? `${errorCount} upload${errorCount !== 1 ? "s" : ""} failed — tap to retry.`
+                    : `At least one pickup photo is required.`}
               </p>
             )}
           </div>
-
         </div>
 
         <div className="flex-shrink-0 sticky bottom-0 flex gap-2 justify-end pt-3 border-t border-border/40 mt-1 bg-background/95 backdrop-blur-sm">
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleModalClose} disabled={savingHandover || anyInFlight}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleModalClose}
+            disabled={savingHandover || anyInFlight}
+          >
             Cancel
           </Button>
           <Button
@@ -1074,8 +1398,8 @@ function HandoverModal({
             {savingHandover
               ? "Saving…"
               : anyInFlight
-              ? "Uploading photos…"
-              : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
+                ? "Uploading photos…"
+                : `Record ${type === "pickup" ? "Pick Up" : "Drop Off"}`}
           </Button>
         </div>
       </DialogContent>
@@ -1093,13 +1417,22 @@ interface BookingDetailProps {
   onEditBooking?: (bookingData: any) => void;
 }
 
-export default function BookingDetail({ bookingId, open, onClose, onPaymentChanged, onEditBooking }: BookingDetailProps) {
+export default function BookingDetail({
+  bookingId,
+  open,
+  onClose,
+  onPaymentChanged,
+  onEditBooking,
+}: BookingDetailProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [booking, setBooking] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
-  const [handovers, setHandovers] = useState<{ pickup: any | null; dropoff: any | null }>({ pickup: null, dropoff: null });
+  const [handovers, setHandovers] = useState<{
+    pickup: any | null;
+    dropoff: any | null;
+  }>({ pickup: null, dropoff: null });
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1114,14 +1447,25 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
   // Photo append dialog: pre-pickup uploads (CONFIRMED, no pickup yet) and
   // post-pickup additions ("forgot to upload" flow).
-  const [photoAppend, setPhotoAppend] = useState<
-    | { type: "PICKUP" | "RETURN" | "GENERAL"; title: string; description?: string }
-    | null
-  >(null);
+  const [photoAppend, setPhotoAppend] = useState<{
+    type: "PICKUP" | "RETURN" | "GENERAL";
+    title: string;
+    description?: string;
+  } | null>(null);
 
   // Overview quick-edit state
   const [isOverviewEditing, setIsOverviewEditing] = useState(false);
-  const [overviewDraft, setOverviewDraft] = useState({ totalAmount: "", currency: "GEL", notes: "", pickupLocationId: "", dropoffLocationId: "", pickupDate: "", pickupTime: "09:00", dropoffDate: "", dropoffTime: "09:00" });
+  const [overviewDraft, setOverviewDraft] = useState({
+    totalAmount: "",
+    currency: "GEL",
+    notes: "",
+    pickupLocationId: "",
+    dropoffLocationId: "",
+    pickupDate: "",
+    pickupTime: "09:00",
+    dropoffDate: "",
+    dropoffTime: "09:00",
+  });
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
 
@@ -1129,7 +1473,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignModels, setAssignModels] = useState<any[]>([]);
   const [loadingAssignModels, setLoadingAssignModels] = useState(false);
-  const [assignSelectedModelId, setAssignSelectedModelId] = useState<number | null>(null);
+  const [assignSelectedModelId, setAssignSelectedModelId] = useState<
+    number | null
+  >(null);
   const [assignVehicles, setAssignVehicles] = useState<any[]>([]);
   const [loadingAssignVehicles, setLoadingAssignVehicles] = useState(false);
   const [savingAssign, setSavingAssign] = useState(false);
@@ -1194,11 +1540,14 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           // Non-critical; pickupCity will simply be undefined below
         }
       }
-      const pickupCity = locations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
+      const pickupCity = locations.find(
+        (l: any) => l.id === booking?.pickupLocation?.id,
+      )?.city;
       if (!pickupCity) {
         toast({
           title: "Pickup city missing",
-          description: "Cannot list vehicles without a pickup city. Set the pickup location first.",
+          description:
+            "Cannot list vehicles without a pickup city. Set the pickup location first.",
           variant: "destructive",
         });
         setIsAssignOpen(false);
@@ -1219,73 +1568,101 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       setAssignModels(modelsData ?? []);
       setAssignVehicles(vehiclesData?.data ?? []);
     } catch (e: any) {
-      toast({ title: "Error loading data", description: e.message, variant: "destructive" });
+      toast({
+        title: "Error loading data",
+        description: e.message,
+        variant: "destructive",
+      });
     } finally {
       setLoadingAssignModels(false);
       setLoadingAssignVehicles(false);
     }
   }, [booking?.vehicleModelId, booking?.pickupLocation?.id, overviewLocations]);
 
-  const handleModelChange = useCallback(async (modelId: number) => {
-    setAssignSelectedModelId(modelId);
-    setLoadingAssignVehicles(true);
-    try {
-      // Resolve pickupCity from overviewLocations, falling back to a fresh
-      // locations fetch so that a model-change refetch is NEVER allowed to
-      // hit /admin/fleet/vehicles without a city filter (matches openAssignDialog).
-      let locations = overviewLocations;
-      if (locations.length === 0) {
-        try {
-          const locResp = await apiFetch(`/admin/locations?status=ACTIVE`);
-          // /admin/locations returns a bare array, not { data: [...] }.
-          // Accept both shapes defensively.
-          locations = Array.isArray(locResp) ? locResp : (locResp?.data ?? []);
-          setOverviewLocations(locations);
-        } catch {
-          /* non-critical; pickupCity will be undefined and we'll abort below */
+  const handleModelChange = useCallback(
+    async (modelId: number) => {
+      setAssignSelectedModelId(modelId);
+      setLoadingAssignVehicles(true);
+      try {
+        // Resolve pickupCity from overviewLocations, falling back to a fresh
+        // locations fetch so that a model-change refetch is NEVER allowed to
+        // hit /admin/fleet/vehicles without a city filter (matches openAssignDialog).
+        let locations = overviewLocations;
+        if (locations.length === 0) {
+          try {
+            const locResp = await apiFetch(`/admin/locations?status=ACTIVE`);
+            // /admin/locations returns a bare array, not { data: [...] }.
+            // Accept both shapes defensively.
+            locations = Array.isArray(locResp)
+              ? locResp
+              : (locResp?.data ?? []);
+            setOverviewLocations(locations);
+          } catch {
+            /* non-critical; pickupCity will be undefined and we'll abort below */
+          }
         }
-      }
-      const pickupCity = locations.find((l: any) => l.id === booking?.pickupLocation?.id)?.city;
-      if (!pickupCity) {
+        const pickupCity = locations.find(
+          (l: any) => l.id === booking?.pickupLocation?.id,
+        )?.city;
+        if (!pickupCity) {
+          toast({
+            title: "Pickup city unavailable",
+            description:
+              "Cannot list vehicles without the booking's pickup city.",
+            variant: "destructive",
+          });
+          setAssignVehicles([]);
+          return;
+        }
+        const cityParam = `&city=${encodeURIComponent(pickupCity)}`;
+        const data = await apiFetch(
+          `/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`,
+        );
+        setAssignVehicles(data?.data ?? []);
+      } catch (e: any) {
         toast({
-          title: "Pickup city unavailable",
-          description: "Cannot list vehicles without the booking's pickup city.",
+          title: "Error loading vehicles",
+          description: e.message,
           variant: "destructive",
         });
-        setAssignVehicles([]);
-        return;
+      } finally {
+        setLoadingAssignVehicles(false);
       }
-      const cityParam = `&city=${encodeURIComponent(pickupCity)}`;
-      const data = await apiFetch(`/admin/fleet/vehicles?modelId=${modelId}&limit=100${cityParam}`);
-      setAssignVehicles(data?.data ?? []);
-    } catch (e: any) {
-      toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
-    } finally {
-      setLoadingAssignVehicles(false);
-    }
-  }, [booking?.pickupLocation?.id, overviewLocations, toast]);
+    },
+    [booking?.pickupLocation?.id, overviewLocations, toast],
+  );
 
-  const handleAssignVehicle = useCallback(async (vehicleId: number) => {
-    if (!bookingId) return;
-    setSavingAssign(true);
-    try {
-      const patch: Record<string, unknown> = { vehicleId };
-      if (assignSelectedModelId !== null && assignSelectedModelId !== booking?.vehicleModelId) {
-        patch.vehicleModelId = assignSelectedModelId;
+  const handleAssignVehicle = useCallback(
+    async (vehicleId: number) => {
+      if (!bookingId) return;
+      setSavingAssign(true);
+      try {
+        const patch: Record<string, unknown> = { vehicleId };
+        if (
+          assignSelectedModelId !== null &&
+          assignSelectedModelId !== booking?.vehicleModelId
+        ) {
+          patch.vehicleModelId = assignSelectedModelId;
+        }
+        await apiFetch(`/admin/bookings/${bookingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        });
+        setIsAssignOpen(false);
+        await fetchBooking();
+        toast({ title: "Vehicle assigned" });
+      } catch (e: any) {
+        toast({
+          title: "Error",
+          description: e.message,
+          variant: "destructive",
+        });
+      } finally {
+        setSavingAssign(false);
       }
-      await apiFetch(`/admin/bookings/${bookingId}`, {
-        method: "PATCH",
-        body: JSON.stringify(patch),
-      });
-      setIsAssignOpen(false);
-      await fetchBooking();
-      toast({ title: "Vehicle assigned" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setSavingAssign(false);
-    }
-  }, [bookingId, fetchBooking, assignSelectedModelId, booking?.vehicleModelId]);
+    },
+    [bookingId, fetchBooking, assignSelectedModelId, booking?.vehicleModelId],
+  );
 
   const handleUnassignVehicle = useCallback(async () => {
     if (!bookingId) return;
@@ -1314,7 +1691,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       setForm(EMPTY_FORM);
       setIsOverviewEditing(false);
       // Pre-load locations so location selects show real values immediately on edit
-      apiFetch("/locations").then((data: any) => setOverviewLocations(data || [])).catch(() => {});
+      apiFetch("/locations")
+        .then((data: any) => setOverviewLocations(data || []))
+        .catch(() => {});
     }
   }, [open, bookingId]);
 
@@ -1322,12 +1701,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
     if (!bookingId) return;
     const errors: string[] = [];
     if (!form.paymentType) errors.push("Payment type is required");
-    if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) errors.push("Amount must be positive");
+    if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0)
+      errors.push("Amount must be positive");
     if (!form.method) errors.push("Payment method is required");
     if (!form.paymentDate) errors.push("Payment date is required");
 
     if (errors.length > 0) {
-      toast({ title: "Validation", description: errors.join(" · "), variant: "destructive" });
+      toast({
+        title: "Validation",
+        description: errors.join(" · "),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -1344,14 +1728,21 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           notes: form.notes || null,
         }),
       });
-      toast({ title: "Payment Added", description: `${PAYMENT_TYPE_LABELS[form.paymentType] ?? form.paymentType} of ${currencySymbol(form.currency)}${form.amount} recorded.` });
+      toast({
+        title: "Payment Added",
+        description: `${PAYMENT_TYPE_LABELS[form.paymentType] ?? form.paymentType} of ${currencySymbol(form.currency)}${form.amount} recorded.`,
+      });
       setForm({ ...EMPTY_FORM, currency: booking?.currency ?? "GEL" });
       setShowAddForm(false);
       fetchPayments();
       fetchBooking();
       onPaymentChanged?.();
       if (booking?.vehicle?.id) {
-        window.dispatchEvent(new CustomEvent("vehicleDetailRefresh", { detail: { vehicleId: booking.vehicle.id } }));
+        window.dispatchEvent(
+          new CustomEvent("vehicleDetailRefresh", {
+            detail: { vehicleId: booking.vehicle.id },
+          }),
+        );
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -1362,9 +1753,16 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
   const handleDeletePayment = async (paymentId: number) => {
     if (!bookingId) return;
-    if (!window.confirm("Delete this payment record? The linked accounting entry will also be removed.")) return;
+    if (
+      !window.confirm(
+        "Delete this payment record? The linked accounting entry will also be removed.",
+      )
+    )
+      return;
     try {
-      await apiFetch(`/admin/bookings/${bookingId}/payments/${paymentId}`, { method: "DELETE" });
+      await apiFetch(`/admin/bookings/${bookingId}/payments/${paymentId}`, {
+        method: "DELETE",
+      });
       toast({ title: "Payment Deleted" });
       fetchPayments();
       fetchBooking();
@@ -1382,11 +1780,19 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   ) => {
     if (!bookingId) return;
     if (!handoverForm.actionDate) {
-      toast({ title: "Validation", description: "Action date is required.", variant: "destructive" });
+      toast({
+        title: "Validation",
+        description: "Action date is required.",
+        variant: "destructive",
+      });
       return;
     }
     if (type === "pickup" && !pickupSatisfaction) {
-      toast({ title: "Validation", description: "Customer satisfaction is required for pickup.", variant: "destructive" });
+      toast({
+        title: "Validation",
+        description: "Customer satisfaction is required for pickup.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -1395,19 +1801,33 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
     setSavingHandover(true);
     try {
-      const actionAt = new Date(`${handoverForm.actionDate}T${handoverForm.actionTime}:00`).toISOString();
+      const actionAt = new Date(
+        `${handoverForm.actionDate}T${handoverForm.actionTime}:00`,
+      ).toISOString();
       const endpoint = type === "pickup" ? "pickup" : "dropoff";
       const SAVE_TIMEOUT_MS = 30_000;
       const saveTimeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out — check your connection and try again.")), SAVE_TIMEOUT_MS),
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Request timed out — check your connection and try again.",
+              ),
+            ),
+          SAVE_TIMEOUT_MS,
+        ),
       );
       await Promise.race([
         apiFetch(`/admin/bookings/${bookingId}/${endpoint}`, {
           method: "POST",
           body: JSON.stringify({
             actionAt,
-            mileage: handoverForm.mileage ? parseInt(handoverForm.mileage, 10) : null,
-            fuelLevel: handoverForm.fuelLevel ? parseInt(handoverForm.fuelLevel, 10) : null,
+            mileage: handoverForm.mileage
+              ? parseInt(handoverForm.mileage, 10)
+              : null,
+            fuelLevel: handoverForm.fuelLevel
+              ? parseInt(handoverForm.fuelLevel, 10)
+              : null,
             notes: handoverForm.notes || null,
             photoUrls,
             ...(type === "pickup" ? { pickupSatisfaction } : {}),
@@ -1440,7 +1860,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
             description: `Vehicle assigned to TBS Airport zone ${parkingZone}.`,
           });
         } catch (parkingErr: unknown) {
-          const msg = parkingErr instanceof Error ? parkingErr.message : "Unknown error";
+          const msg =
+            parkingErr instanceof Error ? parkingErr.message : "Unknown error";
           toast({
             title: "Parking Assignment Failed",
             description: `Drop off was recorded, but parking zone assignment failed: ${msg}`,
@@ -1501,16 +1922,30 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
       await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          ...(overviewDraft.totalAmount !== "" ? { totalAmount: overviewDraft.totalAmount } : {}),
+          ...(overviewDraft.totalAmount !== ""
+            ? { totalAmount: overviewDraft.totalAmount }
+            : {}),
           currency: overviewDraft.currency,
           ...(overviewDraft.notes !== "" ? { notes: overviewDraft.notes } : {}),
-          ...(overviewDraft.pickupLocationId ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) } : {}),
-          ...(overviewDraft.dropoffLocationId ? { dropoffLocationId: parseInt(overviewDraft.dropoffLocationId) } : {}),
+          ...(overviewDraft.pickupLocationId
+            ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) }
+            : {}),
+          ...(overviewDraft.dropoffLocationId
+            ? { dropoffLocationId: parseInt(overviewDraft.dropoffLocationId) }
+            : {}),
           ...(overviewDraft.pickupDate && overviewDraft.pickupTime
-            ? { pickupDatetime: new Date(`${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00`).toISOString() }
+            ? {
+                pickupDatetime: new Date(
+                  `${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00`,
+                ).toISOString(),
+              }
             : {}),
           ...(overviewDraft.dropoffDate && overviewDraft.dropoffTime
-            ? { dropoffDatetime: new Date(`${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00`).toISOString() }
+            ? {
+                dropoffDatetime: new Date(
+                  `${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00`,
+                ).toISOString(),
+              }
             : {}),
         }),
       });
@@ -1528,36 +1963,61 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
   const fmtOrig = (v: number) => `${currencySymbol(bkCurrency)}${v.toFixed(2)}`;
   const fmtGel = (v: number) => `₾${v.toFixed(2)}`;
   const isNonGel = bkCurrency !== "GEL";
-  const totalPrice = booking?.totalAmount ? parseFloat(booking.totalAmount) : null;
-  const remaining = totalPrice != null
-    ? (summary ? Math.max(0, totalPrice - (summary.totalPaidOriginal ?? summary.totalPaid)) : totalPrice)
+  const totalPrice = booking?.totalAmount
+    ? parseFloat(booking.totalAmount)
     : null;
-  const remainingGel = (isNonGel && summary?.totalPriceGel != null)
-    ? Math.max(0, summary.totalPriceGel - summary.totalPaid)
-    : null;
+  const remaining =
+    totalPrice != null
+      ? summary
+        ? Math.max(
+            0,
+            totalPrice - (summary.totalPaidOriginal ?? summary.totalPaid),
+          )
+        : totalPrice
+      : null;
+  const remainingGel =
+    isNonGel && summary?.totalPriceGel != null
+      ? Math.max(0, summary.totalPriceGel - summary.totalPaid)
+      : null;
 
   const canPickUp = booking?.status === "CONFIRMED" && !handovers.pickup;
   const canDropOff = booking?.status === "DELIVERED" && !handovers.dropoff;
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) onClose();
+        }}
+      >
         <DialogContent className="w-full max-w-[95vw] sm:max-w-[760px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="font-display text-xl flex flex-wrap items-center gap-2">
               Booking #{bookingId}
               {booking?.status && (
-                <Badge variant="outline" className="text-[10px] font-bold uppercase">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold uppercase"
+                >
                   {booking.status.replace("_", " ")}
                 </Badge>
               )}
             </DialogTitle>
             <DialogDescription>
-              {loadingBooking ? "Loading…" : booking ? (
+              {loadingBooking ? (
+                "Loading…"
+              ) : booking ? (
                 <>
-                  {booking.customer?.fullName || booking.contactFullName || "—"} ·{" "}
-                  {booking.pickupDatetime ? formatDate(booking.pickupDatetime) : "—"} →{" "}
-                  {booking.dropoffDatetime ? formatDate(booking.dropoffDatetime) : "—"}
+                  {booking.customer?.fullName || booking.contactFullName || "—"}{" "}
+                  ·{" "}
+                  {booking.pickupDatetime
+                    ? formatDate(booking.pickupDatetime)
+                    : "—"}{" "}
+                  →{" "}
+                  {booking.dropoffDatetime
+                    ? formatDate(booking.dropoffDatetime)
+                    : "—"}
                 </>
               ) : null}
             </DialogDescription>
@@ -1576,20 +2036,34 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
             // and matches the list-view badge semantics. Handover photos are
             // for display only and are not authoritative for this banner.
             const pickupPhotoCount = booking.pickupPhotoCount ?? 0;
-            const isPostPickup = booking.status === "DELIVERED" || booking.status === "RETURNED";
-            if (!isPostPickup || pickupPhotoCount > 0 || handovers.dropoff) return null;
+            const isPostPickup =
+              booking.status === "DELIVERED" || booking.status === "RETURNED";
+            if (!isPostPickup || pickupPhotoCount > 0 || handovers.dropoff)
+              return null;
             return (
               <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 mt-1 min-w-0">
                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate">Missing pickup photos for this booking.</p>
-                  <p className="text-[11px] text-amber-300/80 break-words">Pickup was recorded with no photos on file. Add them to document the vehicle's condition.</p>
+                  <p className="font-medium truncate">
+                    Missing pickup photos for this booking.
+                  </p>
+                  <p className="text-[11px] text-amber-300/80 break-words">
+                    Pickup was recorded with no photos on file. Add them to
+                    document the vehicle's condition.
+                  </p>
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-[11px] gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/20 shrink-0"
-                  onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add pickup photos", description: "Upload photos documenting the pickup condition." })}
+                  onClick={() =>
+                    setPhotoAppend({
+                      type: "PICKUP",
+                      title: "Add pickup photos",
+                      description:
+                        "Upload photos documenting the pickup condition.",
+                    })
+                  }
                 >
                   <Upload className="w-3 h-3" /> Upload
                 </Button>
@@ -1614,7 +2088,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`/crm/document/${bookingId}/agreement`, "_blank")}
+                onClick={() =>
+                  window.open(`/crm/document/${bookingId}/agreement`, "_blank")
+                }
               >
                 <FileText className="w-3 h-3" />
                 Rental Agreement
@@ -1623,7 +2099,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`/crm/document/${bookingId}/voucher`, "_blank")}
+                onClick={() =>
+                  window.open(`/crm/document/${bookingId}/voucher`, "_blank")
+                }
               >
                 <Ticket className="w-3 h-3" />
                 Booking Voucher
@@ -1632,7 +2110,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`/crm/handover/${bookingId}/pickup`, "_blank")}
+                onClick={() =>
+                  window.open(`/crm/handover/${bookingId}/pickup`, "_blank")
+                }
               >
                 <ClipboardList className="w-3 h-3" />
                 Handover Sheet
@@ -1641,7 +2121,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => window.open(`/crm/handover/${bookingId}/return`, "_blank")}
+                onClick={() =>
+                  window.open(`/crm/handover/${bookingId}/return`, "_blank")
+                }
               >
                 <ClipboardCheck className="w-3 h-3" />
                 Return Sheet
@@ -1675,7 +2157,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               <div className="rounded-lg border border-border/40 bg-muted/10 overflow-hidden">
                 {/* Header row with pencil toggle */}
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border/30 bg-muted/20">
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Overview</span>
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Overview
+                  </span>
                   {!isOverviewEditing ? (
                     <button
                       type="button"
@@ -1686,7 +2170,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <span className="text-[11px] text-primary font-medium">Editing</span>
+                    <span className="text-[11px] text-primary font-medium">
+                      Editing
+                    </span>
                   )}
                 </div>
 
@@ -1694,11 +2180,19 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   /* Read-only view */
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                     <div>
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Customer</div>
-                      <div className="font-medium">{booking.customer?.fullName || booking.contactFullName || "—"}</div>
-                      {(booking.contactPhone || booking.customer?.phone) ? (
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Customer
+                      </div>
+                      <div className="font-medium">
+                        {booking.customer?.fullName ||
+                          booking.contactFullName ||
+                          "—"}
+                      </div>
+                      {booking.contactPhone || booking.customer?.phone ? (
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs text-muted-foreground">{booking.contactPhone || booking.customer?.phone}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {booking.contactPhone || booking.customer?.phone}
+                          </span>
                           <a
                             href={`https://wa.me/${(booking.contactPhone || booking.customer?.phone || "").replace(/[\s+]/g, "")}`}
                             target="_blank"
@@ -1712,17 +2206,27 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       ) : null}
                     </div>
                     <div>
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Vehicle</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Vehicle
+                      </div>
                       {booking.vehicle ? (
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <button
                             className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
                             onClick={() => {
                               onClose();
-                              setLocation(`/fleet?vehicleId=${booking.vehicle.id}`);
+                              setLocation(
+                                `/fleet?vehicleId=${booking.vehicle.id}`,
+                              );
                             }}
                           >
-                            <span className="truncate">{booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName} · {booking.vehicle.licensePlate}</span>
+                            <span className="truncate">
+                              {booking.vehicle.brandName
+                                ? `${booking.vehicle.brandName} `
+                                : ""}
+                              {booking.vehicle.modelName} ·{" "}
+                              {booking.vehicle.licensePlate}
+                            </span>
                             <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
                           </button>
                           <button
@@ -1736,7 +2240,10 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       ) : booking.vehicleModelName ? (
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <div className="font-medium min-w-0 truncate">
-                            {booking.vehicleModelBrandName ? `${booking.vehicleModelBrandName} ` : ""}{booking.vehicleModelName}
+                            {booking.vehicleModelBrandName
+                              ? `${booking.vehicleModelBrandName} `
+                              : ""}
+                            {booking.vehicleModelName}
                           </div>
                           <button
                             type="button"
@@ -1751,7 +2258,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       )}
                     </div>
                     <div>
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Booking Price</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Booking Price
+                      </div>
                       <div className="font-mono font-bold text-base">
                         {booking.totalAmount
                           ? `${currencySymbol(booking.currency ?? "GEL")}${parseFloat(booking.totalAmount).toFixed(2)}`
@@ -1759,28 +2268,54 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Pickup</div>
-                      <div className="break-words">{booking.pickupDatetime ? formatDateTime(booking.pickupDatetime) : "—"}</div>
-                      <div className="text-xs text-muted-foreground truncate">{booking.pickupLocation?.name}</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Pickup
+                      </div>
+                      <div className="break-words">
+                        {booking.pickupDatetime
+                          ? formatDateTime(booking.pickupDatetime)
+                          : "—"}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {booking.pickupLocation?.name}
+                      </div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Dropoff</div>
-                      <div className="break-words">{booking.dropoffDatetime ? formatDateTime(booking.dropoffDatetime) : "—"}</div>
-                      <div className="text-xs text-muted-foreground truncate">{booking.dropoffLocation?.name}</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Dropoff
+                      </div>
+                      <div className="break-words">
+                        {booking.dropoffDatetime
+                          ? formatDateTime(booking.dropoffDatetime)
+                          : "—"}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {booking.dropoffLocation?.name}
+                      </div>
                     </div>
                     {booking.notes && (
                       <div className="col-span-2 sm:col-span-3">
-                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Notes</div>
+                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                          Notes
+                        </div>
                         <div className="text-xs">{booking.notes}</div>
                       </div>
                     )}
                     <div>
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Source</div>
-                      <div className="font-medium">{booking?.source || "—"}</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Source
+                      </div>
+                      <div className="font-medium">
+                        {booking?.source || "—"}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">Ext. Code</div>
-                      <div className="font-mono text-sm">{booking?.externalReservationCode || "—"}</div>
+                      <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                        Ext. Code
+                      </div>
+                      <div className="font-mono text-sm">
+                        {booking?.externalReservationCode || "—"}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1796,29 +2331,63 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           min="0"
                           placeholder="e.g. 350.00"
                           value={overviewDraft.totalAmount}
-                          onChange={(e) => setOverviewDraft((p) => ({ ...p, totalAmount: e.target.value }))}
+                          onChange={(e) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              totalAmount: e.target.value,
+                            }))
+                          }
                           className="h-8 text-xs"
                         />
                       </div>
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Currency</Label>
-                        <Select value={overviewDraft.currency} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, currency: v }))}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <Select
+                          value={overviewDraft.currency}
+                          onValueChange={(v) =>
+                            setOverviewDraft((p) => ({ ...p, currency: v }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="GEL" className="text-xs">GEL (₾)</SelectItem>
-                            <SelectItem value="USD" className="text-xs">USD ($)</SelectItem>
-                            <SelectItem value="EUR" className="text-xs">EUR (€)</SelectItem>
+                            <SelectItem value="GEL" className="text-xs">
+                              GEL (₾)
+                            </SelectItem>
+                            <SelectItem value="USD" className="text-xs">
+                              USD ($)
+                            </SelectItem>
+                            <SelectItem value="EUR" className="text-xs">
+                              EUR (€)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {/* Pickup Location */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Pickup Location</Label>
-                        <Select value={overviewDraft.pickupLocationId} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, pickupLocationId: v }))}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Keep current" /></SelectTrigger>
+                        <Select
+                          value={overviewDraft.pickupLocationId}
+                          onValueChange={(v) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              pickupLocationId: v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Keep current" />
+                          </SelectTrigger>
                           <SelectContent>
                             {overviewLocations.map((loc: any) => (
-                              <SelectItem key={loc.id} value={loc.id.toString()} className="text-xs">{loc.name}</SelectItem>
+                              <SelectItem
+                                key={loc.id}
+                                value={loc.id.toString()}
+                                className="text-xs"
+                              >
+                                {loc.name}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1826,11 +2395,27 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       {/* Dropoff Location */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Dropoff Location</Label>
-                        <Select value={overviewDraft.dropoffLocationId} onValueChange={(v) => setOverviewDraft((p) => ({ ...p, dropoffLocationId: v }))}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Keep current" /></SelectTrigger>
+                        <Select
+                          value={overviewDraft.dropoffLocationId}
+                          onValueChange={(v) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              dropoffLocationId: v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Keep current" />
+                          </SelectTrigger>
                           <SelectContent>
                             {overviewLocations.map((loc: any) => (
-                              <SelectItem key={loc.id} value={loc.id.toString()} className="text-xs">{loc.name}</SelectItem>
+                              <SelectItem
+                                key={loc.id}
+                                value={loc.id.toString()}
+                                className="text-xs"
+                              >
+                                {loc.name}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1840,16 +2425,24 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                         label="Pickup Date & Time"
                         dateValue={overviewDraft.pickupDate}
                         timeValue={overviewDraft.pickupTime}
-                        onDateChange={(d) => setOverviewDraft((p) => ({ ...p, pickupDate: d }))}
-                        onTimeChange={(t) => setOverviewDraft((p) => ({ ...p, pickupTime: t }))}
+                        onDateChange={(d) =>
+                          setOverviewDraft((p) => ({ ...p, pickupDate: d }))
+                        }
+                        onTimeChange={(t) =>
+                          setOverviewDraft((p) => ({ ...p, pickupTime: t }))
+                        }
                       />
                       {/* Dropoff datetime (editable) */}
                       <HandoverDateTimePicker
                         label="Dropoff Date & Time"
                         dateValue={overviewDraft.dropoffDate}
                         timeValue={overviewDraft.dropoffTime}
-                        onDateChange={(d) => setOverviewDraft((p) => ({ ...p, dropoffDate: d }))}
-                        onTimeChange={(t) => setOverviewDraft((p) => ({ ...p, dropoffTime: t }))}
+                        onDateChange={(d) =>
+                          setOverviewDraft((p) => ({ ...p, dropoffDate: d }))
+                        }
+                        onTimeChange={(t) =>
+                          setOverviewDraft((p) => ({ ...p, dropoffTime: t }))
+                        }
                       />
                       {/* Notes */}
                       <div className="col-span-2 sm:col-span-3 grid gap-1.5">
@@ -1858,7 +2451,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           rows={2}
                           placeholder="Optional notes…"
                           value={overviewDraft.notes}
-                          onChange={(e) => setOverviewDraft((p) => ({ ...p, notes: e.target.value }))}
+                          onChange={(e) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              notes: e.target.value,
+                            }))
+                          }
                           className="text-xs resize-none"
                         />
                       </div>
@@ -1894,56 +2492,126 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <SummaryCard
                     label="Total Paid"
-                    value={summary ? fmtOrig(summary.totalPaidOriginal ?? summary.totalPaid) : fmtOrig(0)}
-                    gelSub={isNonGel && summary ? fmtGel(summary.totalPaid) : undefined}
+                    value={
+                      summary
+                        ? fmtOrig(
+                            summary.totalPaidOriginal ?? summary.totalPaid,
+                          )
+                        : fmtOrig(0)
+                    }
+                    gelSub={
+                      isNonGel && summary
+                        ? fmtGel(summary.totalPaid)
+                        : undefined
+                    }
                   />
                   <SummaryCard
                     label="Remaining Balance"
                     value={remaining != null ? fmtOrig(remaining) : "—"}
-                    gelSub={remainingGel != null ? fmtGel(remainingGel) : undefined}
-                    sub={totalPrice == null ? "Set booking price to track balance" : undefined}
+                    gelSub={
+                      remainingGel != null ? fmtGel(remainingGel) : undefined
+                    }
+                    sub={
+                      totalPrice == null
+                        ? "Set booking price to track balance"
+                        : undefined
+                    }
                   />
                   <SummaryCard
                     label="Deposit Received"
-                    value={summary ? fmtOrig(summary.depositReceivedOriginal ?? summary.depositReceived) : fmtOrig(0)}
-                    gelSub={isNonGel && summary ? fmtGel(summary.depositReceived) : undefined}
+                    value={
+                      summary
+                        ? fmtOrig(
+                            summary.depositReceivedOriginal ??
+                              summary.depositReceived,
+                          )
+                        : fmtOrig(0)
+                    }
+                    gelSub={
+                      isNonGel && summary
+                        ? fmtGel(summary.depositReceived)
+                        : undefined
+                    }
                   />
                   <SummaryCard
                     label="Deposit Returned"
-                    value={summary ? fmtOrig(summary.depositReturnedOriginal ?? summary.depositReturned) : fmtOrig(0)}
-                    gelSub={isNonGel && summary ? fmtGel(summary.depositReturned) : undefined}
+                    value={
+                      summary
+                        ? fmtOrig(
+                            summary.depositReturnedOriginal ??
+                              summary.depositReturned,
+                          )
+                        : fmtOrig(0)
+                    }
+                    gelSub={
+                      isNonGel && summary
+                        ? fmtGel(summary.depositReturned)
+                        : undefined
+                    }
                   />
                   <SummaryCard
                     label="Total Refunded"
-                    value={summary ? fmtOrig(summary.totalRefundedOriginal ?? summary.totalRefunded) : fmtOrig(0)}
-                    gelSub={isNonGel && summary ? fmtGel(summary.totalRefunded) : undefined}
+                    value={
+                      summary
+                        ? fmtOrig(
+                            summary.totalRefundedOriginal ??
+                              summary.totalRefunded,
+                          )
+                        : fmtOrig(0)
+                    }
+                    gelSub={
+                      isNonGel && summary
+                        ? fmtGel(summary.totalRefunded)
+                        : undefined
+                    }
                   />
                   <SummaryCard
                     label="Net Deposit"
-                    value={summary ? fmtOrig(summary.netDepositOriginal ?? summary.netDeposit) : fmtOrig(0)}
-                    gelSub={isNonGel && summary ? fmtGel(summary.netDeposit) : undefined}
+                    value={
+                      summary
+                        ? fmtOrig(
+                            summary.netDepositOriginal ?? summary.netDeposit,
+                          )
+                        : fmtOrig(0)
+                    }
+                    gelSub={
+                      isNonGel && summary
+                        ? fmtGel(summary.netDeposit)
+                        : undefined
+                    }
                     sub="Received minus returned"
                   />
                 </div>
               </CollapsibleSection>
 
               {/* ─── Delivered With No Payment Warning ───────────────────────── */}
-              {booking?.status === "DELIVERED" && !loadingPayments && payments.length === 0 && (
-                <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
-                  <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-400">Record Payment</p>
-                    <p className="text-xs text-red-400/80 mt-0.5">This booking is marked as delivered but has no payment records</p>
+              {booking?.status === "DELIVERED" &&
+                !loadingPayments &&
+                payments.length === 0 && (
+                  <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-400">
+                        Record Payment
+                      </p>
+                      <p className="text-xs text-red-400/80 mt-0.5">
+                        This booking is marked as delivered but has no payment
+                        records
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* ─── Payment History ──────────────────────────────────────────── */}
               <CollapsibleSection
                 title="Payment History"
                 icon={<Receipt className="w-3.5 h-3.5" />}
                 action={
-                  <Button size="sm" onClick={() => setShowAddForm((v) => !v)} className="h-6 text-xs gap-1">
+                  <Button
+                    size="sm"
+                    onClick={() => setShowAddForm((v) => !v)}
+                    className="h-6 text-xs gap-1"
+                  >
                     <Plus className="w-3 h-3" /> Add
                   </Button>
                 }
@@ -1952,49 +2620,91 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   {/* Add Payment Form */}
                   {showAddForm && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mb-3 space-y-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">New Payment Entry</h4>
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
+                        New Payment Entry
+                      </h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="grid gap-1.5">
-                          <Label className="text-xs">Payment Type <span className="text-destructive">*</span></Label>
-                          <Select value={form.paymentType} onValueChange={(v) => setForm({ ...form, paymentType: v })}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select type…" /></SelectTrigger>
+                          <Label className="text-xs">
+                            Payment Type{" "}
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          <Select
+                            value={form.paymentType}
+                            onValueChange={(v) =>
+                              setForm({ ...form, paymentType: v })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select type…" />
+                            </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="BOOKING_PAYMENT">Booking Payment</SelectItem>
-                              <SelectItem value="DEPOSIT_RECEIVED">Deposit Received</SelectItem>
-                              <SelectItem value="DEPOSIT_RETURNED">Deposit Returned</SelectItem>
+                              <SelectItem value="BOOKING_PAYMENT">
+                                Booking Payment
+                              </SelectItem>
+                              <SelectItem value="DEPOSIT_RECEIVED">
+                                Deposit Received
+                              </SelectItem>
+                              <SelectItem value="DEPOSIT_RETURNED">
+                                Deposit Returned
+                              </SelectItem>
                               <SelectItem value="REFUND">Refund</SelectItem>
-                              <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
+                              <SelectItem value="ADJUSTMENT">
+                                Adjustment
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="grid gap-1.5">
-                          <Label className="text-xs">Method <span className="text-destructive">*</span></Label>
-                          <Select value={form.method} onValueChange={(v) => setForm({ ...form, method: v })}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select method…" /></SelectTrigger>
+                          <Label className="text-xs">
+                            Method <span className="text-destructive">*</span>
+                          </Label>
+                          <Select
+                            value={form.method}
+                            onValueChange={(v) =>
+                              setForm({ ...form, method: v })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select method…" />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="CASH">Cash</SelectItem>
                               <SelectItem value="CARD">Card</SelectItem>
-                              <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                              <SelectItem value="BANK_TRANSFER">
+                                Bank Transfer
+                              </SelectItem>
                               <SelectItem value="OTHER">Other</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="grid gap-1.5">
-                          <Label className="text-xs">Amount <span className="text-destructive">*</span></Label>
+                          <Label className="text-xs">
+                            Amount <span className="text-destructive">*</span>
+                          </Label>
                           <Input
                             type="number"
                             step="0.01"
                             min="0.01"
                             placeholder="0.00"
                             value={form.amount}
-                            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, amount: e.target.value })
+                            }
                             className="h-8 text-xs"
                           />
                         </div>
                         <div className="grid gap-1.5">
                           <Label className="text-xs">Currency</Label>
-                          <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <Select
+                            value={form.currency}
+                            onValueChange={(v) =>
+                              setForm({ ...form, currency: v })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="GEL">GEL (₾)</SelectItem>
                               <SelectItem value="USD">USD ($)</SelectItem>
@@ -2003,11 +2713,16 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           </Select>
                         </div>
                         <div className="grid gap-1.5">
-                          <Label className="text-xs">Payment Date <span className="text-destructive">*</span></Label>
+                          <Label className="text-xs">
+                            Payment Date{" "}
+                            <span className="text-destructive">*</span>
+                          </Label>
                           <Input
                             type="date"
                             value={form.paymentDate}
-                            onChange={(e) => setForm({ ...form, paymentDate: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, paymentDate: e.target.value })
+                            }
                             className="h-8 text-xs"
                           />
                         </div>
@@ -2016,16 +2731,31 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                           <Input
                             placeholder="Optional note…"
                             value={form.notes}
-                            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                            onChange={(e) =>
+                              setForm({ ...form, notes: e.target.value })
+                            }
                             className="h-8 text-xs"
                           />
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end pt-1">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setShowAddForm(false); setForm(EMPTY_FORM); }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            setShowAddForm(false);
+                            setForm(EMPTY_FORM);
+                          }}
+                        >
                           Cancel
                         </Button>
-                        <Button size="sm" className="h-7 text-xs" onClick={handleAddPayment} disabled={saving}>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={handleAddPayment}
+                          disabled={saving}
+                        >
                           {saving ? "Saving…" : "Save Payment"}
                         </Button>
                       </div>
@@ -2034,7 +2764,9 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
 
                   {/* History Table */}
                   {loadingPayments ? (
-                    <div className="text-sm text-muted-foreground py-4 text-center">Loading payments…</div>
+                    <div className="text-sm text-muted-foreground py-4 text-center">
+                      Loading payments…
+                    </div>
                   ) : payments.length === 0 ? (
                     <div className="rounded-lg border border-border/30 bg-muted/10 py-8 text-center text-sm text-muted-foreground">
                       No payments recorded yet.
@@ -2055,25 +2787,41 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                         </TableHeader>
                         <TableBody>
                           {payments.map((p: any) => (
-                            <TableRow key={p.id} className="border-border/20 hover:bg-muted/20 text-sm">
+                            <TableRow
+                              key={p.id}
+                              className="border-border/20 hover:bg-muted/20 text-sm"
+                            >
                               <TableCell className="font-mono text-xs text-muted-foreground">
-                                {p.paymentDate ? format(new Date(p.paymentDate), "MMM d, yyyy") : "—"}
+                                {p.paymentDate
+                                  ? format(
+                                      new Date(p.paymentDate),
+                                      "MMM d, yyyy",
+                                    )
+                                  : "—"}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline" className={`text-[10px] font-semibold uppercase ${typeColor(p.paymentType)}`}>
-                                  {PAYMENT_TYPE_LABELS[p.paymentType] ?? p.paymentType}
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-semibold uppercase ${typeColor(p.paymentType)}`}
+                                >
+                                  {PAYMENT_TYPE_LABELS[p.paymentType] ??
+                                    p.paymentType}
                                 </Badge>
                               </TableCell>
                               <TableCell className="font-mono font-bold text-sm">
-                                {currencySymbol(p.currency)}{parseFloat(p.amount).toFixed(2)}
+                                {currencySymbol(p.currency)}
+                                {parseFloat(p.amount).toFixed(2)}
                               </TableCell>
                               <TableCell>
                                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  {METHOD_ICONS[p.method]}{METHOD_LABELS[p.method] ?? p.method}
+                                  {METHOD_ICONS[p.method]}
+                                  {METHOD_LABELS[p.method] ?? p.method}
                                 </span>
                               </TableCell>
                               <TableCell className="font-mono text-xs text-muted-foreground">
-                                {p.currency !== "GEL" ? `₾${parseFloat(p.convertedGel).toFixed(2)}` : "—"}
+                                {p.currency !== "GEL"
+                                  ? `₾${parseFloat(p.convertedGel).toFixed(2)}`
+                                  : "—"}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate">
                                 {p.notes || "—"}
@@ -2092,27 +2840,48 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                                         <Receipt className="w-3 h-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="text-xs">
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="text-xs"
+                                    >
                                       <DropdownMenuItem
                                         className="text-xs gap-1.5"
-                                        onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/receipt`, "_blank")}
+                                        onClick={() =>
+                                          window.open(
+                                            `/crm/payment-doc/${bookingId}/${p.id}/receipt`,
+                                            "_blank",
+                                          )
+                                        }
                                       >
-                                        <Receipt className="w-3 h-3" /> Payment Receipt
+                                        <Receipt className="w-3 h-3" /> Payment
+                                        Receipt
                                       </DropdownMenuItem>
                                       {p.paymentType === "DEPOSIT_RECEIVED" && (
                                         <DropdownMenuItem
                                           className="text-xs gap-1.5"
-                                          onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/deposit-receipt`, "_blank")}
+                                          onClick={() =>
+                                            window.open(
+                                              `/crm/payment-doc/${bookingId}/${p.id}/deposit-receipt`,
+                                              "_blank",
+                                            )
+                                          }
                                         >
-                                          <FileText className="w-3 h-3" /> Deposit Receipt
+                                          <FileText className="w-3 h-3" />{" "}
+                                          Deposit Receipt
                                         </DropdownMenuItem>
                                       )}
                                       {p.paymentType === "DEPOSIT_RETURNED" && (
                                         <DropdownMenuItem
                                           className="text-xs gap-1.5"
-                                          onClick={() => window.open(`/crm/payment-doc/${bookingId}/${p.id}/deposit-return`, "_blank")}
+                                          onClick={() =>
+                                            window.open(
+                                              `/crm/payment-doc/${bookingId}/${p.id}/deposit-return`,
+                                              "_blank",
+                                            )
+                                          }
                                         >
-                                          <Ticket className="w-3 h-3" /> Deposit Return
+                                          <Ticket className="w-3 h-3" /> Deposit
+                                          Return
                                         </DropdownMenuItem>
                                       )}
                                     </DropdownMenuContent>
@@ -2142,7 +2911,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 icon={<Car className="w-3.5 h-3.5" />}
                 badge={
                   handovers.pickup ? (
-                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 ml-1">Completed</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 ml-1"
+                    >
+                      Completed
+                    </Badge>
                   ) : undefined
                 }
               >
@@ -2151,13 +2925,23 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       see the AlertTriangle banner above the actions row. */}
                   {handovers.pickup ? (
                     <>
-                      <HandoverDisplay handover={handovers.pickup} type="pickup" />
+                      <HandoverDisplay
+                        handover={handovers.pickup}
+                        type="pickup"
+                      />
                       <div className="pt-1 flex justify-end">
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-7 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
-                          onClick={() => setPhotoAppend({ type: "PICKUP", title: "Add more pickup photos", description: "These will be appended to the existing pickup photos." })}
+                          onClick={() =>
+                            setPhotoAppend({
+                              type: "PICKUP",
+                              title: "Add more pickup photos",
+                              description:
+                                "These will be appended to the existing pickup photos.",
+                            })
+                          }
                         >
                           <Upload className="w-3 h-3" /> Add more pickup photos
                         </Button>
@@ -2167,12 +2951,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                     <div className="text-center py-6 text-sm text-muted-foreground">
                       {/* Pre-pickup uploads are available for any post-confirmation
                           status that hasn't reached dropoff yet (CONFIRMED + DELIVERED). */}
-                      {(booking?.status === "CONFIRMED" || booking?.status === "DELIVERED") ? (
+                      {booking?.status === "CONFIRMED" ||
+                      booking?.status === "DELIVERED" ? (
                         <div className="space-y-2">
                           <p>No pick up recorded yet.</p>
                           <div className="flex flex-wrap items-center justify-center gap-2">
                             {canPickUp && (
-                              <Button size="sm" className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => openHandoverModal("pickup")}>
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => openHandoverModal("pickup")}
+                              >
                                 <Car className="w-3 h-3" /> Record Pick Up
                               </Button>
                             )}
@@ -2180,14 +2969,24 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                               size="sm"
                               variant="outline"
                               className="h-7 text-xs gap-1.5"
-                              onClick={() => setPhotoAppend({ type: "PICKUP", title: "Upload pickup photos", description: "Save photos now and finish the pickup record later." })}
+                              onClick={() =>
+                                setPhotoAppend({
+                                  type: "PICKUP",
+                                  title: "Upload pickup photos",
+                                  description:
+                                    "Save photos now and finish the pickup record later.",
+                                })
+                              }
                             >
                               <Upload className="w-3 h-3" /> Upload Photos
                             </Button>
                           </div>
                         </div>
                       ) : (
-                        <p>No pick up recorded yet. Available once booking is Confirmed.</p>
+                        <p>
+                          No pick up recorded yet. Available once booking is
+                          Confirmed.
+                        </p>
                       )}
                     </div>
                   )}
@@ -2200,24 +2999,39 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 icon={<RotateCcw className="w-3.5 h-3.5" />}
                 badge={
                   handovers.dropoff ? (
-                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 ml-1">Completed</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 ml-1"
+                    >
+                      Completed
+                    </Badge>
                   ) : undefined
                 }
               >
                 <div>
                   {handovers.dropoff ? (
-                    <HandoverDisplay handover={handovers.dropoff} type="dropoff" />
+                    <HandoverDisplay
+                      handover={handovers.dropoff}
+                      type="dropoff"
+                    />
                   ) : (
                     <div className="text-center py-6 text-sm text-muted-foreground">
                       {canDropOff ? (
                         <div className="space-y-2">
                           <p>No drop off recorded yet.</p>
-                          <Button size="sm" className="h-7 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => openHandoverModal("dropoff")}>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => openHandoverModal("dropoff")}
+                          >
                             <RotateCcw className="w-3 h-3" /> Record Drop Off
                           </Button>
                         </div>
                       ) : (
-                        <p>No drop off recorded yet. Available once vehicle is Delivered.</p>
+                        <p>
+                          No drop off recorded yet. Available once vehicle is
+                          Delivered.
+                        </p>
                       )}
                     </div>
                   )}
@@ -2229,13 +3043,19 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                 title="Recent Activity"
                 icon={<Activity className="w-3.5 h-3.5" />}
               >
-                <RecentActivity entityType="booking" entityId={bookingId} limit={8} />
+                <RecentActivity
+                  entityType="booking"
+                  entityId={bookingId}
+                  limit={8}
+                />
               </CollapsibleSection>
             </div>
           )}
 
           {loadingBooking && (
-            <div className="py-12 text-center text-muted-foreground text-sm">Loading booking details…</div>
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              Loading booking details…
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -2280,13 +3100,17 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
         isAirportDropoff={
-          booking?.vehicleId != null &&
-          booking?.dropoffLocation?.id === 1
+          booking?.vehicleId != null && booking?.dropoffLocation?.id === 1
         }
       />
 
       {/* Assign Vehicle Dialog */}
-      <Dialog open={isAssignOpen} onOpenChange={(v) => { if (!savingAssign) setIsAssignOpen(v); }}>
+      <Dialog
+        open={isAssignOpen}
+        onOpenChange={(v) => {
+          if (!savingAssign) setIsAssignOpen(v);
+        }}
+      >
         <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-sm overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Assign Vehicle</DialogTitle>
@@ -2299,20 +3123,35 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/40 border border-border/40 text-sm">
                 <Car className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="font-medium">
-                  {booking.vehicle.brandName ? `${booking.vehicle.brandName} ` : ""}{booking.vehicle.modelName}
+                  {booking.vehicle.brandName
+                    ? `${booking.vehicle.brandName} `
+                    : ""}
+                  {booking.vehicle.modelName}
                 </span>
                 <span className="text-muted-foreground">·</span>
-                <span className="font-mono text-xs">{booking.vehicle.licensePlate}</span>
-                <span className="ml-auto text-[11px] text-muted-foreground uppercase tracking-wide">Current</span>
+                <span className="font-mono text-xs">
+                  {booking.vehicle.licensePlate}
+                </span>
+                <span className="ml-auto text-[11px] text-muted-foreground uppercase tracking-wide">
+                  Current
+                </span>
               </div>
             )}
             <div>
-              <Label className="text-xs text-muted-foreground mb-1 block">Model</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Model
+              </Label>
               {loadingAssignModels ? (
-                <div className="text-sm text-muted-foreground py-1">Loading models…</div>
+                <div className="text-sm text-muted-foreground py-1">
+                  Loading models…
+                </div>
               ) : (
                 <Select
-                  value={assignSelectedModelId != null ? String(assignSelectedModelId) : ""}
+                  value={
+                    assignSelectedModelId != null
+                      ? String(assignSelectedModelId)
+                      : ""
+                  }
                   onValueChange={(val) => handleModelChange(Number(val))}
                   disabled={savingAssign}
                 >
@@ -2322,7 +3161,8 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                   <SelectContent>
                     {assignModels.map((m: any) => (
                       <SelectItem key={m.id} value={String(m.id)}>
-                        {m.brand?.name ? `${m.brand.name} ` : ""}{m.name}
+                        {m.brand?.name ? `${m.brand.name} ` : ""}
+                        {m.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -2330,12 +3170,18 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
               )}
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1 block">Vehicle</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Vehicle
+              </Label>
               <div className="max-h-52 overflow-y-auto space-y-1">
                 {loadingAssignVehicles ? (
-                  <div className="text-center py-4 text-sm text-muted-foreground">Loading vehicles…</div>
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    Loading vehicles…
+                  </div>
                 ) : assignVehicles.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-muted-foreground">No vehicles available for this model.</div>
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    No vehicles available for this model.
+                  </div>
                 ) : (
                   assignVehicles.map((v: any) => (
                     <button
@@ -2345,8 +3191,12 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
                       className="w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-muted/60 transition-colors border border-border/30 disabled:opacity-50"
                       onClick={() => handleAssignVehicle(v.id)}
                     >
-                      <span className="font-medium text-sm">{v.licensePlate}</span>
-                      <span className="text-xs text-muted-foreground capitalize">{v.status?.toLowerCase() ?? ""}</span>
+                      <span className="font-medium text-sm">
+                        {v.licensePlate}
+                      </span>
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {v.status?.toLowerCase() ?? ""}
+                      </span>
                     </button>
                   ))
                 )}
@@ -2368,7 +3218,6 @@ export default function BookingDetail({ bookingId, open, onClose, onPaymentChang
           </div>
         </DialogContent>
       </Dialog>
-
     </>
   );
 }

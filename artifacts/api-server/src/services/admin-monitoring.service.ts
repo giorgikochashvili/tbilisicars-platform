@@ -16,7 +16,7 @@ import {
   userTable,
 } from "@workspace/db";
 import { aliasedTable } from "drizzle-orm";
-import { and, eq, gte, lte, desc, asc, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, lte, desc, asc, inArray, isNull, sql } from "drizzle-orm";
 
 export type SatisfactionMark = "HAPPY" | "NEUTRAL" | "SAD";
 
@@ -181,7 +181,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
     .where(
       and(
         eq(paymentTable.status, "PAID"),
-        sql`${paymentTable.bookingId} = ANY(${bookingIds})`,
+        inArray(paymentTable.bookingId, bookingIds),
       ),
     )
     .groupBy(paymentTable.bookingId, paymentTable.currency);
