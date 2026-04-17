@@ -1466,6 +1466,7 @@ export default function BookingDetail({
     dropoffDate: "",
     dropoffTime: "09:00",
     contactPhone: "",
+    contactEmail: "",
   });
   const [changingStatus, setChangingStatus] = useState(false);
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
@@ -1915,6 +1916,7 @@ export default function BookingDetail({
       dropoffDate: dr.date,
       dropoffTime: dr.time,
       contactPhone: booking?.contactPhone ?? booking?.customer?.phone ?? "",
+      contactEmail: booking?.contactEmail ?? booking?.customer?.email ?? "",
     });
     setIsOverviewEditing(true);
   };
@@ -1967,6 +1969,7 @@ export default function BookingDetail({
               }
             : {}),
           contactPhone: overviewDraft.contactPhone || null,
+          contactEmail: overviewDraft.contactEmail || null,
         }),
       });
       setIsOverviewEditing(false);
@@ -2499,6 +2502,22 @@ export default function BookingDetail({
                             setOverviewDraft((p) => ({
                               ...p,
                               contactPhone: e.target.value,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {/* Contact Email */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Contact Email</Label>
+                        <Input
+                          type="email"
+                          placeholder="e.g. customer@example.com"
+                          value={overviewDraft.contactEmail}
+                          onChange={(e) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              contactEmail: e.target.value,
                             }))
                           }
                           className="h-8 text-xs"
