@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "seed:dev": "tsx ./seed-dev.ts",
+    "seed:dev:extended": "tsx ./seed-dev-extended.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
