@@ -78,6 +78,11 @@ const TRUST_STATS = [
   { value: "24/7", label: "Customer Support" },
 ];
 
+const VEHICLE_CATEGORIES = [
+  "Mini", "Economy", "Hybrid", "Electric", "SUV / Jeep",
+  "7-seater", "Minivan", "Off-road", "Sports cars", "Cabriolet", "Business class",
+];
+
 const WHY_CARDS = [
   {
     icon: <Shield className="w-5 h-5 text-primary" />,
@@ -571,6 +576,38 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Vehicle Categories ── */}
+      <section className="py-12 px-4" style={{ background: "hsl(211,55%,6%)" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">All Vehicle Categories in One Place</h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-2xl mx-auto">
+            From city cars to SUVs, hybrids, minivans and business-class vehicles — choose the right car for your trip in Georgia.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {VEHICLE_CATEGORIES.map((cat) => (
+              <span
+                key={cat}
+                className="px-4 py-2 rounded-full border border-white/15 text-sm text-white/80 bg-white/5 hover:border-primary/50 hover:text-white transition-colors"
+              >
+                {cat}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust Block ── */}
+      <section className="py-10 px-4 border-t border-white/8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-white mb-3">
+            Trusted by thousands of travelers worldwide
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We deliver reliable, transparent and stress-free car rental service across Georgia — with fast support, clear pricing and experience built around real traveler needs.
+          </p>
         </div>
       </section>
 
