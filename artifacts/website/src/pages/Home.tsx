@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  MapPin, Calendar, Shield, ChevronRight, ChevronDown,
-  Users, CheckCircle, Phone, Infinity, Car, HeartHandshake, ChevronLeft,
+  Calendar, Shield, ChevronRight, ChevronDown,
+  Users, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft,
 } from "lucide-react";
-import { Link } from "wouter";
-import { DateTimePicker, type DateTimePickerHandle } from "@/components/DateTimePicker";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 interface Location {
   id: number;
@@ -213,7 +212,6 @@ export default function Home() {
   const [dropoffDatetime, setDropoffDatetime] = useState("");
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
-  const dropoffPickerRef = useRef<DateTimePickerHandle>(null);
 
   const { data: config } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
@@ -262,7 +260,7 @@ export default function Home() {
     <div className="min-h-screen">
       {/* ── Hero ── */}
       <section
-        className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 lg:py-4"
+        className="relative flex flex-col items-center px-4 pt-14 pb-12 sm:pt-20 sm:pb-16"
         style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
       >
         {/* Subtle background radial accents */}
@@ -284,32 +282,17 @@ export default function Home() {
           style={{ background: "linear-gradient(to bottom, hsl(211,55%,8%) 0%, transparent 25%, transparent 65%, hsl(211,55%,8%) 100%)" }}
         />
 
-        <style>{`
-          @keyframes badge-dot-pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.15); }
-          }
-          .badge-dot { animation: badge-dot-pulse 2.5s ease-in-out infinite; }
-        `}</style>
-
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
-          {/* Trust badge */}
-          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 rounded-full px-4 py-1.5 text-sm text-primary mb-4 lg:mb-2">
-            <span className="badge-dot w-2 h-2 rounded-full bg-primary" />
-            10+ Years Experience
-          </div>
-
-          <div className="text-xs text-muted-foreground mb-6 lg:mb-2">
-            24/7 Airport Office Services &amp; Customer Support
-          </div>
-
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-4 lg:mb-3 leading-[1.15]">
-            <span className="text-white">Discover </span>
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
+            <span className="text-white">Travel </span>
             <span className="text-primary">Georgia</span>
-            <span className="text-white"> With Us</span>
+            <span className="text-white"> Without Limits</span>
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto mb-6 lg:mb-4">
-            Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance.
+          <p className="text-base sm:text-lg font-medium text-white/80 mb-2">
+            We know how to serve our customers
+          </p>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-5 lg:mb-4">
+            24/7 support&nbsp;•&nbsp;No hidden fees&nbsp;•&nbsp;Airport service&nbsp;•&nbsp;Fast pickup
           </p>
 
           {/* Booking Widget */}
@@ -370,7 +353,6 @@ export default function Home() {
                   min={minDt}
                   onChange={setPickupDatetime}
                   placeholder="Select pickup date & time"
-                  onDone={() => dropoffPickerRef.current?.openPicker()}
                 />
               </div>
               <div>
@@ -378,7 +360,6 @@ export default function Home() {
                   Return Date &amp; Time
                 </label>
                 <DateTimePicker
-                  ref={dropoffPickerRef}
                   value={dropoffDatetime}
                   min={pickupDatetime || minDt}
                   onChange={setDropoffDatetime}
@@ -399,18 +380,6 @@ export default function Home() {
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-
-          {/* Maintenance notice */}
-          <p className="mt-4 text-xs text-muted-foreground/55 text-center max-w-sm mx-auto leading-relaxed">
-            We are currently updating parts of our website to improve your experience.
-            If you notice any issue, please contact us directly at{" "}
-            <a
-              href="mailto:reservations@tbilisicars.com"
-              className="text-primary/70 hover:text-primary transition-colors"
-            >
-              reservations@tbilisicars.com
-            </a>.
-          </p>
 
           {/* Stats strip — set SHOW_STATS = true to restore */}
           {SHOW_STATS && (
@@ -566,36 +535,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA Section ── */}
-      <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-2xl p-8 sm:p-12 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to Explore Georgia?</h2>
-          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Browse our full fleet of premium vehicles and find the perfect car for your journey.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              href="/booking"
-              className="bg-primary hover:bg-accent text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-md"
-            >
-              Book Now
-            </Link>
-            <Link
-              href="/fleet"
-              className="border border-border text-foreground hover:bg-secondary/50 font-semibold px-6 py-3 rounded-xl transition-colors"
-            >
-              View Fleet
-            </Link>
-            <Link
-              href="/locations"
-              className="border border-border text-foreground hover:bg-secondary/50 font-semibold px-6 py-3 rounded-xl transition-colors flex items-center gap-2"
-            >
-              <Phone className="w-4 h-4" />
-              Contact Us
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

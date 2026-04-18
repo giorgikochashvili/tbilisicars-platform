@@ -98,11 +98,11 @@ export default function ChatbotWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-[9999] flex items-center gap-2 bg-primary hover:bg-accent text-white px-4 py-3 rounded-full shadow-lg shadow-primary/30 transition-all duration-200 hover:scale-105 active:scale-95"
+          className="fixed bottom-4 right-4 md:bottom-5 md:right-5 z-[9999] w-12 h-12 md:w-auto md:h-auto flex items-center justify-center md:gap-2 bg-primary hover:bg-accent text-white md:px-4 md:py-3 rounded-full shadow-lg shadow-primary/30 transition-all duration-200 hover:scale-105 active:scale-95"
           aria-label="Open chat"
         >
           <MessageCircle className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-semibold pr-0.5">Need help?</span>
+          <span className="hidden md:inline text-sm font-semibold pr-0.5">Need help?</span>
         </button>
       )}
 
