@@ -1,0 +1,194 @@
+TBILISICARS CRM&WEB — HOMEPAGE BATCH 1
+
+IMPORTANT:
+This is a LIVE production-connected project built in Replit.
+Do NOT change architecture.
+Do NOT touch backend, CRM, API, storage, deploy, routes, or unrelated components.
+Make only surgical frontend changes for the public website homepage.
+Keep existing dark visual language.
+Do not break current booking flow.
+Only change the files that are truly necessary.
+
+TARGET FILES:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/ChatbotWidget.tsx
+- optionally artifacts/website/src/components/Header.tsx ONLY if needed for tiny mobile polish, otherwise do not touch it
+
+GOAL OF BATCH 1:
+Fix the top of homepage for mobile-first conversion:
+1) simplify hero
+2) keep booking block near the top
+3) remove maintenance text
+4) remove weak CTA block (“Ready to Explore Georgia?”)
+5) stop chat widget from covering CTA/content
+6) remove confusing auto-jump from pickup date to return date
+
+==================================================
+A) HERO SECTION — REWRITE CONTENT + TIGHTEN LAYOUT
+==================================================
+
+In artifacts/website/src/pages/Home.tsx:
+
+Find the current hero section at the top of the page.
+
+Make these exact content changes:
+
+1. REMOVE the separate trust badge:
+- remove the current "10+ Years Experience" pill/badge completely
+
+2. REMOVE the current small line:
+- remove "24/7 Airport Office Services & Customer Support"
+
+3. REPLACE the hero headline:
+Current:
+- "Discover Georgia With Us"
+New:
+- "Travel Georgia Without Limits"
+
+4. REPLACE the hero paragraph/subtext:
+Current long paragraph:
+- "Affordable Car Rental Across Georgia, Full Comprehensive Insurance, All Category Vehicles, Airport Offices, Unlimited Mileage, Roadside Assistance."
+New structure:
+- first line/subheadline: "We know how to serve our customers"
+- second mini benefits line: "24/7 support • No hidden fees • Airport service • Fast pickup"
+
+Use a cleaner hierarchy:
+- headline visually strongest
+- subheadline medium emphasis
+- mini benefits line smaller and muted
+
+5. TIGHTEN SPACING in hero for mobile:
+- reduce excessive top/bottom empty space
+- hero should no longer feel stretched vertically
+- keep skyline background and dark style
+- booking widget must remain visible high on the page without unnecessary scroll
+
+6. Do NOT add new architecture or new files.
+Implement this inside the existing hero section.
+
+==================================================
+B) BOOKING BLOCK — KEEP POSITION, FIX DATE UX
+==================================================
+
+In artifacts/website/src/pages/Home.tsx:
+
+Keep the booking block where it is in the hero, but improve behavior.
+
+1. REMOVE the automatic jump from pickup date to return date
+Current code uses:
+- onDone={() => dropoffPickerRef.current?.openPicker()}
+
+Change this behavior so:
+- after pickup date/time is selected, it stays selected and visible
+- user manually chooses the return field
+- no automatic opening of return picker
+
+2. Keep current validation logic and current search behavior intact.
+
+3. Improve mobile clarity slightly:
+- keep labels readable
+- selected values should remain clearly visible
+- do not redesign the component architecture, just polish spacing if needed
+
+4. If dropoffPickerRef becomes unused after removing auto-open, clean it up safely.
+
+==================================================
+C) REMOVE MAINTENANCE NOTICE
+==================================================
+
+In artifacts/website/src/pages/Home.tsx:
+
+Delete the maintenance text block completely:
+- "We are currently updating parts of our website..."
+- the email link under it too
+
+This block must be fully removed from render output.
+
+==================================================
+D) REMOVE WEAK CTA SECTION
+==================================================
+
+In artifacts/website/src/pages/Home.tsx:
+
+Delete the entire CTA section at the bottom:
+- heading: "Ready to Explore Georgia?"
+- buttons: "Book Now", "View Fleet", "Contact Us"
+
+Remove the whole section cleanly, including any imports that become unused because of this removal.
+
+==================================================
+E) CHAT WIDGET — MOBILE OVERLAP FIX
+==================================================
+
+In artifacts/website/src/components/ChatbotWidget.tsx:
+
+The closed floating widget currently overlaps important homepage elements on mobile.
+
+Make these exact changes:
+
+1. On mobile, the CLOSED floating button must become much smaller:
+- icon-first compact pill or icon-only behavior is acceptable
+- preferred behavior:
+  - mobile: icon-only circular or very compact button
+  - desktop/tablet: current "Need help?" style can remain or be only slightly reduced
+
+2. Increase safe bottom spacing so it does not cover the homepage primary CTA/search button or footer content.
+Use responsive positioning.
+
+3. Keep chat panel functionality unchanged.
+Do not change chatbot API behavior.
+Do not break open/close logic.
+
+4. Maintain high z-index, but reduce visual obstruction on mobile.
+
+5. The result should feel premium and unobtrusive.
+
+==================================================
+F) WHY SECTION — LEAVE FOR NEXT BATCH
+==================================================
+
+Do NOT yet replace "Why Tbilisicars?" in this batch.
+Leave the section for Batch 2.
+Only make sure Batch 1 changes do not break the page around it.
+
+==================================================
+G) CLEANUP
+==================================================
+
+After changes:
+- remove unused imports in Home.tsx and ChatbotWidget.tsx
+- keep code clean and minimal
+- no dead refs, no unused icons, no leftover code from removed sections
+
+==================================================
+DONE WHEN
+==================================================
+
+Batch 1 is done only if all of this is true:
+
+1. Homepage hero now shows:
+- "Travel Georgia Without Limits"
+- "We know how to serve our customers"
+- "24/7 support • No hidden fees • Airport service • Fast pickup"
+
+2. The separate "10+ Years Experience" badge is gone
+
+3. The maintenance/update notice is gone
+
+4. The "Ready to Explore Georgia?" CTA section is gone
+
+5. The booking block remains near the top and works
+
+6. Selecting pickup date no longer auto-opens return date
+
+7. On mobile, the chat button no longer covers:
+- Search Vehicles button
+- important hero content
+- footer content
+
+8. Build remains clean with no obvious TypeScript/import errors
+
+Please implement surgically and then summarize:
+- exact files changed
+- exact behaviors changed
+- any tiny visual decisions made for mobile chat button
