@@ -584,6 +584,10 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
             : <span className="opacity-40">—</span>;
           const routeFrom = locationShortCode(b.pickupLocation.name);
           const routeTo = locationShortCode(b.dropoffLocation.name);
+          const rentalDays = Math.ceil(
+            (new Date(b.dropoffDatetime).getTime() - new Date(b.pickupDatetime).getTime())
+            / (1000 * 60 * 60 * 24),
+          );
 
           return (
             <div
@@ -599,7 +603,10 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 "hidden md:grid items-center px-3 py-2.5 gap-x-2 hover:bg-muted/40 transition-colors",
                 OPS_GRID,
               )}>
-                <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
+                <div className="flex flex-col">
+                  <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
+                  <span className="font-mono text-[9px] text-muted-foreground/60">{rentalDays}d</span>
+                </div>
                 <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
                 <span className="text-xs text-muted-foreground truncate min-w-0">
                   {phone ?? <span className="italic opacity-50">—</span>}
@@ -608,14 +615,27 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   {b.vehicle ? (
                     <>
                       <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground px-1 py-0.5 bg-background border border-border/50 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
+                      <span className="text-[10px] font-mono font-bold text-foreground px-1 py-0.5 bg-primary/10 border border-primary/30 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
+                      <div className="mt-0.5">
+                        <StatusBadge status={b.status} />
+                      </div>
                     </>
                   ) : vehicleName ? (
-                    <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
+                    <>
+                      <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
+                      <div className="mt-0.5">
+                        <StatusBadge status={b.status} />
+                      </div>
+                    </>
                   ) : (
-                    <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                    <>
+                      <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                      <div className="mt-0.5">
+                        <StatusBadge status={b.status} />
+                      </div>
+                    </>
                   )}
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0">
@@ -642,7 +662,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   {b.vehicle ? (
                     <>
                       <span className="text-[10px] text-foreground/70 truncate min-w-0">{vehicleName}</span>
-                      <span className="text-[9px] font-mono text-muted-foreground px-1 py-0 bg-background border border-border/50 rounded flex-shrink-0">
+                      <span className="text-[9px] font-mono font-bold text-foreground px-1 py-0 bg-primary/10 border border-primary/30 rounded flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
                     </>
@@ -657,10 +677,13 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     <span className="font-mono font-bold text-foreground/70">{routeTo}</span>
                   </span>
                 </div>
-                {/* Row 3: ref + amount + payment */}
-                <div className="flex items-center justify-between gap-2 min-w-0">
-                  <span className="font-mono text-[9px] text-muted-foreground">#{b.id}</span>
-                  <div className="flex items-center gap-1.5">
+                {/* Row 3: ref/days + status + amount + payment */}
+                <div className="flex items-center justify-between gap-1 min-w-0">
+                  <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0">
+                    #{b.id} · {rentalDays}d
+                  </span>
+                  <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+                    <StatusBadge status={b.status} />
                     <span className="text-[10px] font-mono font-semibold text-foreground">{amountEl}</span>
                     <PaymentStatusBadge status={b.paymentStatus} />
                   </div>
