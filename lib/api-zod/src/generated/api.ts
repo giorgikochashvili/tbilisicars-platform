@@ -1950,6 +1950,7 @@ export const GetAdminBookingResponse = zod
       updatedAt: zod.date(),
       deletedAt: zod.string().nullish(),
       externalReservationCode: zod.string().nullish(),
+      voucherImportRef: zod.string().nullish(),
       extras: zod.array(
         zod.object({
           id: zod.number(),

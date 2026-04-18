@@ -52,6 +52,8 @@ export type AdminBookingDetail = AdminBookingRow & {
   deletedAt?: string | null;
   /** @nullable */
   externalReservationCode?: string | null;
+  /** @nullable */
+  voucherImportRef?: string | null;
   extras: AdminBookingExtra[];
   payments: AdminBookingPayment[];
 };
