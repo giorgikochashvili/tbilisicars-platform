@@ -284,13 +284,13 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
           <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
-            <span className="text-white">Travel Georgia Without Limits</span>
+            <span className="text-white">Travel In Georgia Without Limits</span>
           </h1>
-          <p className="text-base sm:text-lg font-medium text-white/80 mb-2">
-            We know how to serve our customers
+          <p className="text-base sm:text-lg font-medium text-primary mb-2 capitalize">
+            We Know How To Serve Our Customers
           </p>
-          <p className="text-xs sm:text-sm text-white/70 mb-5 lg:mb-4">
-            24/7 support&nbsp;•&nbsp;No hidden fees&nbsp;•&nbsp;Airport service&nbsp;•&nbsp;Fast pickup
+          <p className="text-xs sm:text-sm text-slate-300 mb-5 lg:mb-4 capitalize">
+            24/7 Support&nbsp;•&nbsp;No Hidden Fees&nbsp;•&nbsp;Airport Service&nbsp;•&nbsp;Fast Pickup
           </p>
 
           {/* Booking Widget */}
