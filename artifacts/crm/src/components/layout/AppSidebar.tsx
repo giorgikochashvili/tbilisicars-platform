@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
+import { useEffect, useRef } from "react";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, 
-  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile
+  LogOut, CarFront, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -50,7 +51,8 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
 export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const activeItemRef = useRef<HTMLLIElement | null>(null);
 
   const { data: alertSummary } = useQuery<{ total: number }>({
     queryKey: ["alerts-summary"],
@@ -71,6 +73,14 @@ export function AppSidebar() {
     return val === true;
   });
 
+  useEffect(() => {
+    if (!isMobile || !openMobile) return;
+    const frame = requestAnimationFrame(() => {
+      activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isMobile, openMobile]);
+
   return (
     <Sidebar variant="inset" collapsible="offcanvas" className="border-r border-border/40 bg-card/80 backdrop-blur-xl">
       <SidebarHeader className="border-b border-border/40 py-3 px-4 flex flex-row items-center gap-3">
@@ -81,6 +91,15 @@ export function AppSidebar() {
           <span className="font-bold text-base leading-tight text-foreground tracking-tight font-display">Tbilisi Cars</span>
           <span className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold">CRM Admin</span>
         </div>
+        {isMobile && (
+          <button
+            aria-label="Close menu"
+            onClick={() => setOpenMobile(false)}
+            className="ml-auto p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </SidebarHeader>
       
       <SidebarContent className="py-4">
@@ -94,7 +113,7 @@ export function AppSidebar() {
                 const isActive = location === item.url || (location === "/" && item.url === "/dashboard");
                 const showBadge = item.url === "/alerts" && alertCount > 0;
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.title} ref={isActive ? activeItemRef : null}>
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive} 
