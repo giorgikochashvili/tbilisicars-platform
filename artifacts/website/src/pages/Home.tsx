@@ -213,6 +213,34 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
 
+  const [stat0, setStat0] = useState("0");
+  const [stat1, setStat1] = useState("0");
+  const [stat2, setStat2] = useState("0.0");
+
+  useEffect(() => {
+    const duration = 1000;
+    function animate(
+      target: number,
+      setter: (v: string) => void,
+      format: (n: number) => string,
+    ) {
+      const start = performance.now();
+      let raf: number;
+      function step(now: number) {
+        const elapsed = Math.min(now - start, duration);
+        const value = target * (elapsed / duration);
+        setter(format(value));
+        if (elapsed < duration) raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+      return () => cancelAnimationFrame(raf);
+    }
+    const c0 = animate(10, setStat0, (n) => String(Math.round(n)));
+    const c1 = animate(15000, setStat1, (n) => Math.round(n).toLocaleString());
+    const c2 = animate(4.7, setStat2, (n) => n.toFixed(1));
+    return () => { c0(); c1(); c2(); };
+  }, []);
+
   const { data: config } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
     queryFn: () => apiFetch("/api/public/booking-config"),
@@ -394,7 +422,9 @@ export default function Home() {
                   i === 4 ? "col-span-2 sm:col-span-1" : "",
                 ].join(" ")}
               >
-                <span className="text-xl sm:text-2xl font-bold text-primary leading-none">{s.value}</span>
+                <span className="text-xl sm:text-2xl font-bold text-primary leading-none">
+                  {i === 0 ? stat0 + "+" : i === 1 ? stat1 + "+" : i === 2 ? stat2 + "+" : s.value}
+                </span>
                 <span className="text-xs text-muted-foreground mt-1.5 leading-snug">{s.label}</span>
               </div>
             ))}
