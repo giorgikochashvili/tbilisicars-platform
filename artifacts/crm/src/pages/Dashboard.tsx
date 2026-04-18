@@ -443,8 +443,8 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
-const OPS_GRID = "grid-cols-[44px_minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.8fr)_80px_minmax(0,1fr)_56px]";
-const OPS_HEADERS = ["Ref", "Client", "Phone", "Vehicle", "Amount", "Route", "Time"] as const;
+const OPS_GRID = "grid-cols-[44px_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.1fr)_44px_minmax(0,0.9fr)_minmax(0,1fr)_52px]";
+const OPS_HEADERS = ["Ref", "Vehicle", "Client", "Phone", "Days", "Amount", "Route", "Time"] as const;
 
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick, dateStr, onPrevDate, onNextDate, isToday, onTodayDate }: {
   title: string;
@@ -536,6 +536,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-8" />
                   <Skeleton className="h-4 w-14" />
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-10" />
@@ -603,17 +604,9 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 "hidden md:grid items-center px-3 py-2.5 gap-x-2 hover:bg-muted/40 transition-colors",
                 OPS_GRID,
               )}>
-                <div className="flex flex-col">
-                  <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
-                  <span className="font-mono text-[9px] text-muted-foreground/60">{rentalDays}d</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
-                <span className="text-xs text-muted-foreground truncate min-w-0">
-                  {phone
-                    ? <a href={`tel:${phone}`} className="hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>{phone}</a>
-                    : <span className="italic opacity-50">—</span>
-                  }
-                </span>
+                {/* Col 1: Ref */}
+                <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
+                {/* Col 2: Vehicle + booking status */}
                 <div className="flex flex-col min-w-0 overflow-hidden">
                   {b.vehicle ? (
                     <>
@@ -641,15 +634,29 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     </>
                   )}
                 </div>
+                {/* Col 3: Client */}
+                <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
+                {/* Col 4: Phone */}
+                <span className="text-xs text-muted-foreground truncate min-w-0">
+                  {phone
+                    ? <a href={`tel:${phone}`} className="hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                    : <span className="italic opacity-50">—</span>
+                  }
+                </span>
+                {/* Col 5: Days */}
+                <span className="text-xs font-mono font-semibold text-foreground">{rentalDays}d</span>
+                {/* Col 6: Amount + payment status */}
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
                   <PaymentStatusBadge status={b.paymentStatus} />
                 </div>
+                {/* Col 7: Route */}
                 <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
                   <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
                   <ArrowRightLeft className="w-2.5 h-2.5 flex-shrink-0 text-primary/50" />
                   <span className="font-mono font-bold text-foreground/80 truncate">{routeTo}</span>
                 </div>
+                {/* Col 8: Time */}
                 <span className="text-sm font-bold text-foreground">{timeStr}</span>
               </div>
 
