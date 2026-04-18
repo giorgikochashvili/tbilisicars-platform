@@ -526,6 +526,7 @@ export async function getAdminBooking(id: number) {
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt?.toISOString() ?? null,
     externalReservationCode: row.externalReservationCode,
+    voucherImportRef: row.voucherImportRef,
     extras,
     payments,
     pickupPhotoCount,
