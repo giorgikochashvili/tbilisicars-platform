@@ -1,0 +1,59 @@
+This is a LIVE production-connected CRM system. Do NOT refactor unrelated code. Do NOT change architecture unless strictly necessary for voucher file persistence. Do NOT change unrelated booking logic.
+
+We are working ONLY on Voucher Import corrections and voucher file persistence.
+
+CURRENT PROBLEMS
+
+1. When a booking is created through Import Voucher, the payment status is being set to PREPAID by default.
+This is incorrect for our workflow.
+Default payment status for voucher-import-created bookings must be UNPAID.
+
+2. The uploaded voucher image/file is not retained in a usable way on the booking detail side.
+We need the original uploaded voucher source file to remain attached to the booking.
+
+REQUIRED RESULT
+
+A) Voucher Import default payment status
+- For voucher import flow, default payment status must be UNPAID unless explicitly and safely set otherwise by existing confirmed business logic
+- Do NOT assume PREPAID from imported content by default
+
+B) Voucher file persistence
+- The uploaded voucher file/image must be stored and linked to the created booking
+- In Booking Detail, staff must be able to see that a voucher source file exists
+- Ideally this appears in a small, clean attachment/preview area in the booking detail (for example in Overview or a nearby clearly visible section)
+- Clicking it must open the real uploaded voucher image/file
+
+IMPORTANT RULES
+- Do NOT redesign the booking page
+- Do NOT change unrelated booking creation flows
+- Do NOT touch website booking logic
+- Do NOT add a full document management system
+- Do NOT rewrite voucher import from scratch
+- Only fix the existing voucher import flow and minimal booking-detail display needed for the stored voucher file
+
+STEP 1 — ANALYZE CURRENT IMPLEMENTATION
+Identify:
+1. Where voucher import currently creates the booking draft/final booking
+2. Where payment status is assigned in this flow
+3. What happens to the uploaded source file after extraction
+4. Whether the file is already stored somewhere but not linked/displayed
+5. Which minimal schema/storage/linking path should be used to associate the file with the booking
+6. Where the booking detail page can safely display the voucher file without redesigning the page
+
+STEP 2 — PLAN MINIMAL SAFE FIX
+Before building, explain:
+1. Which files will be changed
+2. Why payment status currently becomes PREPAID
+3. How default UNPAID will be enforced safely
+4. How the uploaded voucher file will be stored/linked
+5. How Booking Detail will expose the voucher file to staff
+6. What will NOT be changed
+
+STEP 3 — ACCEPTANCE CRITERIA
+- Voucher-import-created bookings default to UNPAID
+- Original uploaded voucher file remains linked to the created booking
+- Booking Detail visibly shows that a voucher file exists
+- Staff can open the actual voucher file from Booking Detail
+- No unrelated flow is broken
+- No website booking flow changes
+- No unnecessary redesign
