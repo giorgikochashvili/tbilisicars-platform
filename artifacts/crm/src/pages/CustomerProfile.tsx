@@ -74,10 +74,10 @@ export default function CustomerProfile() {
   const queryClient = useQueryClient();
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
 
-  const { data: customer, isLoading: customerLoading } =
+  const { data: customer, isLoading: customerLoading, isError: customerError } =
     useGetAdminCustomer(customerId);
 
-  const { data: bookingsData, isLoading: bookingsLoading } =
+  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError } =
     useListAdminBookings({ customerId, limit: 100, page: 1 });
 
   const typedCustomer = customer as AdminCustomer | undefined;
@@ -91,6 +91,28 @@ export default function CustomerProfile() {
     typedCustomer?.email ||
     typedCustomer?.phone ||
     `Customer #${customerId}`;
+
+  if (!customerLoading && (customerError || (!customer && customerId > 0))) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] gap-5 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+          <User className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold font-display tracking-tight mb-1">Customer not found</h2>
+          <p className="text-muted-foreground text-sm">
+            Customer #{customerId} does not exist or could not be loaded.
+          </p>
+        </div>
+        <Link href="/customers">
+          <Button variant="outline">
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Customers
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -241,6 +263,12 @@ export default function CustomerProfile() {
                       <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                     </TableRow>
                   ))
+                ) : bookingsError ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
+                      Failed to load booking history. Please refresh the page.
+                    </TableCell>
+                  </TableRow>
                 ) : bookings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
@@ -320,6 +348,10 @@ export default function CustomerProfile() {
                   <Skeleton className="h-4 w-32" />
                 </div>
               ))
+            ) : bookingsError ? (
+              <div className="py-10 text-center text-muted-foreground text-sm">
+                Failed to load booking history. Please refresh the page.
+              </div>
             ) : bookings.length === 0 ? (
               <div className="py-10 text-center text-muted-foreground text-sm">
                 No bookings on record for this customer.
