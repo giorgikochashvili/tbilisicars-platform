@@ -892,7 +892,7 @@ function VehicleCard({
             <Check className="w-3.5 h-3.5 text-white" />
           </div>
         )}
-        {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+        {selected && <div className="absolute inset-0 bg-primary/[0.08] pointer-events-none" />}
       </div>
 
       {/* Info panel */}
@@ -941,79 +941,95 @@ function VehicleCard({
 // ─── Vehicle list row (list view) ──────────────────────────────────────────────
 
 function VehicleListRow({
-  m, selected, days, onSelect,
+  m, selected, days, onSelect, onConfirm,
 }: {
   m: VehicleModel; selected: boolean; days: number;
-  onSelect: () => void;
+  onSelect: () => void; onConfirm: () => void;
 }) {
   const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
   const cur = m.price_currency ?? "EUR";
   const isOnRequest = Number(m.vehicle_count) === 0;
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "w-full text-left flex items-center gap-3 sm:gap-4 rounded-2xl border-2 p-3 transition-all duration-200",
-        selected
-          ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
-          : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10",
-      )}
-    >
-      {/* Thumbnail */}
-      <div className="w-20 sm:w-24 h-14 sm:h-16 rounded-xl bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0 relative">
-        <VehicleImg
-          src={toStorageSrc(m.image_url)}
-          alt={`${m.brand} ${m.model}`}
-          className="w-full h-full object-contain p-2"
-        />
-        {selected && <div className="absolute inset-0 bg-primary/10 pointer-events-none rounded-xl" />}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 text-left">
-        <div className="font-bold text-white text-sm leading-tight">
-          {m.brand} {m.model}
+    <div className={cn(
+      "rounded-2xl border-2 transition-all duration-200 overflow-hidden",
+      selected
+        ? "border-primary bg-primary/5 shadow-md shadow-primary/15 ring-1 ring-primary/30"
+        : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10",
+    )}>
+      {/* Tappable row — selects this vehicle */}
+      <button
+        type="button"
+        onClick={onSelect}
+        className="w-full text-left flex items-center gap-3 sm:gap-4 p-3"
+      >
+        {/* Thumbnail */}
+        <div className="w-20 sm:w-24 h-14 sm:h-16 rounded-xl bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0 relative">
+          <VehicleImg
+            src={toStorageSrc(m.image_url)}
+            alt={`${m.brand} ${m.model}`}
+            className="w-full h-full object-contain p-2"
+          />
+          {selected && <div className="absolute inset-0 bg-primary/10 pointer-events-none rounded-xl" />}
         </div>
-        {m.category && (
-          <div className="text-[11px] text-primary/70 font-medium mt-0.5">{m.category}</div>
-        )}
-        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
-          {m.seats && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Users className="w-2.5 h-2.5" /> {m.seats}
-            </span>
-          )}
-          {m.transmission && (
-            <span className="text-[11px] text-muted-foreground">· {transLabel(m.transmission)}</span>
-          )}
-          {m.fuel_type && (
-            <span className="text-[11px] text-muted-foreground">· {fuelLabel(m.fuel_type)}</span>
-          )}
-          {isOnRequest && (
-            <span className="text-[11px] text-amber-400 font-medium">· On Request</span>
-          )}
-        </div>
-      </div>
 
-      {/* Price + selector */}
-      <div className="shrink-0 flex flex-col items-end gap-2">
-        {price !== null ? (
-          <div className="text-right">
-            <div className="text-sm font-bold text-primary leading-none">{formatPrice(price, cur)}</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">/day</div>
+        {/* Content */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="font-bold text-white text-sm leading-tight">
+            {m.brand} {m.model}
           </div>
-        ) : (
-          <div className="text-xs text-muted-foreground text-right leading-snug">Contact<br />for pricing</div>
-        )}
-        <div className={cn(
-          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
-          selected ? "bg-primary border-primary" : "border-border",
-        )}>
-          {selected && <Check className="w-3 h-3 text-white" />}
+          {m.category && (
+            <div className="text-[11px] text-primary/70 font-medium mt-0.5">{m.category}</div>
+          )}
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
+            {m.seats && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Users className="w-2.5 h-2.5" /> {m.seats}
+              </span>
+            )}
+            {m.transmission && (
+              <span className="text-[11px] text-muted-foreground">· {transLabel(m.transmission)}</span>
+            )}
+            {m.fuel_type && (
+              <span className="text-[11px] text-muted-foreground">· {fuelLabel(m.fuel_type)}</span>
+            )}
+            {isOnRequest && (
+              <span className="text-[11px] text-amber-400 font-medium">· On Request</span>
+            )}
+          </div>
         </div>
-      </div>
-    </button>
+
+        {/* Price + selector indicator */}
+        <div className="shrink-0 flex flex-col items-end gap-2">
+          {price !== null ? (
+            <div className="text-right">
+              <div className="text-sm font-bold text-primary leading-none">{formatPrice(price, cur)}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">/day</div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground text-right leading-snug">Contact<br />for pricing</div>
+          )}
+          <div className={cn(
+            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
+            selected ? "bg-primary border-primary" : "border-border",
+          )}>
+            {selected && <Check className="w-3 h-3 text-white" />}
+          </div>
+        </div>
+      </button>
+
+      {/* Compact inline CTA — shown only when this row is selected */}
+      {selected && (
+        <div className="px-3 pb-3 pt-0">
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="w-full inline-flex items-center justify-center gap-1.5 bg-primary hover:bg-accent text-white font-semibold py-2 rounded-xl transition-all duration-150 text-xs shadow-sm active:scale-95"
+          >
+            Continue with this car <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1511,6 +1527,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                 selected={String(form.vehicleModelId) === String(m.id)}
                 days={days}
                 onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                onConfirm={validate}
               />
             ))}
           </div>
@@ -1532,8 +1549,33 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           </div>
         )}
 
-        <div className="pt-4 border-t border-border/30 mt-2 flex justify-end">
-          <Btn onClick={validate} disabled={!form.vehicleModelId}>Continue →</Btn>
+        {/* Bottom continue area */}
+        <div className="pt-4 border-t border-border/30 mt-2">
+          {form.vehicleModelId ? (() => {
+            const sel = models.find((m) => String(m.id) === form.vehicleModelId);
+            const price = sel?.min_price_per_day ? Number(sel.min_price_per_day) : null;
+            const cur = sel?.price_currency ?? "EUR";
+            return (
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center shrink-0">
+                    <Check className="w-2.5 h-2.5 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium text-white truncate">{sel?.brand} {sel?.model}</span>
+                  {price !== null && (
+                    <span className="text-xs text-primary/70 shrink-0 hidden sm:inline">
+                      · {formatPrice(price, cur)}/day
+                    </span>
+                  )}
+                </div>
+                <Btn onClick={validate} className="shrink-0">Continue →</Btn>
+              </div>
+            );
+          })() : (
+            <div className="flex justify-end">
+              <Btn onClick={validate} disabled>Continue →</Btn>
+            </div>
+          )}
         </div>
       </div>
 
