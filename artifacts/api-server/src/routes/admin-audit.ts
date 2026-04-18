@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { pool } from "@workspace/db";
+import { runUploadAudit } from "../lib/audit-uploads.js";
 
 const router: IRouter = Router();
 
@@ -116,6 +117,15 @@ router.get("/admin/audit-logs/entity", requireAdmin, async (req, res) => {
   );
 
   res.json({ rows });
+});
+
+// ─── GET /api/admin/upload-audit ──────────────────────────────────────────────
+// One-shot upload integrity check: queries all tables that store local-upload
+// paths and reports which files exist on disk and which are missing.
+
+router.get("/admin/upload-audit", requireAdmin, async (_req, res) => {
+  const report = await runUploadAudit();
+  res.json(report);
 });
 
 export default router;
