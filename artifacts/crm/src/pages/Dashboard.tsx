@@ -1099,12 +1099,18 @@ export default function Dashboard() {
   });
 
   const filteredPickups = useMemo(
-    () => (pickupQuery.data?.pickups ?? []).filter((b) => b.status !== "CANCELED" && b.status !== "NO_SHOW"),
+    () =>
+      (pickupQuery.data?.pickups ?? [])
+        .filter((b) => b.status !== "CANCELED" && b.status !== "NO_SHOW")
+        .sort((a, b) => new Date(a.pickupDatetime).getTime() - new Date(b.pickupDatetime).getTime()),
     [pickupQuery.data],
   );
 
   const filteredDropoffs = useMemo(
-    () => (dropoffQuery.data?.dropoffs ?? []).filter((b) => b.status !== "RETURNED" && b.status !== "CANCELED" && b.status !== "NO_SHOW"),
+    () =>
+      (dropoffQuery.data?.dropoffs ?? [])
+        .filter((b) => b.status !== "RETURNED" && b.status !== "CANCELED" && b.status !== "NO_SHOW")
+        .sort((a, b) => new Date(a.dropoffDatetime).getTime() - new Date(b.dropoffDatetime).getTime()),
     [dropoffQuery.data],
   );
 
