@@ -1,0 +1,164 @@
+TBILISICARS CRM&WEB — HOMEPAGE BATCH 3
+
+IMPORTANT:
+This is a LIVE production-connected project built in Replit.
+Do NOT change architecture.
+Do NOT touch backend, CRM, API, booking logic, storage, routes, or unrelated website pages.
+Make only surgical frontend changes for the public website homepage.
+Keep the existing dark premium visual language.
+Do not redesign the whole page from scratch.
+Only change what is needed inside the homepage.
+
+TARGET FILE:
+- artifacts/website/src/pages/Home.tsx
+
+GOAL OF BATCH 3:
+1) add a compact Vehicle Categories section
+2) add a short trust/company text block
+3) improve homepage information value without making it long or heavy
+
+==================================================
+A) ADD VEHICLE CATEGORIES SECTION
+==================================================
+
+Add a new homepage section AFTER:
+- the "Everything You Get With Us" benefits section
+
+And BEFORE:
+- footer / final bottom area
+
+SECTION TITLE:
+All Vehicle Categories in One Place
+
+SECTION SUBTEXT:
+Keep it short, useful, and scan-friendly.
+Use:
+From city cars to SUVs, hybrids, minivans and business-class vehicles — choose the right car for your trip in Georgia.
+
+CONTENT:
+Display these categories exactly:
+
+- Mini
+- Economy
+- Hybrid
+- Electric
+- SUV / Jeep
+- 7-seater
+- Minivan
+- Off-road
+- Sports cars
+- Cabriolet
+- Business class
+
+LAYOUT REQUIREMENTS:
+- mobile-first
+- compact pills, chips, or small cards
+- should feel light and easy to scan
+- avoid large tall cards
+- on mobile: wrap neatly into multiple rows
+- on larger screens: centered multi-row or grid layout is fine
+- premium dark styling consistent with homepage
+
+INTERACTION:
+These can be visual only in this batch.
+Do NOT add filtering logic.
+Do NOT add routing unless there is already a very simple existing link pattern available in this same file.
+If linking adds complexity, keep them non-clickable for now.
+
+==================================================
+B) ADD SHORT TRUST / COMPANY TEXT BLOCK
+==================================================
+
+Add a short text block BELOW the Vehicle Categories section.
+
+This should be compact and premium, not a huge paragraph.
+
+HEADING:
+Trusted by thousands of travelers worldwide
+
+BODY TEXT:
+We deliver reliable, transparent and stress-free car rental service across Georgia — with fast support, clear pricing and experience built around real traveler needs.
+
+LAYOUT REQUIREMENTS:
+- centered
+- compact max width
+- clear hierarchy
+- not oversized
+- should feel like a confidence layer before the footer
+
+OPTIONAL:
+A very small subtle divider / spacing rhythm can be used if it matches the current design.
+
+==================================================
+C) MOBILE-FIRST POLISH
+==================================================
+
+Make sure both new sections are optimized for mobile:
+
+- no large empty vertical gaps
+- no oversized headings
+- no paragraph-heavy layout
+- vehicle categories should be very easy to scan quickly
+- trust text block should feel strong but compact
+
+==================================================
+D) DO NOT TOUCH
+==================================================
+
+Do NOT change:
+- hero
+- booking block
+- stats strip
+- benefits section content
+- featured slider
+- footer structure
+- header/menu
+- chatbot
+
+==================================================
+E) CLEANUP
+==================================================
+
+After changes:
+- remove unused imports if any
+- keep code clean and minimal
+- no dead arrays / unused helpers
+- no TypeScript errors
+
+==================================================
+DONE WHEN
+==================================================
+
+Batch 3 is done only if all of this is true:
+
+1. New section exists:
+   "All Vehicle Categories in One Place"
+
+2. It contains exactly these 11 categories:
+   - Mini
+   - Economy
+   - Hybrid
+   - Electric
+   - SUV / Jeep
+   - 7-seater
+   - Minivan
+   - Off-road
+   - Sports cars
+   - Cabriolet
+   - Business class
+
+3. Categories are displayed in a compact, mobile-friendly layout
+
+4. A short trust/company block exists below it with:
+   - heading: "Trusted by thousands of travelers worldwide"
+   - approved body text
+
+5. Both sections feel compact, premium, and mobile-first
+
+6. No TypeScript/build/import errors
+
+After implementation, summarize:
+- exact file changed
+- exact responsive layout used for categories
+- whether categories are clickable or visual-only
+- exact placement of the trust text block
