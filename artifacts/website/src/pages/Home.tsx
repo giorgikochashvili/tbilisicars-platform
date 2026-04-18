@@ -422,7 +422,7 @@ export default function Home() {
                   i === 4 ? "col-span-2 sm:col-span-1" : "",
                 ].join(" ")}
               >
-                <span className="text-xl sm:text-2xl font-bold text-primary leading-none">
+                <span className="text-xl sm:text-2xl font-bold text-primary leading-none tabular-nums">
                   {i === 0 ? stat0 + "+" : i === 1 ? stat1 + "+" : i === 2 ? stat2 + "+" : s.value}
                 </span>
                 <span className="text-xs text-muted-foreground mt-1.5 leading-snug">{s.label}</span>
