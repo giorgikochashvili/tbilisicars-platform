@@ -26,8 +26,8 @@ export default function Footer() {
                 <div className="text-xs text-muted-foreground mt-0.5">Car Rental Georgia</div>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Premium car rental across Georgia. Reliable fleet, transparent pricing, and exceptional customer service since 2014.
+            <p className="text-sm text-muted-foreground">
+              Reliable car rental service across Georgia.
             </p>
           </div>
 
