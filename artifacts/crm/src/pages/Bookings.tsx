@@ -598,7 +598,7 @@ export default function BookingsPage() {
           </h2>
           <p className="text-muted-foreground">Manage reservations, deliveries, and returns</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="shadow-sm" onClick={() => setIsVoucherImportOpen(true)}>
             <FileUp className="w-4 h-4 mr-2" /> Import Voucher
           </Button>
@@ -654,6 +654,7 @@ export default function BookingsPage() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             {/* Region */}
+            <div className="overflow-x-auto max-w-full">
             <div className="flex items-center gap-1 bg-background/60 border border-border/40 rounded-lg px-2 h-9">
               <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
               {REGIONS.map((r) => (
@@ -669,6 +670,7 @@ export default function BookingsPage() {
                   {r === "ALL" ? "All" : r}
                 </button>
               ))}
+            </div>
             </div>
             {/* Status */}
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>

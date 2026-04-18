@@ -863,6 +863,7 @@ const REGIONS: Region[] = ["All", "Tbilisi", "Kutaisi", "Batumi"];
 
 function RegionSelector({ value, onChange }: { value: Region; onChange: (r: Region) => void }) {
   return (
+    <div className="overflow-x-auto">
     <div className="flex items-center gap-1 bg-background/60 border border-border/40 rounded-lg p-1">
       <MapPin className="w-4 h-4 text-primary ml-2 flex-shrink-0" />
       {REGIONS.map((r) => (
@@ -880,6 +881,7 @@ function RegionSelector({ value, onChange }: { value: Region; onChange: (r: Regi
           {r}
         </Button>
       ))}
+    </div>
     </div>
   );
 }
@@ -1143,7 +1145,7 @@ export default function Dashboard() {
             {region === "All" ? "All regions" : `${region} region`} · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <CustomizePopover config={widgetConfig} onChange={handleWidgetChange} region={region} />
           <RegionSelector value={region} onChange={(r) => {
             setRegion(r);
@@ -1218,7 +1220,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
               <CalendarClock className="w-4 h-4 text-primary" /> Booking Overview
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3">
               {cc.total && <StatCard title="Total" value={summaryQuery.data?.total} icon={CalendarClock} testId="stat-total" isLoading={summaryQuery.isLoading} />}
               {cc.revenue && (
                 <StatCard
@@ -1316,7 +1318,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
               <Car className="w-4 h-4 text-primary" /> Fleet Live Status
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
               {(() => {
                 const fleetUrl = (status: string) => city ? `/fleet?status=${status}&city=${city}` : `/fleet?status=${status}`;
                 return (

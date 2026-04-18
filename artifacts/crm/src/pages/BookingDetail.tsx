@@ -401,17 +401,17 @@ function HandoverDateTimePicker({
   const [open, setOpen] = useState(false);
   const selected = dateValue ? new Date(dateValue + "T12:00:00") : undefined;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1.5 min-w-0">
       <Label className="text-xs">
         {label}
         {required && <span className="text-destructive ml-1">*</span>}
       </Label>
-      <div className="flex gap-2">
+      <div className="flex gap-2 min-w-0">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="flex-1 justify-start text-left font-normal h-8 text-xs"
+              className="flex-1 min-w-0 justify-start text-left font-normal h-8 text-xs"
             >
               <Calendar className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
               {dateValue ? (
@@ -421,7 +421,7 @@ function HandoverDateTimePicker({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0" align="start" collisionPadding={8}>
             <CalendarComponent
               mode="single"
               selected={selected}
@@ -436,7 +436,7 @@ function HandoverDateTimePicker({
           </PopoverContent>
         </Popover>
         <Select value={timeValue} onValueChange={onTimeChange}>
-          <SelectTrigger className="w-[100px] h-8 text-xs">
+          <SelectTrigger className="w-[100px] flex-shrink-0 h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="max-h-60">
@@ -2341,7 +2341,7 @@ export default function BookingDetail({
                       </div>
                     </div>
                     {booking.notes && (
-                      <div className="col-span-2 sm:col-span-3">
+                      <div className="col-span-full">
                         <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                           Notes
                         </div>
@@ -2368,7 +2368,7 @@ export default function BookingDetail({
                 ) : (
                   /* Edit form */
                   <div className="p-4 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* Price + Currency */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Booking Price</Label>
@@ -2524,7 +2524,7 @@ export default function BookingDetail({
                         />
                       </div>
                       {/* Notes */}
-                      <div className="col-span-2 sm:col-span-3 grid gap-1.5">
+                      <div className="col-span-full grid gap-1.5">
                         <Label className="text-xs">Notes</Label>
                         <Textarea
                           rows={2}
