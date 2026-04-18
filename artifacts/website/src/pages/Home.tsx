@@ -218,7 +218,7 @@ export default function Home() {
   const [stat2, setStat2] = useState("0.0");
 
   useEffect(() => {
-    const duration = 1000;
+    const duration = 3000;
     function animate(
       target: number,
       setter: (v: string) => void,
