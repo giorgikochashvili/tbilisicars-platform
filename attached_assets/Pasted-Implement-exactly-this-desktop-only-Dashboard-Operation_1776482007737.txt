@@ -1,0 +1,59 @@
+Implement exactly this desktop-only Dashboard Operations column-order correction. Do not change architecture, logic, API, routes, filters, sorting, mobile cards, or any other dashboard section.
+
+Goal
+Fix the Dashboard Operations desktop table (Pickups / Dropoffs) so columns appear in this exact order:
+
+Ref | Vehicle | Client | Phone | Days | Amount | Route | Time
+
+Requirements
+1. Desktop rows must render columns in this exact order:
+   Ref → Vehicle → Client → Phone → Days → Amount → Route → Time
+
+2. Vehicle must appear before Client.
+
+3. Rental days must become its own standalone desktop column with readable text like:
+   3d
+   Do not keep rental days as a tiny secondary annotation under Ref.
+
+4. Keep booking status badge visible inside the Vehicle cell (below the plate / vehicle text).
+
+5. Keep payment status badge visible inside the Amount cell.
+
+6. Desktop layout must remain compact and visually clean.
+
+7. Mobile 3-line card layout must remain completely unchanged.
+
+8. No backend/API/route changes.
+
+Implementation scope
+- Update the desktop grid definition from 7 columns to 8 columns.
+- Update desktop headers to:
+  Ref, Vehicle, Client, Phone, Days, Amount, Route, Time
+- Reorder the desktop row cells to match the exact sequence above.
+- Remove the small rental-days annotation from the Ref cell.
+- Add a standalone Days cell in the desktop row.
+- Update the desktop loading skeleton so it also renders 8 columns matching the final grid.
+
+Out of scope
+- Mobile layout changes
+- Filters
+- Date controls
+- Sorting logic
+- Any other dashboard section
+- Backend/API changes
+
+Relevant file/areas
+artifacts/crm/src/pages/Dashboard.tsx
+- around lines 446-447
+- around lines 530-560
+- around lines 601-654
+
+Done when
+- Desktop Operations headers and rows show:
+  Ref | Vehicle | Client | Phone | Days | Amount | Route | Time
+- Vehicle is before Client
+- Days is its own readable column
+- Booking status remains in Vehicle
+- Payment status remains in Amount
+- Mobile cards are unchanged
+- Skeleton matches the 8-column layout

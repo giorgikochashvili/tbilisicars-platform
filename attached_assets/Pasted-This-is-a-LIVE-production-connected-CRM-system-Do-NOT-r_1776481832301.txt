@@ -1,0 +1,68 @@
+This is a LIVE production-connected CRM system. Do NOT refactor unrelated code. Do NOT change backend logic or API behavior. Do NOT redesign the dashboard.
+
+We are correcting Dashboard → Operations information order/hierarchy so it matches the required operational priority exactly.
+
+CURRENT ISSUE
+The recent Operations readability update improved visibility, but the information order/hierarchy still does NOT match the requested order.
+
+REQUIRED DESKTOP ORDER
+The Operations rows in Pickups and Dropoffs must present information in this order as closely and cleanly as possible:
+
+1. Reservation / booking reference
+2. Vehicle
+3. Customer full name
+4. Phone number
+5. Rental days
+6. Amount
+7. Route (pickup and dropoff locations)
+8. Time
+
+Additionally, both of these must remain clearly visible within the row:
+- Booking status
+- Payment status
+
+IMPORTANT REQUIREMENTS
+- Vehicle must be visually prioritized earlier than customer
+- Rental days must be clearly visible as its own operational data point, not hidden as a tiny secondary annotation under the ref
+- Booking status and payment status must remain visible but should not clutter the row
+- The layout must stay compact and clean
+- Do NOT make the rows oversized or awkward
+- Do NOT break mobile layout
+- Do NOT redesign the whole Operations section
+- Only correct the row hierarchy/order and presentation
+
+SCOPE
+Only work on Dashboard Operations Pickups / Dropoffs rendering.
+Do NOT touch:
+- filters
+- date controls
+- sorting logic
+- backend/API
+- other dashboard sections
+
+STEP 1 — ANALYZE CURRENT OPERATIONS RENDERING
+Identify:
+1. Current desktop order of fields
+2. Where the mismatch vs required order exists
+3. How to rearrange the row/grid safely without breaking the design
+
+STEP 2 — PLAN EXACT CORRECTION
+Before building, explain:
+1. Which file/component will change
+2. How the row order will be adjusted to match:
+   Ref → Vehicle → Client → Phone → Days → Amount → Route → Time
+3. Where booking status and payment status will sit visually
+4. How compactness and readability will be preserved
+5. Confirmation that mobile layout will not be broken
+
+STEP 3 — ACCEPTANCE CRITERIA
+- Operations row order matches the requested operational hierarchy as closely as possible:
+  Ref → Vehicle → Client → Phone → Days → Amount → Route → Time
+- Vehicle appears before customer
+- Rental days are clearly visible as a first-class field
+- Booking status remains visible
+- Payment status remains visible
+- Desktop layout remains clean and compact
+- Mobile layout remains usable
+- No backend/API changes
+- No unrelated code changes
