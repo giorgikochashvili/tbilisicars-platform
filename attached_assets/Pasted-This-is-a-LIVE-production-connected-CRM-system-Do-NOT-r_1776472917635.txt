@@ -1,0 +1,71 @@
+This is a LIVE production-connected CRM system. Do NOT refactor unrelated code. Do NOT redesign the CRM. Do NOT change backend architecture. Do NOT add analytics or advanced customer intelligence in this task.
+
+We are working ONLY on the first foundation step of a dedicated CRM customer profile page.
+
+CONTEXT
+Customer names in Booking Detail are now clickable. We need a proper customer destination page instead of relying only on the Customers list/edit modal.
+
+GOAL
+Create a minimal but solid Customer Profile foundation page in the CRM.
+
+IN SCOPE
+- Add a dedicated CRM route/page for a single customer
+- Show core customer information
+- Show the customer’s booking list/history in a clean basic form
+- Keep the implementation minimal, safe, and extendable later
+
+OUT OF SCOPE
+- No analytics graphs
+- No loyalty logic
+- No debt engine redesign
+- No advanced payment intelligence
+- No document center
+- No major redesign of Customers module
+- No changes to unrelated booking logic
+
+REQUIRED MINIMUM RESULT
+1. A dedicated route exists for an individual customer
+2. Customer name click can open that customer page cleanly
+3. The page shows:
+   - basic customer/contact info
+   - a simple list/history of that customer’s bookings
+4. The page should be extendable later for:
+   - rental count
+   - total spent
+   - debt/balance
+   - other CRM intelligence
+But those should NOT be fully built now unless already safely available with minimal effort
+
+IMPORTANT RULES
+- Keep this first version minimal
+- Reuse existing APIs where possible
+- Prefer already-existing customer and booking data flows
+- Do NOT overbuild
+- Do NOT convert this into a large customer analytics task
+- Desktop and mobile should both remain usable
+
+STEP 1 — ANALYZE CURRENT IMPLEMENTATION
+Identify:
+1. Current Customers page behavior
+2. Existing customer edit modal behavior
+3. Existing route options
+4. Existing backend endpoints for single customer and customer-related bookings
+5. The minimal safe way to create a dedicated customer page without disturbing current Customers list flow
+
+STEP 2 — PLAN MINIMAL SAFE FOUNDATION
+Before building, explain:
+1. Which files will be changed
+2. What route/page will be added
+3. What exact customer information will be shown in version 1
+4. How booking history will be sourced and displayed
+5. What is explicitly deferred for later
+6. How existing Customers list behavior will be preserved or minimally adapted
+
+STEP 3 — ACCEPTANCE CRITERIA
+- A dedicated customer page exists
+- It opens the correct customer
+- Basic customer info is visible
+- Booking history/list is visible
+- The implementation is clean and extendable
+- No unrelated modules are changed
+- No analytics overbuild
