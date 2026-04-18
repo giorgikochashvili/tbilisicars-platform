@@ -1,0 +1,55 @@
+New follow-up task for the already completed Booking Page Vehicle-Selection Redesign.
+
+Context:
+Task #171 already completed the category-based Booking Step 1 redesign, including:
+- vertical category sections
+- Category / List / Grid switcher
+- filter polish
+- desktop-friendly rendering
+
+However, one important mobile UX requirement is still missing.
+
+Current issue:
+In Category View on mobile, each category still shows stacked cards vertically.
+This is not the intended final experience.
+
+Required change:
+On mobile only, inside each category section in Category View, replace the stacked card rendering with a horizontal swipe carousel using snap behavior and visible adjacent-card peeking.
+
+Exact intended behavior:
+- The full page remains a vertical scroll of category sections
+- Each category section on mobile contains a horizontal swipe carousel of vehicle cards
+- One card is primarily centered in view
+- The next card is partially visible on the right edge
+- After swipe, the next card becomes centered
+- The previous card becomes partially visible on the left edge
+- This should feel like a premium touch-first peek carousel / snap carousel
+- Not a stacked list
+- Not a dense mobile grid
+
+Important constraints:
+- This change applies only to Category View on mobile
+- Desktop Category View must remain as currently built (clean grid)
+- List View must remain unchanged
+- Grid View must remain unchanged
+- Filters must remain unchanged
+- Sort behavior must remain unchanged
+- Booking step logic, selection logic, price calculation, and backend behavior must remain unchanged
+- Do not touch CRM, DB, API, or schema
+- Keep this surgical and production-safe
+
+Implementation guidance:
+- Reuse the current category section structure from Task #171
+- Only adjust the inner mobile rendering of vehicle cards in Category View
+- Prefer lightweight CSS scroll snapping or equivalent
+- Keep current card design, selection behavior, price overlays, badges, and card interactions
+- Ensure spacing is polished and cards are not awkwardly clipped
+- Ensure smooth touch scrolling on Android and iPhone
+- Use breakpoints carefully so the carousel is mobile-only and current desktop layout stays intact
+
+Deliverables:
+1. Explain exact files/code areas that will change
+2. Explain how the mobile carousel will behave
+3. Explain what breakpoint switches back to desktop grid
+4. Confirm that List View, Grid View, filters, and booking logic remain untouched
+5. Then wait for approval before build

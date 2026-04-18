@@ -1414,18 +1414,19 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                       {catModels.length} {catModels.length === 1 ? "model" : "models"}
                     </span>
                   </div>
-                  {/* Cards: single column on mobile, 2-col on sm, 3-col on xl */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {/* Cards: centered snap carousel on mobile, 2-col grid on sm, 3-col on xl */}
+                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 xl:grid-cols-3">
                     {catModels.map((m) => (
-                      <VehicleCard
-                        key={m.id}
-                        m={m}
-                        selected={String(form.vehicleModelId) === String(m.id)}
-                        days={days}
-                        showCategoryPill={false}
-                        onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
-                        onConfirm={validate}
-                      />
+                      <div key={m.id} className="shrink-0 w-full snap-center sm:w-auto sm:shrink sm:snap-align-none">
+                        <VehicleCard
+                          m={m}
+                          selected={String(form.vehicleModelId) === String(m.id)}
+                          days={days}
+                          showCategoryPill={false}
+                          onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                          onConfirm={validate}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1442,17 +1443,18 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   <div className="mb-4 pb-3 border-b border-border/60">
                     <h3 className="text-base font-bold text-white">Other Vehicles</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 xl:grid-cols-3">
                     {other.map((m) => (
-                      <VehicleCard
-                        key={m.id}
-                        m={m}
-                        selected={String(form.vehicleModelId) === String(m.id)}
-                        days={days}
-                        showCategoryPill
-                        onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
-                        onConfirm={validate}
-                      />
+                      <div key={m.id} className="shrink-0 w-full snap-center sm:w-auto sm:shrink sm:snap-align-none">
+                        <VehicleCard
+                          m={m}
+                          selected={String(form.vehicleModelId) === String(m.id)}
+                          days={days}
+                          showCategoryPill
+                          onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                          onConfirm={validate}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
