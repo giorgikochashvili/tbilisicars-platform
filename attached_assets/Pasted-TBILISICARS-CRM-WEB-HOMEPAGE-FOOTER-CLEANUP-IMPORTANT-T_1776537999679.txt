@@ -1,0 +1,71 @@
+TBILISICARS CRM&WEB — HOMEPAGE FOOTER CLEANUP
+
+IMPORTANT:
+This is a LIVE production-connected project.
+Do NOT change architecture.
+Do NOT touch backend, CRM, API, routing, or other pages.
+Make only a small content/layout cleanup in the footer.
+
+TARGET FILE:
+- artifacts/website/src/pages/Home.tsx
+(OR the footer component file if footer is extracted — update only where the footer text is rendered)
+
+GOAL:
+Remove outdated marketing paragraph and keep footer clean, minimal, and consistent with the new homepage structure.
+
+==================================================
+A) REMOVE OLD FOOTER PARAGRAPH
+==================================================
+
+Find this text:
+
+"Premium car rental across Georgia. Reliable fleet, transparent pricing, and exceptional customer service since 2014."
+
+Delete this entire paragraph block from the footer.
+
+==================================================
+B) DO NOT REPLACE WITH LONG TEXT
+==================================================
+
+Do NOT add any new long paragraph.
+
+Optional:
+If the layout visually needs a line under the logo, you may add a very short line:
+
+"Reliable car rental service across Georgia"
+
+But this is optional.
+If it looks cleaner without any text — leave it empty.
+
+==================================================
+C) KEEP FOOTER STRUCTURE
+==================================================
+
+Do NOT change:
+- navigation links
+- legal links
+- contact info
+- layout/grid structure
+
+Only remove the paragraph.
+
+==================================================
+D) VISUAL BALANCE
+==================================================
+
+After removing the paragraph:
+
+- check spacing under logo
+- reduce empty vertical gap if needed
+- keep footer visually balanced
+- do not leave awkward empty space
+
+==================================================
+DONE WHEN
+==================================================
+
+- Old paragraph is fully removed
+- Footer looks cleaner and lighter
+- No layout break
+- No empty awkward spacing
+- No TypeScript errors
