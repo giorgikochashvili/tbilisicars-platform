@@ -1,0 +1,111 @@
+This is a LIVE production-connected monorepo. Make a surgical, minimal-risk fix only for vehicle image storage stability across Replit and production deploys. Do NOT refactor unrelated code. Do NOT redesign UI. Do NOT change booking logic. Do NOT change database schema unless absolutely necessary. Focus only on making uploaded vehicle images deterministic, persistent, and consistently visible across CRM and website after future builds/deploys.
+
+PROJECT CONTEXT
+- Monorepo paths:
+  - artifacts/api-server
+  - artifacts/crm
+  - artifacts/website
+- Public vehicle image URLs currently look like:
+  - /api/storage/local-uploads/<filename>
+- Current problem:
+  - local upload storage path has been unstable because code used process.cwd()
+  - on different builds / PM2 contexts, uploads were written/read from different directories
+  - DB image_url references remain, but some files are missing or looked up in the wrong place
+  - result: images sometimes disappear on website mobile, CRM vehicle model cards, and fleet/homepage carousels after deploys
+- We need one permanent storage source of truth for local uploaded images.
+
+GOAL
+Implement a permanent, production-safe upload storage fix so that:
+1) CRM-uploaded vehicle images remain visible after future builds/deploys
+2) The same uploaded images are visible in:
+   - CRM vehicle model areas
+   - website vehicle/fleet/booking cards
+   - homepage featured/fleet carousel or any other website vehicle image usage
+3) Upload read path and write path are deterministic and identical
+4) Future builds do not break image serving because of cwd / PM2 working directory differences
+5) Missing files do not visually break the UI
+
+REQUIRED IMPLEMENTATION
+1. Replace all local upload path logic that depends on process.cwd() for storage serving/writing.
+   - Search for every place local uploads are read or written.
+   - Introduce a single shared uploads directory resolver for the API.
+   - Use environment variable support first:
+     - UPLOADS_DIR
+   - If UPLOADS_DIR is not set, use a deterministic fallback that is NOT process.cwd()-based.
+   - The fallback must be stable across deploys and PM2 contexts.
+   - Prefer one shared helper/module for this path resolution to avoid drift.
+
+2. Ensure local upload write path and read path use the exact same resolved directory.
+   - This includes:
+     - request-url generation flow
+     - PUT /storage/local-uploads/:filename
+     - GET /storage/local-uploads/:filename
+   - Do not let one code path write to one place and another read from another place.
+
+3. Keep existing public image URL format unchanged if possible:
+   - /api/storage/local-uploads/<filename>
+   This avoids breaking existing DB references and frontend consumers.
+
+4. Add safe backward-compatibility fallback for existing production data.
+   - If a requested image file is not found in the primary resolved uploads directory,
+     also check the known legacy local-upload directories that may already contain old files.
+   - Keep this fallback narrow and explicit; do not scan the filesystem broadly on every request.
+   - Use a small ordered list of known legacy directories.
+   - If found in a legacy directory, serve it successfully.
+   - This is important because some older uploads may exist in older locations.
+   - Keep performance reasonable.
+
+5. Add a small startup diagnostic log (one-time only, not noisy) showing which uploads directory/directories are active.
+   - Example style:
+     [UPLOADS] primary=/... legacy=[...]
+   - Keep logs minimal and production-safe.
+
+6. Add a safe frontend fallback image behavior for vehicle images.
+   - Anywhere website or CRM renders a vehicle image from image_url:
+     - if the image fails to load, show a clean fallback placeholder instead of a broken/empty card
+   - This must cover:
+     - website booking/fleet vehicle cards
+     - homepage featured/fleet carousel image usage
+     - CRM vehicle model image display where relevant
+   - Do not redesign cards; just prevent broken empty states.
+
+7. Add a small internal audit utility for developers/admins (code-only, minimal).
+   - It can be a server utility or script, not a UI feature.
+   - It should help identify vehicle_model records whose image_url points to missing local files.
+   - Keep it simple and non-invasive.
+   - Do NOT auto-delete DB data.
+   - We only want controlled visibility of broken references for later cleanup.
+
+IMPORTANT SAFETY RULES
+- Do NOT rewrite storage architecture beyond this fix.
+- Do NOT migrate to a new object storage provider.
+- Do NOT change booking APIs or vehicle listing logic.
+- Do NOT break existing image_url values in DB.
+- Do NOT change frontend visual design except adding safe fallback behavior for failed images.
+- Keep all changes minimal, surgical, and production-safe.
+
+LIKELY FILES TO CHECK
+- artifacts/api-server/src/routes/storage.ts
+- any shared API utility/config file where a stable uploads dir helper can live
+- CRM components rendering vehicle images
+- Website components rendering vehicle images
+- Featured/fleet carousel components
+- Any code that generates upload request URLs or local upload object paths
+
+DELIVERABLES
+1) Explain exactly which files were changed
+2) Explain the new uploads path resolution logic
+3) Show the exact fallback order for legacy directories
+4) Confirm where frontend fallback image handling was added
+5) Confirm no unrelated logic was changed
+
+DONE LOOKS LIKE
+- Future deploys do not break local vehicle images because cwd changes no longer matter
+- Existing DB image_url values keep working wherever their files still exist in known upload dirs
+- CRM vehicle model images render
+- Website booking/fleet cards render
+- Homepage featured/fleet carousel images render
+- Broken image references no longer collapse the UI; a fallback placeholder appears
+- We can later audit missing image references safely without manual guesswork
+
+Please make only the minimal exact changes needed and return a concise implementation summary with file list and why each change was made.
