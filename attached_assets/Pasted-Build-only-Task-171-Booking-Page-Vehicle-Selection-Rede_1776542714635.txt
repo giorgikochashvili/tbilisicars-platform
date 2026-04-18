@@ -1,0 +1,82 @@
+Build only Task #171 — Booking Page Vehicle-Selection Redesign.
+
+Important:
+- Task #170 is separate and should already be completed
+- Do NOT touch CRM
+- Do NOT touch DB
+- Do NOT touch backend or API
+- Do NOT touch booking logic, pricing logic, availability logic, or non-Step-1 flow
+- Only touch artifacts/website/src/pages/Booking.tsx unless an absolutely tiny import/helper extraction is required inside the website app
+- Keep this surgical and production-safe
+
+Critical UX rules to follow exactly:
+1. This is a vertical category-by-category scroll experience
+2. All non-empty categories must appear in the approved order on the page
+3. The user must NOT be forced to click a category first
+4. Empty categories must be skipped
+5. Vehicles belong to exactly one section
+6. Category View is the default view
+7. View switching must never break selection, filters, or step flow
+
+Very important mobile rule:
+- On mobile, do NOT default to a chaotic 2-column grid inside Category View
+- Prefer a clean, touch-friendly stacked layout within each category section
+- If you use a grid at some breakpoint, it must remain visually calm and readable
+- Mobile UX must prioritize clarity over density
+
+Desktop rule:
+- Desktop may use a denser grid presentation where appropriate
+- It must still feel premium and structured
+
+Filters rule:
+- Keep existing filter logic and state unchanged
+- Only improve the presentation layer
+- Do not rewrite filter behavior
+- On desktop, use a compact polished control bar
+- On mobile, use a clean collapsible / drawer-style presentation only if it can be done safely without logic changes
+
+Category metadata:
+- In each non-empty category section header, show category name
+- Also show derived helper text like “From €X/day · Y cars available” if safely available from current data
+- If not safely derivable in some edge case, fail gracefully without breaking layout
+
+Visual quality goals:
+- stronger hierarchy
+- less clutter
+- better spacing
+- polished cards
+- clean typography
+- no overlapping UI
+- no floating obstruction issues
+- touch targets at least ~44px
+- premium feel on both Android/iPhone and desktop
+
+Approved category order:
+1. Economy
+2. Standard / Intermediate Sedan
+3. Full-Size Sedan
+4. Crossover / Intermediate SUV
+5. Full-Size SUV
+6. 7 Seater SUV
+7. Minivan / People Carrier
+8. Off-Road
+9. Business Class
+10. Coupe / Convertible
+11. Sports Car
+
+Implement:
+1. CATEGORY_ORDER constant
+2. Reusable vehicle card / row rendering as needed
+3. Category View as default
+4. List View
+5. Grid View
+6. Polished filter/sort control presentation
+7. Visual polish pass for Step 1 only
+
+After build, report:
+- exact code areas changed
+- how Category View renders on mobile vs desktop
+- how List View works
+- how Grid View works
+- how filters were visually reorganized without logic changes
+- any UX compromises made due to current code constraints

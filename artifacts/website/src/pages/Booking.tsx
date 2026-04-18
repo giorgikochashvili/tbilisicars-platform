@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ChevronUp, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
-  Lock, Copy, Package, Baby, Wifi, Clock, X,
+  Lock, Copy, Package, Baby, Wifi, Clock, X, Tag, List, LayoutGrid,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -111,6 +111,20 @@ const SEAT_BUCKETS: Array<{ label: string; value: string; match: (s: number) => 
   { label: "4 seats",  value: "4",  match: (s) => s === 4 },
   { label: "5 seats",  value: "5",  match: (s) => s === 5 },
   { label: "7+ seats", value: "7+", match: (s) => s >= 7 },
+];
+
+const CATEGORY_ORDER: string[] = [
+  "Economy",
+  "Standard / Intermediate Sedan",
+  "Full-Size Sedan",
+  "Crossover / Intermediate SUV",
+  "Full-Size SUV",
+  "7 Seater SUV",
+  "Minivan / People Carrier",
+  "Off-Road",
+  "Business Class",
+  "Coupe / Convertible",
+  "Sports Car",
 ];
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
@@ -810,6 +824,199 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
   );
 }
 
+// ─── Vehicle card (grid / category view) ──────────────────────────────────────
+
+function VehicleCard({
+  m, selected, days, showCategoryPill = true, onSelect, onConfirm,
+}: {
+  m: VehicleModel; selected: boolean; days: number;
+  showCategoryPill?: boolean;
+  onSelect: () => void; onConfirm: () => void;
+}) {
+  const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+  const cur = m.price_currency ?? "EUR";
+  const totalEst = price && days > 0 ? price * days : null;
+  const isOnRequest = Number(m.vehicle_count) === 0;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200",
+        selected
+          ? "border-primary shadow-lg shadow-primary/20 ring-1 ring-primary/30"
+          : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20",
+      )}
+    >
+      {/* Image area */}
+      <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden">
+        <VehicleImg
+          src={toStorageSrc(m.image_url)}
+          alt={`${m.brand} ${m.model}`}
+          className="w-full h-full object-contain p-3"
+        />
+        {showCategoryPill && m.category && (
+          <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
+            {m.category}
+          </span>
+        )}
+        {isOnRequest && !selected && (
+          <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+            On Request
+          </span>
+        )}
+        {price !== null ? (
+          <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
+            {totalEst ? (
+              <>
+                <div className="text-sm font-bold leading-none">
+                  {formatPrice(totalEst, cur)}{" "}
+                  <span className="text-[10px] font-normal opacity-80">total</span>
+                </div>
+                <div className="text-[10px] opacity-70 leading-none mt-0.5">{formatPrice(price, cur)}/day</div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-bold leading-none">{formatPrice(price, cur)}</div>
+                <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
+            <div className="text-xs leading-none">Contact for pricing</div>
+          </div>
+        )}
+        {selected && (
+          <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
+            <Check className="w-3.5 h-3.5 text-white" />
+          </div>
+        )}
+        {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
+      </div>
+
+      {/* Info panel */}
+      <div className="p-4">
+        <div className="mb-2.5">
+          <div className="font-bold text-white text-base leading-tight">{m.brand} {m.model}</div>
+          {isOnRequest && (
+            <p className="text-xs text-amber-400/80 mt-0.5">
+              Not instantly available — we'll confirm before finalising
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {m.seats && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+              <Users className="w-3 h-3" /> {m.seats} seats
+            </span>
+          )}
+          {m.transmission && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+              <Settings className="w-3 h-3" /> {transLabel(m.transmission)}
+            </span>
+          )}
+          {m.fuel_type && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+              <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
+            </span>
+          )}
+        </div>
+        {selected && (
+          <div className="mt-3 pt-3 border-t border-primary/20">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-accent text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-sm hover:shadow-md hover:shadow-primary/25 active:scale-95"
+            >
+              Choose this car <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Vehicle list row (list view) ──────────────────────────────────────────────
+
+function VehicleListRow({
+  m, selected, days, onSelect,
+}: {
+  m: VehicleModel; selected: boolean; days: number;
+  onSelect: () => void;
+}) {
+  const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+  const cur = m.price_currency ?? "EUR";
+  const isOnRequest = Number(m.vehicle_count) === 0;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full text-left flex items-center gap-3 sm:gap-4 rounded-2xl border-2 p-3 transition-all duration-200",
+        selected
+          ? "border-primary bg-primary/5 shadow-md shadow-primary/15"
+          : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10",
+      )}
+    >
+      {/* Thumbnail */}
+      <div className="w-20 sm:w-24 h-14 sm:h-16 rounded-xl bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0 relative">
+        <VehicleImg
+          src={toStorageSrc(m.image_url)}
+          alt={`${m.brand} ${m.model}`}
+          className="w-full h-full object-contain p-2"
+        />
+        {selected && <div className="absolute inset-0 bg-primary/10 pointer-events-none rounded-xl" />}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 text-left">
+        <div className="font-bold text-white text-sm leading-tight">
+          {m.brand} {m.model}
+        </div>
+        {m.category && (
+          <div className="text-[11px] text-primary/70 font-medium mt-0.5">{m.category}</div>
+        )}
+        <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1.5">
+          {m.seats && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Users className="w-2.5 h-2.5" /> {m.seats}
+            </span>
+          )}
+          {m.transmission && (
+            <span className="text-[11px] text-muted-foreground">· {transLabel(m.transmission)}</span>
+          )}
+          {m.fuel_type && (
+            <span className="text-[11px] text-muted-foreground">· {fuelLabel(m.fuel_type)}</span>
+          )}
+          {isOnRequest && (
+            <span className="text-[11px] text-amber-400 font-medium">· On Request</span>
+          )}
+        </div>
+      </div>
+
+      {/* Price + selector */}
+      <div className="shrink-0 flex flex-col items-end gap-2">
+        {price !== null ? (
+          <div className="text-right">
+            <div className="text-sm font-bold text-primary leading-none">{formatPrice(price, cur)}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">/day</div>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground text-right leading-snug">Contact<br />for pricing</div>
+        )}
+        <div className={cn(
+          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200",
+          selected ? "bg-primary border-primary" : "border-border",
+        )}>
+          {selected && <Check className="w-3 h-3 text-white" />}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ─── Step 1: Vehicle ──────────────────────────────────────────────────────────
 
 function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, onNext, isRefetching }: {
@@ -823,6 +1030,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
   const [openTrip, setOpenTrip] = useState(false);
   const [openFilters, setOpenFilters] = useState(false);
   const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc">("default");
+  const [viewMode, setViewMode] = useState<"category" | "list" | "grid">("category");
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
@@ -974,67 +1182,112 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             </div>
           )}
 
-          {/* 3. Filters — visible only when trip is confirmed and filter options exist */}
+          {/* 3. Filters & Sort — visible when trip confirmed and options exist */}
           {showFilters && (
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <button
                 type="button"
                 onClick={() => setOpenFilters((p) => !p)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors min-h-[48px]"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+                <div className="flex items-center gap-2.5">
+                  <Settings className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-sm font-semibold text-white">Filters</span>
                   {hasFilters && (
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-white text-[10px] font-bold">
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold px-1">
                       {[filters.category, filters.transmission, filters.seats, filters.fuelType].filter(Boolean).length}
                     </span>
                   )}
                 </div>
-                {openFilters ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+                {openFilters
+                  ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                  : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
               </button>
               {openFilters && (
-                <div className="px-4 pb-4 border-t border-border/40">
+                <div className="px-4 pb-5 border-t border-border/40 pt-3 space-y-4">
                   {hasFilters && (
-                    <button type="button" onClick={clearFilters} className="text-xs text-primary hover:underline focus:outline-none mt-2 mb-1 block">
-                      Clear all
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="text-xs text-primary hover:text-accent focus:outline-none font-medium"
+                    >
+                      Clear all filters
                     </button>
                   )}
-                  <div className="space-y-3 mt-3">
-                    {categoryOptions.length > 0 && (
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Category</label>
-                        <Sel value={filters.category} onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}>
-                          <option value="">Any</option>
-                          {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </Sel>
-                      </div>
-                    )}
-                    {transmissionOptions.length > 0 && (
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Transmission</label>
-                        <Sel value={filters.transmission} onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}>
-                          <option value="">Any</option>
-                          {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
-                        </Sel>
-                      </div>
-                    )}
+                  {categoryOptions.length > 0 && (
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1">Seats</label>
-                      <Sel value={filters.seats} onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}>
-                        <option value="">Any</option>
-                        {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        Category
+                      </label>
+                      <Sel
+                        value={filters.category}
+                        onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+                        className="min-h-[44px]"
+                      >
+                        <option value="">All categories</option>
+                        {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
                       </Sel>
                     </div>
-                    {fuelOptions.length > 0 && (
-                      <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
-                        <Sel value={filters.fuelType} onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}>
-                          <option value="">Any</option>
-                          {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
-                        </Sel>
-                      </div>
-                    )}
+                  )}
+                  {transmissionOptions.length > 0 && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        Transmission
+                      </label>
+                      <Sel
+                        value={filters.transmission}
+                        onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}
+                        className="min-h-[44px]"
+                      >
+                        <option value="">Any</option>
+                        {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      Seats
+                    </label>
+                    <Sel
+                      value={filters.seats}
+                      onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}
+                      className="min-h-[44px]"
+                    >
+                      <option value="">Any</option>
+                      {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    </Sel>
                   </div>
+                  {fuelOptions.length > 0 && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        Fuel Type
+                      </label>
+                      <Sel
+                        value={filters.fuelType}
+                        onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}
+                        className="min-h-[44px]"
+                      >
+                        <option value="">Any</option>
+                        {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
+                      </Sel>
+                    </div>
+                  )}
+                  {viewMode !== "category" && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        Sort By
+                      </label>
+                      <Sel
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
+                        className="min-h-[44px]"
+                      >
+                        <option value="default">Default order</option>
+                        <option value="price_asc">Price: low to high</option>
+                        <option value="price_desc">Price: high to low</option>
+                      </Sel>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1044,17 +1297,43 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
 
       {/* ── Right: vehicle list ──────────────────────────────────────────── */}
       <div>
-        <div className="flex items-center justify-between mb-4 gap-3">
+
+        {/* Heading + view switcher */}
+        <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
           <div>
             <h2 className="text-xl font-bold text-white mb-0.5">Choose Your Vehicle</h2>
-            <p className="text-muted-foreground text-sm">Select from our available fleet for your journey</p>
+            <p className="text-muted-foreground text-sm">
+              {filteredModels.length > 0
+                ? `${filteredModels.length} model${filteredModels.length !== 1 ? "s" : ""} available`
+                : "Select from our available fleet"}
+            </p>
           </div>
-          {filteredModels.length > 1 && (
-            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")} className="!w-auto shrink-0 text-xs py-1.5 px-2.5">
-              <option value="default">Default</option>
-              <option value="price_asc">Price ↑</option>
-              <option value="price_desc">Price ↓</option>
-            </Sel>
+          {models.length > 0 && (
+            <div className="flex items-center gap-1 bg-secondary/40 border border-border/60 rounded-xl p-1 shrink-0">
+              {(
+                [
+                  { mode: "category" as const, Icon: Tag,        label: "Category" },
+                  { mode: "list"     as const, Icon: List,       label: "List" },
+                  { mode: "grid"     as const, Icon: LayoutGrid, label: "Grid" },
+                ]
+              ).map(({ mode, Icon, label }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  title={label}
+                  onClick={() => setViewMode(mode)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 min-h-[34px]",
+                    viewMode === mode
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-white hover:bg-white/5",
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
@@ -1103,118 +1382,115 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
               Clear all filters
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {filteredModels.map((m) => {
-              const selected = String(form.vehicleModelId) === String(m.id);
-              const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
-              const cur = m.price_currency ?? "EUR";
-              const totalEst = price && days > 0 ? price * days : null;
-              const isOnRequest = Number(m.vehicle_count) === 0;
-              return (
-                <button key={m.id} type="button" onClick={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
-                  className={cn(
-                    "w-full text-left rounded-2xl border-2 overflow-hidden transition-all duration-200",
-                    selected
-                      ? "border-primary shadow-lg shadow-primary/20 ring-1 ring-primary/30"
-                      : "border-border hover:border-primary/40 hover:shadow-md hover:shadow-black/20"
-                  )}>
-                  {/* Image banner */}
-                  <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden">
-                    <VehicleImg
-                      src={toStorageSrc(m.image_url)}
-                      alt={`${m.brand} ${m.model}`}
-                      className="w-full h-full object-contain p-3"
-                    />
-                    {/* Category pill */}
-                    {m.category && (
-                      <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
-                        {m.category}
-                      </span>
-                    )}
-                    {/* On Request badge */}
-                    {isOnRequest && (
-                      <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
-                        On Request
-                      </span>
-                    )}
-                    {/* Price badge — total is primary, daily is secondary */}
-                    {price !== null && (
-                      <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
-                        {totalEst ? (
-                          <>
-                            <div className="text-sm font-bold leading-none">
-                              {formatPrice(totalEst, cur)} <span className="text-[10px] font-normal opacity-80">total</span>
-                            </div>
-                            <div className="text-[10px] opacity-70 leading-none mt-0.5">{formatPrice(price, cur)}/day</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="text-sm font-bold leading-none">{formatPrice(price, cur)}</div>
-                            <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {/* Contact for pricing overlay */}
-                    {price === null && (
-                      <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-muted-foreground rounded-xl px-3 py-1.5">
-                        <div className="text-xs leading-none">Contact for pricing</div>
-                      </div>
-                    )}
-                    {/* Selected checkmark overlay */}
-                    {selected && (
-                      <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      </div>
-                    )}
-                    {selected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
-                  </div>
 
-                  {/* Info panel */}
-                  <div className="p-4">
-                    <div className="mb-2">
-                      <div className="font-bold text-white text-base leading-tight">{m.brand} {m.model}</div>
-                      {isOnRequest && (
-                        <p className="text-xs text-amber-400/80 mt-0.5">Not instantly available — we'll confirm availability before your booking is finalised</p>
-                      )}
+        ) : viewMode === "category" ? (
+          /* ── Category View ─────────────────────────────────────────────────── */
+          <div className="space-y-10 mb-6">
+            {CATEGORY_ORDER.map((cat) => {
+              const catModels = filteredModels.filter((m) => m.category === cat);
+              if (catModels.length === 0) return null;
+              const prices = catModels
+                .map((m) => m.min_price_per_day ? Number(m.min_price_per_day) : null)
+                .filter((p): p is number => p !== null);
+              const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+              const firstCur = catModels.find((m) => m.min_price_per_day != null)?.price_currency ?? "EUR";
+              const availCount = catModels.filter((m) => Number(m.vehicle_count) > 0).length;
+              return (
+                <div key={cat}>
+                  {/* Section header */}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
+                    <div>
+                      <h3 className="text-base font-bold text-white leading-tight">{cat}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {minPrice !== null
+                          ? `From ${formatPrice(minPrice, firstCur)}/day`
+                          : "Contact for pricing"}
+                        {availCount > 0
+                          ? ` · ${availCount} car${availCount !== 1 ? "s" : ""} available`
+                          : " · On Request"}
+                      </p>
                     </div>
-                    {/* Spec chips */}
-                    <div className="flex flex-wrap gap-2">
-                      {m.seats && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                          <Users className="w-3 h-3" /> {m.seats} seats
-                        </span>
-                      )}
-                      {m.transmission && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                          <Settings className="w-3 h-3" /> {transLabel(m.transmission)}
-                        </span>
-                      )}
-                      {m.fuel_type && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
-                          <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
-                        </span>
-                      )}
-                    </div>
-                    {/* "Choose this car" CTA — only on the selected card */}
-                    {selected && (
-                      <div className="mt-3 pt-3 border-t border-primary/20">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); validate(); }}
-                          className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-accent text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-sm hover:shadow-md hover:shadow-primary/25 active:scale-95"
-                        >
-                          Choose this car <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                    <span className="text-[11px] text-muted-foreground bg-secondary/50 border border-border/40 rounded-full px-2.5 py-1 shrink-0 ml-3">
+                      {catModels.length} {catModels.length === 1 ? "model" : "models"}
+                    </span>
                   </div>
-                </button>
+                  {/* Cards: single column on mobile, 2-col on sm, 3-col on xl */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {catModels.map((m) => (
+                      <VehicleCard
+                        key={m.id}
+                        m={m}
+                        selected={String(form.vehicleModelId) === String(m.id)}
+                        days={days}
+                        showCategoryPill={false}
+                        onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                        onConfirm={validate}
+                      />
+                    ))}
+                  </div>
+                </div>
               );
             })}
+            {/* Catch-all: models with no category or unrecognised category */}
+            {(() => {
+              const other = filteredModels.filter(
+                (m) => !m.category || !CATEGORY_ORDER.includes(m.category),
+              );
+              if (other.length === 0) return null;
+              return (
+                <div>
+                  <div className="mb-4 pb-3 border-b border-border/60">
+                    <h3 className="text-base font-bold text-white">Other Vehicles</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {other.map((m) => (
+                      <VehicleCard
+                        key={m.id}
+                        m={m}
+                        selected={String(form.vehicleModelId) === String(m.id)}
+                        days={days}
+                        showCategoryPill
+                        onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                        onConfirm={validate}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+        ) : viewMode === "list" ? (
+          /* ── List View ─────────────────────────────────────────────────────── */
+          <div className="space-y-2 mb-6">
+            {filteredModels.map((m) => (
+              <VehicleListRow
+                key={m.id}
+                m={m}
+                selected={String(form.vehicleModelId) === String(m.id)}
+                days={days}
+                onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+              />
+            ))}
+          </div>
+
+        ) : (
+          /* ── Grid View ─────────────────────────────────────────────────────── */
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 mb-6">
+            {filteredModels.map((m) => (
+              <VehicleCard
+                key={m.id}
+                m={m}
+                selected={String(form.vehicleModelId) === String(m.id)}
+                days={days}
+                showCategoryPill
+                onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
+                onConfirm={validate}
+              />
+            ))}
           </div>
         )}
+
         <div className="pt-4 border-t border-border/30 mt-2 flex justify-end">
           <Btn onClick={validate} disabled={!form.vehicleModelId}>Continue →</Btn>
         </div>
