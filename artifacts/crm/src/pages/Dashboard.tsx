@@ -609,7 +609,10 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 </div>
                 <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
                 <span className="text-xs text-muted-foreground truncate min-w-0">
-                  {phone ?? <span className="italic opacity-50">—</span>}
+                  {phone
+                    ? <a href={`tel:${phone}`} className="hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                    : <span className="italic opacity-50">—</span>
+                  }
                 </span>
                 <div className="flex flex-col min-w-0 overflow-hidden">
                   {b.vehicle ? (
@@ -652,9 +655,14 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
 
               {/* Mobile card (below md) — compact 3-line layout */}
               <div className="md:hidden flex flex-col gap-0.5 px-3 py-1.5 hover:bg-muted/40 transition-colors overflow-hidden">
-                {/* Row 1: client + time */}
+                {/* Row 1: client (+ phone) + time */}
                 <div className="flex items-center justify-between gap-2 min-w-0">
-                  <span className="font-semibold text-xs text-foreground truncate min-w-0">{clientName}</span>
+                  <div className="flex flex-col min-w-0 overflow-hidden">
+                    <span className="font-semibold text-xs text-foreground truncate">{clientName}</span>
+                    {phone && (
+                      <a href={`tel:${phone}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors truncate" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                    )}
+                  </div>
                   <span className="text-xs font-bold text-primary flex-shrink-0">{timeStr}</span>
                 </div>
                 {/* Row 2: vehicle/plate + route */}
