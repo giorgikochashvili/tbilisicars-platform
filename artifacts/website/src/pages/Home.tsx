@@ -284,14 +284,12 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
           <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
-            <span className="text-white">Travel </span>
-            <span className="text-primary">Georgia</span>
-            <span className="text-white"> Without Limits</span>
+            <span className="text-white">Travel Georgia Without Limits</span>
           </h1>
           <p className="text-base sm:text-lg font-medium text-white/80 mb-2">
             We know how to serve our customers
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-5 lg:mb-4">
+          <p className="text-xs sm:text-sm text-white/70 mb-5 lg:mb-4">
             24/7 support&nbsp;•&nbsp;No hidden fees&nbsp;•&nbsp;Airport service&nbsp;•&nbsp;Fast pickup
           </p>
 
