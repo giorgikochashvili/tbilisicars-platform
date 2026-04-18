@@ -339,7 +339,7 @@ export async function listAdminBookings(filters: ListBookingsFilters = {}) {
       )!,
     );
   }
-  if (userId) conditions.push(eq(bookingTable.userId, userId));
+  if (userId !== undefined) conditions.push(eq(bookingTable.userId, userId));
 
   const where = and(...conditions);
 
