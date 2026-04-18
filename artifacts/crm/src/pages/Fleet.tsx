@@ -710,9 +710,17 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
 }
 
 const MODEL_CATEGORIES = [
-  "Mini", "Economy", "Standard", "Intermediate", "Crossover",
-  "Intermediate Suv", "Full-Size Suv", "7 Seater Suv", "Van",
-  "Convertible", "Premium", "Luxury",
+  "Economy",
+  "Standard / Intermediate Sedan",
+  "Full-Size Sedan",
+  "Crossover / Intermediate SUV",
+  "Full-Size SUV",
+  "7 Seater SUV",
+  "Minivan / People Carrier",
+  "Off-Road",
+  "Business Class",
+  "Coupe / Convertible",
+  "Sports Car",
 ] as const;
 
 function ModelsTab({ reqOpts }: { reqOpts: any }) {
