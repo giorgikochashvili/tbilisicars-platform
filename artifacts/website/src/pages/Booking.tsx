@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ChevronUp, ArrowRight,
   MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
-  Lock, Copy, Package, Baby, Wifi, Clock, X, Tag, List, LayoutGrid,
+  Lock, Copy, Package, Baby, Wifi, Clock, X, Tag, List, LayoutGrid, SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "wouter";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -1182,115 +1182,132 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             </div>
           )}
 
-          {/* 3. Filters & Sort — visible when trip confirmed and options exist */}
+          {/* 3. Filters — visible when trip confirmed and filter options exist */}
           {showFilters && (
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setOpenFilters((p) => !p)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors min-h-[48px]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Settings className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-sm font-semibold text-white">Filters</span>
-                  {hasFilters && (
-                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold px-1">
-                      {[filters.category, filters.transmission, filters.seats, filters.fuelType].filter(Boolean).length}
-                    </span>
-                  )}
-                </div>
-                {openFilters
-                  ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-                  : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
-              </button>
-              {openFilters && (
-                <div className="px-4 pb-5 border-t border-border/40 pt-3 space-y-4">
-                  {hasFilters && (
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="text-xs text-primary hover:text-accent focus:outline-none font-medium"
-                    >
-                      Clear all filters
-                    </button>
-                  )}
-                  {categoryOptions.length > 0 && (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Category
-                      </label>
-                      <Sel
-                        value={filters.category}
-                        onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
-                        className="min-h-[44px]"
-                      >
-                        <option value="">All categories</option>
-                        {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </Sel>
-                    </div>
-                  )}
-                  {transmissionOptions.length > 0 && (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Transmission
-                      </label>
-                      <Sel
-                        value={filters.transmission}
-                        onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}
-                        className="min-h-[44px]"
-                      >
-                        <option value="">Any</option>
-                        {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
-                      </Sel>
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Seats
-                    </label>
-                    <Sel
-                      value={filters.seats}
-                      onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}
-                      className="min-h-[44px]"
-                    >
-                      <option value="">Any</option>
-                      {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
-                    </Sel>
+            <>
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {/* Toggle header */}
+                <button
+                  type="button"
+                  onClick={() => setOpenFilters((p) => !p)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none hover:bg-secondary/20 transition-colors min-h-[48px]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-sm font-semibold text-white">Filters</span>
+                    {hasFilters && (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-white text-[10px] font-bold px-1">
+                        {[filters.category, filters.transmission, filters.seats, filters.fuelType].filter(Boolean).length}
+                      </span>
+                    )}
                   </div>
-                  {fuelOptions.length > 0 && (
+                  {openFilters
+                    ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                    : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
+                </button>
+
+                {/* Active filter chips — only when collapsed and filters are on */}
+                {hasFilters && !openFilters && (
+                  <div className="px-4 pb-3 flex items-center gap-1.5 flex-wrap">
+                    {filters.category && (
+                      <span className="inline-flex items-center gap-1 text-[11px] bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 font-medium max-w-[120px] truncate">
+                        {filters.category}
+                      </span>
+                    )}
+                    {filters.transmission && (
+                      <span className="inline-flex items-center gap-1 text-[11px] bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 font-medium">
+                        {transLabel(filters.transmission)}
+                      </span>
+                    )}
+                    {filters.seats && (
+                      <span className="inline-flex items-center gap-1 text-[11px] bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 font-medium">
+                        {SEAT_BUCKETS.find((b) => b.value === filters.seats)?.label ?? filters.seats}
+                      </span>
+                    )}
+                    {filters.fuelType && (
+                      <span className="inline-flex items-center gap-1 text-[11px] bg-primary/10 text-primary border border-primary/20 rounded-full px-2 py-0.5 font-medium">
+                        {fuelLabel(filters.fuelType)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Expanded filter body */}
+                {openFilters && (
+                  <div className="px-4 pb-5 border-t border-border/40 pt-3 space-y-4">
+                    {categoryOptions.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          Category
+                        </label>
+                        <Sel
+                          value={filters.category}
+                          onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+                          className="min-h-[44px]"
+                        >
+                          <option value="">All categories</option>
+                          {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </Sel>
+                      </div>
+                    )}
+                    {transmissionOptions.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          Transmission
+                        </label>
+                        <Sel
+                          value={filters.transmission}
+                          onChange={(e) => setFilters((f) => ({ ...f, transmission: e.target.value }))}
+                          className="min-h-[44px]"
+                        >
+                          <option value="">Any</option>
+                          {transmissionOptions.map((t) => <option key={t} value={t}>{transLabel(t)}</option>)}
+                        </Sel>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Fuel Type
+                        Seats
                       </label>
                       <Sel
-                        value={filters.fuelType}
-                        onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}
+                        value={filters.seats}
+                        onChange={(e) => setFilters((f) => ({ ...f, seats: e.target.value }))}
                         className="min-h-[44px]"
                       >
                         <option value="">Any</option>
-                        {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
+                        {SEAT_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
                       </Sel>
                     </div>
-                  )}
-                  {viewMode !== "category" && (
-                    <div>
-                      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Sort By
-                      </label>
-                      <Sel
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
-                        className="min-h-[44px]"
-                      >
-                        <option value="default">Default order</option>
-                        <option value="price_asc">Price: low to high</option>
-                        <option value="price_desc">Price: high to low</option>
-                      </Sel>
-                    </div>
-                  )}
-                </div>
+                    {fuelOptions.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                          Fuel Type
+                        </label>
+                        <Sel
+                          value={filters.fuelType}
+                          onChange={(e) => setFilters((f) => ({ ...f, fuelType: e.target.value }))}
+                          className="min-h-[44px]"
+                        >
+                          <option value="">Any</option>
+                          {fuelOptions.map((fu) => <option key={fu} value={fu}>{fuelLabel(fu)}</option>)}
+                        </Sel>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Clear all — visible without opening the panel */}
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="w-full text-xs text-primary/70 hover:text-primary focus:outline-none py-1 text-center transition-colors"
+                >
+                  × Clear all filters
+                </button>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -1299,7 +1316,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
       <div>
 
         {/* Heading + view switcher */}
-        <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
+        <div className="flex items-start justify-between mb-3 gap-3 flex-wrap">
           <div>
             <h2 className="text-xl font-bold text-white mb-0.5">Choose Your Vehicle</h2>
             <p className="text-muted-foreground text-sm">
@@ -1325,7 +1342,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 min-h-[34px]",
                     viewMode === mode
-                      ? "bg-primary text-white shadow-sm"
+                      ? "bg-primary text-white shadow-md shadow-primary/25"
                       : "text-muted-foreground hover:text-white hover:bg-white/5",
                   )}
                 >
@@ -1336,6 +1353,23 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             </div>
           )}
         </div>
+
+        {/* Sort row — shown below heading only in List / Grid view */}
+        {viewMode !== "category" && models.length > 0 && (
+          <div className="flex items-center gap-2 mb-5 pb-3 border-b border-border/40">
+            <span className="text-xs text-muted-foreground shrink-0">Sort:</span>
+            <Sel
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "default" | "price_asc" | "price_desc")}
+              className="!w-auto flex-1 text-xs py-1.5"
+            >
+              <option value="default">Default order</option>
+              <option value="price_asc">Price: low to high</option>
+              <option value="price_desc">Price: high to low</option>
+            </Sel>
+          </div>
+        )}
+        {viewMode === "category" && <div className="mb-5" />}
 
         {isRefetching ? (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
@@ -1398,19 +1432,24 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
               return (
                 <div key={cat}>
                   {/* Section header */}
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
-                    <div>
-                      <h3 className="text-base font-bold text-white leading-tight">{cat}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {minPrice !== null
-                          ? `From ${formatPrice(minPrice, firstCur)}/day`
-                          : "Contact for pricing"}
-                        {availCount > 0
-                          ? ` · ${availCount} car${availCount !== 1 ? "s" : ""} available`
-                          : " · On Request"}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/40">
+                    <div className="border-l-2 border-primary/50 pl-2.5">
+                      <h3 className="text-lg font-bold text-white leading-tight">{cat}</h3>
+                      <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        {minPrice !== null ? (
+                          <span className="text-primary/80 font-medium">{`From ${formatPrice(minPrice, firstCur)}/day`}</span>
+                        ) : (
+                          <span className="text-muted-foreground">Contact for pricing</span>
+                        )}
+                        <span className="text-border">·</span>
+                        {availCount > 0 ? (
+                          <span className="text-muted-foreground">{availCount} car{availCount !== 1 ? "s" : ""} available</span>
+                        ) : (
+                          <span className="text-amber-400/70">On Request</span>
+                        )}
                       </p>
                     </div>
-                    <span className="text-[11px] text-muted-foreground bg-secondary/50 border border-border/40 rounded-full px-2.5 py-1 shrink-0 ml-3">
+                    <span className="text-[11px] text-primary/70 bg-primary/10 border border-primary/20 rounded-full px-2.5 py-0.5 shrink-0 ml-3 font-medium">
                       {catModels.length} {catModels.length === 1 ? "model" : "models"}
                     </span>
                   </div>
