@@ -1,4 +1,6 @@
-import { Router, type IRouter } from "express";
+import fs from "fs";
+import path from "path";
+import express, { Router, type IRouter } from "express";
 import {
   ListAdminBrandsResponse,
   GetAdminBrandParams,
@@ -61,6 +63,7 @@ import {
 import { getVehicleDetail } from "../services/admin-vehicle-detail.service.js";
 import { logAudit, vehicleRef } from "../services/audit.service.js";
 import { pool } from "@workspace/db";
+import { PRIMARY } from "../lib/uploads-dir.js";
 
 const router: IRouter = Router();
 
@@ -128,6 +131,38 @@ router.delete("/admin/fleet/models/:id", requireAdmin, requirePermission("canMan
   const result = await deleteAdminModel(id);
   res.json(result);
 });
+
+router.put(
+  "/admin/fleet/models/:id/image",
+  requireAdmin,
+  requirePermission("canManageVehicles"),
+  express.raw({ type: "image/*", limit: "10mb" }),
+  async (req, res) => {
+    const modelId = parseInt(req.params.id, 10);
+    if (isNaN(modelId) || modelId <= 0) {
+      res.status(400).json({ error: "Invalid model id" });
+      return;
+    }
+    const contentType = (req.headers["content-type"] || "image/jpeg").split(";")[0].trim();
+    const extMap: Record<string, string> = {
+      "image/jpeg": ".jpg",
+      "image/jpg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+    };
+    const ext = extMap[contentType] ?? ".jpg";
+    const filename = `vehicle-model-${modelId}${ext}`;
+    const dest = path.join(PRIMARY, filename);
+    await fs.promises.writeFile(dest, req.body as Buffer);
+    const imageUrl = `/local-uploads/${filename}`;
+    await pool.query(
+      "UPDATE vehicle_model SET image_url = $1 WHERE id = $2",
+      [imageUrl, modelId]
+    );
+    res.json({ imageUrl });
+  }
+);
 
 // ─── Groups ───────────────────────────────────────────────────────────────────
 

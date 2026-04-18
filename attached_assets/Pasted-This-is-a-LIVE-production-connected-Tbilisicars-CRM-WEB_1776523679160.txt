@@ -1,0 +1,53 @@
+This is a LIVE production-connected Tbilisicars CRM & WEB project built in Replit. Do NOT re-architect anything. Do NOT touch unrelated modules. Make only the smallest safe rollback needed.
+
+Problem:
+At some point the vehicle/model image handling changed to storing DB image paths like:
+
+/api/storage/local-uploads/<uuid>.jpg
+
+But production droplet still only has the older tracked/static vehicle images such as:
+
+artifacts/api-server/local-uploads/car-bmw-x5.png
+artifacts/api-server/local-uploads/car-hyundai-tucson.png
+artifacts/api-server/local-uploads/car-kia-sportage.png
+etc.
+
+Result:
+Vehicle images do not appear on the website or CRM in production.
+
+Goal:
+Safely restore the OLD STABLE behavior for VEHICLE/MODEL IMAGES ONLY, so that website and CRM vehicle images work again using the older existing image files and paths.
+
+Important scope rules:
+1. ONLY rollback vehicle/model image behavior.
+2. DO NOT break or redesign booking photo, pickup photo, dropoff photo, damage report photo, voucher, or any other upload flow.
+3. DO NOT change architecture.
+4. DO NOT introduce S3, Spaces, or any new storage strategy.
+5. DO NOT mass-delete existing data.
+6. Prefer a compatibility fix over a broad rewrite.
+
+What to do:
+1. Inspect the exact current backend/frontend flow for vehicle_model.image_url and vehicle_model_photo.photo_url usage.
+2. Identify where the UUID-style local-upload path behavior was introduced for vehicle/model images.
+3. Restore old behavior so vehicle/model images can again use the previous stable file naming / path usage that matches the existing old production files.
+4. Add backward compatibility:
+   - old existing paths/files must work
+   - if some records already use /api/storage/local-uploads/<uuid> paths, do not break the app; handle them safely if possible
+5. If needed, make a very small targeted migration/normalization ONLY for vehicle/model image fields so existing vehicle model images can render again.
+6. Keep the public/static serving behavior deterministic and production-safe.
+7. Do not touch unrelated upload tables/flows.
+
+Deliverables:
+1. First explain briefly:
+   - what changed historically
+   - exactly where the vehicle image flow diverged
+   - the smallest safe rollback strategy
+2. Then implement only the required code changes.
+3. If a DB update is required, provide the exact SQL separately and explain why.
+4. Provide a concise validation checklist for:
+   - CRM vehicle list/detail image
+   - website featured cars / model cards / model page image
+   - no regression in booking/damage/pickup/dropoff uploads
+
+Be extremely careful:
+This is not a redesign task. This is a surgical rollback/compatibility restoration for vehicle images only.

@@ -746,24 +746,39 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
   const handleImageUpload = async (file: File) => {
     setImageUploading(true);
     try {
-      const metaRes = await fetch("/api/storage/uploads/request-url", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
-      });
-      if (!metaRes.ok) {
-        const errBody = await metaRes.json().catch(() => ({}));
-        throw new Error(errBody.error || `Upload URL request failed (${metaRes.status})`);
+      if (editingItem) {
+        const res = await fetch(`/api/admin/fleet/models/${editingItem.id}/image`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": file.type || "image/jpeg" },
+          body: file,
+        });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `Upload failed (${res.status})`);
+        }
+        const { imageUrl } = await res.json();
+        setFormData(prev => ({ ...prev, imageUrl }));
+      } else {
+        const metaRes = await fetch("/api/storage/uploads/request-url", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
+        });
+        if (!metaRes.ok) {
+          const errBody = await metaRes.json().catch(() => ({}));
+          throw new Error(errBody.error || `Upload URL request failed (${metaRes.status})`);
+        }
+        const { uploadURL, objectPath } = await metaRes.json();
+        const putRes = await fetch(uploadURL, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "image/jpeg" },
+        });
+        if (!putRes.ok) throw new Error(`File upload to storage failed (${putRes.status})`);
+        setFormData(prev => ({ ...prev, imageUrl: objectPath }));
       }
-      const { uploadURL, objectPath } = await metaRes.json();
-      const putRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "image/jpeg" },
-      });
-      if (!putRes.ok) throw new Error(`File upload to storage failed (${putRes.status})`);
-      setFormData(prev => ({ ...prev, imageUrl: objectPath }));
       toast({ title: "Image uploaded", description: "Image ready — save the model to apply." });
     } catch (e: any) {
       console.error("[handleImageUpload]", e);
