@@ -139,6 +139,18 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
   return `/api/storage${path}`;
 }
 
+function VehicleImg({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Car className="w-16 h-16 text-muted-foreground/15" />
+      </div>
+    );
+  }
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
+}
+
 function cn(...cls: (string | undefined | false | null)[]) { return cls.filter(Boolean).join(" "); }
 
 function sortLocations<T extends { name: string; city: string }>(locs: T[]): T[] {
@@ -1109,14 +1121,11 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   )}>
                   {/* Image banner */}
                   <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden">
-                    {m.image_url
-                      ? <img src={toStorageSrc(m.image_url)} alt={`${m.brand} ${m.model}`} className="w-full h-full object-contain p-3" />
-                      : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Car className="w-16 h-16 text-muted-foreground/15" />
-                        </div>
-                      )
-                    }
+                    <VehicleImg
+                      src={toStorageSrc(m.image_url)}
+                      alt={`${m.brand} ${m.model}`}
+                      className="w-full h-full object-contain p-3"
+                    />
                     {/* Category pill */}
                     {m.category && (
                       <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
@@ -2079,7 +2088,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               </div>
               {model.image_url && (
                 <div className="w-full h-28 rounded-lg overflow-hidden mb-3">
-                  <img src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-contain p-3" />
+                  <VehicleImg src={toStorageSrc(model.image_url)} alt={`${model.brand} ${model.model}`} className="w-full h-full object-contain p-3" />
                 </div>
               )}
               <SummaryRow label="Car" value={`${model.brand} ${model.model}`} />

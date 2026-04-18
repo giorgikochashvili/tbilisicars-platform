@@ -46,6 +46,18 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
   return `/api/storage${path}`;
 }
 
+function VehicleImg({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Car className="w-16 h-16 text-muted-foreground/30" />
+      </div>
+    );
+  }
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
+}
+
 async function apiFetch(path: string) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -486,17 +498,11 @@ export default function Home() {
                   >
                     {/* Car image */}
                     <div className="relative w-full h-44 overflow-hidden bg-secondary/60">
-                      {item.imageUrl ? (
-                        <img
-                          src={toStorageSrc(item.imageUrl)}
-                          alt={item.title}
-                          className="w-full h-full object-contain object-center group-hover:brightness-110 transition-all duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Car className="w-16 h-16 text-muted-foreground/30" />
-                        </div>
-                      )}
+                      <VehicleImg
+                        src={toStorageSrc(item.imageUrl)}
+                        alt={item.title}
+                        className="w-full h-full object-contain object-center group-hover:brightness-110 transition-all duration-500"
+                      />
                       {item.badgeText && (
                         <span className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                           {item.badgeText}

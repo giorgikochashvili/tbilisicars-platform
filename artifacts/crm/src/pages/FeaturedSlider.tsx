@@ -31,6 +31,14 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
   return `/api/storage${path}`;
 }
 
+function SliderImg({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return <ImageIcon className="w-5 h-5 text-muted-foreground" />;
+  }
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
+}
+
 async function apiFetch(url: string, opts?: RequestInit) {
   const res = await fetch(url, {
     credentials: "include",
@@ -378,15 +386,11 @@ export default function FeaturedSliderPage() {
                     >
                       {/* Thumbnail */}
                       <div className="w-14 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center border border-border">
-                        {item.imageUrl ? (
-                          <img
-                            src={toStorageSrc(item.imageUrl)}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                        )}
+                        <SliderImg
+                          src={toStorageSrc(item.imageUrl)}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
 
                       {/* Info */}
@@ -616,6 +620,7 @@ export default function FeaturedSliderPage() {
                     src={toStorageSrc(form.imageUrl)}
                     alt="Preview"
                     className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                   />
                   <Button
                     type="button"

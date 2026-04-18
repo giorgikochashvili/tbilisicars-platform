@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search } from "lucide-react";
@@ -33,6 +34,18 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("/api/storage/")) return path;
   return `/api/storage${path}`;
+}
+
+function VehicleImg({ src, alt, className }: { src?: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Car className="w-16 h-16 text-muted-foreground/15" />
+      </div>
+    );
+  }
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
 }
 
 function transmissionLabel(t: string | null) {
@@ -152,17 +165,11 @@ export default function Fleet() {
                 >
                   {/* Vehicle image */}
                   <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
-                    {m.image_url ? (
-                      <img
-                        src={toStorageSrc(m.image_url)}
-                        alt={`${m.brand} ${m.model}`}
-                        className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-16 h-16 text-muted-foreground/15" />
-                      </div>
-                    )}
+                    <VehicleImg
+                      src={toStorageSrc(m.image_url)}
+                      alt={`${m.brand} ${m.model}`}
+                      className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                    />
                     {/* Category pill — top left */}
                     {m.category && (
                       <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">

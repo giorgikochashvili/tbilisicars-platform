@@ -9,11 +9,10 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { PRIMARY, LEGACY } from "../lib/uploads-dir.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-
-const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
 
 function getExtFromContentType(contentType: string): string {
   const map: Record<string, string> = {
@@ -122,9 +121,9 @@ router.put(
       return;
     }
     try {
-      await fs.promises.mkdir(LOCAL_UPLOADS_DIR, { recursive: true });
+      await fs.promises.mkdir(PRIMARY, { recursive: true });
       await fs.promises.writeFile(
-        path.join(LOCAL_UPLOADS_DIR, filename),
+        path.join(PRIMARY, filename),
         req.body as Buffer,
       );
       res.status(200).end();
@@ -146,16 +145,22 @@ router.get("/storage/local-uploads/:filename", async (req: Request, res: Respons
     res.status(400).json({ error: "Invalid filename" });
     return;
   }
-  const filePath = path.join(LOCAL_UPLOADS_DIR, filename);
-  try {
-    await fs.promises.access(filePath, fs.constants.R_OK);
-    const ext = path.extname(filename).toLowerCase();
-    res.setHeader("Content-Type", getMimeFromExt(ext));
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    fs.createReadStream(filePath).pipe(res);
-  } catch {
-    res.status(404).json({ error: "File not found" });
+
+  const searchDirs = [PRIMARY, ...LEGACY];
+  for (const dir of searchDirs) {
+    const filePath = path.join(dir, filename);
+    try {
+      await fs.promises.access(filePath, fs.constants.R_OK);
+      const ext = path.extname(filename).toLowerCase();
+      res.setHeader("Content-Type", getMimeFromExt(ext));
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    } catch {
+      // not in this dir — try next
+    }
   }
+  res.status(404).json({ error: "File not found" });
 });
 
 /**

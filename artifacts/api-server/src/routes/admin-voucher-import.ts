@@ -26,9 +26,10 @@ import {
   confirmVoucherImport,
 } from "../services/admin-voucher-import.service.js";
 
+import { PRIMARY } from "../lib/uploads-dir.js";
+
 const execFileAsync = promisify(execFile);
 
-const LOCAL_UPLOADS_DIR = path.join(process.cwd(), "local-uploads");
 const objectStorageService = new ObjectStorageService();
 
 /**
@@ -93,8 +94,8 @@ async function storeVoucherFile(buffer: Buffer, mimeType: string): Promise<strin
 
   // Local filesystem fallback (mirrors /storage/uploads/request-url local path)
   const filename = randomUUID() + ext;
-  await fs.promises.mkdir(LOCAL_UPLOADS_DIR, { recursive: true });
-  await fs.promises.writeFile(path.join(LOCAL_UPLOADS_DIR, filename), buffer);
+  await fs.promises.mkdir(PRIMARY, { recursive: true });
+  await fs.promises.writeFile(path.join(PRIMARY, filename), buffer);
   return `/api/storage/local-uploads/${filename}`;
 }
 
