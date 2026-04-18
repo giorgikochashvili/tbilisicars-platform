@@ -918,6 +918,14 @@ export interface AdminCustomer {
   phone?: string | null;
   /** @nullable */
   fullName?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  passportId?: string | null;
+  /** @nullable */
+  drivingLicense?: string | null;
+  /** @nullable */
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Mail, Phone, Calendar, ChevronLeft, FileText } from "lucide-react";
+import { User, Mail, Phone, Calendar, ChevronLeft, FileText, Globe, CreditCard, Car, StickyNote } from "lucide-react";
 
 const BOOKING_STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
@@ -62,7 +62,7 @@ export default function CustomerProfile() {
     useGetAdminCustomer(customerId);
 
   const { data: bookingsData, isLoading: bookingsLoading } =
-    useListAdminBookings({ customerId, limit: 200, page: 1 });
+    useListAdminBookings({ customerId, limit: 100, page: 1 });
 
   const typedCustomer = customer as AdminCustomer | undefined;
   const typedBookings = bookingsData as AdminBookingPaginatedResponse | undefined;
@@ -145,10 +145,36 @@ export default function CustomerProfile() {
                 <span className="text-muted-foreground">—</span>
               )}
             </div>
+            {typedCustomer.country && (
+              <div className="flex items-center gap-2 text-sm">
+                <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>{typedCustomer.country}</span>
+              </div>
+            )}
+            {typedCustomer.passportId && (
+              <div className="flex items-center gap-2 text-sm">
+                <CreditCard className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Passport/ID:</span>
+                <span className="font-mono">{typedCustomer.passportId}</span>
+              </div>
+            )}
+            {typedCustomer.drivingLicense && (
+              <div className="flex items-center gap-2 text-sm">
+                <Car className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">License:</span>
+                <span className="font-mono">{typedCustomer.drivingLicense}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Customer since {formatDate(typedCustomer.createdAt)}</span>
             </div>
+            {typedCustomer.notes && (
+              <div className="col-span-2 flex items-start gap-2 text-sm mt-1 pt-3 border-t border-border/40">
+                <StickyNote className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-muted-foreground whitespace-pre-wrap">{typedCustomer.notes}</p>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Customer not found.</p>
@@ -198,7 +224,7 @@ export default function CustomerProfile() {
                 ) : bookings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
-                      No bookings found for this customer.
+                      No bookings on record for this customer.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -269,7 +295,7 @@ export default function CustomerProfile() {
               ))
             ) : bookings.length === 0 ? (
               <div className="py-10 text-center text-muted-foreground text-sm">
-                No bookings found for this customer.
+                No bookings on record for this customer.
               </div>
             ) : (
               bookings.map((b: AdminBookingRow) => (

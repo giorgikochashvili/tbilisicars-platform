@@ -1676,6 +1676,10 @@ export const GetAdminCustomerResponse = zod.object({
   email: zod.string().nullish(),
   phone: zod.string().nullish(),
   fullName: zod.string().nullish(),
+  country: zod.string().nullish(),
+  passportId: zod.string().nullish(),
+  drivingLicense: zod.string().nullish(),
+  notes: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
