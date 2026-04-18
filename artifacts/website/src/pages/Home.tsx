@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Calendar, Shield, ChevronRight, ChevronDown,
-  Users, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft,
+  Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/DateTimePicker";
 
@@ -70,44 +70,44 @@ function getMinDatetime() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
-const SHOW_STATS = false;
-
-const STATS = [
-  { value: "12K+", label: "Trusted By Customers" },
-  { value: "250+", label: "Vehicles" },
-  { value: "4.6", label: "Overall Rating" },
+const TRUST_STATS = [
+  { value: "10+", label: "Years Experience" },
+  { value: "15,000+", label: "Customers Served" },
+  { value: "4.7+", label: "Average Rating" },
+  { value: "<15 min", label: "Pickup & Drop-off" },
+  { value: "24/7", label: "Customer Support" },
 ];
 
 const WHY_CARDS = [
   {
-    icon: <Shield className="w-6 h-6 text-primary" />,
+    icon: <Shield className="w-5 h-5 text-primary" />,
     title: "Full Insurance Options",
-    desc: "Choose from Basic, Full, or Premium coverage. We offer transparent insurance plans with no hidden clauses.",
+    desc: "Choose Basic, Full, or Premium coverage with transparent terms and no hidden surprises.",
   },
   {
-    icon: <CheckCircle className="w-6 h-6 text-primary" />,
+    icon: <CheckCircle className="w-5 h-5 text-primary" />,
     title: "Transparent Pricing",
-    desc: "The price you see is the price you pay. No surprise fees at the counter, ever.",
+    desc: "What you see is what you pay — no surprise fees at pickup or drop-off.",
   },
   {
-    icon: <Infinity className="w-6 h-6 text-primary" />,
+    icon: <Infinity className="w-5 h-5 text-primary" />,
     title: "Unlimited Mileage",
-    desc: "Drive anywhere within Georgia without distance limitations. Explore freely.",
+    desc: "Explore Georgia freely without worrying about distance limits.",
   },
   {
-    icon: <Users className="w-6 h-6 text-primary" />,
-    title: "Unlimited Additional Drivers",
-    desc: "Add as many drivers as you need to your rental — no extra fees apply.",
+    icon: <Car className="w-5 h-5 text-primary" />,
+    title: "Airport Service Included",
+    desc: "Airport service and parking charges are already included where applicable.",
   },
   {
-    icon: <Car className="w-6 h-6 text-primary" />,
-    title: "Airport Parking & Service Charges Included",
-    desc: "All airport service charges and parking fees are already included in your rental price.",
+    icon: <HeartHandshake className="w-5 h-5 text-primary" />,
+    title: "24/7 Support",
+    desc: "Our team is available around the clock whenever you need assistance.",
   },
   {
-    icon: <HeartHandshake className="w-6 h-6 text-primary" />,
-    title: "24/7 Roadside Assistance Across Georgia",
-    desc: "Our support team is available around the clock. Breakdown, flat tyre, or any emergency — we're here.",
+    icon: <Clock className="w-5 h-5 text-primary" />,
+    title: "Fast Pickup & Drop-off",
+    desc: "Quick handover process designed to save your time.",
   },
 ];
 
@@ -379,17 +379,26 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Stats strip — set SHOW_STATS = true to restore */}
-          {SHOW_STATS && (
-            <div className="flex flex-wrap justify-center gap-6 mt-6 lg:mt-4">
-              {STATS.map((s) => (
-                <div key={s.label} className="flex flex-col items-center px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
-                  <span className="text-2xl font-bold text-primary">{s.value}</span>
-                  <span className="text-xs text-muted-foreground mt-0.5">{s.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        </div>
+      </section>
+
+      {/* ── Trust / Stats Strip ── */}
+      <section className="py-8 px-4" style={{ background: "hsl(211,55%,7%)" }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {TRUST_STATS.map((s, i) => (
+              <div
+                key={s.label}
+                className={[
+                  "flex flex-col items-center text-center px-3 py-4 rounded-xl border border-white/8 bg-white/3",
+                  i === 4 ? "col-span-2 sm:col-span-1" : "",
+                ].join(" ")}
+              >
+                <span className="text-xl sm:text-2xl font-bold text-primary leading-none">{s.value}</span>
+                <span className="text-xs text-muted-foreground mt-1.5 leading-snug">{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -509,24 +518,26 @@ export default function Home() {
         </section>
       )}
 
-      {/* ── Why Tbilisicars ── */}
-      <section className="py-20 px-4">
+      {/* ── Everything You Get With Us ── */}
+      <section className="py-14 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Why Tbilisicars?</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              We combine premium vehicles with transparent pricing and outstanding service across Georgia.
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Everything You Get With Us</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
+              Everything you need for a smooth, transparent and stress-free car rental experience in Georgia.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {WHY_CARDS.map((item) => (
-              <div key={item.title} className="bg-card border border-border rounded-xl p-6 hover:border-primary/40 transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+              <div key={item.title} className="bg-card border border-border rounded-xl p-4 hover:border-primary/40 transition-colors flex gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                   {item.icon}
                 </div>
-                <h3 className="text-white font-semibold mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                <div>
+                  <h3 className="text-white font-semibold text-sm mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
