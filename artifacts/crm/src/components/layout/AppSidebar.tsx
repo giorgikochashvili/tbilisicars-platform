@@ -76,7 +76,7 @@ export function AppSidebar() {
   useEffect(() => {
     if (!isMobile || !openMobile) return;
     const frame = requestAnimationFrame(() => {
-      activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+      activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
     });
     return () => cancelAnimationFrame(frame);
   }, [isMobile, openMobile]);
