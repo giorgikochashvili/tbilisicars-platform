@@ -655,7 +655,7 @@ export async function confirmVoucherImport(
     broker: data.broker,
     source: "voucher",
     status: data.status ?? "CONFIRMED",
-    paymentStatus: data.paymentStatus ?? "PREPAID",
+    paymentStatus: data.paymentStatus ?? "UNPAID",
     reservationCode,
     externalReservationCode: data.externalReservationCode,
     voucherImportRef: data.voucherImportRef,

@@ -66,6 +66,7 @@ import {
   AlertTriangle,
   MessageCircle,
   Smile,
+  Paperclip,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -2162,6 +2163,18 @@ export default function BookingDetail({
                 <ClipboardCheck className="w-3 h-3" />
                 Return Sheet
               </Button>
+              {booking.voucherImportRef && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => window.open(booking.voucherImportRef!, "_blank")}
+                  title="Open the original uploaded voucher file"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  Source Voucher
+                </Button>
+              )}
               {canPickUp && (
                 <Button
                   size="sm"

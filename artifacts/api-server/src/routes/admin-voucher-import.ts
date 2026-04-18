@@ -295,7 +295,7 @@ router.post("/admin/voucher-import/confirm", ...canManage, async (req, res) => {
         externalReservationCode: externalReservationCode || null,
         voucherImportRef: voucherImportRef || null,
         status: status || "CONFIRMED",
-        paymentStatus: paymentStatus || "PREPAID",
+        paymentStatus: paymentStatus || "UNPAID",
       },
       actorId,
       extractedDraft ?? null,

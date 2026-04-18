@@ -239,7 +239,7 @@ const EMPTY_FORM: FormState = {
   externalReservationCode: "",
   voucherImportRef: "",
   status: "CONFIRMED",
-  paymentStatus: "PREPAID",
+  paymentStatus: "UNPAID",
 };
 
 function DateField({

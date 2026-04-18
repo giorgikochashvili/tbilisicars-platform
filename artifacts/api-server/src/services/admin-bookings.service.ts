@@ -112,6 +112,7 @@ const bookingDetailSelect = {
   updatedAt: bookingTable.updatedAt,
   deletedAt: bookingTable.deletedAt,
   externalReservationCode: bookingTable.externalReservationCode,
+  voucherImportRef: bookingTable.voucherImportRef,
 } as const;
 
 // ─── Type and mapper ───────────────────────────────────────────────────────────
