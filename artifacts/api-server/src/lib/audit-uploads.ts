@@ -71,9 +71,9 @@ export async function runUploadAudit(): Promise<{
     if (row.image_url) rawPaths.push(row.image_url);
   }
 
-  // booking_photo.photo_url
+  // bookingphoto.photo_url
   const bookingPhotos = await db.execute(
-    sql`SELECT photo_url FROM booking_photo WHERE photo_url IS NOT NULL`,
+    sql`SELECT photo_url FROM bookingphoto WHERE photo_url IS NOT NULL`,
   );
   for (const row of bookingPhotos.rows as { photo_url: string }[]) {
     if (row.photo_url) rawPaths.push(row.photo_url);
