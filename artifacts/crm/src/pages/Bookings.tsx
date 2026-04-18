@@ -599,10 +599,10 @@ export default function BookingsPage() {
           <p className="text-muted-foreground">Manage reservations, deliveries, and returns</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="shadow-sm" onClick={() => setIsVoucherImportOpen(true)}>
+          <Button variant="outline" className="shadow-sm w-full sm:w-auto" onClick={() => setIsVoucherImportOpen(true)}>
             <FileUp className="w-4 h-4 mr-2" /> Import Voucher
           </Button>
-          <Button className="shadow-sm hover-elevate" onClick={openNewBooking}>
+          <Button className="shadow-sm hover-elevate w-full sm:w-auto" onClick={openNewBooking}>
             <Plus className="w-4 h-4 mr-2" /> New Booking
           </Button>
         </div>
