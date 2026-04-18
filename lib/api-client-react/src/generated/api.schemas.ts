@@ -1900,6 +1900,7 @@ export type ListAdminBookingsParams = {
   vehicleSearch?: string;
   locationId?: number;
   phoneSearch?: string;
+  customerId?: number;
 };
 
 export type ListAdminBookingsStatus =

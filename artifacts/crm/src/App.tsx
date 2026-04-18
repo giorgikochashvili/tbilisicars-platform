@@ -13,6 +13,7 @@ import Dashboard from "@/pages/Dashboard";
 import FleetPage from "@/pages/Fleet";
 import LocationsPage from "@/pages/Locations";
 import CustomersPage from "@/pages/Customers";
+import CustomerProfilePage from "@/pages/CustomerProfile";
 import BookingsPage from "@/pages/Bookings";
 import ExtrasPage from "@/pages/Extras";
 import RatesPage from "@/pages/Rates";
@@ -135,6 +136,7 @@ function Router() {
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/bookings"><ProtectedRoute component={BookingsPage} permissionKey="canManageBookings" /></Route>
       <Route path="/fleet"><ProtectedRoute component={FleetPage} permissionKey="canManageVehicles" /></Route>
+      <Route path="/customers/:id"><ProtectedRoute component={CustomerProfilePage} permissionKey="canManageUsers" /></Route>
       <Route path="/customers"><ProtectedRoute component={CustomersPage} permissionKey="canManageUsers" /></Route>
       <Route path="/locations"><ProtectedRoute component={LocationsPage} permissionKey="canManageLocations" /></Route>
       <Route path="/extras"><ProtectedRoute component={ExtrasPage} permissionKey="canManageExtras" /></Route>

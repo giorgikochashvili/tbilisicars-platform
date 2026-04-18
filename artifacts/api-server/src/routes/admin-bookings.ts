@@ -40,6 +40,9 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
   // Extract city before Zod parse (generated schema does not include it)
   const rawCity = typeof req.query.city === "string" ? req.query.city : undefined;
   const city = rawCity && (VALID_BOOKING_CITIES as readonly string[]).includes(rawCity) ? rawCity : undefined;
+  // Extract customerId before Zod parse (filter by customer's user ID)
+  const rawCustomerId = typeof req.query.customerId === "string" ? parseInt(req.query.customerId, 10) : undefined;
+  const customerId = rawCustomerId && !isNaN(rawCustomerId) ? rawCustomerId : undefined;
   const query = ListAdminBookingsQueryParams.parse(req.query);
   const result = await listAdminBookings({
     page: query.page,
@@ -54,6 +57,7 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
     locationId: query.locationId,
     phoneSearch: query.phoneSearch,
     city,
+    userId: customerId,
   });
   res.json(ListAdminBookingsResponse.parse(result));
 });

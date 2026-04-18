@@ -2235,7 +2235,7 @@ export default function BookingDetail({
                           className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
                           onClick={() => {
                             onClose();
-                            setLocation(`/customers?customerId=${booking.customer.id}`);
+                            setLocation(`/customers/${booking.customer.id}`);
                           }}
                         >
                           <span className="truncate">
