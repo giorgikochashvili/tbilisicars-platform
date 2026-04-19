@@ -1918,30 +1918,40 @@ function Step4({ form, setForm, onNext, onBack }: {
 
       {/* Terms & Privacy */}
       <div className="mb-6 space-y-3">
-        <label className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors">
-          <Checkbox checked={form.agreeToTerms} onChange={() => setForm((f) => ({ ...f, agreeToTerms: !f.agreeToTerms }))} />
+        <div
+          className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors"
+          onClick={() => setForm((f) => ({ ...f, agreeToTerms: !f.agreeToTerms }))}
+        >
+          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+            <Checkbox checked={form.agreeToTerms} onChange={() => setForm((f) => ({ ...f, agreeToTerms: !f.agreeToTerms }))} />
+          </div>
           <span className="text-sm text-muted-foreground leading-relaxed">
             I have read and agree to the{" "}
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); setLegalModal("terms"); }}
+              onClick={(e) => { e.stopPropagation(); setLegalModal("terms"); }}
               className="text-primary hover:underline font-medium"
             >Terms &amp; Conditions</button>.
             {" "}I confirm I am at least 21 years old and hold a valid driving licence.
           </span>
-        </label>
-        <label className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors">
-          <Checkbox checked={form.agreeToPrivacy} onChange={() => setForm((f) => ({ ...f, agreeToPrivacy: !f.agreeToPrivacy }))} />
+        </div>
+        <div
+          className="flex items-start gap-3 cursor-pointer p-4 bg-secondary/20 border border-border rounded-xl hover:border-primary/30 transition-colors"
+          onClick={() => setForm((f) => ({ ...f, agreeToPrivacy: !f.agreeToPrivacy }))}
+        >
+          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+            <Checkbox checked={form.agreeToPrivacy} onChange={() => setForm((f) => ({ ...f, agreeToPrivacy: !f.agreeToPrivacy }))} />
+          </div>
           <span className="text-sm text-muted-foreground leading-relaxed">
             I have read and agree to the{" "}
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); setLegalModal("privacy"); }}
+              onClick={(e) => { e.stopPropagation(); setLegalModal("privacy"); }}
               className="text-primary hover:underline font-medium"
             >Privacy Policy</button>
             {" "}and consent to the processing of my personal data for the purpose of this booking.
           </span>
-        </label>
+        </div>
       </div>
 
       <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
