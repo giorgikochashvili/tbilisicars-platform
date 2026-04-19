@@ -1895,11 +1895,16 @@ export default function BookingDetail({
 
   const splitDT = (iso: string | null | undefined) => {
     if (!iso) return { date: "", time: "09:00" };
-    const d = new Date(iso);
-    const pad = (n: number) => n.toString().padStart(2, "0");
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Tbilisi",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(iso));
+    const get = (type: string) => parts.find(p => p.type === type)?.value ?? "";
     return {
-      date: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
-      time: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`,
+      date: `${get("year")}-${get("month")}-${get("day")}`,
+      time: `${get("hour")}:${get("minute")}`,
     };
   };
 
@@ -1958,14 +1963,14 @@ export default function BookingDetail({
           ...(overviewDraft.pickupDate && overviewDraft.pickupTime
             ? {
                 pickupDatetime: new Date(
-                  `${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00Z`,
+                  `${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00+04:00`,
                 ).toISOString(),
               }
             : {}),
           ...(overviewDraft.dropoffDate && overviewDraft.dropoffTime
             ? {
                 dropoffDatetime: new Date(
-                  `${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00Z`,
+                  `${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00+04:00`,
                 ).toISOString(),
               }
             : {}),
