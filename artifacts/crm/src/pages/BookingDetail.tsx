@@ -35,7 +35,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { formatDateTime, formatDate, formatBookingDateTime, formatBookingDate } from "@/lib/utils";
+import { formatDateTime, formatDate } from "@/lib/utils";
 import {
   Plus,
   Trash2,
@@ -2047,11 +2047,11 @@ export default function BookingDetail({
                   {booking.customer?.fullName || booking.contactFullName || "—"}{" "}
                   ·{" "}
                   {booking.pickupDatetime
-                    ? formatBookingDate(booking.pickupDatetime)
+                    ? formatDate(booking.pickupDatetime)
                     : "—"}{" "}
                   →{" "}
                   {booking.dropoffDatetime
-                    ? formatBookingDate(booking.dropoffDatetime)
+                    ? formatDate(booking.dropoffDatetime)
                     : "—"}
                 </>
               ) : null}
@@ -2333,7 +2333,7 @@ export default function BookingDetail({
                       </div>
                       <div className="break-words">
                         {booking.pickupDatetime
-                          ? formatBookingDateTime(booking.pickupDatetime)
+                          ? formatDateTime(booking.pickupDatetime)
                           : "—"}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -2346,7 +2346,7 @@ export default function BookingDetail({
                       </div>
                       <div className="break-words">
                         {booking.dropoffDatetime
-                          ? formatBookingDateTime(booking.dropoffDatetime)
+                          ? formatDateTime(booking.dropoffDatetime)
                           : "—"}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
