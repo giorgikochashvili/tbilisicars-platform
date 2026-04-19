@@ -1,0 +1,47 @@
+We are continuing the live TBILISICARS CRM&WEB project already fully built in Replit.
+
+Important:
+- This task is ONLY for removing the temporary account-created/account-login block from the booking success page
+- Do NOT touch booking status logic again
+- Do NOT touch booking time logic again
+- Do NOT touch scroll behavior again
+- Do NOT touch Step 4 checkbox/modal behavior again
+- Do NOT touch email redesign/layout yet
+- Do NOT touch PDF voucher layout/design yet
+- Do NOT touch footer or Step 1 cleanup yet
+- Do NOT refactor unrelated code
+- Do NOT change architecture
+- Keep this surgical and production-safe
+
+Goal:
+Remove the temporary customer-account-created / account-login messaging from the booking success page until the customer cabinet is truly ready for public use.
+
+Confirmed product requirement:
+- Backend account creation may already exist
+- But the customer-facing cabinet/login flow is not ready yet
+- Therefore the success page must NOT show account-created or login credentials messaging for now
+
+Required final behavior:
+1. Remove the success-page block/section that tells the customer their account was created or shows login/password details.
+2. Remove only that temporary account-related messaging/block.
+3. Keep the rest of the success/confirmation page working as-is for now.
+4. Do not remove booking confirmation details or other essential confirmation information.
+5. Do not change backend account creation behavior in this task — only the success-page presentation.
+
+Constraints:
+- First inspect the exact success-page JSX and identify where the account/login block is rendered
+- Apply the smallest safe fix
+- Do NOT change booking confirmation logic
+- Do NOT change API response structure unless absolutely necessary, and if so, stop and explain first
+- Do NOT change email behavior in this task
+- Do NOT change unrelated success-page content beyond this account block
+
+What I need from PLAN:
+1. Exact file(s) that must change
+2. Exact success-page block that will be removed/hidden
+3. Whether the block is conditional on some response field (for example generatedPassword) and how that will be handled safely
+4. The smallest safe implementation approach
+5. Any risks or ambiguity found
+6. Wait for approval before BUILD
+
+This must be implemented as a minimal, precise fix. Precision matters more than speed.

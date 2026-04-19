@@ -2362,24 +2362,6 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           {form.notes && <SummaryRow label="Notes" value={form.notes} />}
         </div>
 
-        {/* Generated password — only shown for new accounts */}
-        {result.generatedPassword && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
-            <div className="flex items-center gap-1.5 mb-3">
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <div className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                Your Account Login
-              </div>
-            </div>
-            <SummaryRow label="Email" value={form.email} />
-            <SummaryRow label="Temporary Password" value={result.generatedPassword} />
-            <p className="text-xs text-amber-400/80 mt-3 leading-relaxed">
-              A new account was created for you. Save this password — it will not be shown again.
-              You can log in and manage your bookings at any time.
-            </p>
-          </div>
-        )}
-
         {/* Pickup instructions */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
           <div className="flex items-start gap-3">
