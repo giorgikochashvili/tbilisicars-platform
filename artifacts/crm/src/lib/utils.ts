@@ -42,6 +42,29 @@ export function formatTime(date: Date | string): string {
   }
 }
 
+export function formatBookingDateTime(date: Date | string): string {
+  try {
+    return new Intl.DateTimeFormat(TBS_LOCALE, {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+      timeZone: "UTC", hour12: false,
+    }).format(typeof date === "string" ? new Date(date) : date);
+  } catch {
+    return "—";
+  }
+}
+
+export function formatBookingDate(date: Date | string): string {
+  try {
+    return new Intl.DateTimeFormat(TBS_LOCALE, {
+      day: "2-digit", month: "short", year: "numeric",
+      timeZone: "UTC",
+    }).format(typeof date === "string" ? new Date(date) : date);
+  } catch {
+    return "—";
+  }
+}
+
 export function formatMoney(value: string | number | null | undefined): string {
   if (!value) return "₾0.00";
   const num = typeof value === "string" ? parseFloat(value) : value;

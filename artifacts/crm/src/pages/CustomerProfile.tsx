@@ -10,7 +10,7 @@ import type {
   AdminBookingPaginatedResponse,
   AdminBookingRow,
 } from "@workspace/api-client-react";
-import { formatBookingAmount, formatDateTime, formatDate, cn } from "@/lib/utils";
+import { formatBookingAmount, formatDateTime, formatDate, formatBookingDate, cn } from "@/lib/utils";
 import BookingDetail from "./BookingDetail";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -288,8 +288,8 @@ export default function CustomerProfile() {
                           #{b.id}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          <div>{formatDate(b.pickupDatetime)}</div>
-                          <div className="text-xs">→ {formatDate(b.dropoffDatetime)}</div>
+                          <div>{formatBookingDate(b.pickupDatetime)}</div>
+                          <div className="text-xs">→ {formatBookingDate(b.dropoffDatetime)}</div>
                         </TableCell>
                         <TableCell className="text-sm">
                           <div>{vehicleLabel(b)}</div>
@@ -397,7 +397,7 @@ export default function CustomerProfile() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {formatDate(b.pickupDatetime)} → {formatDate(b.dropoffDatetime)} · {days}d
+                      {formatBookingDate(b.pickupDatetime)} → {formatBookingDate(b.dropoffDatetime)} · {days}d
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {locationShort(b.pickupLocation.name)} → {locationShort(b.dropoffLocation.name)}
