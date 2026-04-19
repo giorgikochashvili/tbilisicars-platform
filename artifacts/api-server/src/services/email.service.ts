@@ -147,7 +147,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
 
   function extraTextLine(ex: EmailExtra): string {
     const lineTotal = extraLineTotal(ex);
-    return `  • ${ex.name}${ex.quantity > 1 ? ` ×${ex.quantity}` : ""}: ${fmt(lineTotal)}`;
+    return `  \u2022 ${ex.name}${ex.quantity > 1 ? ` \u00D7${ex.quantity}` : ""}: ${fmt(lineTotal)}`;
   }
 
   // ── HTML sections ──────────────────────────────────────────────────────────
@@ -171,12 +171,29 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           ${extras.map(extraHtmlRow).join("")}
         </div>` : "";
 
+  // ── Meta strip: horizontal row of supplementary booking details ─────────────
+  // Each item is a <td> cell; Duration is always shown, others are conditional.
+  // border-right is applied to all except the last cell.
+  const metaItems: Array<{ label: string; value: string }> = [
+    { label: "Duration", value: `${days} ${days === 1 ? "day" : "days"}` },
+    ...(insurancePlan ? [{ label: "Insurance", value: `${esc(insurancePlan)} Cover` }] : []),
+    ...(flightNumber  ? [{ label: "Flight No.", value: esc(flightNumber) }] : []),
+    ...((nationality || age) ? [{
+      label: "Driver",
+      value: [nationality && esc(nationality), age && `Age ${esc(age)}`].filter(Boolean).join(" \u00B7 "),
+    }] : []),
+  ];
+  const metaCellsHtml = metaItems.map((item, i) => {
+    const borderRight = i < metaItems.length - 1 ? "border-right:1px solid #1e3a5f;" : "";
+    return `<td style="padding:10px 14px;vertical-align:top;${borderRight}"><div class="meta-label">${item.label}</div><div class="meta-value">${item.value}</div></td>`;
+  }).join("");
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Confirmation — ${esc(reference)}</title>
+  <title>Booking Confirmation \u2014 ${esc(reference)}</title>
   <style>
     body { margin: 0; padding: 0; background-color: #0d1b2a; font-family: 'Segoe UI', Arial, sans-serif; color: #e2e8f0; }
     .wrapper { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
@@ -185,13 +202,21 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     .header p { margin: 6px 0 0; color: rgba(255,255,255,0.8); font-size: 14px; }
     .body { padding: 28px; }
-    .greeting { font-size: 16px; color: #e2e8f0; margin-bottom: 20px; line-height: 1.6; }
-    .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 24px; }
+    .greeting { font-size: 15px; color: #94a3b8; margin-bottom: 20px; line-height: 1.6; }
+    .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 16px; }
     .ref-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 4px; }
     .ref-value { font-size: 28px; font-weight: 800; color: #e05c72; letter-spacing: 2px; }
     .status-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .status-badge { display: inline-block; background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); color: #fbbf24; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .status-badge-gray { display: inline-block; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .vehicle-banner { background: rgba(127,29,46,0.10); border-radius: 10px; padding: 14px 20px; text-align: center; margin-bottom: 16px; }
+    .vehicle-banner .vb-name { font-size: 17px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+    .vehicle-banner .vb-sub { font-size: 12px; color: #64748b; }
+    .dates-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 5px; }
+    .dates-location { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+    .dates-time { font-size: 12px; color: #94a3b8; }
+    .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-bottom: 4px; }
+    .meta-value { font-size: 13px; color: #e2e8f0; }
     .section { margin-bottom: 20px; }
     .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #64748b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #1e3a5f; }
     .row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid #1a2f4a; font-size: 14px; gap: 12px; }
@@ -210,18 +235,10 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .payment-box { background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.18); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
     .payment-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #4ade80; margin-bottom: 6px; }
     .payment-box p { margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .pdf-note { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
+    .pdf-note { background: rgba(255,255,255,0.04); border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
     .contact-section { background: #0d1b2a; border-radius: 10px; padding: 16px 20px; }
     .contact-section p { margin: 0 0 8px; font-size: 13px; color: #94a3b8; }
     .contact-section a { color: #e05c72; text-decoration: none; }
-    .account-box { background: rgba(30,58,95,0.35); border: 1px solid #2d5a8e; border-left: 3px solid #e05c72; border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; }
-    .account-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #e05c72; margin-bottom: 10px; font-weight: 700; }
-    .account-box .acct-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(45,90,142,0.4); font-size: 13px; gap: 12px; }
-    .account-box .acct-row:last-of-type { border-bottom: none; }
-    .account-box .acct-label { color: #94a3b8; flex-shrink: 0; }
-    .account-box .acct-value { color: #e2e8f0; font-weight: 600; text-align: right; }
-    .account-box .pw-value { color: #e05c72; font-family: monospace; font-size: 15px; font-weight: 700; letter-spacing: 2px; }
-    .account-box .acct-note { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(45,90,142,0.4); }
     .footer { text-align: center; padding: 20px 28px; font-size: 12px; color: #475569; }
     .footer a { color: #64748b; }
   </style>
@@ -245,24 +262,33 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           </div>
         </div>
 
-        <div class="section">
-          <div class="section-title">Trip Details</div>
-          <div class="row"><span class="label">Vehicle</span><span class="value">${esc(vehicle)}</span></div>
-          <div class="row"><span class="label">Pickup Location</span><span class="value">${esc(pickupLocation)}</span></div>
-          <div class="row"><span class="label">Drop-off Location</span><span class="value">${esc(dropoffLocation)}</span></div>
-          <div class="row"><span class="label">Pickup Date &amp; Time</span><span class="value">${esc(formatDT(pickupDatetime))}</span></div>
-          <div class="row"><span class="label">Return Date &amp; Time</span><span class="value">${esc(formatDT(dropoffDatetime))}</span></div>
-          <div class="row"><span class="label">Duration</span><span class="value">${days} ${days === 1 ? "day" : "days"}</span></div>
-          ${flightNumber ? `<div class="row"><span class="label">Flight Number</span><span class="value">${esc(flightNumber)}</span></div>` : ""}
-          <div class="row"><span class="label">Booking Status</span><span class="value">${esc(bookingStatusDisplay)}</span></div>
-          <div class="row"><span class="label">Payment Status</span><span class="value">${esc(paymentStatusDisplay)}</span></div>
+        <div class="vehicle-banner">
+          <div class="vb-name">${esc(vehicle)}</div>
+          <div class="vb-sub">${days} ${days === 1 ? "day" : "days"} rental</div>
         </div>
 
-        ${insurancePlan ? `
-        <div class="section">
-          <div class="section-title">Insurance</div>
-          <div class="row"><span class="label">Plan</span><span class="value">${esc(insurancePlan)} Cover</span></div>
-        </div>` : ""}
+        <div style="border:1px solid #1e3a5f;border-radius:10px;overflow:hidden;margin-bottom:16px;">
+          <table width="100%" cellspacing="0" cellpadding="0" role="presentation">
+            <tr>
+              <td style="width:50%;padding:14px 16px;vertical-align:top;border-right:1px solid #1e3a5f;">
+                <div class="dates-label">Pickup</div>
+                <div class="dates-location">${esc(pickupLocation)}</div>
+                <div class="dates-time">${esc(formatDT(pickupDatetime))}</div>
+              </td>
+              <td style="width:50%;padding:14px 16px;vertical-align:top;">
+                <div class="dates-label">Return</div>
+                <div class="dates-location">${esc(dropoffLocation)}</div>
+                <div class="dates-time">${esc(formatDT(dropoffDatetime))}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="border:1px solid #1e3a5f;border-radius:8px;overflow:hidden;margin-bottom:20px;">
+          <table width="100%" cellspacing="0" cellpadding="0" role="presentation">
+            <tr>${metaCellsHtml}</tr>
+          </table>
+        </div>
 
         ${extrasOnlySection}
         ${pricingSection}
@@ -273,37 +299,12 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <p>${esc(paymentMethodNote(paymentMethod))}</p>
         </div>` : ""}
 
-        ${nationality || age ? `
-        <div class="section">
-          <div class="section-title">Additional Details</div>
-          ${nationality ? `<div class="row"><span class="label">Nationality</span><span class="value">${esc(nationality)}</span></div>` : ""}
-          ${age ? `<div class="row"><span class="label">Driver Age</span><span class="value">${esc(age)}</span></div>` : ""}
-        </div>` : ""}
-
         <div class="instructions-box">
           <div class="box-title">Pickup Instructions</div>
           <p>${esc(pickupInstructions)}</p>
         </div>
 
-        ${generatedPassword != null && generatedPassword !== "" ? `
-        <div class="account-box">
-          <div class="box-title">Your Account</div>
-          <div class="acct-row">
-            <span class="acct-label">Email</span>
-            <span class="acct-value">${esc(toEmail)}</span>
-          </div>
-          <div class="acct-row">
-            <span class="acct-label">Password</span>
-            <span class="pw-value">${esc(generatedPassword)}</span>
-          </div>
-          <div class="acct-row">
-            <span class="acct-label">Sign in at</span>
-            <span class="acct-value"><a href="https://tbilisicars.com/login" style="color:#e05c72;">tbilisicars.com/login</a></span>
-          </div>
-          <p class="acct-note">We created this account automatically using your booking email. You can change your password from your cabinet.</p>
-        </div>` : ""}
-
-        <p class="pdf-note">Your full booking details are attached as a PDF. Our team will review your request and confirm within a few hours.</p>
+        <p class="pdf-note">&#128206; Your complete booking voucher is attached as a PDF. Our team will review your request and confirm within a few hours.</p>
 
         <div class="contact-section">
           <p><strong style="color:#e2e8f0;">Need help? Contact us anytime:</strong></p>
@@ -331,43 +332,51 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
+  const metaText = [
+    `  Duration: ${days} ${days === 1 ? "day" : "days"}`,
+    ...(insurancePlan ? [`  Insurance: ${insurancePlan} Cover`] : []),
+    ...(flightNumber  ? [`  Flight No.: ${flightNumber}`] : []),
+    ...(nationality   ? [`  Nationality: ${nationality}`] : []),
+    ...(age           ? [`  Driver Age: ${age}`] : []),
+  ].join("\n");
+
   const text = `
-Tbilisicars — Booking Confirmation
+Tbilisicars \u2014 Booking Confirmation
 
 Dear ${toName},
 
 Thank you for choosing Tbilisicars. We have received your booking request and will confirm shortly.
 
 BOOKING REFERENCE: ${reference}
+Booking: ${bookingStatusDisplay} \u00B7 Payment: ${paymentStatusDisplay}
 
-TRIP DETAILS
-  Vehicle: ${vehicle}
-  Pickup Location: ${pickupLocation}
-  Drop-off Location: ${dropoffLocation}
-  Pickup Date & Time: ${formatDT(pickupDatetime)}
-  Return Date & Time: ${formatDT(dropoffDatetime)}
-  Duration: ${days} ${days === 1 ? "day" : "days"}
-${flightNumber ? `  Flight Number: ${flightNumber}\n` : ""}  Booking Status: ${bookingStatusDisplay}
-  Payment Status: ${paymentStatusDisplay}
-${insurancePlan ? `INSURANCE\n  Plan: ${insurancePlan} Cover\n\n` : ""}${pricingText}
-${paymentMethod ? `PAYMENT\n  ${paymentMethodNote(paymentMethod)}\n\n` : ""}${nationality || age ? `ADDITIONAL DETAILS\n${nationality ? `  Nationality: ${nationality}\n` : ""}${age ? `  Driver Age: ${age}\n` : ""}\n` : ""}PICKUP INSTRUCTIONS
+VEHICLE
+  ${vehicle}
+  ${days} ${days === 1 ? "day" : "days"} rental
+
+PICKUP
+  ${pickupLocation}
+  ${formatDT(pickupDatetime)}
+
+RETURN
+  ${dropoffLocation}
+  ${formatDT(dropoffDatetime)}
+
+DETAILS
+${metaText}
+${paymentMethod ? `\nPAYMENT\n  ${paymentMethodNote(paymentMethod)}\n` : ""}${pricingText}
+PICKUP INSTRUCTIONS
   ${pickupInstructions}
 
-Your full booking details are attached as a PDF.
+Your complete booking voucher is attached as a PDF.
 Our team will review your request and confirm within a few hours.
 
-${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
-  Email:    ${toEmail}
-  Password: ${generatedPassword}
-  Sign in:  https://tbilisicars.com/login
-  (You can change your password from your cabinet.)
-
-` : ""}CONTACT US
+CONTACT US
   Tbilisi / Batumi: +995 557 37 63 63
   Kutaisi: +995 595 28 66 00
   Email: reservations@tbilisicars.com
 
-© 2026 Tbilisicars — Premium Car Rental in Georgia
+\u00A9 2026 Tbilisicars \u2014 Premium Car Rental in Georgia
 `.trim();
 
   // ── Optional PDF voucher attachment ─────────────────────────────────────────
@@ -398,8 +407,8 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: toEmail,
       subject: bookingStatus === "CONFIRMED"
-        ? `Booking Confirmed: ${reference} — ${vehicle}`
-        : `Booking Request Received: ${reference} — ${vehicle}`,
+        ? `Booking Confirmed: ${reference} \u2014 ${vehicle}`
+        : `Booking Request Received: ${reference} \u2014 ${vehicle}`,
       html,
       text,
       ...(pdfBuffer != null
@@ -451,7 +460,7 @@ export function renderThankYouEmail(params: ThankYouEmailParams): {
     <div style="background:#132033;border:1px solid #1e3a5f;border-radius:16px;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#7f1d2e 0%,#9f2535 100%);padding:28px;text-align:center;">
         <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Thank you, ${esc(safeFirst)}!</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars · Premium Car Rental in Georgia</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars \u00B7 Premium Car Rental in Georgia</p>
       </div>
       <div style="padding:28px;font-size:14px;line-height:1.6;">
         <p>It was a pleasure handing over your <strong>${esc(vehicle)}</strong> today (booking <strong>${esc(reference)}</strong>). We hope you're enjoying the road and that everything is running smoothly.</p>
@@ -466,11 +475,11 @@ export function renderThankYouEmail(params: ThankYouEmailParams): {
             </td>
           </tr>
         </table>
-        <p>If anything is less than perfect, just reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> — we'd rather fix it than have you leave anything but a five-star review.</p>
+        <p>If anything is less than perfect, just reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> \u2014 we'd rather fix it than have you leave anything but a five-star review.</p>
         <p style="margin-top:24px;">Safe travels,<br/><strong>The Tbilisicars Team</strong></p>
       </div>
       <div style="text-align:center;padding:18px 28px;font-size:12px;color:#475569;">
-        © 2026 Tbilisicars · <a href="https://tbilisicars.com" style="color:#64748b;">tbilisicars.com</a>
+        \u00A9 2026 Tbilisicars \u00B7 <a href="https://tbilisicars.com" style="color:#64748b;">tbilisicars.com</a>
       </div>
     </div>
   </div>
@@ -484,7 +493,7 @@ If you have a moment, a short public review goes a long way:
   Google:     ${GOOGLE_REVIEW_URL}
   Trustpilot: ${TRUSTPILOT_URL}
 
-If anything is less than perfect, just reply to this email or call +995 557 37 63 63 — we'd rather fix it.
+If anything is less than perfect, just reply to this email or call +995 557 37 63 63 \u2014 we'd rather fix it.
 
 Safe travels,
 The Tbilisicars Team
@@ -576,7 +585,7 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
     row("Booking Reference", esc(referenceNumber)),
     row("Customer Name", esc(customerName)),
     row("Customer Email", `<a href="mailto:${esc(customerEmail)}" style="color:#e05c72;">${esc(customerEmail)}</a>`),
-    row("Customer Phone", customerPhone ? esc(customerPhone) : "—"),
+    row("Customer Phone", customerPhone ? esc(customerPhone) : "\u2014"),
     row("Pickup Location", esc(pickupLocation)),
     row("Drop-off Location", esc(dropoffLocation)),
     row("Pickup Date", esc(fmtDate(pickupDate))),
@@ -610,12 +619,12 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
 </html>`;
 
   const text = [
-    `NEW WEBSITE BOOKING — ${referenceNumber}`,
+    `NEW WEBSITE BOOKING \u2014 ${referenceNumber}`,
     ``,
     `Reference:       ${referenceNumber}`,
     `Customer:        ${customerName}`,
     `Email:           ${customerEmail}`,
-    `Phone:           ${customerPhone ?? "—"}`,
+    `Phone:           ${customerPhone ?? "\u2014"}`,
     `Pickup:          ${pickupLocation}`,
     `Drop-off:        ${dropoffLocation}`,
     `Pickup date:     ${fmtDate(pickupDate)}`,
@@ -632,8 +641,8 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: "reservations@tbilisicars.com",
       subject: bookingStatus === "CONFIRMED"
-        ? `New Website Booking (CONFIRMED) — ${referenceNumber}`
-        : `New Website Booking (PENDING) — ${referenceNumber}`,
+        ? `New Website Booking (CONFIRMED) \u2014 ${referenceNumber}`
+        : `New Website Booking (PENDING) \u2014 ${referenceNumber}`,
       html,
       text,
     });

@@ -278,8 +278,6 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   if (nationality) row("Nationality", nationality);
   if (age) row("Age", age);
   if (paymentMethod) row("Payment Method", paymentMethod);
-  row("Booking Status", bookingStatusDisplay);
-  row("Payment Status", paymentStatusDisplay);
   y -= GAP;
 
   // ── Booking Notes (customer-facing portion only) ─────────────────────────────
@@ -294,33 +292,6 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       y -= ROW_H;
     }
     y -= GAP;
-  }
-
-  // ── Account block (new accounts only) ────────────────────────────────────────
-  if (generatedPassword != null && generatedPassword !== "") {
-    const acctH = 90;
-    const boxY = Math.max(y - acctH, 50); // never clip below footer
-    page.drawRectangle({ x: MARGIN, y: boxY, width: CW, height: acctH, color: C.lightBg });
-    page.drawRectangle({ x: MARGIN, y: boxY, width: CW, height: acctH,
-      borderColor: C.border, borderWidth: 0.8 });
-    page.drawRectangle({ x: MARGIN, y: boxY, width: 4, height: acctH, color: C.accentLite });
-
-    const by = boxY + acctH; // top of box
-    page.drawText("YOUR ACCOUNT", {
-      x: MARGIN + 14, y: by - 16, size: 8, font: fontBold, color: C.dark,
-    });
-    page.drawText("Use these credentials to access your personal booking cabinet:", {
-      x: MARGIN + 14, y: by - 30, size: 8.5, font, color: C.muted,
-    });
-    page.drawText("Email:", { x: MARGIN + 14, y: by - 46, size: 9, font: fontBold, color: C.muted });
-    page.drawText(trunc(toEmail, 52), { x: MARGIN + 62, y: by - 46, size: 9, font, color: C.dark });
-    page.drawText("Password:", { x: MARGIN + 14, y: by - 62, size: 9, font: fontBold, color: C.muted });
-    page.drawText(generatedPassword, {
-      x: MARGIN + 62, y: by - 62, size: 10, font: fontBold, color: C.accentLite,
-    });
-    page.drawText("You can change your password from your cabinet.", {
-      x: MARGIN + 14, y: by - 78, size: 8, font, color: C.muted,
-    });
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────────
