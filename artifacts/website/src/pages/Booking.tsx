@@ -58,6 +58,7 @@ interface BookingResult {
   bookingId: number; reference: string; vehicle: string;
   pickupDatetime: string; dropoffDatetime: string;
   pickupLocationId?: number;
+  status?: "PENDING" | "CONFIRMED";
   message: string;
   generatedPassword?: string | null;
 }
@@ -2212,9 +2213,13 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           <div className="w-16 h-16 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Booking Request Received!</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {result.status === "CONFIRMED" ? "Booking Confirmed!" : "Booking Request Received!"}
+          </h2>
           <p className="text-muted-foreground max-w-sm mx-auto text-sm leading-relaxed">
-            We've received your booking and will confirm via email shortly.
+            {result.status === "CONFIRMED"
+              ? "Your booking is confirmed. Check your email for the full confirmation details."
+              : "We've received your booking and will confirm via email shortly."}
           </p>
         </div>
 
@@ -2230,10 +2235,17 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
             <Copy className="w-3 h-3" /> Copy reference number
           </button>
           <div className="flex justify-center">
-            <span className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-full px-4 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
-              <span className="text-amber-400 text-xs font-semibold">Pending Confirmation</span>
-            </span>
+            {result.status === "CONFIRMED" ? (
+              <span className="inline-flex items-center gap-2 bg-green-500/15 border border-green-500/30 rounded-full px-4 py-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+                <span className="text-green-400 text-xs font-semibold">Booking Confirmed</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-full px-4 py-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
+                <span className="text-amber-400 text-xs font-semibold">Pending Confirmation</span>
+              </span>
+            )}
           </div>
         </div>
 
