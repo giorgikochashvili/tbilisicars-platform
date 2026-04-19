@@ -102,7 +102,7 @@ const INSURANCE_VISUAL = {
   },
 };
 
-const STEP_LABELS = ["Vehicle", "Extras & Services", "Insurance", "Your Info", "Payment", "Confirm"];
+const STEP_LABELS = ["Vehicle", "Extras", "Insurance", "Your Info", "Payment", "Confirm"];
 
 const BOOKING_DRAFT_KEY = "tc_booking_draft";
 
@@ -1182,22 +1182,6 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             </div>
           )}
 
-          {/* 2. Booking Summary — live pricing summary */}
-          {!showBanner && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Car className="w-3.5 h-3.5 text-primary" /> Booking Summary
-              </div>
-              <PricingSummaryContent
-                form={form}
-                models={models}
-                extras={extras}
-                quote={quote}
-                quoteLoading={quoteLoading}
-              />
-            </div>
-          )}
-
           {/* 3. Filters — visible when trip confirmed and filter options exist */}
           {showFilters && (
             <>
@@ -1725,7 +1709,7 @@ function Step3({ form, setForm, onNext, onBack }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Insurance Plan</h2>
-      <p className="text-muted-foreground text-sm mb-6">Full coverage is included with every booking for your peace of mind.</p>
+      <p className="text-muted-foreground text-sm mb-6">Full Insurance is activated without any additional fee.</p>
 
       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
         <Shield className="w-3.5 h-3.5 text-primary" />
@@ -2388,8 +2372,6 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center mb-5">{result.message}</p>
-
         {/* Bottom CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link href="/"
@@ -2808,8 +2790,8 @@ export default function Booking() {
           {/* Unified header card: title + subtitle + step progress row */}
           <div className="bg-card border border-border rounded-2xl px-6 pt-6 pb-4 mb-6">
             <div className="text-center mb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Book Your Car</h1>
-              <p className="text-sm text-muted-foreground">Complete the steps below to submit your reservation request.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Choose Your Perfect Car</h1>
+              <p className="text-sm text-muted-foreground">Select your dates, location, and vehicle to get started.</p>
             </div>
             <StepBar step={step} onGoTo={(n) => goToStep(n)} />
           </div>

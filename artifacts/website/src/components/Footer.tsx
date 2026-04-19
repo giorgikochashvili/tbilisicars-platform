@@ -10,8 +10,8 @@ const OFFICES = [
 export default function Footer() {
   return (
     <footer className="bg-[hsl(211,55%,8%)] border-t border-border mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
@@ -71,7 +71,7 @@ export default function Footer() {
           {/* Contact */}
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Contact</h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {OFFICES.map((o) => (
                 <li key={o.city} className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -93,7 +93,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Tbilisicars. All rights reserved.
           </p>
