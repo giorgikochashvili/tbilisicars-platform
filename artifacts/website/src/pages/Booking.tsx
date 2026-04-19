@@ -20,6 +20,10 @@ import { DateTimePicker } from "@/components/DateTimePicker";
 import { TERMS_SECTIONS } from "./Terms";
 import { PRIVACY_SECTIONS } from "./Privacy";
 
+function toTbilisiISO(bare: string): string {
+  return bare ? `${bare}:00+04:00` : bare;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Location { id: number; name: string; city: string; }
@@ -2126,8 +2130,8 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         vehicleModelId: Number(form.vehicleModelId),
-        pickupDatetime: form.pickupDatetime,
-        dropoffDatetime: form.dropoffDatetime,
+        pickupDatetime: toTbilisiISO(form.pickupDatetime),
+        dropoffDatetime: toTbilisiISO(form.dropoffDatetime),
         pickupLocationId: form.pickupLocationId ? Number(form.pickupLocationId) : undefined,
         dropoffLocationId: form.dropoffLocationId ? Number(form.dropoffLocationId) : undefined,
         extras: form.extras.length > 0 ? form.extras : undefined,
@@ -2149,8 +2153,8 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         body: JSON.stringify({
           pickupLocationId: Number(form.pickupLocationId),
           dropoffLocationId: Number(form.dropoffLocationId),
-          pickupDatetime: form.pickupDatetime,
-          dropoffDatetime: form.dropoffDatetime,
+          pickupDatetime: toTbilisiISO(form.pickupDatetime),
+          dropoffDatetime: toTbilisiISO(form.dropoffDatetime),
           vehicleModelId: Number(form.vehicleModelId),
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
@@ -2700,8 +2704,8 @@ export default function Booking() {
           method: "POST",
           body: JSON.stringify({
             vehicleModelId: Number(form.vehicleModelId),
-            pickupDatetime: form.pickupDatetime,
-            dropoffDatetime: form.dropoffDatetime,
+            pickupDatetime: toTbilisiISO(form.pickupDatetime),
+            dropoffDatetime: toTbilisiISO(form.dropoffDatetime),
             pickupLocationId: form.pickupLocationId ? Number(form.pickupLocationId) : undefined,
             dropoffLocationId: form.dropoffLocationId ? Number(form.dropoffLocationId) : undefined,
             extras: form.extras.length > 0 ? form.extras : undefined,
