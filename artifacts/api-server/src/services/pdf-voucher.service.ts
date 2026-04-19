@@ -158,7 +158,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   page.drawText("BOOKING VOUCHER", {
     x: MARGIN, y: PAGE_H - 56, size: 8.5, font, color: rgb(0.6, 0.7, 0.8),
   });
-  page.drawText("tbilisicars.com \u00B7 Car Rental Georgia", {
+  page.drawText("Tbilisicars.com \u00B7 Car Rental Georgia", {
     x: MARGIN, y: PAGE_H - 72, size: 8.5, font, color: rgb(0.5, 0.6, 0.7),
   });
 
