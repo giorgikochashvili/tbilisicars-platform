@@ -1117,7 +1117,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[320px_1fr] gap-6 items-start">
+    <div className="lg:grid lg:grid-cols-[240px_1fr] gap-4 items-start">
 
       {/* ── Left sticky rail ─────────────────────────────────────────────── */}
       <div className="mb-4 lg:mb-0 lg:self-start">
@@ -1141,7 +1141,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
               >
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-white font-medium normal-case tracking-normal text-sm truncate max-w-[160px]">
+                  <span className="text-white font-medium normal-case tracking-normal text-sm truncate max-w-[120px]">
                     {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? "Your Trip"}
                     {days > 0 && <span className="ml-2 text-primary text-xs font-bold">· {days}d</span>}
                   </span>
@@ -1454,7 +1454,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                     </span>
                   </div>
                   {/* Cards: centered snap carousel on mobile, 2-col grid on sm, 3-col on xl */}
-                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 xl:grid-cols-3">
+                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 lg:grid-cols-3">
                     {catModels.map((m) => (
                       <div key={m.id} className="shrink-0 w-full snap-center sm:w-auto sm:shrink sm:snap-align-none">
                         <VehicleCard
@@ -1482,7 +1482,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                   <div className="mb-4 pb-3 border-b border-border/60">
                     <h3 className="text-base font-bold text-white">Other Vehicles</h3>
                   </div>
-                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 xl:grid-cols-3">
+                  <div className="-mx-4 px-[9%] flex overflow-x-auto snap-x snap-mandatory gap-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-x-clip sm:pb-0 sm:gap-4 lg:grid-cols-3">
                     {other.map((m) => (
                       <div key={m.id} className="shrink-0 w-full snap-center sm:w-auto sm:shrink sm:snap-align-none">
                         <VehicleCard
@@ -2786,12 +2786,12 @@ export default function Booking() {
   if (step === 1) {
     return (
       <div className="min-h-screen py-6 px-4">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           {/* Unified header card: title + subtitle + step progress row */}
           <div className="bg-card border border-border rounded-2xl px-6 pt-6 pb-4 mb-6">
             <div className="text-center mb-4">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Choose Your Perfect Car</h1>
-              <p className="text-sm text-muted-foreground">Select your dates, location, and vehicle to get started.</p>
+              <p className="text-sm text-primary/80">Fill in the fields and follow the steps to complete your booking.</p>
             </div>
             <StepBar step={step} onGoTo={(n) => goToStep(n)} />
           </div>
