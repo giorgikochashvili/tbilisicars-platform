@@ -2224,8 +2224,13 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         </div>
 
         {/* Reference hero */}
-        <div className="bg-gradient-to-b from-primary/20 to-primary/5 border border-primary/30 rounded-2xl p-6 mb-5 text-center">
-          <div className="text-xs font-semibold text-primary/70 uppercase tracking-wider mb-2">Your Booking Reference</div>
+        <div className={cn(
+          "rounded-2xl p-6 mb-5 text-center bg-gradient-to-b border",
+          result.status === "CONFIRMED"
+            ? "from-green-500/20 to-green-500/5 border-green-500/30"
+            : "from-primary/20 to-primary/5 border-primary/30"
+        )}>
+          <div className={cn("text-xs font-semibold uppercase tracking-wider mb-2", result.status === "CONFIRMED" ? "text-green-400/80" : "text-primary/70")}>Your Booking Reference</div>
           <div className="text-4xl font-black text-white tracking-widest mb-3">{result.reference}</div>
           <button
             type="button"
