@@ -1,0 +1,63 @@
+We are continuing the live TBILISICARS CRM&WEB project already fully built in Replit.
+
+Important:
+- This task is ONLY for booking email redesign + PDF voucher attachment/polish
+- Do NOT touch booking status logic again
+- Do NOT touch booking time logic again
+- Do NOT touch scroll behavior again
+- Do NOT touch Step 4 checkbox/modal behavior again
+- Do NOT touch success-page account block again
+- Do NOT touch footer or Step 1 cleanup yet
+- Do NOT refactor unrelated code
+- Do NOT change architecture
+- Keep this surgical and production-safe
+
+Goal:
+Redesign the booking-related emails to look more professional, cleaner, and more rental/voucher-like, while ensuring the PDF voucher is attached properly and matches the improved professional feel.
+
+Confirmed product direction:
+- Current email design feels too vertical, text-heavy, and not professional enough
+- We want a cleaner, more structured, more horizontal layout for booking details
+- We want the booking/customer email to feel like a proper rental confirmation
+- PDF voucher must remain attached and should align with the improved professional style
+- Remove unnecessary technical wording or clutter from customer-facing email content
+
+Scope for this phase:
+1. Customer booking email redesign
+2. Internal/admin booking email design cleanup if needed for consistency
+3. PDF voucher attachment confirmation and PDF layout/content polish as needed
+4. Cleaner booking detail presentation:
+   - booking reference
+   - status
+   - customer info
+   - trip details
+   - vehicle
+   - pricing
+   - pickup instructions / next steps if already present
+5. Keep the content professional, readable, and compact
+
+Constraints:
+- First inspect the current email templates and current PDF voucher structure
+- Reuse existing booking data; do not invent new booking fields
+- Keep booking status/time correctness already fixed
+- Do NOT change booking creation logic
+- Do NOT change CRM logic
+- Do NOT change API response structure unless absolutely necessary, and if so, stop and explain first
+- Do NOT remove essential booking details
+- Do NOT add marketing fluff
+- Do NOT introduce noisy technical wording for customers
+- Keep the redesign within the current email/PDF generation system; no architecture rewrite
+
+What I need from PLAN:
+1. Exact files that must change
+2. Exact current weaknesses in the customer email layout/content
+3. Exact current weaknesses in the internal/admin email layout/content
+4. Whether PDF voucher is already attached consistently and what, if anything, needs improvement
+5. The smallest safe redesign approach for:
+   - customer email
+   - internal/admin email
+   - PDF voucher
+6. Any risks or ambiguity found
+7. Wait for approval before BUILD
+
+This must be implemented as a minimal, precise, professional redesign. Precision matters more than speed.

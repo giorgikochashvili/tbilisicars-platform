@@ -1,0 +1,43 @@
+Revise the plan before build.
+
+The cleanup direction is good, but the current plan still reads mostly as content cleanup rather than a sufficiently professional email redesign.
+
+Keep the scope minimal and safe, but revise the plan so the customer email clearly becomes more structured, more polished, and more horizontally organized in presentation — not just shorter.
+
+Important constraints:
+- Still do NOT touch booking logic, API structure, CRM, or schema
+- Still do NOT redesign the internal/admin email unless truly necessary
+- Still keep the fix minimal and within the current email/PDF generation system
+- Still keep PDF attachment behavior unchanged
+
+What I need improved in the revised plan:
+1. Explain more clearly how the customer email layout will become more professional and more horizontally structured.
+   For example:
+   - a stronger summary/reference block at the top
+   - better grouping of customer / trip / vehicle / pricing details
+   - whether some sections become side-by-side blocks or table-like rows within the current responsive email constraints
+   - how the result will feel less vertical and less text-heavy
+
+2. Keep the cleanup items already identified:
+   - remove account block from customer email
+   - remove duplicate status rows
+   - consolidate insurance/nationality/age more logically
+   - keep the PDF note visible and useful
+   - remove account block from PDF
+   - remove duplicate status rows from PDF customer details
+
+3. Clarify whether any lightweight style changes in the customer email HTML/CSS are needed to support a more polished layout.
+   I do NOT want a full redesign system, but I do want more than just deleting sections.
+
+4. Keep the internal/admin email untouched unless there is a truly essential reason.
+
+5. Keep the PDF changes modest and professional.
+   Do not redesign the whole PDF yet, but make sure the PDF remains aligned with the cleaner customer-facing direction.
+
+In the revised plan, I want:
+- exact files
+- exact layout/content changes
+- exact customer email structural improvement
+- exact PDF cleanup
+- risks
+- then wait for approval before build
