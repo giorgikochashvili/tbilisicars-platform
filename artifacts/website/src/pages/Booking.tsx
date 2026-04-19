@@ -1057,6 +1057,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
     const key = `${form.pickupLocationId}|${form.dropoffLocationId}|${form.pickupDatetime}|${form.dropoffDatetime}`;
     if (prevTripKeyRef.current && prevTripKeyRef.current !== key) {
       setFilters({ category: "", transmission: "", seats: "", fuelType: "" });
+      setForm((f) => ({ ...f, vehicleModelId: "" }));
     }
     prevTripKeyRef.current = key;
   }, [form.pickupLocationId, form.dropoffLocationId, form.pickupDatetime, form.dropoffDatetime]);
@@ -2646,9 +2647,8 @@ export default function Booking() {
     try {
       const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
       if (raw) {
-        const draft = JSON.parse(raw) as { step: number; form: FormData };
-        if (draft.step && draft.form) {
-          setStep(draft.step);
+        const draft = JSON.parse(raw) as { step?: number; form: FormData };
+        if (draft.form) {
           setForm(draft.form);
         }
       }
@@ -2753,7 +2753,7 @@ export default function Booking() {
   }, [config]); // intentionally omit form — effect runs once, form is read via functional setForm
 
   function next() { setStep((s) => s + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function back() { setStep((s) => s - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function back() { setStep((s) => Math.max(1, s - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function goToStep(n: number) { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); }
   function reset() {
     setStep(1);
