@@ -1898,8 +1898,8 @@ export default function BookingDetail({
     const d = new Date(iso);
     const pad = (n: number) => n.toString().padStart(2, "0");
     return {
-      date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-      time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+      date: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
+      time: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`,
     };
   };
 
@@ -1958,14 +1958,14 @@ export default function BookingDetail({
           ...(overviewDraft.pickupDate && overviewDraft.pickupTime
             ? {
                 pickupDatetime: new Date(
-                  `${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00`,
+                  `${overviewDraft.pickupDate}T${overviewDraft.pickupTime}:00Z`,
                 ).toISOString(),
               }
             : {}),
           ...(overviewDraft.dropoffDate && overviewDraft.dropoffTime
             ? {
                 dropoffDatetime: new Date(
-                  `${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00`,
+                  `${overviewDraft.dropoffDate}T${overviewDraft.dropoffTime}:00Z`,
                 ).toISOString(),
               }
             : {}),
