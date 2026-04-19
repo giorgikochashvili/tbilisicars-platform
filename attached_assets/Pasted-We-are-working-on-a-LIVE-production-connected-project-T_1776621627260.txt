@@ -1,0 +1,55 @@
+We are working on a LIVE production-connected project: TBILISICARS CRM&WEB.
+
+IMPORTANT RULES:
+- This task is Plan B only
+- Do NOT touch website submission logic yet
+- Do NOT touch unrelated CRM pages
+- Do NOT change DB schema
+- Do NOT mutate existing booking data outside the explicit save/update action
+- Do NOT refactor unrelated code
+- This fix must be surgical and internally consistent
+- At the end, tell me exactly which files you changed and what you verified
+
+TASK: PLAN B — BOOKING DETAIL EDIT/ SAVE TIME FIX
+
+CONFIRMED INVESTIGATION RESULT:
+- Booking Detail static display was using UTC-only formatting (Plan A fixed that separately)
+- Booking Detail edit form prefill currently reads UTC hours
+- Booking Detail save path currently appends :00Z and treats the entered form time as UTC
+- This creates a corruption risk: an admin may see/edit the wrong hour and save a shifted time
+
+GOAL:
+In Booking Detail edit mode, the admin must see and edit the intended Tbilisi booking time.
+On save, that intended Tbilisi time must be converted/stored correctly as UTC, without introducing a +4 hour corruption.
+
+REQUIRED CHANGE:
+1. Fix splitDT (or equivalent edit form prefill logic) so that it derives the booking date/time for the form using Asia/Tbilisi, not raw UTC hours.
+2. Fix the save/update path so that the form-entered Tbilisi date/time is converted back correctly and stored as UTC.
+3. These two changes must be internally consistent and applied together.
+
+IMPORTANT:
+- Do NOT touch static display again (Plan A already handled that)
+- Do NOT touch website DateTimePicker yet
+- Do NOT touch public booking route yet
+- Do NOT touch any unrelated booking logic
+- Do NOT change formatter behavior globally
+- Keep the change limited to BookingDetail edit/save behavior only
+
+EXPECTED RESULT:
+- Booking Detail static view shows Tbilisi time
+- Entering edit mode shows the same intended Tbilisi time in the form
+- Saving without changing the time preserves the booking correctly
+- Changing the time in edit mode stores the correct UTC value corresponding to the entered Tbilisi time
+- No +4 hour drift on save
+- No data mutation outside explicit save
+
+LIKELY FILES:
+- artifacts/crm/src/pages/BookingDetail.tsx
+
+DELIVERABLE FORMAT:
+1. Brief summary of the exact change
+2. Exact file(s) changed
+3. How splitDT (or equivalent) was changed
+4. How save/update conversion was changed
+5. What you verified
+6. Explicit confirmation that website submission logic was NOT changed
