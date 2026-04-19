@@ -1,0 +1,88 @@
+We are working on a LIVE production-connected project: TBILISICARS CRM&WEB.
+
+IMPORTANT RULES:
+- Do NOT change architecture
+- Do NOT refactor unrelated code
+- Do NOT touch booking logic, pricing logic, payment logic, DB schema, or CRM operational flows
+- Do NOT invent any company information
+- Use only the existing real company/contact data already present in the project where applicable
+- Keep changes surgical and limited to branding/document/email presentation only
+- At the end, tell me exactly which files you changed, what you changed, and what you verified
+
+TASK: PHASE 3 — CRM BRANDING + VOUCHER/DOCUMENTS + CUSTOMER EMAIL CLEANUP
+
+We already completed website booking UI/flow/time fixes separately. Do NOT revisit those here.
+
+REQUIRED CHANGES:
+
+1) CRM browser tab title
+Change the CRM browser tab title so it shows exactly:
+Tbilisicars
+
+It must NOT show:
+Tbilisi Cars
+
+2) CRM favicon / browser tab logo
+Replace the incorrect generic red square favicon in the CRM/browser tab with the correct real project logo/favicon already available in the project assets if present.
+
+Requirements:
+- Do not generate a fake placeholder
+- Do not invent a new logo
+- Reuse the real existing brand asset already in the project if available
+- If the correct asset is already present, wire it properly
+- If multiple favicon/logo entry points exist, update the correct CRM-facing one(s) only
+
+3) Booking Voucher branding cleanup
+Update voucher branding so it shows:
+- Tbilisicars.com
+- subtitle: Car Rental Georgia
+
+Requirements:
+- Branding color/style should look clean and professional
+- Do not redesign the entire voucher
+- Only fix branding presentation and visible brand text where needed
+
+4) Unified company/contact information across voucher / contract / related documents
+Ensure voucher, contract, and related generated booking documents use only the correct unified company/contact information already present in the project/system.
+
+Requirements:
+- Do NOT leave placeholder or incorrect data
+- Do NOT invent phone numbers or email addresses
+- Reuse the real existing configured project/company information where already available
+- Keep document information consistent across all related generated outputs
+
+5) Customer booking email cleanup
+The current customer-facing booking email is too visually heavy and overloaded.
+
+Clean it up so it becomes:
+- simpler
+- cleaner
+- lighter
+- more readable
+- more professional
+- more brand-consistent
+
+Requirements:
+- Keep essential booking information
+- Reduce visual clutter
+- Remove or simplify overly heavy/redundant blocks if present
+- Do NOT break sending behavior
+- Do NOT change booking logic
+- Do NOT change PDF attachment behavior unless strictly required by the cleanup
+- Keep the email useful and trustworthy, not overdesigned
+
+STRICTLY OUT OF SCOPE:
+- Booking status logic
+- Time logic
+- CRM booking detail operational bugs
+- Add Payment logic
+- Booking Reference generation changes
+- Any new features
+- Any backend/business logic changes not strictly required for branding/document/email presentation
+
+DELIVERABLE FORMAT:
+1. Brief summary of what you changed
+2. Exact files changed
+3. Why each file was changed
+4. What you verified
+5. Anything you intentionally left unchanged
