@@ -1609,15 +1609,11 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-white mb-1">Additional Extras & Services</h2>
-      <p className="text-muted-foreground text-sm mb-6">Enhance your rental with additional services and add-ons</p>
+      <h2 className="text-xl font-bold text-white mb-1">Extras & Services</h2>
+      <p className="text-muted-foreground text-sm mb-6">All extras are optional — continue without selecting any if you prefer.</p>
 
       {extras.length > 0 ? (
         <>
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
-            <Package className="w-3.5 h-3.5 text-primary" />
-            Available Services & Add-ons
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           {extras.map((e) => {
             const selected = form.extras.some((x) => x.extraId === e.id);
@@ -1626,9 +1622,9 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
             return (
               <button key={e.id} type="button" onClick={() => toggleExtra(e.id)}
                 className={cn(
-                  "w-full text-left rounded-xl border-2 p-3 transition-all duration-200",
+                  "w-full text-left rounded-xl border-2 p-4 transition-all duration-200",
                   selected
-                    ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
+                    ? "border-primary bg-primary/10 shadow-md shadow-primary/15 ring-1 ring-primary/30"
                     : "border-border bg-card hover:border-primary/30 hover:bg-secondary/10 hover:shadow-md hover:shadow-black/20"
                 )}>
                 <div className="flex items-start gap-2.5">
@@ -1644,7 +1640,7 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
                     <div className="flex items-start justify-between gap-2">
                       <div className="font-semibold text-sm text-white leading-snug">{e.name}</div>
                       <div className={cn(
-                        "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200",
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200",
                         selected ? "bg-primary border-primary scale-110" : "border-border"
                       )}>
                         {selected && <Check className="w-3 h-3 text-white" />}
@@ -1656,11 +1652,16 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <span className="text-xs font-semibold text-primary">
                         {pricePerUnit.toLocaleString()} {e.currency}
-                        <span className="font-normal text-muted-foreground"> /{e.pricing_type === "per_day" ? "day" : "booking"}</span>
+                        <span className="font-normal text-muted-foreground"> /{e.pricing_type === "per_day" ? "day" : "rental"}</span>
                       </span>
                       {selected && days > 0 && (
-                        <span className="text-xs text-green-400 font-medium bg-green-400/10 border border-green-400/20 rounded-full px-2 py-0.5">
+                        <span className="text-xs font-medium bg-primary/10 border border-primary/20 text-primary rounded-full px-2 py-0.5">
                           +{totalImpact.toLocaleString()} {e.currency} total
+                        </span>
+                      )}
+                      {!selected && e.pricing_type === "per_day" && days > 1 && (
+                        <span className="text-[11px] text-muted-foreground/60">
+                          = {totalImpact.toLocaleString()} {e.currency} for {days} days
                         </span>
                       )}
                     </div>
@@ -1680,9 +1681,9 @@ function Step2({ form, setForm, extras, onNext, onBack }: {
       )}
 
       {extrasRunningTotal > 0 && (
-        <div className="sticky bottom-0 -mx-6 sm:-mx-8 -mb-2 px-6 sm:px-8 py-3 bg-card/95 backdrop-blur border-t border-primary/20 z-10 flex items-center justify-between">
+        <div className="sticky bottom-0 -mx-6 sm:-mx-8 -mb-2 px-6 sm:px-8 py-3 bg-card border-t border-border/50 z-10 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Package className="w-4 h-4 text-primary" />
+            <Package className="w-4 h-4" />
             Add-ons total{days > 0 ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
           </div>
           <span className="text-sm font-bold text-white">+{extrasRunningTotal.toLocaleString()} {extrasCurrency}</span>
