@@ -92,7 +92,7 @@ const S = {
     fontSize: "22px",
     fontWeight: 800,
     letterSpacing: "-0.5px",
-    color: "#1d4ed8",
+    color: "#7f1d2e",
   } as React.CSSProperties,
   subheader: {
     fontSize: "11px",
@@ -186,10 +186,10 @@ function ReceiptDoc({ d, docType }: { d: PaymentDocData; docType: string }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisi Cars</div>
-          <div style={S.subheader}>Vehicle Rental Services</div>
+          <div style={S.logo}>Tbilisicars</div>
+          <div style={S.subheader}>Car Rental Georgia</div>
           <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "4px" }}>
-            Tbilisi, Georgia · info@tbilisicars.ge · +995 599 000 000
+            reservations@tbilisicars.com · Tbilisi/Batumi: +995 557 37 63 63 · Kutaisi: +995 595 28 66 00
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -304,8 +304,8 @@ function ReceiptDoc({ d, docType }: { d: PaymentDocData; docType: string }) {
       {/* Footer */}
       <div style={{ ...S.divider, marginTop: "32px" }} />
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#9ca3af" }}>
-        <span>Tbilisi Cars · Tbilisi, Georgia</span>
-        <span>info@tbilisicars.ge · +995 599 000 000</span>
+        <span>Tbilisicars · Tbilisi, Georgia · reservations@tbilisicars.com</span>
+        <span>Tbilisi/Batumi: +995 557 37 63 63 · Kutaisi: +995 595 28 66 00</span>
       </div>
       <div style={{ fontSize: "10px", color: "#d1d5db", textAlign: "center", marginTop: "6px" }}>
         Receipt TC-REC-{String(d.payment_id).padStart(6, "0")} · Generated {fmtDate(new Date().toISOString())}

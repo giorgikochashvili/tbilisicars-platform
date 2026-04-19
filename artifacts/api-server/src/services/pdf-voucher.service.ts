@@ -158,7 +158,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   page.drawText("BOOKING VOUCHER", {
     x: MARGIN, y: PAGE_H - 56, size: 8.5, font, color: rgb(0.6, 0.7, 0.8),
   });
-  page.drawText("Premium Car Rental \u00B7 Georgia", {
+  page.drawText("tbilisicars.com \u00B7 Car Rental Georgia", {
     x: MARGIN, y: PAGE_H - 72, size: 8.5, font, color: rgb(0.5, 0.6, 0.7),
   });
 
@@ -300,8 +300,8 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     thickness: 0.4, color: C.border,
   });
   page.drawText(
-    "\u00A9 2026 Tbilisicars \u00B7 reservations@tbilisicars.com \u00B7 +995 557 37 63 63",
-    { x: MARGIN, y: 14, size: 7.5, font, color: C.muted },
+    "\u00A9 2026 Tbilisicars \u00B7 reservations@tbilisicars.com \u00B7 Tbilisi/Batumi: +995 557 37 63 63 \u00B7 Kutaisi: +995 595 28 66 00",
+    { x: MARGIN, y: 14, size: 7, font, color: C.muted },
   );
 
   const bytes = await pdfDoc.save();

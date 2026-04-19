@@ -198,20 +198,17 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     body { margin: 0; padding: 0; background-color: #0d1b2a; font-family: 'Segoe UI', Arial, sans-serif; color: #e2e8f0; }
     .wrapper { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
     .card { background: #132033; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #7f1d2e 0%, #9f2535 100%); padding: 32px 28px; text-align: center; }
+    .header { background: linear-gradient(135deg, #7f1d2e 0%, #9f2535 100%); padding: 28px; text-align: center; }
     .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-    .header p { margin: 6px 0 0; color: rgba(255,255,255,0.8); font-size: 14px; }
-    .body { padding: 28px; }
-    .greeting { font-size: 15px; color: #94a3b8; margin-bottom: 20px; line-height: 1.6; }
-    .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 16px; }
+    .header p { margin: 5px 0 0; color: rgba(255,255,255,0.75); font-size: 13px; }
+    .body { padding: 24px 28px; }
+    .greeting { font-size: 14px; color: #94a3b8; margin: 0 0 20px; line-height: 1.6; }
+    .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 20px; }
     .ref-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 4px; }
     .ref-value { font-size: 28px; font-weight: 800; color: #e05c72; letter-spacing: 2px; }
     .status-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .status-badge { display: inline-block; background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); color: #fbbf24; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .status-badge-gray { display: inline-block; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .vehicle-banner { background: rgba(127,29,46,0.10); border-radius: 10px; padding: 14px 20px; text-align: center; margin-bottom: 16px; }
-    .vehicle-banner .vb-name { font-size: 17px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
-    .vehicle-banner .vb-sub { font-size: 12px; color: #64748b; }
     .dates-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 5px; }
     .dates-location { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
     .dates-time { font-size: 12px; color: #94a3b8; }
@@ -229,17 +226,13 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(127,29,46,0.3); }
     .total-label { font-size: 14px; font-weight: 600; color: #e2e8f0; }
     .total-value { font-size: 18px; font-weight: 800; color: #e05c72; }
-    .instructions-box { background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.18); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
-    .instructions-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #38bdf8; margin-bottom: 8px; }
-    .instructions-box p { margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .payment-box { background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.18); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
-    .payment-box .box-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: #4ade80; margin-bottom: 6px; }
-    .payment-box p { margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.6; }
-    .pdf-note { background: rgba(255,255,255,0.04); border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
-    .contact-section { background: #0d1b2a; border-radius: 10px; padding: 16px 20px; }
-    .contact-section p { margin: 0 0 8px; font-size: 13px; color: #94a3b8; }
-    .contact-section a { color: #e05c72; text-decoration: none; }
-    .footer { text-align: center; padding: 20px 28px; font-size: 12px; color: #475569; }
+    .info-block { margin-bottom: 20px; }
+    .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px; }
+    .info-text { font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; }
+    .contact-block { border-top: 1px solid #1e3a5f; padding-top: 16px; margin-top: 4px; }
+    .contact-block p { margin: 0 0 6px; font-size: 13px; color: #64748b; }
+    .contact-block a { color: #94a3b8; text-decoration: none; }
+    .footer { text-align: center; padding: 16px 28px 20px; font-size: 12px; color: #475569; }
     .footer a { color: #64748b; }
   </style>
 </head>
@@ -248,7 +241,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     <div class="card">
       <div class="header">
         <h1>Tbilisicars</h1>
-        <p>Premium Car Rental &middot; Georgia</p>
+        <p>Car Rental Georgia</p>
       </div>
       <div class="body">
         <p class="greeting">Dear ${esc(toName)},<br/>Thank you for choosing Tbilisicars. We have received your booking request and will confirm availability shortly.</p>
@@ -260,11 +253,6 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
             <span class="status-badge">Booking: ${esc(bookingStatusDisplay)}</span>
             <span class="status-badge-gray">Payment: ${esc(paymentStatusDisplay)}</span>
           </div>
-        </div>
-
-        <div class="vehicle-banner">
-          <div class="vb-name">${esc(vehicle)}</div>
-          <div class="vb-sub">${days} ${days === 1 ? "day" : "days"} rental</div>
         </div>
 
         <div style="border:1px solid #1e3a5f;border-radius:10px;overflow:hidden;margin-bottom:16px;">
@@ -294,27 +282,28 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
         ${pricingSection}
 
         ${paymentMethod ? `
-        <div class="payment-box">
-          <div class="box-title">Payment</div>
-          <p>${esc(paymentMethodNote(paymentMethod))}</p>
+        <div class="info-block">
+          <div class="info-label">Payment</div>
+          <p class="info-text">${esc(paymentMethodNote(paymentMethod))}</p>
         </div>` : ""}
 
-        <div class="instructions-box">
-          <div class="box-title">Pickup Instructions</div>
-          <p>${esc(pickupInstructions)}</p>
+        <div class="info-block">
+          <div class="info-label">Pickup Instructions</div>
+          <p class="info-text">${esc(pickupInstructions)}</p>
         </div>
 
-        <p class="pdf-note">&#128206; Your complete booking voucher is attached as a PDF. Our team will review your request and confirm within a few hours.</p>
+        <p style="font-size:13px;color:#64748b;margin:0 0 20px;">Your complete booking voucher is attached as a PDF. Our team will review your request and confirm within a few hours.</p>
 
-        <div class="contact-section">
-          <p><strong style="color:#e2e8f0;">Need help? Contact us anytime:</strong></p>
-          <p>&#128222; <a href="tel:+995557376363">+995 557 37 63 63</a> &mdash; Tbilisi &amp; Batumi</p>
-          <p>&#128222; <a href="tel:+995595286600">+995 595 28 66 00</a> &mdash; Kutaisi</p>
-          <p>&#9993;&#65039; <a href="mailto:reservations@tbilisicars.com">reservations@tbilisicars.com</a></p>
+        <div class="contact-block">
+          <p><strong style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;">Contact Us</strong></p>
+          <p>Tbilisi Office: <a href="tel:+995557376363">+995 557 37 63 63</a></p>
+          <p>Batumi Office: <a href="tel:+995557376363">+995 557 37 63 63</a></p>
+          <p>Kutaisi Office: <a href="tel:+995595286600">+995 595 28 66 00</a></p>
+          <p><a href="mailto:reservations@tbilisicars.com">reservations@tbilisicars.com</a></p>
         </div>
       </div>
       <div class="footer">
-        &copy; 2026 Tbilisicars &middot; Premium Car Rental in Georgia<br/>
+        &copy; 2026 Tbilisicars &middot; Car Rental Georgia<br/>
         <a href="https://tbilisicars.com/terms">Terms &amp; Conditions</a> &middot;
         <a href="https://tbilisicars.com/privacy">Privacy Policy</a>
       </div>
@@ -372,11 +361,12 @@ Your complete booking voucher is attached as a PDF.
 Our team will review your request and confirm within a few hours.
 
 CONTACT US
-  Tbilisi / Batumi: +995 557 37 63 63
-  Kutaisi: +995 595 28 66 00
-  Email: reservations@tbilisicars.com
+  Tbilisi Office:  +995 557 37 63 63
+  Batumi Office:   +995 557 37 63 63
+  Kutaisi Office:  +995 595 28 66 00
+  Email:           reservations@tbilisicars.com
 
-\u00A9 2026 Tbilisicars \u2014 Premium Car Rental in Georgia
+\u00A9 2026 Tbilisicars \u2014 Car Rental Georgia
 `.trim();
 
   // ── Optional PDF voucher attachment ─────────────────────────────────────────
@@ -460,7 +450,7 @@ export function renderThankYouEmail(params: ThankYouEmailParams): {
     <div style="background:#132033;border:1px solid #1e3a5f;border-radius:16px;overflow:hidden;">
       <div style="background:linear-gradient(135deg,#7f1d2e 0%,#9f2535 100%);padding:28px;text-align:center;">
         <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Thank you, ${esc(safeFirst)}!</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars \u00B7 Premium Car Rental in Georgia</p>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars \u00B7 Car Rental Georgia</p>
       </div>
       <div style="padding:28px;font-size:14px;line-height:1.6;">
         <p>It was a pleasure handing over your <strong>${esc(vehicle)}</strong> today (booking <strong>${esc(reference)}</strong>). We hope you're enjoying the road and that everything is running smoothly.</p>

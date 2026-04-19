@@ -88,7 +88,7 @@ export function AppSidebar() {
           <CarFront className="w-5 h-5" />
         </div>
         <div className="flex flex-col">
-          <span className="font-bold text-base leading-tight text-foreground tracking-tight font-display">Tbilisi Cars</span>
+          <span className="font-bold text-base leading-tight text-foreground tracking-tight font-display">Tbilisicars</span>
           <span className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold">CRM Admin</span>
         </div>
         {isMobile && (

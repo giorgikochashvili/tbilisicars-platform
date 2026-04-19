@@ -68,7 +68,7 @@ export default function Login() {
             <CarFront className="w-10 h-10 text-primary-foreground" />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-3xl font-bold tracking-tight font-display">Tbilisi Cars</CardTitle>
+            <CardTitle className="text-3xl font-bold tracking-tight font-display">Tbilisicars</CardTitle>
             <CardDescription className="text-muted-foreground font-medium text-xs uppercase tracking-[0.3em]">
               Secure Operations Portal
             </CardDescription>

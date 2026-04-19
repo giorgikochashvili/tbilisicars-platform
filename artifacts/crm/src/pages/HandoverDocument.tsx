@@ -78,7 +78,7 @@ const S = {
     fontSize: "21px",
     fontWeight: 800,
     letterSpacing: "-0.5px",
-    color: "#1d4ed8",
+    color: "#7f1d2e",
   } as React.CSSProperties,
   docTitle: {
     fontSize: "19px",
@@ -297,7 +297,7 @@ function HandoverSheet({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisi Cars</div>
+          <div style={S.logo}>Tbilisicars</div>
           <div style={{ fontSize: "10.5px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Vehicle Handover Sheet — Pickup
           </div>
@@ -399,7 +399,7 @@ function HandoverSheet({ d }: { d: DocData }) {
         <div style={S.sectionTitle}>Confirmation</div>
         <div style={{ ...S.box, fontSize: "11.5px", color: "#374151", lineHeight: "1.7" }}>
           By signing below, the customer confirms that the vehicle has been received in the condition described above,
-          and agrees to the rental terms and conditions set by Tbilisi Cars.
+          and agrees to the rental terms and conditions set by Tbilisicars.
           The customer accepts responsibility for the vehicle from this point until its scheduled return.
         </div>
       </div>
@@ -422,15 +422,15 @@ function HandoverSheet({ d }: { d: DocData }) {
             <span style={{ fontSize: "10px", color: "#d1d5db" }}>________________________________</span>
           </div>
           <div style={{ fontSize: "10.5px", color: "#6b7280", marginTop: "3px" }}>
-            Tbilisi Cars · Handover Officer
+            Tbilisicars · Handover Officer
           </div>
         </div>
       </div>
 
       <div style={{ ...S.divider, marginTop: "20px" }} />
       <div style={{ fontSize: "9.5px", color: "#9ca3af", textAlign: "center" }}>
-        Tbilisi Cars · Tbilisi, Georgia · info@tbilisicars.ge · +995 599 000 000 ·
-        HDO-{String(d.id).padStart(6, "0")} · {fmtDate(new Date().toISOString())}
+        Tbilisicars · Tbilisi, Georgia · reservations@tbilisicars.com · Tbilisi/Batumi: +995 557 37 63 63 · Kutaisi: +995 595 28 66 00
+        · HDO-{String(d.id).padStart(6, "0")} · {fmtDate(new Date().toISOString())}
       </div>
     </div>
   );
@@ -447,7 +447,7 @@ function ReturnSheet({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisi Cars</div>
+          <div style={S.logo}>Tbilisicars</div>
           <div style={{ fontSize: "10.5px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Vehicle Return Sheet — Drop-off
           </div>
@@ -590,15 +590,15 @@ function ReturnSheet({ d }: { d: DocData }) {
             <span style={{ fontSize: "10px", color: "#d1d5db" }}>________________________________</span>
           </div>
           <div style={{ fontSize: "10.5px", color: "#6b7280", marginTop: "3px" }}>
-            Tbilisi Cars · Returns Officer
+            Tbilisicars · Returns Officer
           </div>
         </div>
       </div>
 
       <div style={{ ...S.divider, marginTop: "20px" }} />
       <div style={{ fontSize: "9.5px", color: "#9ca3af", textAlign: "center" }}>
-        Tbilisi Cars · Tbilisi, Georgia · info@tbilisicars.ge · +995 599 000 000 ·
-        RTN-{String(d.id).padStart(6, "0")} · {fmtDate(new Date().toISOString())}
+        Tbilisicars · Tbilisi, Georgia · reservations@tbilisicars.com · Tbilisi/Batumi: +995 557 37 63 63 · Kutaisi: +995 595 28 66 00
+        · RTN-{String(d.id).padStart(6, "0")} · {fmtDate(new Date().toISOString())}
       </div>
     </div>
   );
