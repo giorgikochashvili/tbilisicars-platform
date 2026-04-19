@@ -190,7 +190,10 @@ function sortLocations<T extends { name: string; city: string }>(locs: T[]): T[]
 
 function formatDT(iso: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi", hour12: false });
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return iso;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${match[3]} ${months[parseInt(match[2], 10) - 1]} ${match[1]}, ${match[4]}:${match[5]}`;
 }
 
 function calcDays(pickup: string, dropoff: string) {
