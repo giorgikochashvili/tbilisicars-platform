@@ -299,7 +299,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <p>Tbilisi Office: <a href="tel:+995557376363">+995 557 37 63 63</a></p>
           <p>Batumi Office: <a href="tel:+995557376363">+995 557 37 63 63</a></p>
           <p>Kutaisi Office: <a href="tel:+995595286600">+995 595 28 66 00</a></p>
-          <p><a href="mailto:reservations@tbilisicars.com">reservations@tbilisicars.com</a></p>
+          <p>Email: <a href="mailto:reservations@tbilisicars.com">reservations@tbilisicars.com</a></p>
         </div>
       </div>
       <div class="footer">
