@@ -74,12 +74,6 @@ const S = {
     padding: "36px 40px 56px",
     lineHeight: "1.5",
   } as React.CSSProperties,
-  logo: {
-    fontSize: "21px",
-    fontWeight: 800,
-    letterSpacing: "-0.5px",
-    color: "#7f1d2e",
-  } as React.CSSProperties,
   docTitle: {
     fontSize: "19px",
     fontWeight: 800,
@@ -297,7 +291,7 @@ function HandoverSheet({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisicars</div>
+          <img src="/crm/tbilisi-logo.png" alt="Tbilisicars" style={{ width: "130px", height: "auto", display: "block", marginBottom: "4px" }} />
           <div style={{ fontSize: "10.5px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Vehicle Handover Sheet — Pickup
           </div>
@@ -447,7 +441,7 @@ function ReturnSheet({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisicars</div>
+          <img src="/crm/tbilisi-logo.png" alt="Tbilisicars" style={{ width: "130px", height: "auto", display: "block", marginBottom: "4px" }} />
           <div style={{ fontSize: "10.5px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Vehicle Return Sheet — Drop-off
           </div>

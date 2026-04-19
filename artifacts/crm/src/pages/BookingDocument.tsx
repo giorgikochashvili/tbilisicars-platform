@@ -90,12 +90,6 @@ const S = {
     padding: "40px 40px 60px",
     lineHeight: "1.5",
   } as React.CSSProperties,
-  logo: {
-    fontSize: "22px",
-    fontWeight: 800,
-    letterSpacing: "-0.5px",
-    color: "#7f1d2e",
-  } as React.CSSProperties,
   subheader: {
     fontSize: "11px",
     color: "#6b7280",
@@ -210,7 +204,7 @@ function AgreementDoc({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisicars</div>
+          <img src="/crm/tbilisi-logo.png" alt="Tbilisicars" style={{ width: "140px", height: "auto", display: "block", marginBottom: "4px" }} />
           <div style={S.subheader}>Car Rental Georgia</div>
           <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "4px" }}>
             reservations@tbilisicars.com · Tbilisi/Batumi: +995 557 37 63 63 · Kutaisi: +995 595 28 66 00
@@ -394,7 +388,7 @@ function VoucherDoc({ d }: { d: DocData }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
         <div>
-          <div style={S.logo}>Tbilisicars</div>
+          <img src="/crm/tbilisi-logo.png" alt="Tbilisicars" style={{ width: "140px", height: "auto", display: "block", marginBottom: "4px" }} />
           <div style={S.subheader}>Car Rental Georgia</div>
         </div>
         <div style={{ textAlign: "right" }}>
