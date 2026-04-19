@@ -1995,8 +1995,8 @@ export const UpdateAdminBookingParams = zod.object({
 
 export const UpdateAdminBookingBody = zod.object({
   contactFullName: zod.string().optional(),
-  contactEmail: zod.string().optional(),
-  contactPhone: zod.string().optional(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   vehicleId: zod.number().optional(),
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),

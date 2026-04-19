@@ -2872,8 +2872,8 @@ export default function BookingDetail({
                             <TableHead className="text-xs">Type</TableHead>
                             <TableHead className="text-xs">Amount</TableHead>
                             <TableHead className="text-xs">Method</TableHead>
-                            <TableHead className="text-xs">GEL Equiv</TableHead>
-                            <TableHead className="text-xs">Notes</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">GEL Equiv</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Notes</TableHead>
                             <TableHead className="w-8" />
                           </TableRow>
                         </TableHeader>
@@ -2910,12 +2910,12 @@ export default function BookingDetail({
                                   {METHOD_LABELS[p.method] ?? p.method}
                                 </span>
                               </TableCell>
-                              <TableCell className="font-mono text-xs text-muted-foreground">
+                              <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
                                 {p.currency !== "GEL"
                                   ? `₾${parseFloat(p.convertedGel).toFixed(2)}`
                                   : "—"}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate">
+                              <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate hidden sm:table-cell">
                                 {p.notes || "—"}
                               </TableCell>
                               <TableCell>
