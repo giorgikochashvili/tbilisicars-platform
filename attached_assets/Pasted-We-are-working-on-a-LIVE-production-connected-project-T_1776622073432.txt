@@ -1,0 +1,62 @@
+We are working on a LIVE production-connected project: TBILISICARS CRM&WEB.
+
+IMPORTANT RULES:
+- This task is Plan C only
+- Do NOT touch CRM display again
+- Do NOT touch BookingDetail edit/save again
+- Do NOT change DB schema
+- Do NOT mutate existing booking data
+- Do NOT refactor unrelated code
+- Keep this change surgical and limited to website booking submission datetime correctness
+- At the end, tell me exactly which files you changed and what you verified
+
+TASK: PLAN C — WEBSITE BOOKING SUBMISSION TIME FIX
+
+CONFIRMED INVESTIGATION RESULT:
+- The website DateTimePicker currently serializes local selected time as a bare ISO string without timezone suffix
+- Example: "2026-04-22T09:00"
+- The API server is confirmed to run in UTC
+- Therefore the server parses this bare string as UTC, which stores the wrong real booking time
+- This means website-created bookings can be stored incorrectly for customers from any timezone
+
+BUSINESS RULE:
+When a customer from ANY country/timezone selects a booking time, the system must preserve exactly that intended booking time correctly through:
+- website submit payload
+- API parsing
+- DB storage
+- CRM Operations
+- CRM Booking Detail
+- email / PDF
+
+GOAL:
+Make website-submitted booking datetimes unambiguous and correctly normalized going into the UTC server, so new bookings are stored correctly.
+
+REQUIRED CHANGE:
+- Fix website booking datetime serialization so the selected booking time is submitted with the correct Tbilisi offset instead of a bare timezone-less ISO string
+- The API server must then parse it correctly into the proper UTC value for storage
+
+IMPORTANT:
+- Do NOT change old existing bookings
+- Do NOT add a migration
+- Do NOT change CRM create flow
+- Do NOT touch unrelated booking logic
+- Do NOT change pricing, status, or payment logic
+- Do NOT redesign DateTimePicker UI
+- Keep the fix limited to website booking submission correctness
+
+EXPECTED RESULT:
+- A customer selecting 09:00 for Tbilisi booking time results in the correct UTC value being stored
+- Operations, Booking Detail, edit form, email, and PDF all align for NEW website bookings
+- No ambiguity from bare datetime strings
+- Existing stored bookings remain untouched
+
+LIKELY FILES:
+- artifacts/website/src/components/DateTimePicker.tsx
+- possibly any directly related website booking submission helper if required
+
+DELIVERABLE FORMAT:
+1. Brief summary of the exact change
+2. Exact file(s) changed
+3. Exact serialization change made
+4. What you verified
+5. Explicit confirmation that existing bookings were not changed
