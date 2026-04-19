@@ -1,0 +1,52 @@
+We are continuing the live TBILISICARS CRM&WEB project already fully built in Replit.
+
+Important:
+- This task is ONLY for scroll-to-top behavior fixes
+- Do NOT touch booking status logic again
+- Do NOT touch booking time logic again
+- Do NOT touch Step 4 checkbox/modal behavior yet
+- Do NOT touch success-page account block yet
+- Do NOT touch email redesign/layout yet
+- Do NOT touch PDF voucher layout/design yet
+- Do NOT touch footer or Step 1 cleanup yet
+- Do NOT refactor unrelated code
+- Do NOT change architecture
+- Keep this surgical and production-safe
+
+Goal:
+Fix scroll position behavior so important page/step transitions always open at the top instead of preserving an old scroll position.
+
+Confirmed problem cases:
+1. Homepage → Search Vehicles / Booking page:
+   If the user is scrolled down on Homepage and starts a search, the Booking page opens at the old scrolled position instead of the top.
+
+2. Booking confirmation / final submit → success / confirmation state:
+   After confirming, the page can remain at the old scroll position instead of showing the success state from the top.
+
+3. Booking step transitions:
+   Audit whether step transitions inside the Booking flow also need explicit scroll-to-top behavior so users always land at the intended top context of the new step.
+
+Required final behavior:
+- New page transitions relevant to booking must open at the top
+- Success / confirmation state must open at the top
+- Booking step transitions should scroll to top where appropriate
+- Do not introduce jarring/unnecessary scroll jumps where not needed
+- Keep behavior smooth and intuitive on mobile and desktop
+
+Constraints:
+- First inspect the current routing/navigation and step-change logic
+- Identify the exact places where scroll is being preserved
+- Apply the smallest safe fix
+- Do NOT change booking logic, pricing, filters, category layout, or UI content in this task
+- Do NOT change unrelated routes/pages beyond what is necessary for the confirmed booking-related scroll cases
+- Do NOT add a broad global scroll reset unless it is clearly the safest and correct solution for the current app structure
+
+What I need from PLAN:
+1. Exact files that must change
+2. Exact transitions currently missing scroll reset
+3. The smallest safe implementation approach
+4. Whether this should be handled per-route, per-booking-step, or via a small shared helper
+5. Any risks or ambiguity found
+6. Wait for approval before BUILD
+
+This must be implemented as a minimal, precise fix. Precision matters more than speed.

@@ -2175,6 +2175,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         }),
       });
       setResult(data);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* ignore */ }
     } catch (err: any) {
       toast({ title: "Booking failed", description: err.message ?? "Please try again", variant: "destructive" });
@@ -2783,6 +2784,7 @@ export default function Booking() {
   function reset() {
     setStep(1);
     setForm(getInitialForm());
+    window.scrollTo({ top: 0, behavior: "smooth" });
     try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* ignore */ }
   }
 
