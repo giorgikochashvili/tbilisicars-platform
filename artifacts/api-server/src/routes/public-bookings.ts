@@ -514,6 +514,29 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Selected vehicle model is not available for online booking"] });
   }
 
+  // Determine initial booking status using the same availability signal the website
+  // shows to customers: vehicle_count === 0 means "On Request" → PENDING,
+  // vehicle_count > 0 means immediately bookable → CONFIRMED.
+  // The filter mirrors dateCountFilter defined at the top of this file exactly.
+  const { rows: availRows } = await pool.query<{ available_count: number }>(
+    `SELECT COUNT(v.id)::int AS available_count
+     FROM vehicle v
+     WHERE v.vehicle_model_id = $1
+       AND v.status != 'INACTIVE'
+       AND v.status != 'MAINTENANCE'
+       AND NOT EXISTS (
+         SELECT 1 FROM booking b
+         WHERE b.vehicle_id = v.id
+           AND b.deleted_at IS NULL
+           AND b.status IN ('PENDING', 'CONFIRMED', 'DELIVERED')
+           AND b.pickup_datetime < $3::timestamptz
+           AND b.dropoff_datetime > $2::timestamptz
+       )`,
+    [body.vehicleModelId, pickupDate.toISOString(), dropoffDate.toISOString()],
+  );
+  const initialStatus: "PENDING" | "CONFIRMED" =
+    (availRows[0]?.available_count ?? 0) > 0 ? "CONFIRMED" : "PENDING";
+
   let discount: string | null = null;
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
@@ -673,7 +696,7 @@ router.post("/public/bookings", async (req, res) => {
           totalAmount,
           notes: combinedNotes,
           source: "website" as const,
-          status: "PENDING" as const,
+          status: initialStatus,
           paymentStatus: "UNPAID" as const,
           rateId: resolvedTier?.rateId ?? null,
           rateTierId: resolvedTier?.tierId ?? null,
@@ -744,7 +767,7 @@ router.post("/public/bookings", async (req, res) => {
     rentalDays,
     generatedPassword: generatedPassword ?? null,
     customerPhone: body.phone?.trim() || undefined,
-    bookingStatus: "PENDING",
+    bookingStatus: initialStatus,
     paymentStatus: "UNPAID",
     // Full notes including internal blocks — rendering layer strips [WEBSITE DATA]
     // and [RATE EXPIRED] before showing anything to the customer.
@@ -823,6 +846,7 @@ router.post("/public/bookings", async (req, res) => {
             totalAmount: emailParams.estimatedTotal ?? 0,
             currency: emailParams.currency,
             notes: emailParams.bookingNotes || undefined,
+            bookingStatus: emailParams.bookingStatus,
           });
         } catch (err) {
           console.error(`[email] reservations_email_failed bookingId=${emailParams.bookingId}`, err);
@@ -841,8 +865,10 @@ router.post("/public/bookings", async (req, res) => {
     pickupDatetime: body.pickupDatetime,
     dropoffDatetime: body.dropoffDatetime,
     pickupLocationId: body.pickupLocationId,
-    status: "PENDING",
-    message: "Your booking request has been received. We will confirm shortly.",
+    status: initialStatus,
+    message: initialStatus === "CONFIRMED"
+      ? "Your booking is confirmed."
+      : "Your booking request has been received. We will confirm shortly.",
     generatedPassword,
   });
 });

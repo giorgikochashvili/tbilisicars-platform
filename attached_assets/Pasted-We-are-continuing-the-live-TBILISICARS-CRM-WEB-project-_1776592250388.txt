@@ -1,0 +1,53 @@
+We are continuing the live TBILISICARS CRM&WEB project already fully built in Replit.
+
+Important:
+- This task is ONLY for booking status logic
+- Do NOT touch time handling yet
+- Do NOT touch scroll behavior
+- Do NOT touch Step 4 checkbox/modal behavior
+- Do NOT touch success-page account block
+- Do NOT touch email redesign/layout yet
+- Do NOT touch PDF voucher yet
+- Do NOT touch footer or Step 1 cleanup yet
+- Do NOT refactor unrelated code
+- Do NOT change architecture
+- Keep this surgical and production-safe
+
+Goal:
+Fix booking status creation logic so that only “On Request” vehicle bookings are created as PENDING.
+Normal available website bookings must be created as CONFIRMED automatically.
+
+Required final behavior:
+1. If the selected website vehicle/model is effectively “On Request”, the booking must be created as:
+   - booking status = PENDING
+   - admin/internal email must reflect Pending
+   - customer-facing email must reflect Pending if status is shown there
+
+2. If the selected website vehicle/model is a normal available/immediately bookable vehicle, the booking must be created as:
+   - booking status = CONFIRMED
+   - CRM record must enter as Confirmed
+   - admin/internal email must reflect Confirmed
+   - customer-facing email must reflect Confirmed if status is shown there
+
+Important business rule:
+- Do not guess from generic stock counts alone if the system already has a more explicit “On Request” signal in current website booking logic/UI
+- Inspect the current website availability logic and use the same real signal already used to mark a vehicle/model as “On Request” on the booking page
+- The logic must match what the user sees on the website
+
+Constraints:
+- Do NOT change pricing logic
+- Do NOT change booking time logic
+- Do NOT change availability calculation logic except reading its existing result/signal
+- Do NOT change CRM workflows beyond the created booking status value
+- Do NOT change schema unless absolutely impossible, and if so, stop and explain first
+- Do NOT touch unrelated files
+
+What I need from PLAN:
+1. Exact files that must change
+2. Where the booking currently gets its initial status
+3. What exact existing “On Request” signal you found and how you will reuse it
+4. How CRM-created record status and email status will stay consistent
+5. Any risks or ambiguity you found
+6. Wait for approval before BUILD
+
+This must be implemented as a minimal, precise fix. Precision matters more than speed.

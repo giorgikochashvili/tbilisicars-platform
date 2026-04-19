@@ -397,7 +397,9 @@ ${generatedPassword != null && generatedPassword !== "" ? `YOUR ACCOUNT
     await resend.emails.send({
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: toEmail,
-      subject: `Booking Request Received: ${reference} — ${vehicle}`,
+      subject: bookingStatus === "CONFIRMED"
+        ? `Booking Confirmed: ${reference} — ${vehicle}`
+        : `Booking Request Received: ${reference} — ${vehicle}`,
       html,
       text,
       ...(pdfBuffer != null
@@ -534,13 +536,14 @@ interface InternalBookingEmailParams {
   totalAmount: number;
   currency: string;
   notes?: string;
+  bookingStatus?: string;
 }
 
 export async function sendNewBookingInternalEmail(params: InternalBookingEmailParams): Promise<void> {
   const {
     bookingId, referenceNumber, customerName, customerEmail, customerPhone,
     pickupDate, dropoffDate, pickupLocation, dropoffLocation,
-    vehicleModel, totalAmount, currency, notes,
+    vehicleModel, totalAmount, currency, notes, bookingStatus,
   } = params;
 
   const resend = getResend();
@@ -580,6 +583,7 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
     row("Return Date", esc(fmtDate(dropoffDate))),
     row("Vehicle", esc(vehicleModel)),
     row("Estimated Total", esc(totalFmt)),
+    row("Booking Status", `<strong>${esc(bookingStatus ?? "PENDING")}</strong>`),
     row("Source", "<strong>WEBSITE</strong>"),
     ...(notes ? [row("Notes", `<span style="white-space:pre-wrap;">${esc(notes)}</span>`)] : []),
   ].join("\n");
@@ -618,6 +622,7 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
     `Return date:     ${fmtDate(dropoffDate)}`,
     `Vehicle:         ${vehicleModel}`,
     `Total:           ${totalFmt}`,
+    `Booking Status:  ${bookingStatus ?? "PENDING"}`,
     `Source:          WEBSITE`,
     ...(notes ? [`Notes:\n${notes}`] : []),
   ].join("\n");
@@ -626,7 +631,9 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
     await resend.emails.send({
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: "reservations@tbilisicars.com",
-      subject: `New Website Booking — ${referenceNumber}`,
+      subject: bookingStatus === "CONFIRMED"
+        ? `New Website Booking (CONFIRMED) — ${referenceNumber}`
+        : `New Website Booking (PENDING) — ${referenceNumber}`,
       html,
       text,
     });
