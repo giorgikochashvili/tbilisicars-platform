@@ -420,7 +420,8 @@ export default function DiscountsPage() {
                       <div key={model.id} className="flex items-center gap-2 py-0.5 cursor-pointer" onClick={() => toggleModelSelection(model.id)}>
                         <Checkbox
                           checked={formData.vehicleModelIds.includes(model.id)}
-                          onCheckedChange={() => toggleModelSelection(model.id)}
+                          onCheckedChange={() => undefined}
+                          onClick={(e) => { e.stopPropagation(); toggleModelSelection(model.id); }}
                         />
                         <span className="text-sm">{model.brandName} {model.name}</span>
                       </div>
