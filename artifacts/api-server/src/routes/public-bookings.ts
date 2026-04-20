@@ -310,6 +310,7 @@ router.get("/public/booking-config", async (req, res) => {
           : Math.min(disc.discountValue, originalPrice);
         return {
           ...m,
+          has_website_discount: true,
           website_discount_id: disc.discountId,
           website_discount_name: disc.discountName,
           website_discount_type: disc.discountType,
@@ -653,25 +654,20 @@ router.post("/public/bookings", async (req, res) => {
   const initialStatus: "PENDING" | "CONFIRMED" =
     (availRows[0]?.available_count ?? 0) > 0 ? "CONFIRMED" : "PENDING";
 
-  // Pre-fetch promo only when there's no website discount (mutual exclusion handled below after rate resolution).
+  // Promo lookup is deferred until after website discount resolution.
+  // Mutual exclusion: if an active website discount applies, promo validation is skipped entirely.
   let discount: string | null = null;
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
+  // Store raw promo row for later use (fetched only once to avoid duplicate DB queries).
+  let promoRow: { discount_type: string; discount_value: string; max_uses: number | null; times_used: number; active: boolean } | null = null;
   if (body.promoCode) {
     const { rows: preRows } = await pool.query(
       `SELECT discount_type, discount_value, max_uses, times_used, active FROM promo WHERE code = $1 LIMIT 1`,
       [body.promoCode.trim().toUpperCase()],
     );
-    const pre = preRows[0];
-    if (!pre || !pre.active) {
-      return res.status(422).json({ errors: ["Invalid or inactive promo code"] });
-    }
-    if (pre.max_uses !== null && pre.times_used >= pre.max_uses) {
-      return res.status(422).json({ errors: ["Promo code has reached its usage limit"] });
-    }
-    discount = String(pre.discount_value);
-    promoDiscountType = String(pre.discount_type);
-    promoDiscountValue = Number(pre.discount_value);
+    promoRow = preRows[0] ?? null;
+    // Validation is intentionally deferred — applied only when no website discount found.
   }
 
   const rentalDays = calculateChargeableDays(pickupDate, dropoffDate);
@@ -764,6 +760,20 @@ router.post("/public/bookings", async (req, res) => {
       promoDiscountType = null;
       promoDiscountValue = null;
     }
+  }
+
+  // Deferred promo validation — only when NO website discount applies (mutual exclusion).
+  // If a website discount applies, promo errors are silently ignored.
+  if (!hasServerWebsiteDiscount && promoRow !== null) {
+    if (!promoRow.active) {
+      return res.status(422).json({ errors: ["Invalid or inactive promo code"] });
+    }
+    if (promoRow.max_uses !== null && promoRow.times_used >= promoRow.max_uses) {
+      return res.status(422).json({ errors: ["Promo code has reached its usage limit"] });
+    }
+    promoDiscountType = String(promoRow.discount_type);
+    promoDiscountValue = Number(promoRow.discount_value);
+    discount = String(promoRow.discount_value);
   }
 
   // Promo discount (only applied when no website discount is in effect)

@@ -33,6 +33,7 @@ interface VehicleModel {
   description: string | null; image_url: string | null; deposit: string | null;
   vehicle_count: string; min_price_per_day: string | null; price_currency: string | null;
   // Website discount fields — only present when location + pickup_datetime are provided
+  has_website_discount?: boolean;
   website_discount_id?: number | null;
   website_discount_name?: string | null;
   website_discount_type?: string | null;
