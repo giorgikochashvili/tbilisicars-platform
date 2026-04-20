@@ -45,7 +45,7 @@ interface FleetModelRaw {
   id: number;
   name: string;
   brandName?: string | null;
-  brand?: string | null;
+  brand?: { id: number; name: string | null; logoUrl?: string | null } | string | null;
 }
 
 interface LocationItem {
@@ -76,7 +76,7 @@ export default function DiscountsPage() {
       return data.map((m) => ({
         id: m.id,
         name: m.name,
-        brandName: m.brandName ?? m.brand ?? "",
+        brandName: m.brandName ?? (typeof m.brand === "object" && m.brand !== null ? m.brand.name ?? "" : m.brand ?? ""),
       }));
     },
   });
