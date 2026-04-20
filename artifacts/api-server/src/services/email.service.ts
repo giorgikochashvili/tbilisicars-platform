@@ -26,7 +26,7 @@ function formatDT(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-GB", {
       day: "2-digit", month: "short", year: "numeric",
-      hour: "2-digit", minute: "2-digit", timeZone: "UTC",
+      hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi",
     });
   } catch {
     return iso;
@@ -557,7 +557,7 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
     try {
       return d.toLocaleString("en-GB", {
         day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit", timeZone: "UTC",
+        hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tbilisi",
       });
     } catch { return d.toISOString(); }
   }
