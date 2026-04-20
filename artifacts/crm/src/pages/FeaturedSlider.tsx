@@ -605,7 +605,7 @@ export default function FeaturedSliderPage() {
                 <option value="">Select vehicle model…</option>
                 {models.map((m) => (
                   <option key={m.id} value={String(m.id)}>
-                    {m.brand} – {m.name}
+                    {m.brand?.name ?? m.brand} – {m.name}
                   </option>
                 ))}
               </select>
