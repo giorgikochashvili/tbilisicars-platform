@@ -1484,8 +1484,15 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           <div className="space-y-10 mb-6">
             {CATEGORY_ORDER.map((cat) => {
               const catModels = filteredModels.filter((m) => m.category === cat).sort((a, b) => {
-                const pa = a.min_price_per_day ? Number(a.min_price_per_day) : Infinity;
-                const pb = b.min_price_per_day ? Number(b.min_price_per_day) : Infinity;
+                const aAvail = Number(a.vehicle_count) > 0 ? 0 : 1;
+                const bAvail = Number(b.vehicle_count) > 0 ? 0 : 1;
+                if (aAvail !== bAvail) return aAvail - bAvail;
+                const pa = (a.website_discount_id && a.discounted_min_price_per_day != null)
+                  ? Number(a.discounted_min_price_per_day)
+                  : (a.min_price_per_day != null ? Number(a.min_price_per_day) : Infinity);
+                const pb = (b.website_discount_id && b.discounted_min_price_per_day != null)
+                  ? Number(b.discounted_min_price_per_day)
+                  : (b.min_price_per_day != null ? Number(b.min_price_per_day) : Infinity);
                 if (pa !== pb) return pa - pb;
                 return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
               });
@@ -1543,8 +1550,15 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
               const other = filteredModels.filter(
                 (m) => !m.category || !CATEGORY_ORDER.includes(m.category),
               ).sort((a, b) => {
-                const pa = a.min_price_per_day ? Number(a.min_price_per_day) : Infinity;
-                const pb = b.min_price_per_day ? Number(b.min_price_per_day) : Infinity;
+                const aAvail = Number(a.vehicle_count) > 0 ? 0 : 1;
+                const bAvail = Number(b.vehicle_count) > 0 ? 0 : 1;
+                if (aAvail !== bAvail) return aAvail - bAvail;
+                const pa = (a.website_discount_id && a.discounted_min_price_per_day != null)
+                  ? Number(a.discounted_min_price_per_day)
+                  : (a.min_price_per_day != null ? Number(a.min_price_per_day) : Infinity);
+                const pb = (b.website_discount_id && b.discounted_min_price_per_day != null)
+                  ? Number(b.discounted_min_price_per_day)
+                  : (b.min_price_per_day != null ? Number(b.min_price_per_day) : Infinity);
                 if (pa !== pb) return pa - pb;
                 return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
               });
