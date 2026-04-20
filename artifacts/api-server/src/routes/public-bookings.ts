@@ -853,10 +853,12 @@ router.post("/public/bookings", async (req, res) => {
         if (!lockedPromoRow) {
           throw new Error("PROMO_INVALID");
         }
-        const nowStr = new Date().toISOString().slice(0, 10);
+        const nowTx = new Date();
+        const validFromDate = lockedPromoRow.validFrom != null ? new Date(String(lockedPromoRow.validFrom)) : null;
+        const validUntilDate = lockedPromoRow.validUntil != null ? new Date(String(lockedPromoRow.validUntil)) : null;
         if (!lockedPromoRow.active ||
-            (lockedPromoRow.validFrom != null && String(lockedPromoRow.validFrom) > nowStr) ||
-            (lockedPromoRow.validUntil != null && String(lockedPromoRow.validUntil) < nowStr)) {
+            (validFromDate != null && validFromDate > nowTx) ||
+            (validUntilDate != null && validUntilDate < nowTx)) {
           throw new Error("PROMO_INVALID");
         }
         if (lockedPromoRow.maxUses !== null && (lockedPromoRow.timesUsed ?? 0) >= lockedPromoRow.maxUses) {
