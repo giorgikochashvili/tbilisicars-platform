@@ -661,10 +661,10 @@ router.post("/public/bookings", async (req, res) => {
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
   // Store raw promo row for later use (fetched only once to avoid duplicate DB queries).
-  let promoRow: { discount_type: string; discount_value: string; max_uses: number | null; times_used: number; active: boolean } | null = null;
+  let promoRow: { discount_type: string; discount_value: string; max_uses: number | null; times_used: number; active: boolean; valid_from: Date | null; valid_until: Date | null } | null = null;
   if (body.promoCode) {
     const { rows: preRows } = await pool.query(
-      `SELECT discount_type, discount_value, max_uses, times_used, active FROM promo WHERE code = $1 LIMIT 1`,
+      `SELECT discount_type, discount_value, max_uses, times_used, active, valid_from, valid_until FROM promo WHERE code = $1 LIMIT 1`,
       [body.promoCode.trim().toUpperCase()],
     );
     promoRow = preRows[0] ?? null;
@@ -767,7 +767,10 @@ router.post("/public/bookings", async (req, res) => {
   // Deferred promo validation — only when NO website discount applies (mutual exclusion).
   // If a website discount applies, promo errors are silently ignored.
   if (!hasServerWebsiteDiscount && promoRow !== null) {
-    if (!promoRow.active) {
+    const now = new Date();
+    if (!promoRow.active ||
+        (promoRow.valid_from != null && promoRow.valid_from > now) ||
+        (promoRow.valid_until != null && promoRow.valid_until < now)) {
       return res.status(422).json({ errors: ["Invalid or inactive promo code"] });
     }
     if (promoRow.max_uses !== null && promoRow.times_used >= promoRow.max_uses) {
@@ -834,23 +837,36 @@ router.post("/public/bookings", async (req, res) => {
     ({ bookingId } = await db.transaction(async (tx) => {
       // Only increment promo usage when no website discount superseded it (mutual exclusion).
       if (body.promoCode && !hasServerWebsiteDiscount) {
-        const [promoRow] = await tx
-          .select({ id: promoTable.id, maxUses: promoTable.maxUses, timesUsed: promoTable.timesUsed })
+        const [lockedPromoRow] = await tx
+          .select({
+            id: promoTable.id,
+            active: promoTable.active,
+            validFrom: promoTable.validFrom,
+            validUntil: promoTable.validUntil,
+            maxUses: promoTable.maxUses,
+            timesUsed: promoTable.timesUsed,
+          })
           .from(promoTable)
           .where(eq(promoTable.code, body.promoCode.trim().toUpperCase()))
           .for("update");
 
-        if (!promoRow) {
+        if (!lockedPromoRow) {
           throw new Error("PROMO_INVALID");
         }
-        if (promoRow.maxUses !== null && (promoRow.timesUsed ?? 0) >= promoRow.maxUses) {
+        const nowStr = new Date().toISOString().slice(0, 10);
+        if (!lockedPromoRow.active ||
+            (lockedPromoRow.validFrom != null && String(lockedPromoRow.validFrom) > nowStr) ||
+            (lockedPromoRow.validUntil != null && String(lockedPromoRow.validUntil) < nowStr)) {
+          throw new Error("PROMO_INVALID");
+        }
+        if (lockedPromoRow.maxUses !== null && (lockedPromoRow.timesUsed ?? 0) >= lockedPromoRow.maxUses) {
           throw new Error("PROMO_EXHAUSTED");
         }
 
         await tx
           .update(promoTable)
           .set({ timesUsed: sql`COALESCE(${promoTable.timesUsed}, 0) + 1` })
-          .where(eq(promoTable.id, promoRow.id));
+          .where(eq(promoTable.id, lockedPromoRow.id));
       }
 
       const [row] = await tx
