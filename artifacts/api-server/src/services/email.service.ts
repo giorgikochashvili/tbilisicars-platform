@@ -89,6 +89,8 @@ export interface BookingConfirmationEmailParams {
   discountAmount?: number | null;
   websiteDiscountName?: string | null;
   websiteDiscountAmount?: number | null;
+  originalRentalPrice?: number | null;
+  discountedRentalPrice?: number | null;
   currency?: string;
   generatedPassword?: string | null;
   attachPdfVoucher?: boolean;
@@ -109,6 +111,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     nationality, age,
     estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
     websiteDiscountName, websiteDiscountAmount,
+    originalRentalPrice, discountedRentalPrice,
     currency = "GEL",
     generatedPassword,
     attachPdfVoucher = false,
@@ -154,10 +157,13 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   }
 
   // ── HTML sections ──────────────────────────────────────────────────────────
+  // Use snapshot-backed rental amounts when available so historical emails
+  // reflect the pricing at the time of booking, not recomputed live rates.
+  const effectiveBaseRate = (websiteDiscountName && originalRentalPrice != null) ? originalRentalPrice : baseTotal;
   const pricingSection = estimatedTotal != null ? `
         <div class="pricing-section">
           <div class="section-title">Pricing Estimate</div>
-          ${baseTotal != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(baseTotal)}</span></div>` : ""}
+          ${effectiveBaseRate != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(effectiveBaseRate)}</span></div>` : ""}
           ${extras.map(extraHtmlRow).join("")}
           ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
           ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount (${esc(websiteDiscountName)})</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
@@ -322,7 +328,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     : "";
 
   const pricingText = estimatedTotal != null
-    ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount (${websiteDiscountName}): -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
+    ? `\nPRICING ESTIMATE\n${effectiveBaseRate != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(effectiveBaseRate)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount (${websiteDiscountName}): -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
   const metaText = [
@@ -386,6 +392,7 @@ CONTACT US
         estimatedTotal, baseTotal, oneWayFee,
         promoCode, discountAmount,
         websiteDiscountName, websiteDiscountAmount,
+        originalRentalPrice, discountedRentalPrice,
         currency, generatedPassword,
         bookingStatus,
         paymentStatus,

@@ -115,6 +115,8 @@ export interface VoucherParams {
   discountAmount?: number | null;
   websiteDiscountName?: string | null;
   websiteDiscountAmount?: number | null;
+  originalRentalPrice?: number | null;
+  discountedRentalPrice?: number | null;
   currency?: string;
   generatedPassword?: string | null;
   bookingStatus?: string;
@@ -131,6 +133,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     flightNumber, nationality, age,
     estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
     websiteDiscountName, websiteDiscountAmount,
+    originalRentalPrice,
     currency = "GEL",
     generatedPassword,
     bookingStatus = "PENDING",
@@ -231,10 +234,13 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   }
 
   // ── Pricing ──────────────────────────────────────────────────────────────────
+  // When a website discount applies, use the snapshot-backed originalRentalPrice
+  // for the base-rate line so the PDF reflects the exact amount at booking time.
+  const effectivePdfBaseRate = (websiteDiscountName && originalRentalPrice != null) ? originalRentalPrice : baseTotal;
   if (estimatedTotal != null) {
     sectionHeader("PRICING ESTIMATE");
-    if (baseTotal != null) {
-      row(`Base rate (${days} ${days === 1 ? "day" : "days"})`, fmtMoney(baseTotal, currency));
+    if (effectivePdfBaseRate != null) {
+      row(`Base rate (${days} ${days === 1 ? "day" : "days"})`, fmtMoney(effectivePdfBaseRate, currency));
     }
     for (const ex of extras) {
       const billableDays = ex.pricingType === "per_trip"

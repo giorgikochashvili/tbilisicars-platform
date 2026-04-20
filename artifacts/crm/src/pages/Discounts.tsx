@@ -41,6 +41,19 @@ interface VehicleModelItem {
   brandName: string;
 }
 
+interface FleetModelRaw {
+  id: number;
+  name: string;
+  brandName?: string | null;
+  brand?: string | null;
+}
+
+interface LocationItem {
+  id: number;
+  name: string;
+  city?: string | null;
+}
+
 export default function DiscountsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<AdminDiscountItem | null>(null);
@@ -57,13 +70,13 @@ export default function DiscountsPage() {
   const { data: modelsData } = useQuery<VehicleModelItem[]>({
     queryKey: ["/api/admin/discounts/vehicle-models"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/models", { credentials: "include" });
+      const res = await fetch("/api/admin/fleet/models", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch vehicle models");
-      const data = await res.json();
-      return (data as any[]).map((m: any) => ({
+      const data = (await res.json()) as FleetModelRaw[];
+      return data.map((m) => ({
         id: m.id,
         name: m.name,
-        brandName: m.brand ?? m.brandName ?? "",
+        brandName: m.brandName ?? m.brand ?? "",
       }));
     },
   });
@@ -142,7 +155,7 @@ export default function DiscountsPage() {
             queryClient.invalidateQueries();
             setIsModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to update", variant: "destructive" });
           },
         },
@@ -156,7 +169,7 @@ export default function DiscountsPage() {
             queryClient.invalidateQueries();
             setIsModalOpen(false);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to create", variant: "destructive" });
           },
         },
@@ -173,7 +186,7 @@ export default function DiscountsPage() {
             toast({ title: "Success", description: "Discount deleted" });
             queryClient.invalidateQueries();
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             toast({ title: "Error", description: err.message || "Failed to delete", variant: "destructive" });
           },
         },
@@ -389,7 +402,7 @@ export default function DiscountsPage() {
                   <SelectValue placeholder="Select location..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(locationsData ?? []).map((loc: any) => (
+                  {(locationsData as LocationItem[] ?? []).map((loc) => (
                     <SelectItem key={loc.id} value={String(loc.id)}>
                       {loc.name}{loc.city ? `, ${loc.city}` : ""}
                     </SelectItem>
