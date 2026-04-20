@@ -179,3 +179,56 @@ export function applyPromoDiscount(
   }
   return Math.min(discountValue, baseTotal);
 }
+
+// ─── Website discount resolution ──────────────────────────────────────────────
+
+export interface ResolvedWebsiteDiscount {
+  discountId: number;
+  discountName: string;
+  discountType: "PERCENT" | "FIXED";
+  discountValue: number;
+}
+
+/**
+ * Finds the highest-value active website discount that applies to the given
+ * vehicle model, pickup location, and pickup date.
+ *
+ * Uses the customer's pickup date (YYYY-MM-DD), never the current server date.
+ * Returns null if no discount applies.
+ */
+export async function resolveWebsiteDiscount(
+  pool: QueryablePool,
+  vehicleModelId: number,
+  pickupLocationId: number,
+  pickupDateStr: string,
+): Promise<ResolvedWebsiteDiscount | null> {
+  const { rows } = await pool.query<{
+    discount_id: number;
+    discount_name: string;
+    discount_type: string;
+    value: string;
+  }>(
+    `SELECT d.id AS discount_id, d.name AS discount_name,
+            d.discount_type, d.value
+     FROM website_discount d
+     JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
+     WHERE dvm.vehicle_model_id = $1
+       AND d.pickup_location_id = $2
+       AND d.is_active = true
+       AND d.start_date <= $3::date
+       AND d.end_date >= $3::date
+     ORDER BY d.value DESC
+     LIMIT 1`,
+    [vehicleModelId, pickupLocationId, pickupDateStr],
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    discountId: row.discount_id,
+    discountName: row.discount_name,
+    discountType: row.discount_type as "PERCENT" | "FIXED",
+    discountValue: Number(row.value),
+  };
+}

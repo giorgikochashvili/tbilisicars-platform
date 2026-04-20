@@ -13,10 +13,10 @@ import {
   computeExtrasTotal,
   applyPromoDiscount,
   applyWebsiteDiscount,
+  resolveWebsiteDiscount,
 } from "../lib/pricing.js";
 import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
-import { resolveWebsiteDiscount } from "../services/admin-discounts.service.js";
 
 const router: IRouter = Router();
 
@@ -441,6 +441,7 @@ router.post("/public/quote", async (req, res) => {
 
   if (baseTotal !== null && body.vehicleModelId && pickupLocId) {
     const resolved = await resolveWebsiteDiscount(
+      pool,
       Number(body.vehicleModelId),
       pickupLocId,
       pickupDateStr,
@@ -742,6 +743,7 @@ router.post("/public/bookings", async (req, res) => {
 
   if (serverBaseTotal !== null && body.pickupLocationId) {
     const resolvedDiscount = await resolveWebsiteDiscount(
+      pool,
       Number(body.vehicleModelId),
       Number(body.pickupLocationId),
       pickupDateStr,
