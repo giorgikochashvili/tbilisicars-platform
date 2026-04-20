@@ -19,6 +19,12 @@ export interface DiscountVehicleModelItem {
   brandName: string | null;
 }
 
+export interface DiscountPickupLocationItem {
+  locationId: number;
+  locationName: string | null;
+  locationCity: string | null;
+}
+
 export interface AdminDiscountItem {
   id: number;
   name: string;
@@ -33,6 +39,7 @@ export interface AdminDiscountItem {
   createdAt: string | Date;
   updatedAt: string | Date;
   vehicleModels: DiscountVehicleModelItem[];
+  pickupLocations: DiscountPickupLocationItem[];
 }
 
 export interface CreateAdminDiscountBody {
@@ -41,7 +48,7 @@ export interface CreateAdminDiscountBody {
   value: number;
   startDate: string;
   endDate: string;
-  pickupLocationId: number;
+  pickupLocationIds: number[];
   isActive?: boolean;
   vehicleModelIds: number[];
 }
@@ -52,7 +59,7 @@ export interface UpdateAdminDiscountBody {
   value?: number;
   startDate?: string;
   endDate?: string;
-  pickupLocationId?: number;
+  pickupLocationIds?: number[];
   isActive?: boolean;
   vehicleModelIds?: number[];
 }

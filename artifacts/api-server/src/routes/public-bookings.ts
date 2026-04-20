@@ -280,7 +280,8 @@ router.get("/public/booking-config", async (req, res) => {
                 d.discount_type, d.value
          FROM website_discount d
          JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
-         WHERE d.pickup_location_id = $1
+         JOIN website_discount_pickup_location dpl ON dpl.discount_id = d.id
+         WHERE dpl.location_id = $1
            AND d.is_active = true
            AND d.start_date <= $2::date
            AND d.end_date >= $2::date

@@ -2982,6 +2982,12 @@ const DiscountVehicleModelItem = zod.object({
   brandName: zod.string().nullable(),
 });
 
+export const DiscountPickupLocationItem = zod.object({
+  locationId: zod.number(),
+  locationName: zod.string().nullable(),
+  locationCity: zod.string().nullable(),
+});
+
 export const AdminDiscountItem = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -2996,6 +3002,7 @@ export const AdminDiscountItem = zod.object({
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
   vehicleModels: zod.array(DiscountVehicleModelItem),
+  pickupLocations: zod.array(DiscountPickupLocationItem),
 });
 
 export const ListAdminDiscountsResponse = zod.array(AdminDiscountItem);
@@ -3012,7 +3019,7 @@ export const CreateAdminDiscountBody = zod.object({
   value: zod.number().positive(),
   startDate: zod.string().min(1),
   endDate: zod.string().min(1),
-  pickupLocationId: zod.number().int().positive(),
+  pickupLocationIds: zod.array(zod.number().int().positive()).min(1),
   isActive: zod.boolean().optional().default(true),
   vehicleModelIds: zod.array(zod.number().int().positive()).min(1),
 });
@@ -3027,7 +3034,7 @@ export const UpdateAdminDiscountBody = zod.object({
   value: zod.number().positive().optional(),
   startDate: zod.string().min(1).optional(),
   endDate: zod.string().min(1).optional(),
-  pickupLocationId: zod.number().int().positive().optional(),
+  pickupLocationIds: zod.array(zod.number().int().positive()).min(1).optional(),
   isActive: zod.boolean().optional(),
   vehicleModelIds: zod.array(zod.number().int().positive()).min(1).optional(),
 });

@@ -212,8 +212,9 @@ export async function resolveWebsiteDiscount(
             d.discount_type, d.value
      FROM website_discount d
      JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
+     JOIN website_discount_pickup_location dpl ON dpl.discount_id = d.id
      WHERE dvm.vehicle_model_id = $1
-       AND d.pickup_location_id = $2
+       AND dpl.location_id = $2
        AND d.is_active = true
        AND d.start_date <= $3::date
        AND d.end_date >= $3::date

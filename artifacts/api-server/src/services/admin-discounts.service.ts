@@ -1,10 +1,10 @@
 import { db, pool } from "@workspace/db";
-import { discountTable, discountVehicleModelTable } from "@workspace/db";
+import { discountTable, discountVehicleModelTable, discountPickupLocationTable } from "@workspace/db";
 import type { Discount } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
-// Shape returned by getAdminDiscount (raw pool query with camelCase aliases + vehicleModels array)
+// Shape returned by getAdminDiscount (raw pool query)
 interface ExistingDiscountRow {
   id: number;
   name: string;
@@ -17,6 +17,7 @@ interface ExistingDiscountRow {
   createdAt: string;
   updatedAt: string;
   vehicleModels: Array<{ vehicleModelId: number; modelName: string; brandName: string }>;
+  pickupLocations: Array<{ locationId: number; locationName: string | null; locationCity: string | null }>;
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ export interface DiscountCreateData {
   value: number;
   startDate: string;
   endDate: string;
-  pickupLocationId: number;
+  pickupLocationIds: number[];
   isActive?: boolean;
   vehicleModelIds: number[];
 }
@@ -38,7 +39,7 @@ export interface DiscountUpdateData {
   value?: number;
   startDate?: string;
   endDate?: string;
-  pickupLocationId?: number;
+  pickupLocationIds?: number[];
   isActive?: boolean;
   vehicleModelIds?: number[];
 }
@@ -46,19 +47,19 @@ export interface DiscountUpdateData {
 // ─── Overlap check ────────────────────────────────────────────────────────────
 /**
  * Returns list of vehicle model IDs that already have an active discount
- * for the given pickup location that overlaps the given date range.
+ * for ANY of the given pickup locations that overlaps the given date range.
  * Excludes the given discountId (for updates).
  */
 async function findOverlappingModels(
-  pickupLocationId: number,
+  pickupLocationIds: number[],
   startDate: string,
   endDate: string,
   vehicleModelIds: number[],
   excludeDiscountId?: number,
 ): Promise<number[]> {
-  if (vehicleModelIds.length === 0) return [];
+  if (vehicleModelIds.length === 0 || pickupLocationIds.length === 0) return [];
 
-  const params: unknown[] = [pickupLocationId, startDate, endDate, vehicleModelIds];
+  const params: unknown[] = [pickupLocationIds, startDate, endDate, vehicleModelIds];
   const excludeClause =
     excludeDiscountId != null
       ? ` AND d.id != $${params.push(excludeDiscountId)}`
@@ -67,8 +68,9 @@ async function findOverlappingModels(
   const { rows } = await pool.query<{ vehicle_model_id: number }>(
     `SELECT DISTINCT dvm.vehicle_model_id
      FROM website_discount d
+     JOIN website_discount_pickup_location dpl ON dpl.discount_id = d.id
      JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
-     WHERE d.pickup_location_id = $1
+     WHERE dpl.location_id = ANY($1)
        AND d.is_active = true
        AND d.start_date <= $3::date
        AND d.end_date >= $2::date
@@ -95,22 +97,39 @@ export async function listAllDiscounts() {
       d.is_active AS "isActive",
       d.created_at AS "createdAt",
       d.updated_at AS "updatedAt",
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'vehicleModelId', dvm.vehicle_model_id,
-            'modelName', vm.name,
-            'brandName', br.name
-          ) ORDER BY br.name, vm.name
-        ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
-        '[]'
-      ) AS "vehicleModels"
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'vehicleModelId', dvm.vehicle_model_id,
+              'modelName', vm.name,
+              'brandName', br.name
+            ) ORDER BY br.name, vm.name
+          ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
+          '[]'
+        )
+        FROM website_discount_vehicle_model dvm
+        LEFT JOIN vehicle_model vm ON vm.id = dvm.vehicle_model_id
+        LEFT JOIN brand br ON br.id = vm.brand_id
+        WHERE dvm.discount_id = d.id
+      ) AS "vehicleModels",
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'locationId', dpl.location_id,
+              'locationName', loc.name,
+              'locationCity', loc.city
+            ) ORDER BY loc.name
+          ) FILTER (WHERE dpl.location_id IS NOT NULL),
+          '[]'
+        )
+        FROM website_discount_pickup_location dpl
+        LEFT JOIN location loc ON loc.id = dpl.location_id
+        WHERE dpl.discount_id = d.id
+      ) AS "pickupLocations"
     FROM website_discount d
     LEFT JOIN location l ON l.id = d.pickup_location_id
-    LEFT JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
-    LEFT JOIN vehicle_model vm ON vm.id = dvm.vehicle_model_id
-    LEFT JOIN brand br ON br.id = vm.brand_id
-    GROUP BY d.id, l.name, l.city
     ORDER BY d.id DESC
   `);
   return rows;
@@ -133,23 +152,40 @@ export async function getAdminDiscount(id: number) {
       d.is_active AS "isActive",
       d.created_at AS "createdAt",
       d.updated_at AS "updatedAt",
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'vehicleModelId', dvm.vehicle_model_id,
-            'modelName', vm.name,
-            'brandName', br.name
-          ) ORDER BY br.name, vm.name
-        ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
-        '[]'
-      ) AS "vehicleModels"
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'vehicleModelId', dvm.vehicle_model_id,
+              'modelName', vm.name,
+              'brandName', br.name
+            ) ORDER BY br.name, vm.name
+          ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
+          '[]'
+        )
+        FROM website_discount_vehicle_model dvm
+        LEFT JOIN vehicle_model vm ON vm.id = dvm.vehicle_model_id
+        LEFT JOIN brand br ON br.id = vm.brand_id
+        WHERE dvm.discount_id = d.id
+      ) AS "vehicleModels",
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'locationId', dpl.location_id,
+              'locationName', loc.name,
+              'locationCity', loc.city
+            ) ORDER BY loc.name
+          ) FILTER (WHERE dpl.location_id IS NOT NULL),
+          '[]'
+        )
+        FROM website_discount_pickup_location dpl
+        LEFT JOIN location loc ON loc.id = dpl.location_id
+        WHERE dpl.discount_id = d.id
+      ) AS "pickupLocations"
     FROM website_discount d
     LEFT JOIN location l ON l.id = d.pickup_location_id
-    LEFT JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
-    LEFT JOIN vehicle_model vm ON vm.id = dvm.vehicle_model_id
-    LEFT JOIN brand br ON br.id = vm.brand_id
     WHERE d.id = $1
-    GROUP BY d.id, l.name, l.city
   `, [id]);
 
   if (!rows[0]) throw new NotFoundError(`Discount ${id} not found`);
@@ -161,11 +197,14 @@ export async function getAdminDiscount(id: number) {
 export async function createAdminDiscount(data: DiscountCreateData) {
   const {
     name, discountType, value, startDate, endDate,
-    pickupLocationId, isActive = true, vehicleModelIds,
+    pickupLocationIds, isActive = true, vehicleModelIds,
   } = data;
 
   if (!vehicleModelIds || vehicleModelIds.length === 0) {
     throw new Error("VALIDATION: At least one vehicle model must be selected.");
+  }
+  if (!pickupLocationIds || pickupLocationIds.length === 0) {
+    throw new Error("VALIDATION: At least one pickup location must be selected.");
   }
   if (startDate > endDate) {
     throw new Error("VALIDATION: startDate must be on or before endDate.");
@@ -179,14 +218,17 @@ export async function createAdminDiscount(data: DiscountCreateData) {
 
   if (isActive) {
     const overlapping = await findOverlappingModels(
-      pickupLocationId, startDate, endDate, vehicleModelIds,
+      pickupLocationIds, startDate, endDate, vehicleModelIds,
     );
     if (overlapping.length > 0) {
       throw new Error(
-        `OVERLAP: An active discount already covers vehicle model(s) [${overlapping.join(", ")}] for the same pickup location and overlapping date range.`,
+        `OVERLAP: An active discount already covers vehicle model(s) [${overlapping.join(", ")}] for overlapping pickup location(s) and date range.`,
       );
     }
   }
+
+  // Use the first selected location as the "primary" location for the legacy column.
+  const primaryLocationId = pickupLocationIds[0]!;
 
   const [discount] = await db
     .insert(discountTable)
@@ -196,19 +238,24 @@ export async function createAdminDiscount(data: DiscountCreateData) {
       value: String(value),
       startDate,
       endDate,
-      pickupLocationId,
+      pickupLocationId: primaryLocationId,
       isActive,
     })
     .returning();
 
-  if (vehicleModelIds.length > 0) {
-    await db.insert(discountVehicleModelTable).values(
-      vehicleModelIds.map((vmId) => ({
-        discountId: discount!.id,
-        vehicleModelId: vmId,
-      })),
-    );
-  }
+  await db.insert(discountVehicleModelTable).values(
+    vehicleModelIds.map((vmId) => ({
+      discountId: discount!.id,
+      vehicleModelId: vmId,
+    })),
+  );
+
+  await db.insert(discountPickupLocationTable).values(
+    pickupLocationIds.map((locId) => ({
+      discountId: discount!.id,
+      locationId: locId,
+    })),
+  );
 
   return getAdminDiscount(discount!.id);
 }
@@ -222,13 +269,19 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
   const value = data.value ?? Number(existing.value);
   const startDate = data.startDate ?? existing.startDate;
   const endDate = data.endDate ?? existing.endDate;
-  const pickupLocationId = data.pickupLocationId ?? existing.pickupLocationId;
   const isActive = data.isActive !== undefined ? data.isActive : existing.isActive;
+
+  const pickupLocationIds = data.pickupLocationIds ??
+    existing.pickupLocations.map((p) => p.locationId);
+
   const vehicleModelIds = data.vehicleModelIds ??
     existing.vehicleModels.map((m) => m.vehicleModelId);
 
   if (vehicleModelIds.length === 0) {
     throw new Error("VALIDATION: At least one vehicle model must be selected.");
+  }
+  if (pickupLocationIds.length === 0) {
+    throw new Error("VALIDATION: At least one pickup location must be selected.");
   }
   if (startDate > endDate) {
     throw new Error("VALIDATION: startDate must be on or before endDate.");
@@ -242,14 +295,16 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
 
   if (isActive) {
     const overlapping = await findOverlappingModels(
-      pickupLocationId, startDate, endDate, vehicleModelIds, id,
+      pickupLocationIds, startDate, endDate, vehicleModelIds, id,
     );
     if (overlapping.length > 0) {
       throw new Error(
-        `OVERLAP: An active discount already covers vehicle model(s) [${overlapping.join(", ")}] for the same pickup location and overlapping date range.`,
+        `OVERLAP: An active discount already covers vehicle model(s) [${overlapping.join(", ")}] for overlapping pickup location(s) and date range.`,
       );
     }
   }
+
+  const primaryLocationId = pickupLocationIds[0]!;
 
   const updatePayload: Partial<Discount> & { updatedAt: Date } = { updatedAt: new Date() };
   if (data.name !== undefined) updatePayload.name = data.name;
@@ -257,7 +312,7 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
   if (data.value !== undefined) updatePayload.value = String(data.value);
   if (data.startDate !== undefined) updatePayload.startDate = data.startDate;
   if (data.endDate !== undefined) updatePayload.endDate = data.endDate;
-  if (data.pickupLocationId !== undefined) updatePayload.pickupLocationId = data.pickupLocationId;
+  if (data.pickupLocationIds !== undefined) updatePayload.pickupLocationId = primaryLocationId;
   if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
 
   await db
@@ -277,6 +332,16 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
     }
   }
 
+  if (data.pickupLocationIds !== undefined) {
+    await db
+      .delete(discountPickupLocationTable)
+      .where(eq(discountPickupLocationTable.discountId, id));
+
+    await db.insert(discountPickupLocationTable).values(
+      pickupLocationIds.map((locId) => ({ discountId: id, locationId: locId })),
+    );
+  }
+
   return getAdminDiscount(id);
 }
 
@@ -291,4 +356,3 @@ export async function deleteAdminDiscount(id: number) {
   if (!row) throw new NotFoundError(`Discount ${id} not found`);
   return { message: "Discount deleted" };
 }
-

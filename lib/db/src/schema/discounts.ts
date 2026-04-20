@@ -9,6 +9,7 @@ import {
   date,
   timestamp,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -71,6 +72,28 @@ export const discountVehicleModelTable = pgTable(
   ],
 );
 
+// ─── Discount ↔ Pickup Location join ─────────────────────────────────────────
+// One discount can target multiple pickup locations.
+
+export const discountPickupLocationTable = pgTable(
+  "website_discount_pickup_location",
+  {
+    id: serial("id").primaryKey(),
+    discountId: integer("discount_id")
+      .notNull()
+      .references(() => discountTable.id, { onDelete: "cascade" }),
+    locationId: integer("location_id")
+      .notNull()
+      .references(() => locationTable.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_wdisc_pl_discount_id").on(t.discountId),
+    index("idx_wdisc_pl_location_id").on(t.locationId),
+    unique("uq_wdisc_pl_discount_location").on(t.discountId, t.locationId),
+  ],
+);
+
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
 
 export const insertDiscountSchema = createInsertSchema(discountTable).omit({
@@ -83,6 +106,10 @@ export const insertDiscountVehicleModelSchema = createInsertSchema(
   discountVehicleModelTable,
 ).omit({ id: true });
 
+export const insertDiscountPickupLocationSchema = createInsertSchema(
+  discountPickupLocationTable,
+).omit({ id: true, createdAt: true });
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Discount = typeof discountTable.$inferSelect;
@@ -92,4 +119,10 @@ export type DiscountVehicleModel =
   typeof discountVehicleModelTable.$inferSelect;
 export type InsertDiscountVehicleModel = z.infer<
   typeof insertDiscountVehicleModelSchema
+>;
+
+export type DiscountPickupLocation =
+  typeof discountPickupLocationTable.$inferSelect;
+export type InsertDiscountPickupLocation = z.infer<
+  typeof insertDiscountPickupLocationSchema
 >;

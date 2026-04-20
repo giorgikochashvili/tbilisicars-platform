@@ -30,7 +30,7 @@ const EMPTY_FORM = {
   value: 0,
   startDate: "",
   endDate: "",
-  pickupLocationId: 0,
+  pickupLocationIds: [] as number[],
   isActive: true,
   vehicleModelIds: [] as number[],
 };
@@ -94,7 +94,7 @@ export default function DiscountsPage() {
         value: Number(discount.value),
         startDate: discount.startDate ? String(discount.startDate).slice(0, 10) : "",
         endDate: discount.endDate ? String(discount.endDate).slice(0, 10) : "",
-        pickupLocationId: discount.pickupLocationId,
+        pickupLocationIds: discount.pickupLocations.map((pl) => pl.locationId),
         isActive: discount.isActive,
         vehicleModelIds: discount.vehicleModels.map((vm) => vm.vehicleModelId),
       });
@@ -110,8 +110,8 @@ export default function DiscountsPage() {
       toast({ title: "Validation Error", description: "Discount name is required", variant: "destructive" });
       return;
     }
-    if (!formData.pickupLocationId) {
-      toast({ title: "Validation Error", description: "Pickup location is required", variant: "destructive" });
+    if (formData.pickupLocationIds.length === 0) {
+      toast({ title: "Validation Error", description: "At least one pickup location is required", variant: "destructive" });
       return;
     }
     if (!formData.startDate || !formData.endDate) {
@@ -141,7 +141,7 @@ export default function DiscountsPage() {
       value: formData.value,
       startDate: formData.startDate,
       endDate: formData.endDate,
-      pickupLocationId: formData.pickupLocationId,
+      pickupLocationIds: formData.pickupLocationIds,
       isActive: formData.isActive,
       vehicleModelIds: formData.vehicleModelIds,
     };
@@ -203,6 +203,15 @@ export default function DiscountsPage() {
     }));
   };
 
+  const toggleLocationSelection = (locationId: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pickupLocationIds: prev.pickupLocationIds.includes(locationId)
+        ? prev.pickupLocationIds.filter((id) => id !== locationId)
+        : [...prev.pickupLocationIds, locationId],
+    }));
+  };
+
   const formatValue = (discount: AdminDiscountItem) => {
     const v = Number(discount.value);
     return discount.discountType === "PERCENT" ? `${v}%` : `${v} GEL`;
@@ -219,7 +228,21 @@ export default function DiscountsPage() {
     return discount.isActive && discount.startDate <= today && discount.endDate >= today;
   };
 
+  const formatLocations = (discount: AdminDiscountItem) => {
+    const locs = discount.pickupLocations;
+    if (!locs || locs.length === 0) {
+      return discount.pickupLocationName
+        ? `${discount.pickupLocationName}${discount.pickupLocationCity ? `, ${discount.pickupLocationCity}` : ""}`
+        : "–";
+    }
+    const first = locs[0]!;
+    const label = `${first.locationName ?? ""}${first.locationCity ? `, ${first.locationCity}` : ""}`.trim() || "–";
+    return locs.length > 1 ? `${label} +${locs.length - 1}` : label;
+  };
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  const locations = (locationsData as LocationItem[] ?? []);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -244,7 +267,7 @@ export default function DiscountsPage() {
               <TableRow className="border-border/40 hover:bg-transparent">
                 <TableHead>Name</TableHead>
                 <TableHead>Discount</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Location(s)</TableHead>
                 <TableHead>Date Range</TableHead>
                 <TableHead>Models</TableHead>
                 <TableHead>Status</TableHead>
@@ -277,8 +300,7 @@ export default function DiscountsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {discount.pickupLocationName ?? "–"}
-                        {discount.pickupLocationCity ? `, ${discount.pickupLocationCity}` : ""}
+                        {formatLocations(discount)}
                       </TableCell>
                       <TableCell className="text-sm">
                         {formatDateRange(discount.startDate, discount.endDate)}
@@ -392,23 +414,43 @@ export default function DiscountsPage() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label>Pickup Location *</Label>
-              <Select
-                value={formData.pickupLocationId ? String(formData.pickupLocationId) : ""}
-                onValueChange={(v) => setFormData((p) => ({ ...p, pickupLocationId: Number(v) }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {(locationsData as LocationItem[] ?? []).map((loc) => (
-                    <SelectItem key={loc.id} value={String(loc.id)}>
-                      {loc.name}{loc.city ? `, ${loc.city}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label>Pickup Locations * ({formData.pickupLocationIds.length} selected)</Label>
+              <div className="border border-border/40 rounded-md p-3 max-h-40 overflow-y-auto space-y-1">
+                {locations.length === 0
+                  ? <p className="text-sm text-muted-foreground">Loading locations...</p>
+                  : locations.map((loc) => (
+                      <div
+                        key={loc.id}
+                        className="flex items-center gap-2 py-0.5 cursor-pointer"
+                        onClick={() => toggleLocationSelection(loc.id)}
+                      >
+                        <Checkbox
+                          checked={formData.pickupLocationIds.includes(loc.id)}
+                          onCheckedChange={() => undefined}
+                          onClick={(e) => { e.stopPropagation(); toggleLocationSelection(loc.id); }}
+                        />
+                        <span className="text-sm">{loc.name}{loc.city ? `, ${loc.city}` : ""}</span>
+                      </div>
+                    ))}
+              </div>
+              {formData.pickupLocationIds.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {formData.pickupLocationIds.map((id) => {
+                    const loc = locations.find((x) => x.id === id);
+                    if (!loc) return null;
+                    return (
+                      <Badge key={id} variant="secondary" className="text-xs gap-1">
+                        {loc.name}{loc.city ? `, ${loc.city}` : ""}
+                        <button
+                          className="ml-0.5 opacity-60 hover:opacity-100"
+                          onClick={() => toggleLocationSelection(id)}
+                        >×</button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -457,9 +499,9 @@ export default function DiscountsPage() {
               />
             </div>
 
-            {formData.isActive && formData.pickupLocationId > 0 && formData.vehicleModelIds.length > 0 && (
+            {formData.isActive && formData.pickupLocationIds.length > 0 && formData.vehicleModelIds.length > 0 && (
               <div className="text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2">
-                If another active discount already covers the same pickup location, overlapping dates, and any of the same vehicle models, saving will fail with a conflict error.
+                If another active discount already covers any of the same pickup locations, overlapping dates, and any of the same vehicle models, saving will fail with a conflict error.
               </div>
             )}
           </div>

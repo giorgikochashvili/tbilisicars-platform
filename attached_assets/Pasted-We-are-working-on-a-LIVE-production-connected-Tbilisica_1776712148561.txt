@@ -1,0 +1,178 @@
+We are working on a LIVE production-connected Tbilisicars CRM&WEB monorepo that is already fully built in Replit. Do NOT refactor unrelated code. Do NOT redesign the discounts module unnecessarily. Do NOT change unrelated API behavior, pricing logic, booking flow, CRM layout, or styling outside the minimum needed area. This must be a careful, surgical full-stack update.
+
+TASK:
+Upgrade the Discounts module from single pickup location selection to MULTI pickup location selection.
+
+BUSINESS GOAL:
+A single discount must be able to apply to:
+- multiple vehicle models
+- multiple pickup locations
+
+This must work as one discount rule, not as separate duplicated discounts.
+
+Required behavior:
+If the admin creates one discount and selects:
+- Vehicle Models: Mazda 3, Toyota Prius, Toyota Prius C
+- Pickup Locations: Kutaisi Airport, Tbilisi Downtown, Batumi Airport
+
+Then that ONE discount must apply to any booking only when BOTH conditions match:
+1. the booking vehicle model is one of the selected models
+2. the booking pickup location is one of the selected pickup locations
+
+So the logic is:
+selected vehicle models × selected pickup locations
+
+Examples:
+- Mazda 3 + Kutaisi Airport → discount applies
+- Prius + Tbilisi Downtown → discount applies
+- Prius C + Batumi Airport → discount applies
+- Prius C + Batumi Downtown → no discount
+- Hyundai Elantra + Kutaisi Airport → no discount
+
+IMPORTANT:
+This is NOT a frontend-only task. The current system appears to be built around a single pickupLocationId. The update must be done safely across DB + backend + CRM + public website discount resolution.
+
+SAFETY RULES:
+- Do NOT break existing discounts already in production
+- Do NOT lose existing location data
+- Do NOT change discount math
+- Do NOT change promo code logic
+- Do NOT change rate logic
+- Do NOT change unrelated booking logic
+- Do NOT rewrite the module from scratch
+- Prefer minimal diffs
+- Keep backward safety for existing records during migration
+
+REQUIRED IMPLEMENTATION:
+
+1) DATABASE
+Move discount-location scope to a proper multi-location relation.
+
+Recommended approach:
+- Keep `website_discount` as the main discount table
+- Add a join table such as:
+  `website_discount_pickup_location`
+  with fields similar to:
+  - id
+  - discount_id
+  - location_id
+  - created_at (if your schema pattern uses it)
+
+Requirements:
+- Add proper foreign keys/indexes
+- Create a safe migration
+- Backfill the new join table from existing `website_discount.pickup_location_id`
+- Existing single-location discounts must continue to work after migration
+- Do NOT lose existing data
+
+2) BACKEND / SCHEMA / PAYLOADS
+Current create/update likely uses one `pickupLocationId`.
+Change admin create/update flows to use:
+- `pickupLocationIds: number[]`
+
+Requirements:
+- Validation: at least one pickup location required
+- Existing read/list endpoints should now return pickup locations as an array
+- If needed, preserve compatibility carefully during transition, but final admin behavior must use arrays cleanly
+
+3) DISCOUNT CREATE / UPDATE LOGIC
+When creating or updating a discount:
+- save selected vehicle models as before
+- save ALL selected pickup locations
+- replace old single-location handling safely
+
+4) OVERLAP / CONFLICT VALIDATION
+Conflict must happen only if ALL of these overlap:
+- overlapping date range
+- same website enable/active logic as current behavior
+- at least one same vehicle model
+- at least one same pickup location
+
+In other words:
+if another discount shares any selected model AND any selected pickup location during overlapping dates, saving must fail.
+
+Example:
+Existing discount:
+- models: Mazda 3
+- locations: Kutaisi Airport
+- dates: Apr 20 – May 3
+
+New discount:
+- models: Mazda 3, Prius
+- locations: Kutaisi Airport, Batumi Airport
+- dates: Apr 25 – Apr 30
+
+This must conflict because:
+- date overlap exists
+- model overlap exists (Mazda 3)
+- location overlap exists (Kutaisi Airport)
+
+But if locations do not overlap at all, it must NOT conflict.
+
+5) PUBLIC WEBSITE DISCOUNT RESOLUTION
+Update public website discount matching so that a discount applies when:
+- booking pickup location matches ANY linked pickup location of the discount
+AND
+- vehicle model matches the selected models
+AND
+- all existing date/status/enabled conditions still pass
+
+Do NOT change:
+- discount percentage/fixed amount math
+- promo priority logic
+- displayed price formatting
+- anything unrelated to discount scope matching
+
+6) CRM UI — DISCOUNTS PAGE
+Likely file:
+- artifacts/crm/src/pages/Discounts.tsx
+and related types/services if present
+
+Replace the single Pickup Location select with a MULTI-SELECT UI.
+
+Requirements:
+- Admin can select multiple pickup locations in the Create/Edit Discount modal
+- Selected locations must be visible clearly
+- Show count of selected locations
+- Allow easy select/unselect
+- Validation: at least one pickup location required
+- Keep the rest of the modal unchanged as much as possible
+- Reuse the existing design system/components where possible
+- Do NOT redesign the whole modal
+
+7) CRM LIST DISPLAY
+On the Discounts table/list:
+- display pickup locations compactly
+- if there are multiple, show a short readable summary like first one or two + “+N more”
+- keep layout stable
+- do not make the table messy
+
+8) EDITING EXISTING DISCOUNTS
+When opening an existing discount:
+- all its linked pickup locations must preload as selected
+- old single-location records migrated from production must display correctly in the new UI
+
+9) DELETE / STATUS / ENABLED LOGIC
+Make sure existing delete and active/inactive behavior still works correctly with the new location relation.
+
+OUT OF SCOPE:
+- Promo codes redesign
+- Rates changes
+- Discounts math changes
+- Website design changes
+- CRM redesign
+- Booking flow redesign
+- Any unrelated refactor
+
+DELIVERABLES:
+Return:
+1. Short root cause summary
+2. Exact files changed
+3. Migration file details and what data is backfilled
+4. Updated request/response payload shape
+5. Exact code diffs or exact changed code blocks
+6. Short explanation of how existing discounts remain safe after migration
+7. Note any manual step needed after merge (only if absolutely necessary)
+
+IMPORTANT:
+Do this surgically and production-safely. Existing live discounts and website pricing must not break.
