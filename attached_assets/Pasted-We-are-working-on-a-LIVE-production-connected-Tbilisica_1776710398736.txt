@@ -1,0 +1,38 @@
+We are working on a LIVE production-connected Tbilisicars CRM&WEB monorepo that is fully built already in Replit. Do NOT refactor unrelated code. Do NOT change architecture. Do NOT touch API, CRM, pricing engine, filters, booking flow, styling system, or any unrelated behavior. Make only the minimal, surgical frontend change required in the website Booking page.
+
+Task:
+On the website Booking page, in Category view, each category’s horizontal vehicle carousel must be ordered by ascending price, so the cheapest vehicle in that category appears first and the rest follow from lower price to higher price.
+
+Current issue:
+Right now, category cards are not consistently ordered by price. Because of that, the first visible car inside a category is sometimes not the cheapest one. I want the card order inside every category carousel to be price low → high.
+
+Requirements:
+1. In Category view only, sort the models inside each category by ascending `min_price_per_day`
+2. Vehicles with missing / null / invalid `min_price_per_day` must go to the end
+3. If two vehicles have the same price, use alphabetical tie-break by brand + model
+4. Keep the existing category sections, headers, counts, card design, snap carousel behavior, selection behavior, and on-request behavior exactly as they are
+5. Do not change List view or Grid view behavior unless they already depend on the same exact category array in a way that must stay consistent
+6. Do the same ascending-price sorting for the “Other Vehicles” category block if it exists in the same Category view
+7. Do not change any API response shape or backend logic
+8. Do not change the displayed prices themselves, only the order of the cards
+
+Likely file:
+- artifacts/website/src/pages/Booking.tsx
+
+Implementation rules:
+- Reuse the existing data already available in the page
+- Use a sorted copy of the category models before rendering, not an in-place mutation of shared arrays
+- Keep the change minimal and local to Category view rendering logic
+- Prefer a helper sort function only if it stays inside the same file and keeps the change cleaner
+- Do not introduce unnecessary abstractions
+
+Expected result:
+- Inside each category section, the first shown car must be the cheapest one
+- Horizontal scrolling order must continue from cheapest to more expensive
+- Example: if a category has €46/day, €48/day, €50/day, €60/day, they must appear exactly in that order
+
+Return format:
+1. Brief root cause
+2. Exact file changed
+3. Exact code diff or exact replaced code block
+4. Very short confirmation that no unrelated logic was touched
