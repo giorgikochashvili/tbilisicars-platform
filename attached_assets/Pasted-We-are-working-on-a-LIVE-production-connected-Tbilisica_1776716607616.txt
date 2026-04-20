@@ -1,0 +1,55 @@
+We are working on a LIVE production-connected Tbilisicars CRM&WEB monorepo already fully built in Replit. Do NOT refactor unrelated code. Do NOT change API contracts, discount math, booking flow, CRM logic, filters, styling system, or layout structure. Make only the minimal surgical change required in the website Booking page category ordering logic.
+
+Task:
+Refine Category View vehicle ordering so that:
+1. Available vehicles always appear before On Request vehicles
+2. Within available vehicles, cards are sorted by the LOWEST FINAL EFFECTIVE PRICE first
+3. Within On Request vehicles, cards are also sorted by the LOWEST FINAL EFFECTIVE PRICE first
+4. Final effective price must respect any active website discount already being applied in the UI
+5. If two vehicles have the same final effective price, tie-break alphabetically by brand + model
+
+Business rule:
+- Vehicles that are instantly available must always be shown first
+- On Request vehicles must always be shown after all available vehicles, even if an On Request vehicle has a lower discounted price than an available vehicle
+- The first visible card in a category should therefore be the cheapest AVAILABLE vehicle in that category, based on the final displayed discounted price if applicable
+
+Example:
+If category vehicles are:
+- Mazda CX-3 — available — €48/day
+- Mitsubishi Outlander Sport — available — 20% off → €38.4/day
+- Subaru XV — on request — 20% off → €38.4/day
+- Ford Escape — on request — €39.2/day
+- Jeep Compass — available — €40/day
+
+Correct order must be:
+1. Mitsubishi Outlander Sport
+2. Jeep Compass
+3. Mazda CX-3
+4. Subaru XV
+5. Ford Escape
+
+Likely file:
+- artifacts/website/src/pages/Booking.tsx
+
+Implementation requirements:
+- Apply this ordering in Category view only
+- Update both category sections and the “Other Vehicles” block if it exists in Category view
+- Use the same pricing source that the card UI already uses for displaying discounted/final price
+- Do NOT sort by raw base price if a discount is active; sort by the actual final displayed effective price
+- Preserve all existing card design, badges, on-request badge, discount badge, snap behavior, click behavior, and selection behavior
+- Do NOT change List view or Grid view unless they directly reuse the exact same category-specific sorted array and must remain internally consistent
+- Do NOT change any displayed text or price formatting
+- Do NOT change backend logic
+
+Sorting priority:
+1. availability group:
+   - available first
+   - on request second
+2. final effective price ascending
+3. brand + model alphabetical
+
+Return:
+1. Brief root cause
+2. Exact file changed
+3. Exact changed code block(s) or diff
+4. Very short confirmation that no unrelated logic was changed
