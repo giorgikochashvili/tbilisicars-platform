@@ -2971,3 +2971,71 @@ export const TaskAssigneeItem = zod.object({
   fullName: zod.string(),
   email: zod.string(),
 });
+
+// ─── Website Discount Module ──────────────────────────────────────────────────
+
+export const WebsiteDiscountTypeEnum = zod.enum(["PERCENT", "FIXED"]);
+
+const DiscountVehicleModelItem = zod.object({
+  vehicleModelId: zod.number(),
+  modelName: zod.string().nullable(),
+  brandName: zod.string().nullable(),
+});
+
+export const AdminDiscountItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  discountType: WebsiteDiscountTypeEnum,
+  value: zod.union([zod.string(), zod.number()]),
+  startDate: zod.string(),
+  endDate: zod.string(),
+  pickupLocationId: zod.number(),
+  pickupLocationName: zod.string().nullable(),
+  pickupLocationCity: zod.string().nullable(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  vehicleModels: zod.array(DiscountVehicleModelItem),
+});
+
+export const ListAdminDiscountsResponse = zod.array(AdminDiscountItem);
+
+export const GetAdminDiscountParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminDiscountResponse = AdminDiscountItem;
+
+export const CreateAdminDiscountBody = zod.object({
+  name: zod.string().min(1),
+  discountType: WebsiteDiscountTypeEnum,
+  value: zod.number().positive(),
+  startDate: zod.string().min(1),
+  endDate: zod.string().min(1),
+  pickupLocationId: zod.number().int().positive(),
+  isActive: zod.boolean().optional().default(true),
+  vehicleModelIds: zod.array(zod.number().int().positive()).min(1),
+});
+
+export const UpdateAdminDiscountParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminDiscountBody = zod.object({
+  name: zod.string().min(1).optional(),
+  discountType: WebsiteDiscountTypeEnum.optional(),
+  value: zod.number().positive().optional(),
+  startDate: zod.string().min(1).optional(),
+  endDate: zod.string().min(1).optional(),
+  pickupLocationId: zod.number().int().positive().optional(),
+  isActive: zod.boolean().optional(),
+  vehicleModelIds: zod.array(zod.number().int().positive()).min(1).optional(),
+});
+
+export const DeleteAdminDiscountParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminDiscountResponse = zod.object({
+  message: zod.string(),
+});

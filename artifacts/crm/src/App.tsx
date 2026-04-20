@@ -18,6 +18,7 @@ import BookingsPage from "@/pages/Bookings";
 import ExtrasPage from "@/pages/Extras";
 import RatesPage from "@/pages/Rates";
 import PromotionsPage from "@/pages/Promotions";
+import DiscountsPage from "@/pages/Discounts";
 import ServicePage from "@/pages/Service";
 import AccountingPage from "@/pages/Accounting";
 import TeamPage from "@/pages/Team";
@@ -142,6 +143,7 @@ function Router() {
       <Route path="/extras"><ProtectedRoute component={ExtrasPage} permissionKey="canManageExtras" /></Route>
       <Route path="/rates"><ProtectedRoute component={RatesPage} permissionKey="canManageRates" /></Route>
       <Route path="/promotions"><ProtectedRoute component={PromotionsPage} permissionKey="canManagePromotions" /></Route>
+      <Route path="/discounts"><ProtectedRoute component={DiscountsPage} permissionKey="canManageRates" /></Route>
       <Route path="/service"><ProtectedRoute component={ServicePage} permissionKey="canManageService" /></Route>
       <Route path="/accounting"><ProtectedRoute component={AccountingPage} permissionKey="canViewAccounting" /></Route>
       <Route path="/team"><ProtectedRoute component={TeamPage} permissionKey="canManageUsers" /></Route>

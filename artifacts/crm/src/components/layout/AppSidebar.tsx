@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useEffect, useRef } from "react";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
-  MapPin, Package, BadgeDollarSign, Tag, 
+  MapPin, Package, BadgeDollarSign, Tag, Percent,
   LogOut, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -41,6 +41,7 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
   { title: "Extras",          url: "/extras",          icon: Package,          permissionKey: "canManageExtras" },
   { title: "Rates",           url: "/rates",           icon: BadgeDollarSign,  permissionKey: "canManageRates" },
   { title: "Promotions",      url: "/promotions",      icon: Tag,              permissionKey: "canManagePromotions" },
+  { title: "Discounts",       url: "/discounts",       icon: Percent,          permissionKey: "canManageRates" },
   { title: "Team",            url: "/team",            icon: UserCog,          permissionKey: "canManageUsers" },
   { title: "Audit Log",       url: "/audit-logs",      icon: Activity,         permissionKey: "canViewAuditLog" },
   { title: "TBS AIR PARKING", url: "/tbs-parking",     icon: PlaneTakeoff,     permissionKey: "canManageParking" },

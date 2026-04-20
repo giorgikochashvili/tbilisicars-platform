@@ -139,6 +139,28 @@ export function computeExtrasTotal(items: ExtraLineItem[], days: number): number
   return total;
 }
 
+// ─── Website discount ─────────────────────────────────────────────────────────
+
+/**
+ * Compute the discount amount for a website discount against a base rental total.
+ *
+ * Always returns a non-negative value, capped at baseTotal.
+ * Applies to the rental base price only — extras and one-way fees are untouched.
+ *
+ * discountType "PERCENT" → baseTotal × (discountValue / 100), rounded to 2 dp.
+ * discountType "FIXED"   → min(discountValue, baseTotal).
+ */
+export function applyWebsiteDiscount(
+  baseTotal: number,
+  discountType: "PERCENT" | "FIXED",
+  discountValue: number,
+): number {
+  if (discountType === "PERCENT") {
+    return Math.round(baseTotal * (discountValue / 100) * 100) / 100;
+  }
+  return Math.min(discountValue, baseTotal);
+}
+
 // ─── Promo discount ───────────────────────────────────────────────────────────
 
 /**

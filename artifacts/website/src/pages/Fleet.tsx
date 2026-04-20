@@ -18,6 +18,14 @@ interface VehicleModel {
   vehicle_count: string;
   min_price_per_day: string | null;
   price_currency: string | null;
+  // Discount fields — only present when location + pickup_datetime are provided
+  website_discount_id?: number | null;
+  website_discount_name?: string | null;
+  website_discount_type?: string | null;
+  website_discount_value?: number | null;
+  website_discount_amount?: number | null;
+  original_min_price_per_day?: number | null;
+  discounted_min_price_per_day?: number | null;
 }
 
 interface BookingConfig {
@@ -154,7 +162,9 @@ export default function Fleet() {
             {models.map((m) => {
               const transmission = transmissionLabel(m.transmission);
               const fuel = fuelLabel(m.fuel_type);
-              const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+              const originalPrice = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+              const hasDiscount = !!(m.website_discount_id && m.discounted_min_price_per_day != null);
+              const price = hasDiscount ? m.discounted_min_price_per_day! : originalPrice;
               const currency = m.price_currency ?? "GEL";
               const isOnRequest = Number(m.vehicle_count) === 0;
 
@@ -182,9 +192,20 @@ export default function Fleet() {
                         On Request
                       </span>
                     )}
+                    {/* Discount badge — top right (when discount active and not on request) */}
+                    {hasDiscount && !isOnRequest && m.website_discount_name && (
+                      <span className="absolute top-3 right-3 bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                        {m.website_discount_type === "PERCENT"
+                          ? `${m.website_discount_value}% OFF`
+                          : `${m.website_discount_value} GEL OFF`}
+                      </span>
+                    )}
                     {/* Price badge — bottom right */}
                     {price !== null && (
                       <div className="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm text-white rounded-xl px-3 py-1.5 text-right">
+                        {hasDiscount && originalPrice != null && (
+                          <div className="text-[10px] line-through opacity-60 leading-none">{originalPrice.toLocaleString()} {currency}</div>
+                        )}
                         <div className="text-sm font-bold leading-none">{price.toLocaleString()} {currency}</div>
                         <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
                       </div>
@@ -240,10 +261,23 @@ export default function Fleet() {
                     <div className="mb-3 mt-auto">
                       {price !== null ? (
                         <div>
-                          <span className="text-xs text-muted-foreground">Starting from</span>
-                          <div className="text-xl font-bold text-primary">
-                            {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
-                            <span className="text-sm font-normal text-muted-foreground">/day</span>
+                          {hasDiscount && m.website_discount_name ? (
+                            <span className="text-xs text-green-400 font-medium">
+                              {m.website_discount_name}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Starting from</span>
+                          )}
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            {hasDiscount && originalPrice != null && (
+                              <span className="text-base line-through text-muted-foreground/50">
+                                {originalPrice.toLocaleString()} {currency}
+                              </span>
+                            )}
+                            <div className="text-xl font-bold text-primary">
+                              {price.toLocaleString()} <span className="text-sm font-semibold">{currency}</span>
+                              <span className="text-sm font-normal text-muted-foreground">/day</span>
+                            </div>
                           </div>
                         </div>
                       ) : (

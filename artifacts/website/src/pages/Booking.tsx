@@ -56,6 +56,16 @@ interface Quote {
   promoDiscountType: string | null; promoDiscountValue: number | null; discountAmount: number | null;
   oneWayFee?: number;
   estimatedTotal: number | null;
+  // Website discount fields
+  hasWebsiteDiscount?: boolean;
+  websiteDiscountId?: number | null;
+  websiteDiscountName?: string | null;
+  websiteDiscountType?: string | null;
+  websiteDiscountValue?: number | null;
+  websiteDiscountAmount?: number | null;
+  originalRentalPrice?: number | null;
+  discountedRentalPrice?: number | null;
+  promoSkippedDueToDiscount?: boolean;
 }
 
 interface BookingResult {
@@ -611,7 +621,13 @@ function PricingSummaryContent({
                   <span className="text-white font-medium">+{fmt(quote.extrasTotal)}</span>
                 </div>
               )}
-              {quote.discountAmount != null && quote.discountAmount > 0 && (
+              {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-400">{quote.websiteDiscountName ?? "Discount"}</span>
+                  <span className="text-green-400 font-medium">−{fmt(quote.websiteDiscountAmount)}</span>
+                </div>
+              )}
+              {!quote.hasWebsiteDiscount && quote.discountAmount != null && quote.discountAmount > 0 && (
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Promo</span>
                   <span className="text-green-400 font-medium">−{fmt(quote.discountAmount)}</span>
@@ -2338,8 +2354,14 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
               return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
             })}
-            {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+            {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
+              <SummaryRow label={quote.websiteDiscountName ?? "Discount"} value={`−${fmt(quote.websiteDiscountAmount)}`} />
+            )}
+            {!quote.hasWebsiteDiscount && form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
               <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
+            )}
+            {quote.promoSkippedDueToDiscount && form.promoCode && (
+              <p className="text-[11px] text-amber-400/80 mt-1">A vehicle discount has been applied. Promo codes cannot be combined with active discounts.</p>
             )}
             {quote.oneWayFee != null && quote.oneWayFee > 0 && (
               <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
@@ -2560,7 +2582,10 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
                 return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
               })}
-              {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+              {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
+                <SummaryRow label={quote.websiteDiscountName ?? "Discount"} value={`−${fmt(quote.websiteDiscountAmount)}`} />
+              )}
+              {!quote.hasWebsiteDiscount && form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
                 <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
               )}
               {quote.oneWayFee != null && quote.oneWayFee > 0 && (

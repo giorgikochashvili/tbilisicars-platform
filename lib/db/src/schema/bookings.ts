@@ -135,6 +135,16 @@ export const bookingTable = pgTable(
     reservationCode: varchar("reservation_code", { length: 30 }),
     externalReservationCode: varchar("external_reservation_code", { length: 100 }),
     voucherImportRef: varchar("voucher_import_ref", { length: 200 }),
+    // Website discount snapshot — persisted at booking creation so historical
+    // price breakdowns remain correct even if the discount rule is later edited
+    // or disabled. NULL when no website discount was applied.
+    websiteDiscountId: integer("website_discount_id"),
+    websiteDiscountName: varchar("website_discount_name", { length: 100 }),
+    websiteDiscountType: varchar("website_discount_type", { length: 10 }),
+    websiteDiscountValue: numeric("website_discount_value", { precision: 10, scale: 2 }),
+    websiteDiscountAmount: numeric("website_discount_amount", { precision: 10, scale: 2 }),
+    originalRentalPrice: numeric("original_rental_price", { precision: 10, scale: 2 }),
+    discountedRentalPrice: numeric("discounted_rental_price", { precision: 10, scale: 2 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

@@ -113,6 +113,8 @@ export interface VoucherParams {
   oneWayFee?: number | null;
   promoCode?: string;
   discountAmount?: number | null;
+  websiteDiscountName?: string | null;
+  websiteDiscountAmount?: number | null;
   currency?: string;
   generatedPassword?: string | null;
   bookingStatus?: string;
@@ -128,6 +130,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     extras = [], insurancePlan, paymentMethod,
     flightNumber, nationality, age,
     estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
+    websiteDiscountName, websiteDiscountAmount,
     currency = "GEL",
     generatedPassword,
     bookingStatus = "PENDING",
@@ -243,7 +246,9 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     if (oneWayFee != null && oneWayFee > 0) {
       row("One-way transfer fee", fmtMoney(oneWayFee, currency));
     }
-    if (promoCode && discountAmount != null && discountAmount > 0) {
+    if (websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0) {
+      row(`Discount (${websiteDiscountName})`, `-${fmtMoney(websiteDiscountAmount, currency)}`);
+    } else if (promoCode && discountAmount != null && discountAmount > 0) {
       row(`Promo (${promoCode})`, `-${fmtMoney(discountAmount, currency)}`);
     }
     page.drawLine({

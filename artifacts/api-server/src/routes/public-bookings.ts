@@ -12,9 +12,11 @@ import {
   resolveRateTier,
   computeExtrasTotal,
   applyPromoDiscount,
+  applyWebsiteDiscount,
 } from "../lib/pricing.js";
 import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
+import { resolveWebsiteDiscount } from "../services/admin-discounts.service.js";
 
 const router: IRouter = Router();
 
@@ -252,11 +254,72 @@ router.get("/public/booking-config", async (req, res) => {
   // Normalise vehicle_count to a number here so callers never need to coerce it.
   // A vehicle_count of 0 means no physically available vehicles exist in the
   // requested region (or globally), which the website interprets as "On Request".
-  const vehicleModels = (modelRows.rows as Array<Record<string, unknown>>).map((row) => ({
+  const rawModels = (modelRows.rows as Array<Record<string, unknown>>).map((row) => ({
     ...row,
     vehicle_count: Number(row.vehicle_count ?? 0),
     min_price_per_day: row.min_price_per_day != null ? Number(row.min_price_per_day) : null,
   }));
+
+  // ── Discount enrichment (Step 6): only when both location + pickup_datetime are present ──
+  // Resolve active website discounts for all returned vehicle models and attach them.
+  // Uses the customer's pickup date (not today) to check discount date range.
+  let vehicleModels = rawModels;
+  if (filterByLocation && pickupDt) {
+    const pickupDateStr = new Date(pickupDt).toISOString().slice(0, 10);
+    const modelIds = rawModels.map((m) => Number(m.id));
+    if (modelIds.length > 0) {
+      const { rows: discountRows } = await pool.query<{
+        vehicle_model_id: number;
+        discount_id: number;
+        discount_name: string;
+        discount_type: string;
+        value: string;
+      }>(
+        `SELECT dvm.vehicle_model_id, d.id AS discount_id, d.name AS discount_name,
+                d.discount_type, d.value
+         FROM website_discount d
+         JOIN website_discount_vehicle_model dvm ON dvm.discount_id = d.id
+         WHERE d.pickup_location_id = $1
+           AND d.is_active = true
+           AND d.start_date <= $2::date
+           AND d.end_date >= $2::date
+           AND dvm.vehicle_model_id = ANY($3)
+         ORDER BY d.value DESC`,
+        [locationId, pickupDateStr, modelIds],
+      );
+      // Build a map: vehicleModelId → first (highest value) discount
+      const discountMap = new Map<number, { discountId: number; discountName: string; discountType: string; discountValue: number }>();
+      for (const row of discountRows) {
+        if (!discountMap.has(row.vehicle_model_id)) {
+          discountMap.set(row.vehicle_model_id, {
+            discountId: row.discount_id,
+            discountName: row.discount_name,
+            discountType: row.discount_type,
+            discountValue: Number(row.value),
+          });
+        }
+      }
+
+      vehicleModels = rawModels.map((m) => {
+        const disc = discountMap.get(Number(m.id));
+        if (!disc || !m.min_price_per_day) return m;
+        const originalPrice = Number(m.min_price_per_day);
+        const discountAmt = disc.discountType === "PERCENT"
+          ? Math.round(originalPrice * (disc.discountValue / 100) * 100) / 100
+          : Math.min(disc.discountValue, originalPrice);
+        return {
+          ...m,
+          website_discount_id: disc.discountId,
+          website_discount_name: disc.discountName,
+          website_discount_type: disc.discountType,
+          website_discount_value: disc.discountValue,
+          website_discount_amount: discountAmt,
+          original_min_price_per_day: originalPrice,
+          discounted_min_price_per_day: Math.max(0, originalPrice - discountAmt),
+        };
+      });
+    }
+  }
 
   res.json({
     locations: locRows.rows,
@@ -360,11 +423,48 @@ router.post("/public/quote", async (req, res) => {
     extrasTotal = computeExtrasTotal(lineItems, days);
   }
 
+  // ── Website discount (priority: discount wins, promo skipped if discount applies) ──
+  let websiteDiscountId: number | null = null;
+  let websiteDiscountName: string | null = null;
+  let websiteDiscountType: "PERCENT" | "FIXED" | null = null;
+  let websiteDiscountValue: number | null = null;
+  let websiteDiscountAmount: number | null = null;
+  let originalRentalPrice: number | null = baseTotal;
+  let discountedRentalPrice: number | null = baseTotal;
+  let hasWebsiteDiscount = false;
+  let promoSkippedDueToDiscount = false;
+
+  const pickupLocId = body.pickupLocationId ? Number(body.pickupLocationId) : null;
+  const dropoffLocId = body.dropoffLocationId ? Number(body.dropoffLocationId) : null;
+
+  if (baseTotal !== null && body.vehicleModelId && pickupLocId) {
+    const resolved = await resolveWebsiteDiscount(
+      Number(body.vehicleModelId),
+      pickupLocId,
+      pickupDateStr,
+    );
+    if (resolved) {
+      hasWebsiteDiscount = true;
+      websiteDiscountId = resolved.discountId;
+      websiteDiscountName = resolved.discountName;
+      websiteDiscountType = resolved.discountType;
+      websiteDiscountValue = resolved.discountValue;
+      websiteDiscountAmount = applyWebsiteDiscount(baseTotal, resolved.discountType, resolved.discountValue);
+      originalRentalPrice = baseTotal;
+      discountedRentalPrice = Math.max(0, baseTotal - websiteDiscountAmount);
+
+      if (body.promoCode?.trim()) {
+        promoSkippedDueToDiscount = true;
+      }
+    }
+  }
+
+  // ── Promo discount (only when no website discount applies) ───────────────────
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
   let discountAmount: number | null = null;
 
-  if (body.promoCode?.trim()) {
+  if (!hasWebsiteDiscount && body.promoCode?.trim()) {
     const { rows: promoRows } = await pool.query(
       `SELECT discount_type, discount_value FROM promo
        WHERE code = $1 AND active = true
@@ -378,14 +478,18 @@ router.post("/public/quote", async (req, res) => {
       promoDiscountValue = Number(promoRows[0].discount_value);
       if (baseTotal !== null) {
         discountAmount = applyPromoDiscount(baseTotal, promoDiscountType, promoDiscountValue);
+        discountedRentalPrice = Math.max(0, baseTotal - discountAmount);
       }
     }
   }
 
+  // Effective discount amount for total calculation
+  const effectiveDiscountAmount = hasWebsiteDiscount
+    ? (websiteDiscountAmount ?? 0)
+    : (discountAmount ?? 0);
+
   // One-way fee: only when pickup and dropoff differ and both are provided.
   let oneWayFee: number | undefined;
-  const pickupLocId = body.pickupLocationId ? Number(body.pickupLocationId) : null;
-  const dropoffLocId = body.dropoffLocationId ? Number(body.dropoffLocationId) : null;
   if (pickupLocId && dropoffLocId && pickupLocId !== dropoffLocId) {
     const { rows: feeRows } = await pool.query(
       `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
@@ -396,12 +500,12 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  // Price order: base rental → promo discount (rental only) → extras → one-way fee.
-  const rentalAfterPromo: number | null = baseTotal !== null
-    ? Math.max(0, baseTotal - (discountAmount ?? 0))
+  // Price order: base rental → discount (website or promo, mutually exclusive) → extras → one-way fee.
+  const rentalAfterDiscount: number | null = baseTotal !== null
+    ? Math.max(0, baseTotal - effectiveDiscountAmount)
     : null;
-  const estimatedTotal: number | null = rentalAfterPromo !== null
-    ? rentalAfterPromo + extrasTotal + (oneWayFee ?? 0)
+  const estimatedTotal: number | null = rentalAfterDiscount !== null
+    ? rentalAfterDiscount + extrasTotal + (oneWayFee ?? 0)
     : null;
 
   return res.json({
@@ -414,6 +518,17 @@ router.post("/public/quote", async (req, res) => {
     baseCurrency,
     baseTotal,
     extrasTotal,
+    // Website discount fields
+    hasWebsiteDiscount,
+    websiteDiscountId,
+    websiteDiscountName,
+    websiteDiscountType,
+    websiteDiscountValue,
+    websiteDiscountAmount,
+    originalRentalPrice,
+    discountedRentalPrice,
+    promoSkippedDueToDiscount,
+    // Legacy promo fields (null when website discount applies)
     promoDiscountType,
     promoDiscountValue,
     discountAmount,
@@ -537,6 +652,7 @@ router.post("/public/bookings", async (req, res) => {
   const initialStatus: "PENDING" | "CONFIRMED" =
     (availRows[0]?.available_count ?? 0) > 0 ? "CONFIRMED" : "PENDING";
 
+  // Pre-fetch promo only when there's no website discount (mutual exclusion handled below after rate resolution).
   let discount: string | null = null;
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
@@ -617,16 +733,60 @@ router.post("/public/bookings", async (req, res) => {
     rateExpiredNote = "[RATE EXPIRED AT BOOKING TIME — re-check pricing with staff]";
   }
 
-  let serverDiscountAmount: number | null = null;
-  if (serverBaseTotal !== null && promoDiscountType && promoDiscountValue !== null) {
-    serverDiscountAmount = applyPromoDiscount(serverBaseTotal, promoDiscountType, promoDiscountValue);
+  // ── Website discount server-side resolution (mutual exclusion: discount wins over promo) ──
+  let serverWebsiteDiscountId: number | null = null;
+  let serverWebsiteDiscountName: string | null = null;
+  let serverWebsiteDiscountType: "PERCENT" | "FIXED" | null = null;
+  let serverWebsiteDiscountValue: number | null = null;
+  let serverWebsiteDiscountAmount: number | null = null;
+  let serverOriginalRentalPrice: number | null = serverBaseTotal;
+  let serverDiscountedRentalPrice: number | null = serverBaseTotal;
+  let hasServerWebsiteDiscount = false;
+
+  if (serverBaseTotal !== null && body.pickupLocationId) {
+    const resolvedDiscount = await resolveWebsiteDiscount(
+      Number(body.vehicleModelId),
+      Number(body.pickupLocationId),
+      pickupDateStr,
+    );
+    if (resolvedDiscount) {
+      hasServerWebsiteDiscount = true;
+      serverWebsiteDiscountId = resolvedDiscount.discountId;
+      serverWebsiteDiscountName = resolvedDiscount.discountName;
+      serverWebsiteDiscountType = resolvedDiscount.discountType;
+      serverWebsiteDiscountValue = resolvedDiscount.discountValue;
+      serverWebsiteDiscountAmount = applyWebsiteDiscount(serverBaseTotal, resolvedDiscount.discountType, resolvedDiscount.discountValue);
+      serverOriginalRentalPrice = serverBaseTotal;
+      serverDiscountedRentalPrice = Math.max(0, serverBaseTotal - serverWebsiteDiscountAmount);
+      // Mutual exclusion: discount wins, promo is skipped
+      discount = null;
+      promoDiscountType = null;
+      promoDiscountValue = null;
+    }
   }
 
-  const rentalAfterPromo = serverBaseTotal !== null
-    ? Math.max(0, serverBaseTotal - (serverDiscountAmount ?? 0))
+  // Promo discount (only applied when no website discount is in effect)
+  let serverPromoDiscountAmount: number | null = null;
+  if (!hasServerWebsiteDiscount && serverBaseTotal !== null && promoDiscountType && promoDiscountValue !== null) {
+    serverPromoDiscountAmount = applyPromoDiscount(serverBaseTotal, promoDiscountType, promoDiscountValue);
+    serverDiscountedRentalPrice = Math.max(0, serverBaseTotal - serverPromoDiscountAmount);
+  }
+
+  // The CRM `discount` column stores the promo discount amount (legacy); website discount has its own columns.
+  const serverDiscountAmount: number | null = hasServerWebsiteDiscount
+    ? null
+    : serverPromoDiscountAmount;
+  if (serverDiscountAmount !== null) {
+    discount = String(serverDiscountAmount);
+  } else if (hasServerWebsiteDiscount) {
+    discount = null;
+  }
+
+  const rentalAfterDiscount = serverBaseTotal !== null
+    ? Math.max(0, serverBaseTotal - (hasServerWebsiteDiscount ? (serverWebsiteDiscountAmount ?? 0) : (serverPromoDiscountAmount ?? 0)))
     : null;
-  const serverEstimatedTotal: number | null = rentalAfterPromo !== null
-    ? rentalAfterPromo + extrasTotal + (resolvedOneWayFee ?? 0)
+  const serverEstimatedTotal: number | null = rentalAfterDiscount !== null
+    ? rentalAfterDiscount + extrasTotal + (resolvedOneWayFee ?? 0)
     : null;
 
   const totalAmount: string | null = serverEstimatedTotal !== null
@@ -659,7 +819,8 @@ router.post("/public/bookings", async (req, res) => {
   let bookingId: number;
   try {
     ({ bookingId } = await db.transaction(async (tx) => {
-      if (body.promoCode) {
+      // Only increment promo usage when no website discount superseded it (mutual exclusion).
+      if (body.promoCode && !hasServerWebsiteDiscount) {
         const [promoRow] = await tx
           .select({ id: promoTable.id, maxUses: promoTable.maxUses, timesUsed: promoTable.timesUsed })
           .from(promoTable)
@@ -692,7 +853,7 @@ router.post("/public/bookings", async (req, res) => {
           dropoffDatetime: dropoffDate,
           vehicleModelId: Number(body.vehicleModelId),
           currency,
-          discount: serverDiscountAmount !== null ? String(serverDiscountAmount) : null,
+          discount: hasServerWebsiteDiscount ? null : (serverPromoDiscountAmount !== null ? String(serverPromoDiscountAmount) : null),
           totalAmount,
           notes: combinedNotes,
           source: "website" as const,
@@ -703,6 +864,14 @@ router.post("/public/bookings", async (req, res) => {
           pricePerDay: resolvedTier ? String(resolvedTier.pricePerDay) : null,
           baseRate: serverBaseRate !== null ? String(serverBaseRate) : null,
           oneWayFee: resolvedOneWayFee !== null ? String(resolvedOneWayFee) : null,
+          // Website discount snapshot columns
+          websiteDiscountId: serverWebsiteDiscountId,
+          websiteDiscountName: serverWebsiteDiscountName,
+          websiteDiscountType: serverWebsiteDiscountType,
+          websiteDiscountValue: serverWebsiteDiscountValue !== null ? String(serverWebsiteDiscountValue) : null,
+          websiteDiscountAmount: serverWebsiteDiscountAmount !== null ? String(serverWebsiteDiscountAmount) : null,
+          originalRentalPrice: serverOriginalRentalPrice !== null ? String(serverOriginalRentalPrice) : null,
+          discountedRentalPrice: serverDiscountedRentalPrice !== null ? String(serverDiscountedRentalPrice) : null,
         })
         .returning({ id: bookingTable.id });
 
@@ -757,10 +926,12 @@ router.post("/public/bookings", async (req, res) => {
     estimatedTotal: serverEstimatedTotal,
     resolvedBaseRate: serverBaseRate,
     oneWayFee: resolvedOneWayFee,
-    discountAmount: serverDiscountAmount,
-    promoCode: body.promoCode?.trim() || undefined,
-    promoDiscountType,
-    promoDiscountValue,
+    discountAmount: hasServerWebsiteDiscount ? null : serverPromoDiscountAmount,
+    websiteDiscountName: serverWebsiteDiscountName,
+    websiteDiscountAmount: serverWebsiteDiscountAmount,
+    promoCode: hasServerWebsiteDiscount ? undefined : (body.promoCode?.trim() || undefined),
+    promoDiscountType: hasServerWebsiteDiscount ? null : promoDiscountType,
+    promoDiscountValue: hasServerWebsiteDiscount ? null : promoDiscountValue,
     currency: body.currency ?? "GEL",
     pickupLocationId: Number(body.pickupLocationId),
     dropoffLocationId: Number(body.dropoffLocationId),
@@ -818,6 +989,8 @@ router.post("/public/bookings", async (req, res) => {
             oneWayFee: emailParams.oneWayFee,
             promoCode: emailParams.promoCode,
             discountAmount: emailParams.discountAmount,
+            websiteDiscountName: emailParams.websiteDiscountName,
+            websiteDiscountAmount: emailParams.websiteDiscountAmount,
             currency: emailParams.currency,
             generatedPassword: emailParams.generatedPassword,
             attachPdfVoucher: true,

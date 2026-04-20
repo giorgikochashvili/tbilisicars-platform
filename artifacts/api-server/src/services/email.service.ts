@@ -87,6 +87,8 @@ export interface BookingConfirmationEmailParams {
   oneWayFee?: number | null;
   promoCode?: string;
   discountAmount?: number | null;
+  websiteDiscountName?: string | null;
+  websiteDiscountAmount?: number | null;
   currency?: string;
   generatedPassword?: string | null;
   attachPdfVoucher?: boolean;
@@ -106,6 +108,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     insurancePlan, paymentMethod, flightNumber,
     nationality, age,
     estimatedTotal, baseTotal, oneWayFee, promoCode, discountAmount,
+    websiteDiscountName, websiteDiscountAmount,
     currency = "GEL",
     generatedPassword,
     attachPdfVoucher = false,
@@ -157,7 +160,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           ${baseTotal != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(baseTotal)}</span></div>` : ""}
           ${extras.map(extraHtmlRow).join("")}
           ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
-          ${promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo (${esc(promoCode)})</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
+          ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount (${esc(websiteDiscountName)})</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
+          ${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo (${esc(promoCode)})</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
           <div class="total-row">
             <span class="total-label">Estimated Total</span>
             <span class="total-value">${fmt(estimatedTotal)}</span>
@@ -318,7 +322,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     : "";
 
   const pricingText = estimatedTotal != null
-    ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
+    ? `\nPRICING ESTIMATE\n${baseTotal != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(baseTotal)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount (${websiteDiscountName}): -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
   const metaText = [
@@ -381,6 +385,7 @@ CONTACT US
         flightNumber, nationality, age,
         estimatedTotal, baseTotal, oneWayFee,
         promoCode, discountAmount,
+        websiteDiscountName, websiteDiscountAmount,
         currency, generatedPassword,
         bookingStatus,
         paymentStatus,
