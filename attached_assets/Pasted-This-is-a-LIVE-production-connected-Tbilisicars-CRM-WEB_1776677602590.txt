@@ -1,0 +1,59 @@
+This is a LIVE production-connected Tbilisicars CRM & WEB project.
+DO NOT change architecture.
+DO NOT refactor unrelated code.
+DO ONLY the exact surgical fix below.
+
+PROBLEM:
+Website bookings are being created with the correct time in the CRM/system, but the outgoing booking emails and PDF voucher display the pickup/dropoff time 4 hours earlier than selected.
+
+EXAMPLE:
+Customer selects 22 Apr 2026, 09:00
+CRM shows 09:00 correctly
+Email/PDF shows 05:00 incorrectly
+
+ROOT CAUSE:
+The issue is in the email/PDF formatting layer, not in booking creation.
+The website already sends datetime with +04:00 offset from Booking.tsx.
+But the backend email/PDF formatter converts display time using timeZone: "UTC", which shifts the displayed hour backward.
+
+FILES TO FIX:
+1. artifacts/api-server/src/services/email.service.ts
+2. artifacts/api-server/src/services/pdf-voucher.service.ts
+
+WHAT TO CHANGE:
+- Find all customer-facing or staff-facing date/time formatter helpers used in booking emails and PDF voucher.
+- Remove the forced UTC display conversion.
+- The formatted output must preserve the exact booking wall-clock time chosen by the customer.
+- If the stored/input value is `2026-04-22T09:00:00+04:00`, the email and PDF must display `22 Apr 2026, 09:00`, NOT `05:00`.
+- Keep the date format style the same as now as much as possible.
+- Do not add wording like “Tbilisi time”.
+- Do not change database storage logic unless absolutely required.
+- Do not change booking creation flow unless you confirm a real bug there.
+
+SPECIFIC CHECKS:
+- Customer booking confirmation email
+- Internal staff notification email
+- Attached PDF voucher
+
+IMPORTANT:
+This must work consistently regardless of which country the customer books from.
+The rule is:
+the exact time selected on the website must remain the exact time shown in CRM, email, and PDF.
+
+IMPLEMENTATION PREFERENCE:
+- Use one shared safe formatter approach for email/PDF display if helpful
+- Prefer preserving the literal local booking time from the ISO string rather than converting it to UTC
+- Avoid introducing any new timezone shift logic
+
+DONE LOOKS LIKE:
+- Website selected time = CRM time = customer email time = internal email time = PDF voucher time
+- No 4-hour backward shift
+- No regression in booking creation
+- No regression in displayed date format
+
+AFTER CHANGES:
+Please explicitly verify these cases:
+1. Website booking created at 09:00 shows 09:00 in CRM
+2. Same booking shows 09:00 in customer email
+3. Same booking shows 09:00 in internal reservations email
+4. Same booking shows 09:00 in attached PDF voucher
