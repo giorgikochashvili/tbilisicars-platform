@@ -737,8 +737,8 @@ router.post("/public/bookings", async (req, res) => {
   let serverWebsiteDiscountType: "PERCENT" | "FIXED" | null = null;
   let serverWebsiteDiscountValue: number | null = null;
   let serverWebsiteDiscountAmount: number | null = null;
-  let serverOriginalRentalPrice: number | null = serverBaseTotal;
-  let serverDiscountedRentalPrice: number | null = serverBaseTotal;
+  let serverOriginalRentalPrice: number | null = null;
+  let serverDiscountedRentalPrice: number | null = null;
   let hasServerWebsiteDiscount = false;
 
   if (serverBaseTotal !== null && body.pickupLocationId) {
