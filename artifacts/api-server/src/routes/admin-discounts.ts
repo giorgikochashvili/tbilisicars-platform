@@ -38,7 +38,7 @@ router.post(
     }
 
     try {
-      const discount = await createAdminDiscount(body as any);
+      const discount = await createAdminDiscount(body);
       return res.status(201).json(discount);
     } catch (err: any) {
       if (typeof err.message === "string" && err.message.startsWith("VALIDATION:")) {
@@ -72,7 +72,7 @@ router.patch(
     }
 
     try {
-      const discount = await updateAdminDiscount(id, body as any);
+      const discount = await updateAdminDiscount(id, body);
       return res.json(discount);
     } catch (err: any) {
       if (typeof err.message === "string" && err.message.startsWith("VALIDATION:")) {

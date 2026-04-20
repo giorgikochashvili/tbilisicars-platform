@@ -1,7 +1,23 @@
 import { db, pool } from "@workspace/db";
 import { discountTable, discountVehicleModelTable } from "@workspace/db";
-import { eq, and, ne, desc } from "drizzle-orm";
+import type { Discount } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
+
+// Shape returned by getAdminDiscount (raw pool query with camelCase aliases + vehicleModels array)
+interface ExistingDiscountRow {
+  id: number;
+  name: string;
+  discountType: "PERCENT" | "FIXED";
+  value: string;
+  startDate: string;
+  endDate: string;
+  pickupLocationId: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  vehicleModels: Array<{ vehicleModelId: number; modelName: string; brandName: string }>;
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,6 +58,12 @@ async function findOverlappingModels(
 ): Promise<number[]> {
   if (vehicleModelIds.length === 0) return [];
 
+  const params: unknown[] = [pickupLocationId, startDate, endDate, vehicleModelIds];
+  const excludeClause =
+    excludeDiscountId != null
+      ? ` AND d.id != $${params.push(excludeDiscountId)}`
+      : "";
+
   const { rows } = await pool.query<{ vehicle_model_id: number }>(
     `SELECT DISTINCT dvm.vehicle_model_id
      FROM website_discount d
@@ -50,9 +72,8 @@ async function findOverlappingModels(
        AND d.is_active = true
        AND d.start_date <= $3::date
        AND d.end_date >= $2::date
-       AND dvm.vehicle_model_id = ANY($4)
-       ${excludeDiscountId != null ? `AND d.id != ${excludeDiscountId}` : ""}`,
-    [pickupLocationId, startDate, endDate, vehicleModelIds],
+       AND dvm.vehicle_model_id = ANY($4)${excludeClause}`,
+    params,
   );
   return rows.map((r) => r.vehicle_model_id);
 }
@@ -195,16 +216,16 @@ export async function createAdminDiscount(data: DiscountCreateData) {
 // ─── Update ───────────────────────────────────────────────────────────────────
 
 export async function updateAdminDiscount(id: number, data: DiscountUpdateData) {
-  const existing = await getAdminDiscount(id);
+  const existing = await getAdminDiscount(id) as ExistingDiscountRow;
 
-  const discountType = data.discountType ?? (existing as any).discountType;
-  const value = data.value ?? Number((existing as any).value);
-  const startDate = data.startDate ?? (existing as any).startDate;
-  const endDate = data.endDate ?? (existing as any).endDate;
-  const pickupLocationId = data.pickupLocationId ?? (existing as any).pickupLocationId;
-  const isActive = data.isActive !== undefined ? data.isActive : (existing as any).isActive;
+  const discountType = data.discountType ?? existing.discountType;
+  const value = data.value ?? Number(existing.value);
+  const startDate = data.startDate ?? existing.startDate;
+  const endDate = data.endDate ?? existing.endDate;
+  const pickupLocationId = data.pickupLocationId ?? existing.pickupLocationId;
+  const isActive = data.isActive !== undefined ? data.isActive : existing.isActive;
   const vehicleModelIds = data.vehicleModelIds ??
-    ((existing as any).vehicleModels as Array<{ vehicleModelId: number }>).map((m) => m.vehicleModelId);
+    existing.vehicleModels.map((m) => m.vehicleModelId);
 
   if (vehicleModelIds.length === 0) {
     throw new Error("VALIDATION: At least one vehicle model must be selected.");
@@ -230,7 +251,7 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
     }
   }
 
-  const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
+  const updatePayload: Partial<Discount> & { updatedAt: Date } = { updatedAt: new Date() };
   if (data.name !== undefined) updatePayload.name = data.name;
   if (data.discountType !== undefined) updatePayload.discountType = data.discountType;
   if (data.value !== undefined) updatePayload.value = String(data.value);
@@ -241,7 +262,7 @@ export async function updateAdminDiscount(id: number, data: DiscountUpdateData) 
 
   await db
     .update(discountTable)
-    .set(updatePayload as any)
+    .set(updatePayload)
     .where(eq(discountTable.id, id));
 
   if (data.vehicleModelIds !== undefined) {

@@ -32,6 +32,14 @@ interface VehicleModel {
   seats: number | null; transmission: string | null; fuel_type: string | null;
   description: string | null; image_url: string | null; deposit: string | null;
   vehicle_count: string; min_price_per_day: string | null; price_currency: string | null;
+  // Website discount fields — only present when location + pickup_datetime are provided
+  website_discount_id?: number | null;
+  website_discount_name?: string | null;
+  website_discount_type?: string | null;
+  website_discount_value?: number | null;
+  website_discount_amount?: number | null;
+  original_min_price_per_day?: number | null;
+  discounted_min_price_per_day?: number | null;
 }
 interface Extra { id: number; name: string; description: string | null; price: string; currency: string; pricing_type: string; max_days: number | null; }
 interface BookingConfig { locations: Location[]; vehicleModels: VehicleModel[]; extras: Extra[]; }
@@ -611,20 +619,21 @@ function PricingSummaryContent({
             </div>
           ) : quote?.quotable ? (
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{quote.basePricePerDay?.toLocaleString()} {cur}/day × {days}</span>
-                <span className="text-white font-medium">{fmt(quote.baseTotal!)}</span>
-              </div>
+              {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-400">{quote.websiteDiscountName ?? "Discount"} · {days} days</span>
+                  <span className="text-white font-medium">{fmt(quote.discountedRentalPrice)}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{quote.basePricePerDay?.toLocaleString()} {cur}/day × {days}</span>
+                  <span className="text-white font-medium">{fmt(quote.baseTotal!)}</span>
+                </div>
+              )}
               {quote.extrasTotal > 0 && (
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Extras</span>
                   <span className="text-white font-medium">+{fmt(quote.extrasTotal)}</span>
-                </div>
-              )}
-              {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-green-400">{quote.websiteDiscountName ?? "Discount"}</span>
-                  <span className="text-green-400 font-medium">−{fmt(quote.websiteDiscountAmount)}</span>
                 </div>
               )}
               {!quote.hasWebsiteDiscount && quote.discountAmount != null && quote.discountAmount > 0 && (
@@ -857,9 +866,12 @@ function VehicleCard({
   showCategoryPill?: boolean;
   onSelect: () => void; onConfirm: () => void;
 }) {
-  const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+  const hasDiscount = !!(m.website_discount_id && m.discounted_min_price_per_day != null);
+  const price = hasDiscount ? m.discounted_min_price_per_day! : (m.min_price_per_day ? Number(m.min_price_per_day) : null);
+  const originalPrice = hasDiscount ? m.original_min_price_per_day! : null;
   const cur = m.price_currency ?? "EUR";
   const totalEst = price && days > 0 ? price * days : null;
+  const originalTotalEst = originalPrice && days > 0 ? originalPrice * days : null;
   const isOnRequest = Number(m.vehicle_count) === 0;
   return (
     <button
@@ -884,8 +896,13 @@ function VehicleCard({
             {m.category}
           </span>
         )}
+        {hasDiscount && !isOnRequest && (
+          <span className="absolute top-3 right-3 bg-green-600/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+            {m.website_discount_type === "PERCENT" ? `${m.website_discount_value}% OFF` : `${cur} ${m.website_discount_value} OFF`}
+          </span>
+        )}
         {isOnRequest && !selected && (
-          <span className="absolute top-3 right-3 bg-amber-500/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">
+          <span className={cn("absolute top-3 right-3 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide", hasDiscount ? "bg-amber-500/90 top-10" : "bg-amber-500/90")}>
             On Request
           </span>
         )}
@@ -897,11 +914,17 @@ function VehicleCard({
                   {formatPrice(totalEst, cur)}{" "}
                   <span className="text-[10px] font-normal opacity-80">total</span>
                 </div>
+                {hasDiscount && originalTotalEst && (
+                  <div className="text-[10px] line-through opacity-50 leading-none mt-0.5">{formatPrice(originalTotalEst, cur)}</div>
+                )}
                 <div className="text-[10px] opacity-70 leading-none mt-0.5">{formatPrice(price, cur)}/day</div>
               </>
             ) : (
               <>
                 <div className="text-sm font-bold leading-none">{formatPrice(price, cur)}</div>
+                {hasDiscount && originalPrice && (
+                  <div className="text-[10px] line-through opacity-50 leading-none">{formatPrice(originalPrice, cur)}</div>
+                )}
                 <div className="text-[10px] opacity-80 leading-none mt-0.5">/day</div>
               </>
             )}
@@ -970,7 +993,9 @@ function VehicleListRow({
   m: VehicleModel; selected: boolean; days: number;
   onSelect: () => void; onConfirm: () => void;
 }) {
-  const price = m.min_price_per_day ? Number(m.min_price_per_day) : null;
+  const hasDiscount = !!(m.website_discount_id && m.discounted_min_price_per_day != null);
+  const price = hasDiscount ? m.discounted_min_price_per_day! : (m.min_price_per_day ? Number(m.min_price_per_day) : null);
+  const originalPrice = hasDiscount ? m.original_min_price_per_day! : null;
   const cur = m.price_currency ?? "EUR";
   const isOnRequest = Number(m.vehicle_count) === 0;
   return (
@@ -1026,7 +1051,15 @@ function VehicleListRow({
         <div className="shrink-0 flex flex-col items-end gap-2">
           {price !== null ? (
             <div className="text-right">
+              {hasDiscount && (
+                <span className="text-[9px] font-bold bg-green-600/80 text-white px-1.5 py-0.5 rounded-full block mb-0.5">
+                  {m.website_discount_type === "PERCENT" ? `${m.website_discount_value}% OFF` : `${cur} ${m.website_discount_value} OFF`}
+                </span>
+              )}
               <div className="text-sm font-bold text-primary leading-none">{formatPrice(price, cur)}</div>
+              {hasDiscount && originalPrice && (
+                <div className="text-[10px] text-muted-foreground line-through leading-none">{formatPrice(originalPrice, cur)}</div>
+              )}
               <div className="text-[10px] text-muted-foreground mt-0.5">/day</div>
             </div>
           ) : (
@@ -2191,6 +2224,14 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           resolvedTotal: resolvedQuote?.estimatedTotal ?? null,
           resolvedOneWayFee: resolvedQuote?.oneWayFee ?? null,
           currency: resolvedQuote?.baseCurrency ?? undefined,
+          // Website discount snapshot — server re-validates, these are advisory
+          websiteDiscountId: resolvedQuote?.websiteDiscountId ?? undefined,
+          websiteDiscountName: resolvedQuote?.websiteDiscountName ?? undefined,
+          websiteDiscountType: resolvedQuote?.websiteDiscountType ?? undefined,
+          websiteDiscountValue: resolvedQuote?.websiteDiscountValue ?? undefined,
+          websiteDiscountAmount: resolvedQuote?.websiteDiscountAmount ?? undefined,
+          originalRentalPrice: resolvedQuote?.originalRentalPrice ?? undefined,
+          discountedRentalPrice: resolvedQuote?.discountedRentalPrice ?? undefined,
         }),
       });
       setResult(data);
@@ -2349,14 +2390,18 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         {quote?.quotable ? (
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3">Pricing Estimate</div>
-            <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+            {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
+              <SummaryRow
+                label={`Rental incl. ${quote.websiteDiscountName ?? "discount"} (${days} days)`}
+                value={fmt(quote.discountedRentalPrice)}
+              />
+            ) : (
+              <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+            )}
             {selectedExtras.map(({ extra, qty }) => {
               const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
               return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
             })}
-            {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
-              <SummaryRow label={quote.websiteDiscountName ?? "Discount"} value={`−${fmt(quote.websiteDiscountAmount)}`} />
-            )}
             {!quote.hasWebsiteDiscount && form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
               <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
             )}
@@ -2577,14 +2622,18 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3 flex items-center gap-1.5">
                 Price Breakdown
               </div>
-              <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+              {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
+                <SummaryRow
+                  label={`Rental incl. ${quote.websiteDiscountName ?? "discount"} (${days} days)`}
+                  value={fmt(quote.discountedRentalPrice)}
+                />
+              ) : (
+                <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
+              )}
               {selectedExtras.map(({ extra, qty }) => {
                 const multiplier = extra!.pricing_type === "per_booking" ? 1 : days;
                 return <SummaryRow key={extra!.id} label={`${extra!.name} ×${qty}`} value={fmt(Number(extra!.price) * qty * multiplier)} />;
               })}
-              {quote.hasWebsiteDiscount && quote.websiteDiscountAmount != null && quote.websiteDiscountAmount > 0 && (
-                <SummaryRow label={quote.websiteDiscountName ?? "Discount"} value={`−${fmt(quote.websiteDiscountAmount)}`} />
-              )}
               {!quote.hasWebsiteDiscount && form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
                 <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
               )}

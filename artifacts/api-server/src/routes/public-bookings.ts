@@ -264,8 +264,9 @@ router.get("/public/booking-config", async (req, res) => {
   // Resolve active website discounts for all returned vehicle models and attach them.
   // Uses the customer's pickup date (not today) to check discount date range.
   let vehicleModels = rawModels;
-  if (filterByLocation && pickupDt) {
-    const pickupDateStr = new Date(pickupDt).toISOString().slice(0, 10);
+  const pickupDtMs = pickupDt ? new Date(pickupDt).getTime() : NaN;
+  if (filterByLocation && pickupDt && !isNaN(pickupDtMs)) {
+    const pickupDateStr = new Date(pickupDtMs).toISOString().slice(0, 10);
     const modelIds = rawModels.map((m) => Number(m.id));
     if (modelIds.length > 0) {
       const { rows: discountRows } = await pool.query<{
