@@ -1483,7 +1483,12 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           /* ── Category View ─────────────────────────────────────────────────── */
           <div className="space-y-10 mb-6">
             {CATEGORY_ORDER.map((cat) => {
-              const catModels = filteredModels.filter((m) => m.category === cat);
+              const catModels = filteredModels.filter((m) => m.category === cat).sort((a, b) => {
+                const pa = a.min_price_per_day ? Number(a.min_price_per_day) : Infinity;
+                const pb = b.min_price_per_day ? Number(b.min_price_per_day) : Infinity;
+                if (pa !== pb) return pa - pb;
+                return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
+              });
               if (catModels.length === 0) return null;
               const prices = catModels
                 .map((m) => m.min_price_per_day ? Number(m.min_price_per_day) : null)
@@ -1537,7 +1542,12 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
             {(() => {
               const other = filteredModels.filter(
                 (m) => !m.category || !CATEGORY_ORDER.includes(m.category),
-              );
+              ).sort((a, b) => {
+                const pa = a.min_price_per_day ? Number(a.min_price_per_day) : Infinity;
+                const pb = b.min_price_per_day ? Number(b.min_price_per_day) : Infinity;
+                if (pa !== pb) return pa - pb;
+                return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
+              });
               if (other.length === 0) return null;
               return (
                 <div>
