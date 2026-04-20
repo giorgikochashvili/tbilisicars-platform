@@ -447,7 +447,7 @@ function LegalModal({ type, onClose }: { type: LegalModalType; onClose: () => vo
 
 // ─── Promo Code field (self-contained, used in Step 4) ────────────────────────
 
-function PromoField({ form, setForm }: { form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>> }) {
+function PromoField({ form, setForm, hasWebsiteDiscount }: { form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; hasWebsiteDiscount?: boolean }) {
   const [promoInput, setPromoInput] = useState(form.promoCode);
   const [promoState, setPromoState] = useState<{ valid: boolean; msg: string } | null>(
     form.promoCode ? { valid: true, msg: "" } : null
@@ -487,6 +487,9 @@ function PromoField({ form, setForm }: { form: FormData; setForm: React.Dispatch
         )}
       </div>
       {promoState && <p className={cn("text-xs mt-1.5", promoState.valid ? "text-green-400" : "text-destructive")}>{promoState.valid ? "Promo code applied!" : promoState.msg}</p>}
+      {hasWebsiteDiscount && (
+        <p className="text-xs mt-1.5 text-amber-400">A promotional rate is already applied — promo codes cannot be combined with active discounts.</p>
+      )}
     </div>
   );
 }
@@ -1856,8 +1859,8 @@ function Step3({ form, setForm, onNext, onBack }: {
 
 // ─── Step 4: Customer Info ────────────────────────────────────────────────────
 
-function Step4({ form, setForm, onNext, onBack }: {
-  form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; onNext: () => void; onBack: () => void;
+function Step4({ form, setForm, onNext, onBack, hasWebsiteDiscount }: {
+  form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; onNext: () => void; onBack: () => void; hasWebsiteDiscount?: boolean;
 }) {
   const [legalModal, setLegalModal] = useState<LegalModalType>(null);
 
@@ -1957,7 +1960,7 @@ function Step4({ form, setForm, onNext, onBack }: {
       </div>
 
       {/* Promo Code */}
-      <PromoField form={form} setForm={setForm} />
+      <PromoField form={form} setForm={setForm} hasWebsiteDiscount={hasWebsiteDiscount} />
 
       {/* Terms & Privacy */}
       <div className="mb-6 space-y-3">
@@ -2932,7 +2935,7 @@ export default function Booking() {
             <div key={step} className="booking-step-enter">
               {step === 2 && <Step2 form={form} setForm={setForm} extras={extras} onNext={next} onBack={back} />}
               {step === 3 && <Step3 form={form} setForm={setForm} onNext={next} onBack={back} />}
-              {step === 4 && <Step4 form={form} setForm={setForm} onNext={next} onBack={back} />}
+              {step === 4 && <Step4 form={form} setForm={setForm} onNext={next} onBack={back} hasWebsiteDiscount={quote?.hasWebsiteDiscount} />}
               {step === 5 && <Step5 form={form} setForm={setForm} onNext={next} onBack={back} />}
               {step === 6 && (
                 <Step6
