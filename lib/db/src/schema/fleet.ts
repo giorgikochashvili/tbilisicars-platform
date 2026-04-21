@@ -44,6 +44,13 @@ export const transmissionEnum = pgEnum("transmissionenum", [
   "AUTOMATIC",
 ]);
 
+export const driveTypeEnum = pgEnum("drivetypeenum", [
+  "FWD",
+  "RWD",
+  "AWD",
+  "4x4",
+]);
+
 // TODO: verify — inferred from route handlers; adjust if status values differ
 export const vehicleStatusEnum = pgEnum("vehiclestatusenum", [
   "AVAILABLE",
@@ -110,6 +117,7 @@ export const vehicleModelTable = pgTable(
     transmission: transmissionEnum("transmission"),
     fuelType: fuelTypeEnum("fuel_type"),
     luggageCapacity: integer("luggage_capacity"),
+    driveType: driveTypeEnum("drive_type"),
     mileageLimitPerDay: integer("mileage_limit_per_day"),
     deposit: numeric("deposit", { precision: 10, scale: 2 }).default("0"),
     createdAt: timestamp("created_at").notNull().defaultNow(),

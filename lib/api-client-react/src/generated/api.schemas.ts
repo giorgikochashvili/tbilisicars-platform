@@ -427,6 +427,10 @@ export interface AdminVehicleModelItem {
   name: string;
   active: boolean;
   /** @nullable */
+  luggageCapacity?: number | null;
+  /** @nullable */
+  driveType?: string | null;
+  /** @nullable */
   seats?: number | null;
   /** @nullable */
   doors?: number | null;
@@ -502,6 +506,8 @@ export interface AdminVehicleModelDetail {
   fuelType?: AdminVehicleModelDetailFuelType;
   /** @nullable */
   luggageCapacity?: number | null;
+  /** @nullable */
+  driveType?: string | null;
   /** @nullable */
   mileageLimitPerDay?: number | null;
   /** @nullable */
@@ -1231,6 +1237,7 @@ export interface AdminCreateVehicleModelBody {
   transmission?: AdminCreateVehicleModelBodyTransmission;
   fuelType?: AdminCreateVehicleModelBodyFuelType;
   luggageCapacity?: number;
+  driveType?: string;
   mileageLimitPerDay?: number;
   deposit?: string;
 }
@@ -1266,6 +1273,7 @@ export interface AdminUpdateVehicleModelBody {
   transmission?: AdminUpdateVehicleModelBodyTransmission;
   fuelType?: AdminUpdateVehicleModelBodyFuelType;
   luggageCapacity?: number;
+  driveType?: string;
   mileageLimitPerDay?: number;
   deposit?: string;
 }

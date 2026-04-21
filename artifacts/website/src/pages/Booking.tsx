@@ -30,6 +30,7 @@ interface Location { id: number; name: string; city: string; }
 interface VehicleModel {
   id: number; brand: string; model: string; category: string | null;
   seats: number | null; transmission: string | null; fuel_type: string | null;
+  luggage_capacity: number | null; drive_type: string | null;
   description: string | null; image_url: string | null; deposit: string | null;
   vehicle_count: string; min_price_per_day: string | null; price_currency: string | null;
   // Website discount fields — only present when location + pickup_datetime are provided
@@ -982,6 +983,16 @@ function VehicleCard({
               <Fuel className="w-3 h-3" /> {fuelLabel(m.fuel_type)}
             </span>
           )}
+          {m.luggage_capacity != null && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+              <Package className="w-3 h-3" /> {m.luggage_capacity} bags
+            </span>
+          )}
+          {m.drive_type && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+              <Car className="w-3 h-3" /> {m.drive_type}
+            </span>
+          )}
         </div>
         {selected && (
           <div className="mt-3 pt-3 border-t border-primary/20">
@@ -1054,6 +1065,12 @@ function VehicleListRow({
             )}
             {m.fuel_type && (
               <span className="text-[11px] text-muted-foreground">· {fuelLabel(m.fuel_type)}</span>
+            )}
+            {m.luggage_capacity != null && (
+              <span className="text-[11px] text-muted-foreground">· {m.luggage_capacity} bags</span>
+            )}
+            {m.drive_type && (
+              <span className="text-[11px] text-muted-foreground">· {m.drive_type}</span>
             )}
             {isOnRequest && (
               <span className="text-[11px] text-amber-400 font-medium">· On Request</span>

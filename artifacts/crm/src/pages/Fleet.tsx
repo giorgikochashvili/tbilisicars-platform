@@ -736,13 +736,14 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
     transmission: "MANUAL" | "AUTOMATIC" | "";
     fuelType: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | "";
     luggageCapacity: number;
+    driveType: "FWD" | "RWD" | "AWD" | "4x4" | "";
     active: boolean;
     availableForExternalSystems: boolean;
     imageUrl: string | null;
   }>({ 
     brandId: "", name: "", category: "", 
     seats: 5, doors: 4, transmission: "AUTOMATIC", 
-    fuelType: "PETROL", luggageCapacity: 2, active: true,
+    fuelType: "PETROL", luggageCapacity: 2, driveType: "", active: true,
     availableForExternalSystems: true, imageUrl: null
   });
   const [imageUploading, setImageUploading] = useState(false);
@@ -820,6 +821,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         transmission: item.transmission || "AUTOMATIC",
         fuelType: item.fuelType || "PETROL",
         luggageCapacity: item.luggageCapacity || 2,
+        driveType: item.driveType || "",
         active: item.active ?? true,
         availableForExternalSystems: item.availableForExternalSystems ?? true,
         imageUrl: item.imageUrl || null,
@@ -829,7 +831,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       setFormData({ 
         brandId: "", name: "", category: "", 
         seats: 5, doors: 4, transmission: "AUTOMATIC", 
-        fuelType: "PETROL", luggageCapacity: 2, active: true,
+        fuelType: "PETROL", luggageCapacity: 2, driveType: "", active: true,
         availableForExternalSystems: true, imageUrl: null
       });
     }
@@ -855,6 +857,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       transmission: formData.transmission as any || null,
       fuelType: formData.fuelType as any || null,
       luggageCapacity: formData.luggageCapacity,
+      driveType: formData.driveType as any || null,
       active: formData.active,
       availableForExternalSystems: formData.availableForExternalSystems,
       // In edit mode: send "" to explicitly clear an existing image when user removes it.
@@ -1115,6 +1118,18 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                     <SelectItem value="DIESEL">Diesel</SelectItem>
                     <SelectItem value="HYBRID">Hybrid</SelectItem>
                     <SelectItem value="ELECTRIC">Electric</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Drive Type</Label>
+                <Select value={formData.driveType} onValueChange={(val: any) => setFormData({...formData, driveType: val})}>
+                  <SelectTrigger><SelectValue placeholder="Select drive type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FWD">FWD (Front-wheel)</SelectItem>
+                    <SelectItem value="RWD">RWD (Rear-wheel)</SelectItem>
+                    <SelectItem value="AWD">AWD (All-wheel)</SelectItem>
+                    <SelectItem value="4x4">4x4</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

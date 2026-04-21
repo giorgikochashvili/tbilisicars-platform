@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search } from "lucide-react";
+import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search, Package } from "lucide-react";
 import { Link } from "wouter";
 
 interface VehicleModel {
@@ -12,6 +12,8 @@ interface VehicleModel {
   seats: number | null;
   transmission: string | null;
   fuel_type: string | null;
+  luggage_capacity: number | null;
+  drive_type: string | null;
   description: string | null;
   image_url: string | null;
   deposit: string | null;
@@ -238,6 +240,16 @@ export default function Fleet() {
                       {fuel && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
                           <Fuel className="w-3 h-3" /> {fuel}
+                        </span>
+                      )}
+                      {m.luggage_capacity != null && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                          <Package className="w-3 h-3" /> {m.luggage_capacity} bags
+                        </span>
+                      )}
+                      {m.drive_type && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary/50 border border-border/50 rounded-full px-2.5 py-1">
+                          <Car className="w-3 h-3" /> {m.drive_type}
                         </span>
                       )}
                     </div>

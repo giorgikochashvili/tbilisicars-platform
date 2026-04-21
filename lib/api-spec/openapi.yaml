@@ -2835,6 +2835,11 @@ components:
         fuelType:
           type: ["string", "null"]
           enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
+        luggageCapacity:
+          type: ["integer", "null"]
+        driveType:
+          type: ["string", "null"]
+          enum: [FWD, RWD, AWD, 4x4, null]
         imageUrl:
           type: ["string", "null"]
         deposit:
@@ -2884,6 +2889,9 @@ components:
           enum: [PETROL, DIESEL, HYBRID, ELECTRIC, null]
         luggageCapacity:
           type: ["integer", "null"]
+        driveType:
+          type: ["string", "null"]
+          enum: [FWD, RWD, AWD, 4x4, null]
         mileageLimitPerDay:
           type: ["integer", "null"]
         deposit:
@@ -3733,6 +3741,9 @@ components:
           enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
         luggageCapacity:
           type: integer
+        driveType:
+          type: string
+          enum: [FWD, RWD, AWD, 4x4]
         mileageLimitPerDay:
           type: integer
         deposit:
@@ -3770,6 +3781,9 @@ components:
           enum: [PETROL, DIESEL, HYBRID, ELECTRIC]
         luggageCapacity:
           type: integer
+        driveType:
+          type: string
+          enum: [FWD, RWD, AWD, 4x4]
         mileageLimitPerDay:
           type: integer
         deposit:

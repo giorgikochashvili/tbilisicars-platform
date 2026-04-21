@@ -138,6 +138,7 @@ export async function listAdminModels(filters: { city?: string } = {}) {
     transmission: vehicleModelTable.transmission,
     fuelType: vehicleModelTable.fuelType,
     luggageCapacity: vehicleModelTable.luggageCapacity,
+    driveType: vehicleModelTable.driveType,
     imageUrl: vehicleModelTable.imageUrl,
     deposit: vehicleModelTable.deposit,
     createdAt: vehicleModelTable.createdAt,
@@ -198,6 +199,7 @@ export async function getAdminModel(id: number) {
       transmission: vehicleModelTable.transmission,
       fuelType: vehicleModelTable.fuelType,
       luggageCapacity: vehicleModelTable.luggageCapacity,
+      driveType: vehicleModelTable.driveType,
       mileageLimitPerDay: vehicleModelTable.mileageLimitPerDay,
       deposit: vehicleModelTable.deposit,
       brand: {
@@ -229,6 +231,7 @@ export async function createAdminModel(data: {
   transmission?: "MANUAL" | "AUTOMATIC" | null;
   fuelType?: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | null;
   luggageCapacity?: number | null;
+  driveType?: "FWD" | "RWD" | "AWD" | "4x4" | null;
   mileageLimitPerDay?: number | null;
   deposit?: string | null;
 }) {
@@ -251,6 +254,7 @@ export async function updateAdminModel(
     transmission: "MANUAL" | "AUTOMATIC" | null;
     fuelType: "PETROL" | "DIESEL" | "HYBRID" | "ELECTRIC" | null;
     luggageCapacity: number | null;
+    driveType: "FWD" | "RWD" | "AWD" | "4x4" | null;
     mileageLimitPerDay: number | null;
     deposit: string | null;
   }>,

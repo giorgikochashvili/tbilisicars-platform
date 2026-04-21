@@ -632,6 +632,7 @@ export const ListAdminModelsResponseItem = zod.object({
   availableForExternalSystems: zod.boolean(),
   category: zod.string().nullish(),
   luggageCapacity: zod.number().nullish(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).nullish(),
   seats: zod.number().nullish(),
   doors: zod.number().nullish(),
   transmission: zod
@@ -676,6 +677,7 @@ export const CreateAdminModelBody = zod.object({
   transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
   fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
   luggageCapacity: zod.number().optional(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).optional(),
   mileageLimitPerDay: zod.number().optional(),
   deposit: zod.string().optional(),
 });
@@ -711,6 +713,7 @@ export const GetAdminModelResponse = zod.object({
     ])
     .nullish(),
   luggageCapacity: zod.number().nullish(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).nullish(),
   mileageLimitPerDay: zod.number().nullish(),
   deposit: zod.string().nullish(),
   brand: zod
@@ -744,6 +747,7 @@ export const UpdateAdminModelBody = zod.object({
   transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
   fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
   luggageCapacity: zod.number().optional(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).optional(),
   mileageLimitPerDay: zod.number().optional(),
   deposit: zod.string().optional(),
 });
@@ -772,6 +776,7 @@ export const UpdateAdminModelResponse = zod.object({
     ])
     .nullish(),
   luggageCapacity: zod.number().nullish(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).nullish(),
   mileageLimitPerDay: zod.number().nullish(),
   deposit: zod.string().nullish(),
   brand: zod
