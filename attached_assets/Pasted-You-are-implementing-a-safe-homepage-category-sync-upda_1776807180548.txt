@@ -1,0 +1,137 @@
+You are implementing a safe homepage category sync update in the existing Tbilisicars monorepo.
+
+STRICT RULES:
+- This is a LIVE production-connected project
+- Do NOT change architecture
+- Do NOT refactor unrelated code
+- Do NOT redesign the homepage
+- Do NOT break booking flow or fleet page
+- Do NOT add risky new state management
+- Keep changes surgical and minimal
+- Prefer reuse of existing category data/labels if already present elsewhere in the website
+
+GOAL:
+Make the homepage category section match the real vehicle categories used in the system, and make category clicks route users safely to the correct vehicle browsing experience.
+
+BUSINESS REQUIREMENTS:
+1. Homepage category labels must reflect the real categories used in the booking/fleet system.
+2. Clicking a homepage category should ideally take the user to a filtered vehicle view for that category.
+3. If filtered deep-linking is not already safely supported, fallback behavior should send users to the booking/fleet page without breaking anything.
+4. No fake or outdated category labels should remain on the homepage.
+
+IMPORTANT CONTEXT:
+- The current homepage category chips are hardcoded and may not match the actual booking/fleet categories.
+- We want consistency with the real system categories.
+- If safe category prefiltering already exists, reuse it.
+- If it does NOT already exist safely, do NOT invent a heavy new filtering architecture in this task.
+
+CHECK THESE AREAS FIRST:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/pages/Booking.tsx
+- artifacts/website/src/pages/Fleet.tsx
+- any existing shared category constants/helpers used by booking/fleet pages
+- any existing URL/query-param/category filter logic already supported by the website
+
+TASK BREAKDOWN:
+
+--------------------------------------------------
+1. FIND THE REAL CATEGORY SOURCE
+--------------------------------------------------
+
+First determine what the real public-facing vehicle categories are in the current system.
+
+Check whether categories are already defined in:
+- booking page filters
+- fleet page filters
+- shared constants
+- API-derived category mapping
+
+Preferred approach:
+- reuse an existing source of truth if one already exists
+- avoid duplicating a second category list if possible
+
+If there is no safe reusable source, use the real currently-supported booking/fleet categories and update the homepage hardcoded list to match them exactly.
+
+--------------------------------------------------
+2. UPDATE HOMEPAGE CATEGORY LABELS
+--------------------------------------------------
+
+In Home.tsx:
+- replace outdated or mismatched category labels with the real supported categories
+- keep the existing section structure and design language
+- do NOT redesign the section
+- keep the same general chip/button UX unless a tiny safe tweak is needed
+
+The intro text for this section should also be aligned with the already-approved direction:
+customers should feel they can choose from the real available categories in the system.
+
+--------------------------------------------------
+3. CATEGORY CLICK BEHAVIOUR
+--------------------------------------------------
+
+Best-case behavior:
+- clicking a category on the homepage opens the booking/fleet page already filtered to that category
+
+But ONLY do this if a safe, existing filter/query-param pattern already exists.
+
+If a category-specific deep link is already supported:
+- reuse it
+- do not invent a parallel filtering mechanism
+
+If safe prefiltering does NOT already exist:
+- make the homepage category click route users to the correct general vehicle browsing page (booking or fleet, whichever is the intended customer-facing destination)
+- do not break UX
+- do not add fragile temporary hacks
+
+--------------------------------------------------
+4. SAFE MAPPING RULES
+--------------------------------------------------
+
+Category labels on the homepage must match how categories are actually presented to customers elsewhere.
+
+If internal category names are too technical but an existing public label mapping already exists, reuse the public labels.
+
+Do NOT:
+- invent new category names that the rest of the website does not use
+- create mismatches between homepage labels and booking/fleet results
+- add placeholder categories
+
+--------------------------------------------------
+5. BACKWARD COMPATIBILITY / SAFETY
+--------------------------------------------------
+
+Must preserve:
+- current homepage design
+- current booking/fleet functionality
+- current filters if they already exist
+- existing routes and navigation
+- existing mobile responsiveness
+
+If adding filtered navigation:
+- implement it in the safest minimal way
+- no broad refactor
+- no unrelated UI changes
+
+--------------------------------------------------
+6. DONE LOOKS LIKE
+--------------------------------------------------
+
+- homepage categories now match the real current system categories
+- homepage no longer shows outdated/mismatched category chips
+- category clicks behave safely and predictably
+- if existing filtering support exists, homepage links use it
+- if not, homepage still routes users safely to the correct vehicle browsing page
+- no layout break
+- no TypeScript/runtime errors
+- no broken booking/fleet flow
+
+--------------------------------------------------
+7. OUTPUT FORMAT
+--------------------------------------------------
+
+Return:
+1. exact files to change
+2. what the real category source of truth is
+3. whether safe category-prefiltering already exists
+4. exact click behavior to implement
+5. whether this should go directly to Build or needs a Revise step
