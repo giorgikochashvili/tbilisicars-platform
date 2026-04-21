@@ -91,6 +91,56 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
+// ─── parseBookingNotes ────────────────────────────────────────────────────────
+// Splits booking.notes into three parts:
+//   websiteMeta     — key-value fields parsed from the [WEBSITE DATA] block
+//   cleanNotes      — remaining free-text paragraphs (the [WEBSITE DATA] block removed)
+//   rawWebsiteBlock — exact original [WEBSITE DATA] paragraph, verbatim
+
+interface WebsiteMeta {
+  nationality?: string;
+  age?: string;
+  whatsApp?: string;
+  flightNumber?: string;
+  paymentMethod?: string;
+  insurance?: string;
+}
+
+function parseBookingNotes(notes: string | null | undefined): {
+  websiteMeta: WebsiteMeta;
+  cleanNotes: string | null;
+  rawWebsiteBlock: string | null;
+} {
+  if (!notes) return { websiteMeta: {}, cleanNotes: null, rawWebsiteBlock: null };
+  const paragraphs = notes.split(/\n\n+/);
+  let rawWebsiteBlock: string | null = null;
+  const websiteMeta: WebsiteMeta = {};
+  const otherParagraphs: string[] = [];
+  for (const para of paragraphs) {
+    const trimmed = para.trimStart();
+    if (trimmed.startsWith("[WEBSITE DATA]")) {
+      rawWebsiteBlock = para;
+      for (const line of trimmed.split("\n").slice(1)) {
+        const colonIdx = line.indexOf(":");
+        if (colonIdx === -1) continue;
+        const key = line.slice(0, colonIdx).trim().toLowerCase();
+        const val = line.slice(colonIdx + 1).trim();
+        if (!val) continue;
+        if (key === "nationality") websiteMeta.nationality = val;
+        else if (key === "age") websiteMeta.age = val;
+        else if (key === "whatsapp") websiteMeta.whatsApp = val;
+        else if (key === "flight number") websiteMeta.flightNumber = val;
+        else if (key === "payment method") websiteMeta.paymentMethod = val;
+        else if (key === "insurance") websiteMeta.insurance = val;
+      }
+    } else {
+      otherParagraphs.push(para);
+    }
+  }
+  const cleanNotes = otherParagraphs.join("\n\n").trim() || null;
+  return { websiteMeta, cleanNotes, rawWebsiteBlock };
+}
+
 // ─── Upload helper ────────────────────────────────────────────────────────────
 
 async function uploadFile(file: File): Promise<string> {
@@ -1927,7 +1977,7 @@ export default function BookingDetail({
     setOverviewDraft({
       totalAmount: booking?.totalAmount ?? "",
       currency: booking?.currency ?? "GEL",
-      notes: booking?.notes ?? "",
+      notes: parseBookingNotes(booking?.notes).cleanNotes ?? "",
       pickupLocationId: booking?.pickupLocation?.id?.toString() ?? "",
       dropoffLocationId: booking?.dropoffLocation?.id?.toString() ?? "",
       pickupDate: pu.date,
@@ -1966,7 +2016,12 @@ export default function BookingDetail({
             ? { totalAmount: overviewDraft.totalAmount }
             : {}),
           currency: overviewDraft.currency,
-          ...(overviewDraft.notes !== "" ? { notes: overviewDraft.notes } : {}),
+          notes: (() => {
+            const staffText = overviewDraft.notes.trim();
+            const { rawWebsiteBlock } = parseBookingNotes(booking?.notes);
+            const parts = [staffText, rawWebsiteBlock].filter(Boolean);
+            return parts.length > 0 ? parts.join("\n\n") : null;
+          })(),
           ...(overviewDraft.pickupLocationId
             ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) }
             : {}),
@@ -2371,14 +2426,44 @@ export default function BookingDetail({
                         {booking.dropoffLocation?.name}
                       </div>
                     </div>
-                    {booking.notes && (
-                      <div className="col-span-full">
-                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
-                          Notes
-                        </div>
-                        <div className="text-xs">{booking.notes}</div>
-                      </div>
-                    )}
+                    {(() => {
+                      const { websiteMeta, cleanNotes } = parseBookingNotes(booking.notes);
+                      const metaEntries: Array<{ label: string; value: string }> = [
+                        ...(websiteMeta.nationality ? [{ label: "Nationality", value: websiteMeta.nationality }] : []),
+                        ...(websiteMeta.age ? [{ label: "Age", value: websiteMeta.age }] : []),
+                        ...(websiteMeta.paymentMethod ? [{ label: "Payment", value: websiteMeta.paymentMethod }] : []),
+                        ...(websiteMeta.insurance ? [{ label: "Insurance", value: websiteMeta.insurance }] : []),
+                        ...(websiteMeta.flightNumber ? [{ label: "Flight No.", value: websiteMeta.flightNumber }] : []),
+                        ...(websiteMeta.whatsApp ? [{ label: "WhatsApp", value: websiteMeta.whatsApp }] : []),
+                      ];
+                      return (
+                        <>
+                          {metaEntries.length > 0 && (
+                            <div className="col-span-full">
+                              <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
+                                Website Details
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                                {metaEntries.map(({ label, value }) => (
+                                  <span key={label} className="text-xs">
+                                    <span className="text-muted-foreground">{label}: </span>
+                                    <span className="text-white/90">{value}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {cleanNotes && (
+                            <div className="col-span-full">
+                              <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                                Notes
+                              </div>
+                              <div className="text-xs">{cleanNotes}</div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Source
