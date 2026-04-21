@@ -52,6 +52,7 @@ export const pickupSatisfactionEnum = pgEnum("pickupsatisfactionenum", [
   "HAPPY",
   "NEUTRAL",
   "SAD",
+  "PROBLEM",
 ]);
 
 // ─── Booking ──────────────────────────────────────────────────────────────────

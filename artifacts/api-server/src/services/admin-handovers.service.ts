@@ -10,7 +10,7 @@ import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 import { applyAdminBookingStatus } from "./admin-bookings.service.js";
 
-export type PickupSatisfaction = "HAPPY" | "NEUTRAL" | "SAD";
+export type PickupSatisfaction = "HAPPY" | "NEUTRAL" | "SAD" | "PROBLEM";
 
 export async function createHandover(data: {
   bookingId: number;
@@ -94,8 +94,7 @@ export async function createHandover(data: {
         fuelLevel: fuelLevel ?? null,
         performedByAdminId: performedByAdminId ?? null,
         notes: notes ?? null,
-        pickupSatisfaction:
-          handoverType === "PICKUP" ? pickupSatisfaction ?? null : null,
+        pickupSatisfaction: pickupSatisfaction ?? null,
       })
       .returning();
 

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -59,7 +60,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type Satisfaction = "HAPPY" | "NEUTRAL" | "SAD";
+type Satisfaction = "HAPPY" | "NEUTRAL" | "SAD" | "PROBLEM";
 
 interface MonitoringRow {
   bookingId: number;
@@ -88,6 +89,7 @@ interface MonitoringRow {
   dropoffNotes: string | null;
   dropoffMileage: number | null;
   dropoffFuel: number | null;
+  dropoffSatisfaction: Satisfaction | null;
   dropoffPerformerId: number | null;
   dropoffPerformerName: string | null;
   parkingZone: string | null;
@@ -114,6 +116,7 @@ const SAT_META: Record<Satisfaction, { emoji: string; label: string; cls: string
   HAPPY: { emoji: "🙂", label: "Happy", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/40" },
   NEUTRAL: { emoji: "😐", label: "Neutral", cls: "bg-amber-500/15 text-amber-400 border-amber-500/40" },
   SAD: { emoji: "☹️", label: "Sad", cls: "bg-red-500/15 text-red-400 border-red-500/40" },
+  PROBLEM: { emoji: "😡", label: "Problem", cls: "bg-rose-500/15 text-rose-400 border-rose-500/40" },
 };
 
 function SatisfactionPill({ value }: { value: Satisfaction | null }) {
@@ -415,8 +418,7 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
           </div>
           <div className="text-xs space-y-0.5">
             <div className="flex justify-between"><span className="text-muted-foreground">When</span><span className="font-mono">{formatDateTime(row.pickupActionAt)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Mileage</span><span className="font-mono">{row.pickupMileage != null ? `${row.pickupMileage.toLocaleString()} km` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Fuel</span><span className="font-mono">{row.pickupFuel != null ? `${row.pickupFuel}%` : "—"}</span></div>
+            <div className="flex justify-between items-center"><span className="text-muted-foreground">Satisfaction</span><SatisfactionPill value={row.pickupSatisfaction} /></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Performed by</span><span>{row.pickupPerformerName ?? "—"}</span></div>
             {row.pickupNotes && (
               <div className="pt-1 mt-1 border-t border-border/30">
@@ -432,8 +434,7 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
           </div>
           <div className="text-xs space-y-0.5">
             <div className="flex justify-between"><span className="text-muted-foreground">When</span><span className="font-mono">{row.dropoffActionAt ? formatDateTime(row.dropoffActionAt) : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Mileage</span><span className="font-mono">{row.dropoffMileage != null ? `${row.dropoffMileage.toLocaleString()} km` : "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Fuel</span><span className="font-mono">{row.dropoffFuel != null ? `${row.dropoffFuel}%` : "—"}</span></div>
+            <div className="flex justify-between items-center"><span className="text-muted-foreground">Satisfaction</span><SatisfactionPill value={row.dropoffSatisfaction} /></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Performed by</span><span>{row.dropoffPerformerName ?? "—"}</span></div>
             {row.dropoffNotes && (
               <div className="pt-1 mt-1 border-t border-border/30">
@@ -456,7 +457,7 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
             Payments
           </div>
           {Object.keys(row.paidByCurrency).length === 0 ? (
-            <div className="text-xs text-muted-foreground">No paid records.</div>
+            <div className="text-xs text-muted-foreground">No payment record.</div>
           ) : (
             <div className="text-xs space-y-0.5">
               {Object.entries(row.paidByCurrency).map(([cur, amt]) => (
@@ -483,6 +484,7 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Monitoring() {
+  const [, navigate] = useLocation();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -606,6 +608,7 @@ export default function Monitoring() {
                 <SelectItem value="HAPPY">🙂 Happy</SelectItem>
                 <SelectItem value="NEUTRAL">😐 Neutral</SelectItem>
                 <SelectItem value="SAD">☹️ Sad</SelectItem>
+                <SelectItem value="PROBLEM">😡 Problem</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -695,7 +698,12 @@ export default function Monitoring() {
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex-shrink-0 flex items-center gap-1.5">
                         {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
-                        <span className="font-mono text-xs font-semibold text-primary">{row.reservationCode ?? `#${row.bookingId}`}</span>
+                        <span
+                          className="font-mono text-xs font-semibold text-primary hover:underline cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/bookings?open=${row.bookingId}`); }}
+                        >
+                          {row.reservationCode ?? `#${row.bookingId}`}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-[160px]">
                         <div className="text-xs font-medium truncate flex items-center gap-1.5">
@@ -707,10 +715,16 @@ export default function Monitoring() {
                           )}
                         </div>
                         {row.contactPhone && (
-                          <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <a
+                            href={`https://wa.me/${row.contactPhone.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[11px] text-muted-foreground flex items-center gap-1 hover:text-green-400 transition-colors"
+                          >
                             <Phone className="w-2.5 h-2.5" />
                             {row.contactPhone}
-                          </div>
+                          </a>
                         )}
                       </div>
                       <div className="hidden md:flex flex-col min-w-[140px]">
@@ -743,7 +757,19 @@ export default function Monitoring() {
                         <PaidCell map={row.paidByCurrency} currency={row.currency} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <SatisfactionPill value={row.pickupSatisfaction} />
+                        {row.pickupSatisfaction && (
+                          <span title="Pickup satisfaction">
+                            <SatisfactionPill value={row.pickupSatisfaction} />
+                          </span>
+                        )}
+                        {row.dropoffSatisfaction && (
+                          <span title="Dropoff satisfaction">
+                            <SatisfactionPill value={row.dropoffSatisfaction} />
+                          </span>
+                        )}
+                        {!row.pickupSatisfaction && !row.dropoffSatisfaction && (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                         <StatusBadge status={row.status} />
                       </div>
                       <Button

@@ -11,14 +11,14 @@ import {
   vehicleTable,
   vehicleModelTable,
   brandTable,
-  paymentTable,
+  bookingPaymentTable,
   parkingAssignmentTable,
   userTable,
 } from "@workspace/db";
 import { aliasedTable } from "drizzle-orm";
 import { and, eq, gte, lte, desc, asc, inArray, isNull, sql } from "drizzle-orm";
 
-export type SatisfactionMark = "HAPPY" | "NEUTRAL" | "SAD";
+export type SatisfactionMark = "HAPPY" | "NEUTRAL" | "SAD" | "PROBLEM";
 
 export interface MonitoringFilters {
   pickupFrom?: string | null;
@@ -95,6 +95,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
     dropoffNotes: string | null;
     dropoffMileage: number | null;
     dropoffFuel: number | null;
+    dropoffSatisfaction: SatisfactionMark | null;
     dropoffPerformerId: number | null;
     dropoffPerformerName: string | null;
     parkingZone: string | null;
@@ -128,6 +129,7 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
       dropoffNotes: dropoffAlias.notes,
       dropoffMileage: dropoffAlias.mileage,
       dropoffFuel: dropoffAlias.fuelLevel,
+      dropoffSatisfaction: dropoffAlias.pickupSatisfaction,
       dropoffPerformerId: dropoffAlias.performedByAdminId,
       dropoffPerformerName: dropoffAdminAlias.fullName,
       parkingZone: parkingAssignmentTable.zone,
@@ -173,18 +175,13 @@ export async function listMonitoringRows(filters: MonitoringFilters) {
   // Aggregate paid amounts grouped by currency per booking.
   const paymentRows = await db
     .select({
-      bookingId: paymentTable.bookingId,
-      currency: paymentTable.currency,
-      paid: sql<string>`SUM(${paymentTable.amount})`.as("paid"),
+      bookingId: bookingPaymentTable.bookingId,
+      currency: bookingPaymentTable.currency,
+      paid: sql<string>`SUM(${bookingPaymentTable.amount})`.as("paid"),
     })
-    .from(paymentTable)
-    .where(
-      and(
-        eq(paymentTable.status, "PAID"),
-        inArray(paymentTable.bookingId, bookingIds),
-      ),
-    )
-    .groupBy(paymentTable.bookingId, paymentTable.currency);
+    .from(bookingPaymentTable)
+    .where(inArray(bookingPaymentTable.bookingId, bookingIds))
+    .groupBy(bookingPaymentTable.bookingId, bookingPaymentTable.currency);
 
   const paidByBooking = new Map<number, Record<string, number>>();
   for (const p of paymentRows) {

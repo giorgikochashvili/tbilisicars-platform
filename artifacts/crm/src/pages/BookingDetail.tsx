@@ -474,7 +474,7 @@ function FuelBar({ level }: { level: number }) {
 
 // ─── Handover display ────────────────────────────────────────────────────────
 
-function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" }) {
+function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" | "PROBLEM" }) {
   const map = {
     HAPPY: {
       emoji: "🙂",
@@ -490,6 +490,11 @@ function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" }) {
       emoji: "☹️",
       label: "Sad",
       cls: "bg-red-500/15 text-red-400 border-red-500/40",
+    },
+    PROBLEM: {
+      emoji: "😡",
+      label: "Problem",
+      cls: "bg-rose-500/15 text-rose-400 border-rose-500/40",
     },
   } as const;
   const m = map[value];
@@ -549,7 +554,7 @@ function HandoverDisplay({
             </div>
           </div>
         )}
-        {type === "pickup" && handover.pickupSatisfaction && (
+        {handover.pickupSatisfaction && (
           <div>
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1 flex items-center gap-1">
               <Smile className="w-3 h-3" /> Customer Satisfaction
@@ -944,7 +949,7 @@ function HandoverModal({
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [satisfaction, setSatisfaction] = useState<
-    "HAPPY" | "NEUTRAL" | "SAD" | null
+    "HAPPY" | "NEUTRAL" | "SAD" | "PROBLEM" | null
   >(null);
   const [confirmNoPhotos, setConfirmNoPhotos] = useState(false);
 
@@ -1192,65 +1197,73 @@ function HandoverModal({
             </div>
           </div>
 
-          {/* Customer satisfaction — required for PICKUP only */}
-          {type === "pickup" && (
-            <div className="grid gap-1.5">
-              <Label className="text-xs flex items-center gap-1.5">
-                <Smile className="w-3 h-3 text-emerald-400" />
-                Customer Satisfaction <span className="text-red-400">*</span>
-              </Label>
-              <div className="flex gap-2">
-                {(
-                  [
-                    {
-                      v: "HAPPY",
-                      label: "Happy",
-                      emoji: "🙂",
-                      active:
-                        "border-emerald-500 bg-emerald-500/10 text-emerald-400",
-                    },
-                    {
-                      v: "NEUTRAL",
-                      label: "Neutral",
-                      emoji: "😐",
-                      active: "border-amber-500 bg-amber-500/10 text-amber-400",
-                    },
-                    {
-                      v: "SAD",
-                      label: "Sad",
-                      emoji: "☹️",
-                      active: "border-red-500 bg-red-500/10 text-red-400",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const isOn = satisfaction === opt.v;
-                  return (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setSatisfaction(opt.v)}
-                      data-testid={`button-satisfaction-${opt.v.toLowerCase()}`}
-                      className={`flex-1 text-xs h-10 rounded-md border transition-colors flex items-center justify-center gap-1.5 ${
-                        isOn
-                          ? `${opt.active} font-medium`
-                          : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-                      }`}
-                    >
-                      <span className="text-base leading-none">
-                        {opt.emoji}
-                      </span>
-                      <span>{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {!satisfaction && (
-                <p className="text-[10px] text-amber-400/90">
-                  Required — pick the customer's mood at handover.
-                </p>
+          {/* Customer satisfaction — required for PICKUP, optional for DROPOFF */}
+          <div className="grid gap-1.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Smile className="w-3 h-3 text-emerald-400" />
+              Customer Satisfaction{" "}
+              {type === "pickup" && <span className="text-red-400">*</span>}
+              {type === "dropoff" && (
+                <span className="text-muted-foreground font-normal">(optional)</span>
               )}
+            </Label>
+            <div className="flex gap-2">
+              {(
+                [
+                  {
+                    v: "HAPPY",
+                    label: "Happy",
+                    emoji: "🙂",
+                    active:
+                      "border-emerald-500 bg-emerald-500/10 text-emerald-400",
+                  },
+                  {
+                    v: "NEUTRAL",
+                    label: "Neutral",
+                    emoji: "😐",
+                    active: "border-amber-500 bg-amber-500/10 text-amber-400",
+                  },
+                  {
+                    v: "SAD",
+                    label: "Sad",
+                    emoji: "☹️",
+                    active: "border-red-500 bg-red-500/10 text-red-400",
+                  },
+                  {
+                    v: "PROBLEM",
+                    label: "Problem",
+                    emoji: "😡",
+                    active: "border-rose-500 bg-rose-500/10 text-rose-400",
+                  },
+                ] as const
+              ).map((opt) => {
+                const isOn = satisfaction === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setSatisfaction(opt.v)}
+                    data-testid={`button-satisfaction-${opt.v.toLowerCase()}`}
+                    className={`flex-1 text-xs h-10 rounded-md border transition-colors flex items-center justify-center gap-1.5 ${
+                      isOn
+                        ? `${opt.active} font-medium`
+                        : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                    }`}
+                  >
+                    <span className="text-base leading-none">
+                      {opt.emoji}
+                    </span>
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+            {type === "pickup" && !satisfaction && (
+              <p className="text-[10px] text-amber-400/90">
+                Required — pick the customer's mood at handover.
+              </p>
+            )}
+          </div>
 
           {/* TBS Airport parking zone — dropoff at Tbilisi International Airport only */}
           {type === "dropoff" && isAirportDropoff && (
