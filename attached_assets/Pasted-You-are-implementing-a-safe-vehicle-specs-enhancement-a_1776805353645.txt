@@ -1,0 +1,174 @@
+You are implementing a safe vehicle-specs enhancement across the existing Tbilisicars monorepo.
+
+STRICT RULES:
+- This is a LIVE production-connected project
+- Do NOT change architecture
+- Do NOT refactor unrelated code
+- Do NOT rename unrelated fields
+- Do NOT break existing vehicle model CRUD
+- Do NOT break public booking/fleet pages
+- Use the existing project patterns for schema, API, CRM forms, and website rendering
+- Make changes surgically and minimally
+
+GOAL:
+1. Show luggage capacity clearly on public vehicle cards using the real existing system value.
+2. Add a new vehicle model specification field: drive type.
+3. Drive type must be editable in CRM model create/edit and displayed on public vehicle cards.
+4. Keep everything backward-compatible and safe.
+
+BUSINESS REQUIREMENTS:
+- New field name: driveType
+- Allowed values exactly:
+  - FWD
+  - RWD
+  - AWD
+  - 4x4
+- This field belongs at VEHICLE MODEL level, not individual vehicle level.
+- Public website cards must display:
+  - luggage capacity
+  - drive type
+- All displayed values must come from real stored data, not hardcoded text.
+
+IMPORTANT CONTEXT:
+- luggage capacity already exists in the system and should NOT be reinvented
+- drive type is new and must be added using the project’s existing patterns
+
+CHECK THESE AREAS FIRST:
+- DB schema / model definitions for vehicle model
+- API zod / shared types if used
+- admin API routes/services for vehicle model create/update/read
+- CRM vehicle model create/edit form
+- website vehicle card / booking/fleet card components
+- any shared model mapping utilities
+
+TASK BREAKDOWN:
+
+--------------------------------------------------
+1. LUGGAGE CAPACITY — PUBLIC DISPLAY
+--------------------------------------------------
+
+Find where public website vehicle cards render specs.
+
+Required:
+- display luggage capacity clearly on the card
+- use the real existing stored luggage capacity value
+- do NOT hardcode or fake this value
+- keep the existing card layout style and design language
+- add the luggage spec in a way that remains visually balanced on desktop and mobile
+
+Scope:
+- website vehicle listing cards
+- booking page vehicle cards if separate from homepage/fleet card implementation
+- any other customer-facing vehicle card component that should show the same main specs
+
+Do NOT redesign the entire card.
+
+--------------------------------------------------
+2. NEW FIELD — DRIVE TYPE
+--------------------------------------------------
+
+Add a new vehicle model field:
+- driveType
+
+Allowed values only:
+- FWD
+- RWD
+- AWD
+- 4x4
+
+This field must be added safely across the stack:
+- database schema
+- backend types / validation
+- admin API create/update/read flow
+- CRM create/edit form
+- public website rendering
+
+IMPORTANT:
+- field should be optional / backward-compatible for existing records unless the current architecture clearly requires a default
+- do NOT break old vehicle models that do not yet have driveType populated
+- if null/empty, public UI should hide the drive type gracefully rather than showing broken/empty text
+
+--------------------------------------------------
+3. CRM MODEL CREATE / EDIT
+--------------------------------------------------
+
+In CRM vehicle model create/edit UI:
+- add drive type in the specs area where category / transmission / fuel type / seats / doors / luggage already live
+- use a controlled select/dropdown, not free text
+- options exactly:
+  - FWD
+  - RWD
+  - AWD
+  - 4x4
+- keep styling and form structure consistent with the current CRM UI
+- do NOT disrupt existing save/update behavior
+
+If there is both create and edit flow, update both.
+
+--------------------------------------------------
+4. PUBLIC CARD DISPLAY
+--------------------------------------------------
+
+Update customer-facing vehicle cards so that specs are more informative.
+
+Required:
+- luggage capacity visible
+- drive type visible when present
+
+Important presentation rules:
+- use compact spec display consistent with current card design
+- do NOT overcrowd the card
+- if drive type is missing, hide it cleanly
+- if luggage capacity is missing, hide it cleanly
+- do NOT show placeholders like "-" or "N/A" on public cards
+
+--------------------------------------------------
+5. BACKWARD COMPATIBILITY / SAFETY
+--------------------------------------------------
+
+Must preserve:
+- existing records without driveType
+- existing create/edit flows for all other fields
+- existing public booking flow
+- existing filters and categories
+- existing API contracts as much as possible, only extending them safely
+
+If zod or shared API schemas are used:
+- extend them minimally
+- do not break current consumers
+
+--------------------------------------------------
+6. VALIDATION / MIGRATION APPROACH
+--------------------------------------------------
+
+Use the safest approach for production:
+- driveType should be nullable/optional initially
+- no destructive migration
+- no forced default unless clearly needed
+- no data backfill required in this task
+
+If a migration is needed, make it minimal and safe.
+
+--------------------------------------------------
+7. DONE LOOKS LIKE
+--------------------------------------------------
+
+- luggage capacity now appears on public vehicle cards using real stored data
+- new driveType field exists safely on vehicle models
+- CRM model create/edit supports selecting FWD / RWD / AWD / 4x4
+- public cards show drive type when available
+- old records still work even if driveType is empty
+- no TypeScript/runtime errors
+- no broken CRUD
+- no layout break on website or CRM
+
+--------------------------------------------------
+8. OUTPUT FORMAT
+--------------------------------------------------
+
+Return:
+1. exact files to change
+2. exact field/schema/API/form/card flow impact
+3. whether a migration is needed
+4. any backward-compatibility risks
+5. whether this should go directly to Build or needs a Revise step
