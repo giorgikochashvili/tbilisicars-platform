@@ -607,8 +607,8 @@ function PricingSummaryContent({
       {insurance && (
         <div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Insurance</div>
-          <div className="text-xs font-semibold text-white">{insurance.label} Cover</div>
-          <div className="text-xs text-muted-foreground">{insurance.deposit}€ deposit · {insurance.excess}€ excess</div>
+          <div className="text-xs font-semibold text-white">{insurance.label} Insurance</div>
+          <div className="text-xs text-muted-foreground">{insurance.deposit}€ deposit</div>
         </div>
       )}
 
@@ -624,10 +624,20 @@ function PricingSummaryContent({
           ) : quote?.quotable ? (
             <div className="space-y-1.5">
               {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
-                <div className="flex justify-between text-xs">
-                  <span className="text-green-400">{quote.websiteDiscountName ?? "Discount"} · {days} days</span>
-                  <span className="text-white font-medium">{fmt(quote.discountedRentalPrice)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{quote.basePricePerDay?.toLocaleString()} {cur}/day × {days}</span>
+                    <span className="text-muted-foreground line-through">{fmt(quote.originalRentalPrice ?? quote.baseTotal!)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-400">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
+                    <span className="text-green-400 font-medium">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Rental total</span>
+                    <span className="text-white font-medium">{fmt(quote.discountedRentalPrice)}</span>
+                  </div>
+                </>
               ) : (
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{quote.basePricePerDay?.toLocaleString()} {cur}/day × {days}</span>
@@ -653,12 +663,12 @@ function PricingSummaryContent({
                 </div>
               )}
               <div className="flex justify-between items-center pt-2 border-t border-border mt-1">
-                <span className="text-xs font-semibold text-white">Est. Total</span>
+                <span className="text-xs font-semibold text-white">Total</span>
                 <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
               </div>
               {insurance && (
                 <div className="text-[10px] text-muted-foreground pt-1 border-t border-border mt-1">
-                  + {insurance.deposit}€ insurance deposit required at pickup
+                  + {insurance.deposit}€ insurance deposit required at pick-up
                 </div>
               )}
             </div>
@@ -1848,7 +1858,8 @@ function Step3({ form, setForm, onNext, onBack }: {
               <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Driving under influence (DUI)</li>
               <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Restricted zones (Abkhazia etc.)</li>
               <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Intentional damage</li>
-              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Personal belongings</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Off-road and underbody damage</li>
+              <li className="flex gap-2"><span className="text-destructive/70 shrink-0 mt-0.5">✗</span> Damage where the cause cannot be independently verified</li>
             </ul>
           </div>
         </div>
@@ -1858,7 +1869,7 @@ function Step3({ form, setForm, onNext, onBack }: {
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Security Deposit</div>
             <div className={cn("text-2xl font-black", FULL_VISUAL.iconColor)}>{FULL_PLAN.deposit}€</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Pre-authorised at pickup</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Pre-authorised at pick-up</div>
           </div>
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Damage Excess</div>
@@ -1870,7 +1881,7 @@ function Step3({ form, setForm, onNext, onBack }: {
 
       <div className="p-4 rounded-xl bg-secondary/20 border border-border text-xs text-muted-foreground mb-6 flex gap-3">
         <Shield className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
-        <span>Deposit is pre-authorised at pickup and fully refunded upon return of the vehicle in good condition.</span>
+        <span>Deposit is pre-authorised at pick-up and fully refunded upon return of the vehicle.</span>
       </div>
 
       <div className="pt-6 border-t border-border/30 mt-2 flex justify-between">
@@ -1923,6 +1934,7 @@ function Step4({ form, setForm, onNext, onBack, hasWebsiteDiscount }: {
           <div>
             <FieldLabel required>Phone Number</FieldLabel>
             <Inp type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+            <p className="text-xs text-muted-foreground mt-1">Please include your country code.</p>
             {/* WhatsApp inline toggle */}
             <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
               <Checkbox
@@ -1966,7 +1978,7 @@ function Step4({ form, setForm, onNext, onBack, hasWebsiteDiscount }: {
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Inp value={form.flightNumber} onChange={(e) => setForm((f) => ({ ...f, flightNumber: e.target.value }))} className="pl-9" />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for smooth pickup</p>
+          <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for a smooth pick-up</p>
         </div>
       </div>
 
@@ -2041,7 +2053,7 @@ const PRIMARY_PAYMENT_OPTIONS = [
   {
     id: "Pay on Arrival",
     label: "Pay on Arrival",
-    desc: "No payment required now. Settle in full at vehicle pickup using your preferred method (cash, card, or transfer).",
+    desc: "No payment required now. Settle in full at vehicle pick-up using your preferred method (cash, card, or transfer).",
     icon: <Banknote className="w-6 h-6 text-primary" />,
     recommended: true,
   },
@@ -2074,7 +2086,7 @@ function Step5({ form, setForm, onNext, onBack }: {
   return (
     <div>
       <h2 className="text-xl font-bold text-white mb-1">Payment Method</h2>
-      <p className="text-muted-foreground text-sm mb-6">Choose how you'd like to handle payment for your rental</p>
+      <p className="text-muted-foreground text-sm mb-6">Choose how you'd like to handle payment for your rental at pick-up.</p>
 
       <div className="grid grid-cols-1 gap-4 mb-5">
 
@@ -2110,7 +2122,7 @@ function Step5({ form, setForm, onNext, onBack }: {
 
           <div className="font-bold text-white text-base mb-1">Pay on Arrival</div>
           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-            No payment required now. Settle in full at vehicle pickup using your preferred method.
+            No payment required now. Settle in full at vehicle pick-up using your preferred method.
           </p>
 
           {/* Accepted at pickup */}
@@ -2130,7 +2142,7 @@ function Step5({ form, setForm, onNext, onBack }: {
           className="flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition-colors mb-3"
         >
           <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", showOther && "rotate-180")} />
-          {showOther ? "Hide pickup payment options" : "At pickup you can also use:"}
+          {showOther ? "Hide pick-up payment options" : "At pick-up you can also use:"}
         </button>
 
         {(showOther || isOther) && (
@@ -2163,7 +2175,7 @@ function Step5({ form, setForm, onNext, onBack }: {
         <div className="p-4 flex gap-3">
           <Lock className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
           <span className="text-xs text-muted-foreground leading-relaxed">
-            No payment is charged to submit your booking request. You will only be charged upon vehicle pickup or as separately agreed.
+            No payment is charged to submit your booking request. You will only be charged upon vehicle pick-up or as separately agreed.
           </span>
         </div>
         <div className="border-t border-border/50 px-4 py-2.5 flex flex-wrap gap-3">
@@ -2408,9 +2420,8 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
         {insurance && (
           <div className="bg-card border border-border rounded-xl p-4 mb-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Insurance</div>
-            <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
+            <SummaryRow label="Plan" value={`${insurance.label} Insurance`} />
             <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
-            <SummaryRow label="Excess" value={`${insurance.excess}€`} />
           </div>
         )}
 
@@ -2419,10 +2430,20 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-primary/70 mb-3">Pricing Estimate</div>
             {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
-              <SummaryRow
-                label={`Rental incl. ${quote.websiteDiscountName ?? "discount"} (${days} days)`}
-                value={fmt(quote.discountedRentalPrice)}
-              />
+              <>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">Base rate ({quote.basePricePerDay?.toLocaleString()} {cur}/day × {days} days)</span>
+                  <span className="text-sm text-muted-foreground line-through">{fmt(quote.originalRentalPrice ?? quote.baseTotal!)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
+                  <span className="text-sm font-medium text-green-400">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">Rental total</span>
+                  <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
+                </div>
+              </>
             ) : (
               <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
             )}
@@ -2440,7 +2461,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
             )}
             <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
-              <span className="text-sm font-semibold text-white">Estimated Total</span>
+              <span className="text-sm font-semibold text-white">Total Amount</span>
               <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">Final pricing confirmed before any charge.</p>
@@ -2592,7 +2613,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-semibold text-white mb-0.5">Pickup Instructions</div>
+                  <div className="text-xs font-semibold text-white mb-0.5">Pick-up Instructions</div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{pickupInstructions}</p>
                 </div>
               </div>
@@ -2603,7 +2624,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                   <div>
                     <div className="text-xs font-semibold text-white mb-0.5">Security Deposit</div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      A deposit of <span className="text-white font-medium">{insurance.deposit}€</span> will be authorised on your card at vehicle pickup and released upon return in good condition.
+                      A deposit of <span className="text-white font-medium">{insurance.deposit}€</span> will be authorised on your card at vehicle pick-up and released upon return.
                     </p>
                   </div>
                 </div>
@@ -2614,7 +2635,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 <div>
                   <div className="text-xs font-semibold text-white mb-0.5">What Happens Next</div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    We'll send a confirmation to <span className="text-white">{form.email}</span>. Our team will call you before your pickup date to confirm all details.
+                    We'll send a confirmation to <span className="text-white">{form.email}</span>. Our team will call you before your pick-up date to confirm all details.
                   </p>
                 </div>
               </div>
@@ -2624,7 +2645,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 <div>
                   <div className="text-xs font-semibold text-white mb-0.5">Cancellation Policy</div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Free cancellation when notified at least 24 hours before your scheduled pickup. Contact us via phone or email.
+                    Free cancellation when notified at least 24 hours before your scheduled pick-up. Contact us via phone or email.
                   </p>
                 </div>
               </div>
@@ -2632,7 +2653,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           </div>
 
           <p className="text-xs text-muted-foreground leading-relaxed px-1">
-            * Free cancellation subject to 24-hour notice before pickup. Final pricing confirmed before any charge is made.
+            * Free cancellation subject to 24-hour notice before pick-up. Final pricing confirmed before any charge is made.
           </p>
         </div>
 
@@ -2651,10 +2672,20 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 Price Breakdown
               </div>
               {quote.hasWebsiteDiscount && quote.discountedRentalPrice != null ? (
-                <SummaryRow
-                  label={`Rental incl. ${quote.websiteDiscountName ?? "discount"} (${days} days)`}
-                  value={fmt(quote.discountedRentalPrice)}
-                />
+                <>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground">Base rate ({quote.basePricePerDay?.toLocaleString()} {cur}/day × {days} days)</span>
+                    <span className="text-sm text-muted-foreground line-through">{fmt(quote.originalRentalPrice ?? quote.baseTotal!)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
+                    <span className="text-sm font-medium text-green-400">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground">Rental total</span>
+                    <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
+                  </div>
+                </>
               ) : (
                 <SummaryRow label={`Base rate (${quote.basePricePerDay?.toLocaleString()} ${cur}/day × ${days} days)`} value={fmt(quote.baseTotal!)} />
               )}
@@ -2669,7 +2700,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
               )}
               <div className="flex justify-between pt-3 mt-1 border-t border-primary/20">
-                <span className="text-sm font-semibold text-white">Estimated Total</span>
+                <span className="text-sm font-semibold text-white">Total Amount</span>
                 <span className="text-base font-bold text-primary">{fmt(quote.estimatedTotal!)}</span>
               </div>
             </div>
@@ -2691,27 +2722,24 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-primary" />Insurance</span>
                 <button type="button" onClick={() => goToStep(3)} className="text-xs text-primary hover:underline focus:outline-none">Edit</button>
               </div>
-              <SummaryRow label="Plan" value={`${insurance.label} Cover`} />
+              <SummaryRow label="Plan" value={`${insurance.label} Insurance`} />
               <SummaryRow label="Deposit" value={`${insurance.deposit}€`} />
-              <SummaryRow label="Excess" value={`${insurance.excess}€`} />
             </div>
           )}
-
-          {/* Urgency text */}
-          <p className="text-xs text-amber-400/80 italic text-center px-1">
-            Availability may change — secure your booking now
-          </p>
 
           {/* CTA panel */}
           <div className="bg-gradient-to-b from-primary/15 to-primary/5 border border-primary/30 rounded-xl p-5">
             {quote?.quotable && (
               <div className="text-center mb-4 pb-4 border-b border-primary/20">
-                <div className="text-xs text-muted-foreground mb-1">Estimated Total</div>
+                <div className="text-xs text-muted-foreground mb-1">Total Amount</div>
                 <div className="text-3xl font-black text-white leading-none">
                   {quote.estimatedTotal?.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   <span className="text-base font-semibold text-primary ml-2">{cur}</span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1.5">No payment required now — pay on arrival</div>
+                {insurance && (
+                  <div className="text-xs text-muted-foreground mt-1">(+{insurance.deposit}€ deposit at pick-up)</div>
+                )}
               </div>
             )}
             <Btn onClick={submit} loading={submitting} className="w-full justify-center py-3 text-base">
