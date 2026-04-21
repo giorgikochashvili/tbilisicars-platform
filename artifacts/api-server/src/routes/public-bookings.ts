@@ -491,6 +491,14 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
+  // discountedRentalPrice always reflects the final rental after ALL active discounts.
+  // When only website discount: baseTotal - websiteDiscountAmount (set above).
+  // When promo also applies: further reduced by discountAmount.
+  // When only promo: started as baseTotal, now reduced by discountAmount.
+  if (discountAmount !== null && discountedRentalPrice !== null) {
+    discountedRentalPrice = Math.max(0, discountedRentalPrice - discountAmount);
+  }
+
   // Both discounts (website + promo) reduce the rental price independently.
   // Extras and one-way fee are unaffected by either discount.
   const effectiveDiscountAmount = (websiteDiscountAmount ?? 0) + (discountAmount ?? 0);

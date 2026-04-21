@@ -638,7 +638,7 @@ function PricingSummaryContent({
                   )}
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Rental total</span>
-                    <span className="text-white font-medium">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
+                    <span className="text-white font-medium">{fmt(quote.discountedRentalPrice)}</span>
                   </div>
                 </>
               ) : (
@@ -2466,7 +2466,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 )}
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-sm text-muted-foreground">Rental total</span>
-                  <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
+                  <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
                 </div>
               </>
             ) : (
@@ -2711,7 +2711,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                   )}
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-sm text-muted-foreground">Rental total</span>
-                    <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
+                    <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
                   </div>
                 </>
               ) : (
