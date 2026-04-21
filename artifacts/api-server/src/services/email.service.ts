@@ -173,7 +173,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           ${extras.map(extraHtmlRow).join("")}
           ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
           ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
-          ${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo discount</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
+          ${promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo discount</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
           <div class="total-row">
             <span class="total-label">Total Amount</span>
             <span class="total-value">${fmt(estimatedTotal)}</span>
@@ -334,7 +334,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     : "";
 
   const pricingText = estimatedTotal != null
-    ? `\nPRICING SUMMARY\n${effectiveBaseRate != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(effectiveBaseRate)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount: -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo discount: -${fmt(discountAmount)}\n` : ""}  Total Amount: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
+    ? `\nPRICING SUMMARY\n${effectiveBaseRate != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(effectiveBaseRate)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount: -${fmt(websiteDiscountAmount)}\n` : ""}${promoCode && discountAmount != null && discountAmount > 0 ? `  Promo discount: -${fmt(discountAmount)}\n` : ""}  Total Amount: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
   const metaText = [

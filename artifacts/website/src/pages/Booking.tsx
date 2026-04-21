@@ -75,7 +75,6 @@ interface Quote {
   websiteDiscountAmount?: number | null;
   originalRentalPrice?: number | null;
   discountedRentalPrice?: number | null;
-  promoSkippedDueToDiscount?: boolean;
 }
 
 interface BookingResult {
@@ -488,9 +487,6 @@ function PromoField({ form, setForm, hasWebsiteDiscount }: { form: FormData; set
         )}
       </div>
       {promoState && <p className={cn("text-xs mt-1.5", promoState.valid ? "text-green-400" : "text-destructive")}>{promoState.valid ? "Promo code applied!" : promoState.msg}</p>}
-      {hasWebsiteDiscount && (
-        <p className="text-xs mt-1.5 text-amber-400">A promotional rate is already applied — promo codes cannot be combined with active discounts.</p>
-      )}
     </div>
   );
 }
@@ -634,9 +630,15 @@ function PricingSummaryContent({
                     <span className="text-green-400">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
                     <span className="text-green-400 font-medium">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
                   </div>
+                  {quote.discountAmount != null && quote.discountAmount > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-green-400">Promo</span>
+                      <span className="text-green-400 font-medium">−{fmt(quote.discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Rental total</span>
-                    <span className="text-white font-medium">{fmt(quote.discountedRentalPrice)}</span>
+                    <span className="text-white font-medium">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
                   </div>
                 </>
               ) : (
@@ -2456,9 +2458,15 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                   <span className="text-sm text-muted-foreground">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
                   <span className="text-sm font-medium text-green-400">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
                 </div>
+                {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+                  <div className="flex justify-between py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground">Promo ({form.promoCode})</span>
+                    <span className="text-sm font-medium text-green-400">−{fmt(quote.discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 border-b border-border">
                   <span className="text-sm text-muted-foreground">Rental total</span>
-                  <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
+                  <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
                 </div>
               </>
             ) : (
@@ -2470,9 +2478,6 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
             })}
             {!quote.hasWebsiteDiscount && form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
               <SummaryRow label={`Promo (${form.promoCode})`} value={`−${fmt(quote.discountAmount)}`} />
-            )}
-            {quote.promoSkippedDueToDiscount && form.promoCode && (
-              <p className="text-[11px] text-amber-400/80 mt-1">A vehicle discount has been applied. Promo codes cannot be combined with active discounts.</p>
             )}
             {quote.oneWayFee != null && quote.oneWayFee > 0 && (
               <SummaryRow label="One Way Fee (Drop off in different location)" value={fmt(quote.oneWayFee)} />
@@ -2698,9 +2703,15 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                     <span className="text-sm text-muted-foreground">Discount{quote.websiteDiscountType === "PERCENT" ? ` (${quote.websiteDiscountValue}%)` : ""}</span>
                     <span className="text-sm font-medium text-green-400">−{fmt(quote.websiteDiscountAmount ?? 0)}</span>
                   </div>
+                  {form.promoCode && quote.discountAmount != null && quote.discountAmount > 0 && (
+                    <div className="flex justify-between py-2 border-b border-border">
+                      <span className="text-sm text-muted-foreground">Promo ({form.promoCode})</span>
+                      <span className="text-sm font-medium text-green-400">−{fmt(quote.discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-2 border-b border-border">
                     <span className="text-sm text-muted-foreground">Rental total</span>
-                    <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice)}</span>
+                    <span className="text-sm font-bold text-primary">{fmt(quote.discountedRentalPrice - (quote.discountAmount ?? 0))}</span>
                   </div>
                 </>
               ) : (

@@ -263,7 +263,8 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     }
     if (websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0) {
       row("Discount", `-${fmtMoney(websiteDiscountAmount, currency)}`);
-    } else if (promoCode && discountAmount != null && discountAmount > 0) {
+    }
+    if (promoCode && discountAmount != null && discountAmount > 0) {
       row("Promo discount", `-${fmtMoney(discountAmount, currency)}`);
     }
     page.drawLine({

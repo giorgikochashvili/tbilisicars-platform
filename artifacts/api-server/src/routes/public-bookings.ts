@@ -434,7 +434,7 @@ router.post("/public/quote", async (req, res) => {
     extrasTotal = computeExtrasTotal(lineItems, days);
   }
 
-  // ── Website discount (priority: discount wins, promo skipped if discount applies) ──
+  // ── Website discount ──────────────────────────────────────────────────────────
   let websiteDiscountId: number | null = null;
   let websiteDiscountName: string | null = null;
   let websiteDiscountType: "PERCENT" | "FIXED" | null = null;
@@ -443,7 +443,6 @@ router.post("/public/quote", async (req, res) => {
   let originalRentalPrice: number | null = baseTotal;
   let discountedRentalPrice: number | null = baseTotal;
   let hasWebsiteDiscount = false;
-  let promoSkippedDueToDiscount = false;
 
   const pickupLocId = body.pickupLocationId ? Number(body.pickupLocationId) : null;
   const dropoffLocId = body.dropoffLocationId ? Number(body.dropoffLocationId) : null;
@@ -464,19 +463,17 @@ router.post("/public/quote", async (req, res) => {
       websiteDiscountAmount = applyWebsiteDiscount(baseTotal, resolved.discountType, resolved.discountValue);
       originalRentalPrice = baseTotal;
       discountedRentalPrice = Math.max(0, baseTotal - websiteDiscountAmount);
-
-      if (body.promoCode?.trim()) {
-        promoSkippedDueToDiscount = true;
-      }
     }
   }
 
-  // ── Promo discount (only when no website discount applies) ───────────────────
+  // ── Promo discount — applied to the post-website-discount rental price ───────
+  // When a website discount is already applied, the promo is computed on
+  // discountedRentalPrice (not baseTotal) to avoid amplifying the website discount.
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
   let discountAmount: number | null = null;
 
-  if (!hasWebsiteDiscount && body.promoCode?.trim()) {
+  if (body.promoCode?.trim()) {
     const { rows: promoRows } = await pool.query(
       `SELECT discount_type, discount_value FROM promo
        WHERE code = $1 AND active = true
@@ -488,17 +485,15 @@ router.post("/public/quote", async (req, res) => {
     if (promoRows[0]) {
       promoDiscountType = promoRows[0].discount_type as string;
       promoDiscountValue = Number(promoRows[0].discount_value);
-      if (baseTotal !== null) {
-        discountAmount = applyPromoDiscount(baseTotal, promoDiscountType, promoDiscountValue);
-        discountedRentalPrice = Math.max(0, baseTotal - discountAmount);
+      if (discountedRentalPrice !== null) {
+        discountAmount = applyPromoDiscount(discountedRentalPrice, promoDiscountType, promoDiscountValue);
       }
     }
   }
 
-  // Effective discount amount for total calculation
-  const effectiveDiscountAmount = hasWebsiteDiscount
-    ? (websiteDiscountAmount ?? 0)
-    : (discountAmount ?? 0);
+  // Both discounts (website + promo) reduce the rental price independently.
+  // Extras and one-way fee are unaffected by either discount.
+  const effectiveDiscountAmount = (websiteDiscountAmount ?? 0) + (discountAmount ?? 0);
 
   // One-way fee: only when pickup and dropoff differ and both are provided.
   let oneWayFee: number | undefined;
@@ -512,7 +507,7 @@ router.post("/public/quote", async (req, res) => {
     }
   }
 
-  // Price order: base rental → discount (website or promo, mutually exclusive) → extras → one-way fee.
+  // Price order: base rental → website discount → promo discount → extras → one-way fee.
   const rentalAfterDiscount: number | null = baseTotal !== null
     ? Math.max(0, baseTotal - effectiveDiscountAmount)
     : null;
@@ -539,8 +534,7 @@ router.post("/public/quote", async (req, res) => {
     websiteDiscountAmount,
     originalRentalPrice,
     discountedRentalPrice,
-    promoSkippedDueToDiscount,
-    // Legacy promo fields (null when website discount applies)
+    // Promo fields — non-null when a promo code is applied (can coexist with website discount)
     promoDiscountType,
     promoDiscountValue,
     discountAmount,
@@ -740,7 +734,7 @@ router.post("/public/bookings", async (req, res) => {
     rateExpiredNote = "[RATE EXPIRED AT BOOKING TIME — re-check pricing with staff]";
   }
 
-  // ── Website discount server-side resolution (mutual exclusion: discount wins over promo) ──
+  // ── Website discount server-side resolution ───────────────────────────────────
   let serverWebsiteDiscountId: number | null = null;
   let serverWebsiteDiscountName: string | null = null;
   let serverWebsiteDiscountType: "PERCENT" | "FIXED" | null = null;
@@ -766,16 +760,12 @@ router.post("/public/bookings", async (req, res) => {
       serverWebsiteDiscountAmount = applyWebsiteDiscount(serverBaseTotal, resolvedDiscount.discountType, resolvedDiscount.discountValue);
       serverOriginalRentalPrice = serverBaseTotal;
       serverDiscountedRentalPrice = Math.max(0, serverBaseTotal - serverWebsiteDiscountAmount);
-      // Mutual exclusion: discount wins, promo is skipped
-      discount = null;
-      promoDiscountType = null;
-      promoDiscountValue = null;
     }
   }
 
-  // Deferred promo validation — only when NO website discount applies (mutual exclusion).
-  // If a website discount applies, promo errors are silently ignored.
-  if (!hasServerWebsiteDiscount && promoRow !== null) {
+  // Deferred promo validation — always runs when a promo code was provided.
+  // Promo can now be combined with a website discount.
+  if (promoRow !== null) {
     const now = new Date();
     if (!promoRow.active ||
         (promoRow.valid_from != null && promoRow.valid_from > now) ||
@@ -790,25 +780,27 @@ router.post("/public/bookings", async (req, res) => {
     discount = String(promoRow.discount_value);
   }
 
-  // Promo discount (only applied when no website discount is in effect)
+  // Promo discount — applied to the post-website-discount rental price.
+  // When no website discount applies, serverDiscountedRentalPrice is null and
+  // we fall back to serverBaseTotal, which preserves the original promo-only behaviour.
   let serverPromoDiscountAmount: number | null = null;
-  if (!hasServerWebsiteDiscount && serverBaseTotal !== null && promoDiscountType && promoDiscountValue !== null) {
-    serverPromoDiscountAmount = applyPromoDiscount(serverBaseTotal, promoDiscountType, promoDiscountValue);
-    serverDiscountedRentalPrice = Math.max(0, serverBaseTotal - serverPromoDiscountAmount);
+  const promoBase = serverDiscountedRentalPrice ?? serverBaseTotal;
+  if (promoBase !== null && promoDiscountType && promoDiscountValue !== null) {
+    serverPromoDiscountAmount = applyPromoDiscount(promoBase, promoDiscountType, promoDiscountValue);
   }
 
-  // The CRM `discount` column stores the promo discount amount (legacy); website discount has its own columns.
-  const serverDiscountAmount: number | null = hasServerWebsiteDiscount
-    ? null
-    : serverPromoDiscountAmount;
+  // The CRM `discount` column stores the promo discount amount.
+  // With both discounts active this is non-null alongside the website discount columns.
+  const serverDiscountAmount: number | null = serverPromoDiscountAmount;
   if (serverDiscountAmount !== null) {
     discount = String(serverDiscountAmount);
-  } else if (hasServerWebsiteDiscount) {
+  } else {
     discount = null;
   }
 
+  // Final rental = base − website discount − promo discount
   const rentalAfterDiscount = serverBaseTotal !== null
-    ? Math.max(0, serverBaseTotal - (hasServerWebsiteDiscount ? (serverWebsiteDiscountAmount ?? 0) : (serverPromoDiscountAmount ?? 0)))
+    ? Math.max(0, serverBaseTotal - (serverWebsiteDiscountAmount ?? 0) - (serverPromoDiscountAmount ?? 0))
     : null;
   const serverEstimatedTotal: number | null = rentalAfterDiscount !== null
     ? rentalAfterDiscount + extrasTotal + (resolvedOneWayFee ?? 0)
@@ -844,8 +836,8 @@ router.post("/public/bookings", async (req, res) => {
   let bookingId: number;
   try {
     ({ bookingId } = await db.transaction(async (tx) => {
-      // Only increment promo usage when no website discount superseded it (mutual exclusion).
-      if (body.promoCode && !hasServerWebsiteDiscount) {
+      // Increment promo usage — works whether or not a website discount also applies.
+      if (body.promoCode) {
         const [lockedPromoRow] = await tx
           .select({
             id: promoTable.id,
@@ -893,7 +885,7 @@ router.post("/public/bookings", async (req, res) => {
           dropoffDatetime: dropoffDate,
           vehicleModelId: Number(body.vehicleModelId),
           currency,
-          discount: hasServerWebsiteDiscount ? null : (serverPromoDiscountAmount !== null ? String(serverPromoDiscountAmount) : null),
+          discount: serverPromoDiscountAmount !== null ? String(serverPromoDiscountAmount) : null,
           totalAmount,
           notes: combinedNotes,
           source: "website" as const,
@@ -966,14 +958,14 @@ router.post("/public/bookings", async (req, res) => {
     estimatedTotal: serverEstimatedTotal,
     resolvedBaseRate: serverBaseRate,
     oneWayFee: resolvedOneWayFee,
-    discountAmount: hasServerWebsiteDiscount ? null : serverPromoDiscountAmount,
+    discountAmount: serverPromoDiscountAmount,
     websiteDiscountName: serverWebsiteDiscountName,
     websiteDiscountAmount: serverWebsiteDiscountAmount,
     originalRentalPrice: serverOriginalRentalPrice,
     discountedRentalPrice: serverDiscountedRentalPrice,
-    promoCode: hasServerWebsiteDiscount ? undefined : (body.promoCode?.trim() || undefined),
-    promoDiscountType: hasServerWebsiteDiscount ? null : promoDiscountType,
-    promoDiscountValue: hasServerWebsiteDiscount ? null : promoDiscountValue,
+    promoCode: body.promoCode?.trim() || undefined,
+    promoDiscountType,
+    promoDiscountValue,
     currency: body.currency ?? "GEL",
     pickupLocationId: Number(body.pickupLocationId),
     dropoffLocationId: Number(body.dropoffLocationId),
