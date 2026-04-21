@@ -857,7 +857,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       transmission: formData.transmission as any || null,
       fuelType: formData.fuelType as any || null,
       luggageCapacity: formData.luggageCapacity,
-      driveType: formData.driveType as any || null,
+      driveType: formData.driveType || null,
       active: formData.active,
       availableForExternalSystems: formData.availableForExternalSystems,
       // In edit mode: send "" to explicitly clear an existing image when user removes it.
@@ -1123,7 +1123,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               </div>
               <div className="grid gap-2">
                 <Label>Drive Type</Label>
-                <Select value={formData.driveType} onValueChange={(val: any) => setFormData({...formData, driveType: val})}>
+                <Select value={formData.driveType} onValueChange={(val: "FWD" | "RWD" | "AWD" | "4x4") => setFormData({...formData, driveType: val})}>
                   <SelectTrigger><SelectValue placeholder="Select drive type" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="FWD">FWD (Front-wheel)</SelectItem>
