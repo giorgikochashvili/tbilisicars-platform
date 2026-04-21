@@ -1,0 +1,137 @@
+You are updating ONLY UI text and small visual details in the homepage.
+
+STRICT RULES:
+- Do NOT change structure
+- Do NOT rename components
+- Do NOT touch logic, hooks, imports
+- Do NOT break layout
+- ONLY update text content and small visual styling
+
+FILE:
+artifacts/website/src/pages/Home.tsx
+
+--------------------------------------------------
+1. HERO SECTION TEXT UPDATE
+--------------------------------------------------
+
+Find hero title and subtitle and replace:
+
+TITLE:
+"Travel In Georgia Without Limits"
+→ "Discover Georgia With Us"
+
+SUBTITLE:
+"We Know How To Serve Our Customers"
+→ "Trusted by thousands of travelers worldwide"
+
+--------------------------------------------------
+2. HERO BENEFITS LINE (IMPORTANT)
+--------------------------------------------------
+
+Find line similar to:
+"24/7 Support • No Hidden Fees • Airport Service • Fast Pickup"
+
+Replace FULLY with:
+
+"Full Insurance • Unlimited Mileage • Unlimited Additional Drivers • Roadside Assistance • 24/7 Customer Support"
+
+Then:
+
+- Replace default separators with SMALL RED DOTS
+- Each separator should be a small red circle (not text "•")
+- Add subtle animation:
+  - soft pulse or glow
+  - NOT blinking
+  - very subtle (opacity/scale)
+
+--------------------------------------------------
+3. STATS STRIP CLEANUP
+--------------------------------------------------
+
+Find stats section (numbers like 10+, 15000+, etc.)
+
+KEEP ONLY:
+- 10+
+- 15,000+
+- 4.6+
+
+REMOVE:
+- "<15 min"
+- "24/7"
+
+DO NOT break layout.
+
+If layout expects 5 items:
+- keep spacing balanced
+- do NOT stretch badly
+
+--------------------------------------------------
+4. "EVERYTHING YOU GET WITH US" SUBTEXT
+--------------------------------------------------
+
+Find section:
+"Everything You Get With Us"
+
+Replace description with:
+
+"All prices shown on our website are final — what you see is exactly what you pay at pick-up. Every rental includes the benefits listed below."
+
+--------------------------------------------------
+5. BENEFIT CARDS — FULL REWRITE
+--------------------------------------------------
+
+Find ALL benefit cards and replace content with:
+
+1.
+Title: Full Insurance Coverage  
+Description: Drive with confidence knowing you're fully protected throughout your journey.
+
+2.
+Title: Transparent Pricing  
+Description: No hidden fees or surprises — all costs are clearly shown upfront.
+
+3.
+Title: Unlimited Mileage  
+Description: Travel freely across Georgia with no distance limits.
+
+4.
+Title: Airport Service  
+Description: Convenient vehicle delivery and return directly at the airport.
+
+5.
+Title: 24/7 Customer Support  
+Description: Our team is available anytime you need assistance during your rental.
+
+6.
+Title: Roadside Assistance  
+Description: Quick help is always available in case of unexpected situations.
+
+7.
+Title: Additional Drivers  
+Description: Add extra drivers at no additional cost for a flexible travel experience.
+
+IMPORTANT:
+- Keep card layout EXACTLY same
+- Only change text
+- No structural edits
+
+--------------------------------------------------
+6. REMOVE DUPLICATE TRUST TEXT (BOTTOM SECTION)
+--------------------------------------------------
+
+Find section near bottom:
+"Trusted by thousands of travelers worldwide"
+
+REMOVE this section completely (ONLY bottom duplicate).
+
+DO NOT remove hero subtitle (it stays).
+
+--------------------------------------------------
+
+FINAL CHECK:
+- No TypeScript errors
+- No layout breaks
+- No removed components
+- Only text + small styling updates
+
+Return updated code.
