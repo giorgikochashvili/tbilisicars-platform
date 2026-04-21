@@ -2738,7 +2738,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
                 </div>
                 <div className="text-xs text-muted-foreground mt-1.5">No payment required now — pay on arrival</div>
                 {insurance && (
-                  <div className="text-xs text-muted-foreground mt-1">(+{insurance.deposit}€ deposit at pick-up)</div>
+                  <div className="text-xs text-muted-foreground mt-1">(+{insurance.deposit} {cur} deposit at pick-up)</div>
                 )}
               </div>
             )}
