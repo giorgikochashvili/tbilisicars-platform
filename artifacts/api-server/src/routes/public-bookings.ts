@@ -666,8 +666,8 @@ router.post("/public/bookings", async (req, res) => {
   const initialStatus: "PENDING" | "CONFIRMED" =
     (availRows[0]?.available_count ?? 0) > 0 ? "CONFIRMED" : "PENDING";
 
-  // Promo lookup is deferred until after website discount resolution.
-  // Mutual exclusion: if an active website discount applies, promo validation is skipped entirely.
+  // Promo lookup is deferred until after website discount resolution so we can
+  // apply the promo to the post-website-discount price when both are active.
   let discount: string | null = null;
   let promoDiscountType: string | null = null;
   let promoDiscountValue: number | null = null;
