@@ -2016,12 +2016,13 @@ export default function BookingDetail({
             ? { totalAmount: overviewDraft.totalAmount }
             : {}),
           currency: overviewDraft.currency,
-          notes: (() => {
+          ...((() => {
             const staffText = overviewDraft.notes.trim();
             const { rawWebsiteBlock } = parseBookingNotes(booking?.notes);
             const parts = [staffText, rawWebsiteBlock].filter(Boolean);
-            return parts.length > 0 ? parts.join("\n\n") : null;
-          })(),
+            const fullNotes = parts.length > 0 ? parts.join("\n\n") : null;
+            return fullNotes !== null ? { notes: fullNotes } : {};
+          })()),
           ...(overviewDraft.pickupLocationId
             ? { pickupLocationId: parseInt(overviewDraft.pickupLocationId) }
             : {}),
