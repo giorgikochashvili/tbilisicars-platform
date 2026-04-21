@@ -220,7 +220,7 @@ function AgreementDoc({ d }: { d: DocData }) {
 
       <div style={S.docTitle}>Vehicle Rental Agreement</div>
       <div style={S.refLine}>
-        Agreement Reference: <strong>TC-{String(d.id).padStart(6, "0")}</strong>
+        Agreement Reference: <strong>#{d.id}</strong>
         {d.document_number ? ` · Doc #${d.document_number}` : ""}
         {" · "}Status: <strong>{d.status.replace(/_/g, " ")}</strong>
       </div>
@@ -394,7 +394,7 @@ function VoucherDoc({ d }: { d: DocData }) {
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: "11px", color: "#6b7280" }}>Booking Confirmation</div>
           <div style={{ fontSize: "18px", fontWeight: 800, color: "#2563eb" }}>
-            TC-{String(d.id).padStart(6, "0")}
+            #{d.id}
           </div>
         </div>
       </div>
@@ -421,7 +421,7 @@ function VoucherDoc({ d }: { d: DocData }) {
              d.status.replace(/_/g, " ")}
           </div>
           <div style={{ fontSize: "11px", color: "#065f46", opacity: 0.8 }}>
-            Booking Reference: TC-{String(d.id).padStart(6, "0")}
+            Booking Reference: #{d.id}
           </div>
         </div>
         <div style={{ fontSize: "11px", color: "#6b7280" }}>

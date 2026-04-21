@@ -38,6 +38,12 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+/** Convert TC-00316 → #316 for customer-facing display only. */
+function customerRef(ref: string): string {
+  const m = ref.match(/TC-0*(\d+)/i);
+  return m ? `#${m[1]}` : ref;
+}
+
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
   Tbilisi: "Our team will meet you at Tbilisi International Airport arrivals. Look for the Tbilisicars sign. Call +995 557 37 63 63 if you need assistance.",
   Kutaisi: "Our agent will meet you at Kutaisi International Airport arrivals. Call +995 595 28 66 00 on arrival.",
@@ -45,15 +51,15 @@ const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
 };
 
 function getPickupInstructions(city?: string): string {
-  if (!city) return "Our team will contact you shortly to confirm pickup details.";
-  return CITY_PICKUP_INSTRUCTIONS[city] ?? "Our team will contact you shortly to confirm pickup details.";
+  if (!city) return "Our team will contact you shortly to confirm pick-up details.";
+  return CITY_PICKUP_INSTRUCTIONS[city] ?? "Our team will contact you shortly to confirm pick-up details.";
 }
 
 function paymentMethodNote(method: string): string {
   const lower = method.toLowerCase();
-  if (lower.includes("arrival")) return "Payment will be made at pickup — cash or card accepted on site.";
+  if (lower.includes("arrival")) return "Payment will be made at pick-up — cash or card accepted on site.";
   if (lower.includes("card")) return "Card payment — our team will follow up to process the payment.";
-  if (lower.includes("transfer") || lower.includes("bank")) return "Bank transfer — please complete the transfer before your pickup date.";
+  if (lower.includes("transfer") || lower.includes("bank")) return "Bank transfer — please complete the transfer before your pick-up date.";
   return method;
 }
 
@@ -162,14 +168,14 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   const effectiveBaseRate = (websiteDiscountName && originalRentalPrice != null) ? originalRentalPrice : baseTotal;
   const pricingSection = estimatedTotal != null ? `
         <div class="pricing-section">
-          <div class="section-title">Pricing Estimate</div>
+          <div class="section-title">Pricing Summary</div>
           ${effectiveBaseRate != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(effectiveBaseRate)}</span></div>` : ""}
           ${extras.map(extraHtmlRow).join("")}
           ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
-          ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount (${esc(websiteDiscountName)})</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
-          ${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo (${esc(promoCode)})</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
+          ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
+          ${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo discount</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
           <div class="total-row">
-            <span class="total-label">Estimated Total</span>
+            <span class="total-label">Total Amount</span>
             <span class="total-value">${fmt(estimatedTotal)}</span>
           </div>
           <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">Final pricing is confirmed before any charge is made.</p>
@@ -186,7 +192,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   // border-right is applied to all except the last cell.
   const metaItems: Array<{ label: string; value: string }> = [
     { label: "Duration", value: `${days} ${days === 1 ? "day" : "days"}` },
-    ...(insurancePlan ? [{ label: "Insurance", value: `${esc(insurancePlan)} Cover` }] : []),
+    ...(insurancePlan ? [{ label: "Insurance", value: `${esc(insurancePlan)} Insurance` }] : []),
     ...(flightNumber  ? [{ label: "Flight No.", value: esc(flightNumber) }] : []),
     ...((nationality || age) ? [{
       label: "Driver",
@@ -203,10 +209,10 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking Confirmation \u2014 ${esc(reference)}</title>
+  <title>Booking Confirmation \u2014 ${esc(customerRef(reference))}</title>
   <style>
     body { margin: 0; padding: 0; background-color: #0d1b2a; font-family: 'Segoe UI', Arial, sans-serif; color: #e2e8f0; }
-    .wrapper { max-width: 600px; margin: 0 auto; padding: 32px 16px; }
+    .wrapper { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
     .card { background: #132033; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden; }
     .header { background: linear-gradient(135deg, #7f1d2e 0%, #9f2535 100%); padding: 28px; text-align: center; }
     .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
@@ -258,7 +264,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
 
         <div class="ref-block">
           <div class="ref-label">Booking Reference</div>
-          <div class="ref-value">${esc(reference)}</div>
+          <div class="ref-value">${esc(customerRef(reference))}</div>
           <div class="status-row">
             <span class="status-badge">Booking: ${esc(bookingStatusDisplay)}</span>
             <span class="status-badge-gray">Payment: ${esc(paymentStatusDisplay)}</span>
@@ -328,12 +334,12 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     : "";
 
   const pricingText = estimatedTotal != null
-    ? `\nPRICING ESTIMATE\n${effectiveBaseRate != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(effectiveBaseRate)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount (${websiteDiscountName}): -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo (${promoCode}): -${fmt(discountAmount)}\n` : ""}  Estimated Total: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
+    ? `\nPRICING SUMMARY\n${effectiveBaseRate != null ? `  Base rate (${days} ${days === 1 ? "day" : "days"}): ${fmt(effectiveBaseRate)}\n` : ""}${extras.map(extraTextLine).join("\n")}${extras.length > 0 ? "\n" : ""}${oneWayFee != null && oneWayFee > 0 ? `  One-way transfer fee: ${fmt(oneWayFee)}\n` : ""}${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `  Discount: -${fmt(websiteDiscountAmount)}\n` : ""}${!websiteDiscountName && promoCode && discountAmount != null && discountAmount > 0 ? `  Promo discount: -${fmt(discountAmount)}\n` : ""}  Total Amount: ${fmt(estimatedTotal)}\n  (Final pricing confirmed before any charge)\n`
     : extrasText;
 
   const metaText = [
     `  Duration: ${days} ${days === 1 ? "day" : "days"}`,
-    ...(insurancePlan ? [`  Insurance: ${insurancePlan} Cover`] : []),
+    ...(insurancePlan ? [`  Insurance: ${insurancePlan} Insurance`] : []),
     ...(flightNumber  ? [`  Flight No.: ${flightNumber}`] : []),
     ...(nationality   ? [`  Nationality: ${nationality}`] : []),
     ...(age           ? [`  Driver Age: ${age}`] : []),
@@ -346,7 +352,7 @@ Dear ${toName},
 
 Thank you for choosing Tbilisicars. We have received your booking request and will confirm shortly.
 
-BOOKING REFERENCE: ${reference}
+BOOKING REFERENCE: ${customerRef(reference)}
 Booking: ${bookingStatusDisplay} \u00B7 Payment: ${paymentStatusDisplay}
 
 VEHICLE
@@ -409,8 +415,8 @@ CONTACT US
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: toEmail,
       subject: bookingStatus === "CONFIRMED"
-        ? `Booking Confirmed: ${reference} \u2014 ${vehicle}`
-        : `Booking Request Received: ${reference} \u2014 ${vehicle}`,
+        ? `Booking Confirmed: ${customerRef(reference)} \u2014 ${vehicle}`
+        : `Booking Request Received: ${customerRef(reference)} \u2014 ${vehicle}`,
       html,
       text,
       ...(pdfBuffer != null

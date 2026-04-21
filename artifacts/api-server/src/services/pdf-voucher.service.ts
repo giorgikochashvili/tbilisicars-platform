@@ -53,6 +53,12 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+/** Convert TC-00316 → #316 for customer-facing display only. */
+function customerRef(ref: string): string {
+  const m = ref.match(/TC-0*(\d+)/i);
+  return m ? `#${m[1]}` : ref;
+}
+
 /**
  * Remove internal system-generated note blocks from combined booking notes
  * before rendering customer-facing output. Strips paragraphs that begin with
@@ -180,14 +186,17 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   page.drawText("BOOKING REFERENCE", {
     x: MARGIN + 12, y: y - 16, size: 7.5, font, color: C.muted,
   });
-  page.drawText(reference, {
+  page.drawText(customerRef(reference), {
     x: MARGIN + 12, y: y - 40, size: 17, font: fontBold, color: C.accentLite,
   });
 
   // Right: two separate status lines
   const statusX = MARGIN + CW - 145;
+  const bookingStatusColor = bookingStatus.toUpperCase() === "CONFIRMED"
+    ? rgb(0.133, 0.773, 0.369)  // green for confirmed
+    : C.amber;
   page.drawText(`Booking Status: ${bookingStatusDisplay}`, {
-    x: statusX, y: y - 24, size: 8, font: fontBold, color: C.amber,
+    x: statusX, y: y - 24, size: 8, font: fontBold, color: bookingStatusColor,
   });
   page.drawText(`Payment Status: ${paymentStatusDisplay}`, {
     x: statusX, y: y - 40, size: 8, font, color: C.muted,
@@ -218,9 +227,9 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   // ── Trip Details ─────────────────────────────────────────────────────────────
   sectionHeader("TRIP DETAILS");
   row("Vehicle", vehicle);
-  row("Pickup Location", pickupLocation);
+  row("Pick-up Location", pickupLocation);
   row("Drop-off Location", dropoffLocation);
-  row("Pickup Date & Time", fmtDT(pickupDatetime));
+  row("Pick-up Date & Time", fmtDT(pickupDatetime));
   row("Return Date & Time", fmtDT(dropoffDatetime));
   row("Duration", `${days} ${days === 1 ? "day" : "days"}`);
   if (flightNumber) row("Flight Number", flightNumber);
@@ -229,7 +238,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   // ── Insurance ────────────────────────────────────────────────────────────────
   if (insurancePlan) {
     sectionHeader("INSURANCE");
-    row("Plan", `${insurancePlan} Cover`);
+    row("Plan", `${insurancePlan} Insurance`);
     y -= GAP;
   }
 
@@ -238,7 +247,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   // for the base-rate line so the PDF reflects the exact amount at booking time.
   const effectivePdfBaseRate = (websiteDiscountName && originalRentalPrice != null) ? originalRentalPrice : baseTotal;
   if (estimatedTotal != null) {
-    sectionHeader("PRICING ESTIMATE");
+    sectionHeader("PRICING SUMMARY");
     if (effectivePdfBaseRate != null) {
       row(`Base rate (${days} ${days === 1 ? "day" : "days"})`, fmtMoney(effectivePdfBaseRate, currency));
     }
@@ -253,15 +262,15 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       row("One-way transfer fee", fmtMoney(oneWayFee, currency));
     }
     if (websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0) {
-      row(`Discount (${websiteDiscountName})`, `-${fmtMoney(websiteDiscountAmount, currency)}`);
+      row("Discount", `-${fmtMoney(websiteDiscountAmount, currency)}`);
     } else if (promoCode && discountAmount != null && discountAmount > 0) {
-      row(`Promo (${promoCode})`, `-${fmtMoney(discountAmount, currency)}`);
+      row("Promo discount", `-${fmtMoney(discountAmount, currency)}`);
     }
     page.drawLine({
       start: { x: MARGIN, y: y + ROW_H - 2 }, end: { x: MARGIN + CW, y: y + ROW_H - 2 },
       thickness: 0.4, color: C.border,
     });
-    page.drawText("ESTIMATED TOTAL", { x: MARGIN, y, size: 9, font: fontBold, color: C.dark });
+    page.drawText("TOTAL AMOUNT", { x: MARGIN, y, size: 9, font: fontBold, color: C.dark });
     page.drawText(fmtMoney(estimatedTotal, currency), {
       x: MARGIN + 152, y, size: 10, font: fontBold, color: C.accentLite,
     });
