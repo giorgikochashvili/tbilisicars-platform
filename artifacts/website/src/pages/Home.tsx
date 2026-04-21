@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Calendar, Shield, ChevronRight, ChevronDown,
-  Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft,
+  Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft, Users,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/DateTimePicker";
 
@@ -73,9 +73,7 @@ function getMinDatetime() {
 const TRUST_STATS = [
   { value: "10+", label: "Years Experience" },
   { value: "15,000+", label: "Customers Served" },
-  { value: "4.7+", label: "Average Rating" },
-  { value: "<15 min", label: "Pickup & Drop-off" },
-  { value: "24/7", label: "Customer Support" },
+  { value: "4.6+", label: "Average Rating" },
 ];
 
 const VEHICLE_CATEGORIES = [
@@ -86,33 +84,38 @@ const VEHICLE_CATEGORIES = [
 const WHY_CARDS = [
   {
     icon: <Shield className="w-5 h-5 text-primary" />,
-    title: "Full Insurance Options",
-    desc: "Choose Basic, Full, or Premium coverage with transparent terms and no hidden surprises.",
+    title: "Full Insurance Coverage",
+    desc: "Drive with confidence knowing you're fully protected throughout your journey.",
   },
   {
     icon: <CheckCircle className="w-5 h-5 text-primary" />,
     title: "Transparent Pricing",
-    desc: "What you see is what you pay — no surprise fees at pickup or drop-off.",
+    desc: "No hidden fees or surprises — all costs are clearly shown upfront.",
   },
   {
     icon: <Infinity className="w-5 h-5 text-primary" />,
     title: "Unlimited Mileage",
-    desc: "Explore Georgia freely without worrying about distance limits.",
+    desc: "Travel freely across Georgia with no distance limits.",
   },
   {
     icon: <Car className="w-5 h-5 text-primary" />,
-    title: "Airport Service Included",
-    desc: "Airport service and parking charges are already included where applicable.",
+    title: "Airport Service",
+    desc: "Convenient vehicle delivery and return directly at the airport.",
   },
   {
     icon: <HeartHandshake className="w-5 h-5 text-primary" />,
-    title: "24/7 Support",
-    desc: "Our team is available around the clock whenever you need assistance.",
+    title: "24/7 Customer Support",
+    desc: "Our team is available anytime you need assistance during your rental.",
   },
   {
     icon: <Clock className="w-5 h-5 text-primary" />,
-    title: "Fast Pickup & Drop-off",
-    desc: "Quick handover process designed to save your time.",
+    title: "Roadside Assistance",
+    desc: "Quick help is always available in case of unexpected situations.",
+  },
+  {
+    icon: <Users className="w-5 h-5 text-primary" />,
+    title: "Additional Drivers",
+    desc: "Add extra drivers at no additional cost for a flexible travel experience.",
   },
 ];
 
@@ -242,7 +245,7 @@ export default function Home() {
     }
     const c0 = animate(10, setStat0, (n) => String(Math.round(n)));
     const c1 = animate(15000, setStat1, (n) => Math.round(n).toLocaleString());
-    const c2 = animate(4.7, setStat2, (n) => n.toFixed(1));
+    const c2 = animate(4.6, setStat2, (n) => n.toFixed(1));
     return () => { c0(); c1(); c2(); };
   }, []);
 
@@ -317,13 +320,26 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
           <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
-            <span className="text-white">Travel In Georgia Without Limits</span>
+            <span className="text-white">Discover Georgia With Us</span>
           </h1>
-          <p className="text-base sm:text-lg font-medium text-primary mb-2 capitalize">
-            We Know How To Serve Our Customers
+          <p className="text-base sm:text-lg font-medium text-primary mb-2">
+            Trusted by thousands of travelers worldwide
           </p>
-          <p className="text-xs sm:text-sm text-slate-300 mb-5 lg:mb-4 capitalize">
-            24/7 Support&nbsp;•&nbsp;No Hidden Fees&nbsp;•&nbsp;Airport Service&nbsp;•&nbsp;Fast Pickup
+          <p className="text-xs sm:text-sm text-slate-300 mb-5 lg:mb-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            {[
+              "Full Insurance",
+              "Unlimited Mileage",
+              "Unlimited Additional Drivers",
+              "Roadside Assistance",
+              "24/7 Customer Support",
+            ].map((item, idx, arr) => (
+              <span key={item} className="flex items-center gap-x-2">
+                <span>{item}</span>
+                {idx < arr.length - 1 && (
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-500 opacity-70 animate-pulse" />
+                )}
+              </span>
+            ))}
           </p>
 
           {/* Booking Widget */}
@@ -418,14 +434,11 @@ export default function Home() {
       {/* ── Trust / Stats Strip ── */}
       <section className="py-8 px-4" style={{ background: "hsl(211,55%,7%)" }}>
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {TRUST_STATS.map((s, i) => (
               <div
                 key={s.label}
-                className={[
-                  "flex flex-col items-center text-center px-3 py-4 rounded-xl border border-white/8 bg-white/3",
-                  i === 4 ? "col-span-2 sm:col-span-1" : "",
-                ].join(" ")}
+                className="flex flex-col items-center text-center px-3 py-4 rounded-xl border border-white/8 bg-white/3"
               >
                 <span className="text-xl sm:text-2xl font-bold text-primary leading-none tabular-nums">
                   {i === 0 ? stat0 + "+" : i === 1 ? stat1 + "+" : i === 2 ? stat2 + "+" : s.value}
@@ -559,7 +572,7 @@ export default function Home() {
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Everything You Get With Us</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
-              Everything you need for a smooth, transparent and stress-free car rental experience in Georgia.
+              All prices shown on our website are final — what you see is exactly what you pay at pick-up. Every rental includes the benefits listed below.
             </p>
           </div>
 
@@ -599,17 +612,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Trust Block ── */}
-      <section className="py-10 px-4 border-t border-white/8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-lg sm:text-xl font-semibold text-white mb-3">
-            Trusted by thousands of travelers worldwide
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            We deliver reliable, transparent and stress-free car rental service across Georgia — with fast support, clear pricing and experience built around real traveler needs.
-          </p>
-        </div>
-      </section>
 
     </div>
   );
