@@ -677,7 +677,7 @@ export const CreateAdminModelBody = zod.object({
   transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
   fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
   luggageCapacity: zod.number().optional(),
-  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).optional(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).nullish(),
   mileageLimitPerDay: zod.number().optional(),
   deposit: zod.string().optional(),
 });
@@ -747,7 +747,7 @@ export const UpdateAdminModelBody = zod.object({
   transmission: zod.enum(["MANUAL", "AUTOMATIC"]).optional(),
   fuelType: zod.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]).optional(),
   luggageCapacity: zod.number().optional(),
-  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).optional(),
+  driveType: zod.enum(["FWD", "RWD", "AWD", "4x4"]).nullish(),
   mileageLimitPerDay: zod.number().optional(),
   deposit: zod.string().optional(),
 });

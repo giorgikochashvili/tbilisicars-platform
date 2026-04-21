@@ -1237,7 +1237,8 @@ export interface AdminCreateVehicleModelBody {
   transmission?: AdminCreateVehicleModelBodyTransmission;
   fuelType?: AdminCreateVehicleModelBodyFuelType;
   luggageCapacity?: number;
-  driveType?: string;
+  /** @nullable */
+  driveType?: string | null;
   mileageLimitPerDay?: number;
   deposit?: string;
 }
@@ -1273,7 +1274,8 @@ export interface AdminUpdateVehicleModelBody {
   transmission?: AdminUpdateVehicleModelBodyTransmission;
   fuelType?: AdminUpdateVehicleModelBodyFuelType;
   luggageCapacity?: number;
-  driveType?: string;
+  /** @nullable */
+  driveType?: string | null;
   mileageLimitPerDay?: number;
   deposit?: string;
 }

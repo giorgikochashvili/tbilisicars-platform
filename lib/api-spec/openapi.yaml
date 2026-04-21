@@ -3742,8 +3742,8 @@ components:
         luggageCapacity:
           type: integer
         driveType:
-          type: string
-          enum: [FWD, RWD, AWD, 4x4]
+          type: ["string", "null"]
+          enum: [FWD, RWD, AWD, 4x4, null]
         mileageLimitPerDay:
           type: integer
         deposit:
@@ -3782,8 +3782,8 @@ components:
         luggageCapacity:
           type: integer
         driveType:
-          type: string
-          enum: [FWD, RWD, AWD, 4x4]
+          type: ["string", "null"]
+          enum: [FWD, RWD, AWD, 4x4, null]
         mileageLimitPerDay:
           type: integer
         deposit:
