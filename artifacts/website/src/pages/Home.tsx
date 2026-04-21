@@ -77,8 +77,9 @@ const TRUST_STATS = [
 ];
 
 const VEHICLE_CATEGORIES = [
-  "Mini", "Economy", "Hybrid", "Electric", "SUV / Jeep",
-  "7-seater", "Minivan", "Off-road", "Sports cars", "Cabriolet", "Business class",
+  "Economy",
+  "Crossover / Intermediate SUV",
+  "Business Class",
 ];
 
 const WHY_CARDS = [
@@ -597,16 +598,18 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">All Vehicle Categories in One Place</h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-2xl mx-auto">
-            From city cars to SUVs, hybrids, minivans and business-class vehicles — choose the right car for your trip in Georgia.
+            Browse our fleet — from Economy cars to Crossover SUVs and Business Class vehicles for your journey across Georgia.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {VEHICLE_CATEGORIES.map((cat) => (
-              <span
+              <button
                 key={cat}
-                className="px-4 py-2 rounded-full border border-white/15 text-sm text-white/80 bg-white/5 hover:border-primary/50 hover:text-white transition-colors"
+                type="button"
+                onClick={() => navigate("/fleet")}
+                className="px-4 py-2 rounded-full border border-white/15 text-sm text-white/80 bg-white/5 hover:border-primary/50 hover:text-white transition-colors cursor-pointer"
               >
                 {cat}
-              </span>
+              </button>
             ))}
           </div>
         </div>
