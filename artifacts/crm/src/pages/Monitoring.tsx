@@ -715,16 +715,18 @@ export default function Monitoring() {
                           )}
                         </div>
                         {row.contactPhone && (
-                          <a
-                            href={`https://wa.me/${row.contactPhone.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[11px] text-muted-foreground flex items-center gap-1 hover:text-green-400 transition-colors"
-                          >
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                             <Phone className="w-2.5 h-2.5" />
-                            {row.contactPhone}
-                          </a>
+                            <a
+                              href={`https://wa.me/${row.contactPhone.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-400 hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {row.contactPhone}
+                            </a>
+                          </div>
                         )}
                       </div>
                       <div className="hidden md:flex flex-col min-w-[140px]">
