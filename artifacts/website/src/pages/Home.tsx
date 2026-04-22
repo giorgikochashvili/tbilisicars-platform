@@ -330,7 +330,7 @@ export default function Home() {
             {[
               "Full Insurance",
               "Unlimited Mileage",
-              "Unlimited Additional Drivers",
+              "Free Additional Drivers",
               "Roadside Assistance",
               "24/7 Customer Support",
             ].map((item, idx, arr) => (
