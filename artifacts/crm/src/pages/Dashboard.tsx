@@ -443,8 +443,8 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
-const OPS_GRID = "grid-cols-[44px_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.1fr)_44px_minmax(0,0.9fr)_minmax(0,1fr)_52px]";
-const OPS_HEADERS = ["Ref", "Vehicle", "Client", "Phone", "Days", "Amount", "Route", "Time"] as const;
+const OPS_GRID = "grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1fr)_36px_minmax(0,0.9fr)_52px]";
+const OPS_HEADERS = ["Ref", "Vehicle", "Client", "Phone", "Amount", "Days", "Route", "Time"] as const;
 
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick, dateStr, onPrevDate, onNextDate, isToday, onTodayDate }: {
   title: string;
@@ -536,8 +536,8 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-8" />
                   <Skeleton className="h-4 w-14" />
+                  <Skeleton className="h-4 w-8" />
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-10" />
                 </div>
@@ -601,17 +601,17 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
             >
               {/* Desktop row (md+) */}
               <div className={cn(
-                "hidden md:grid items-center px-3 py-2.5 gap-x-2 hover:bg-muted/40 transition-colors",
+                "hidden md:grid items-center px-3 py-2 gap-x-2 hover:bg-muted/40 transition-colors",
                 OPS_GRID,
               )}>
                 {/* Col 1: Ref */}
                 <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
-                {/* Col 2: Vehicle + booking status */}
+                {/* Col 2: Vehicle + plate + booking status */}
                 <div className="flex flex-col min-w-0 overflow-hidden">
                   {b.vehicle ? (
                     <>
                       <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
-                      <span className="text-[10px] font-mono font-bold text-foreground px-1 py-0.5 bg-primary/10 border border-primary/30 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
+                      <span className="text-[10px] font-mono font-bold text-foreground/80 px-2 py-0.5 bg-muted rounded-md inline-flex w-fit mt-0.5 flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
                       <div className="mt-0.5">
@@ -643,13 +643,13 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     : <span className="italic opacity-50">—</span>
                   }
                 </span>
-                {/* Col 5: Days */}
-                <span className="text-xs font-mono font-semibold text-foreground">{rentalDays}d</span>
-                {/* Col 6: Amount + payment status */}
+                {/* Col 5: Amount + payment status */}
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
                   <PaymentStatusBadge status={b.paymentStatus} />
                 </div>
+                {/* Col 6: Days */}
+                <span className="text-xs font-mono font-semibold text-foreground">{rentalDays}d</span>
                 {/* Col 7: Route */}
                 <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs font-medium">
                   <span className="font-mono font-bold text-foreground/80 truncate">{routeFrom}</span>
