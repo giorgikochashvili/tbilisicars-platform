@@ -571,7 +571,7 @@ export default function Home() {
       <section className="py-14 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Everything You Get With Us</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Rent a car with us and get benefits</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base">
               All prices shown on our website are final — what you see is exactly what you pay at pick-up. Every rental includes the benefits listed below.
             </p>
