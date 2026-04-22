@@ -443,7 +443,7 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
-const OPS_GRID = "grid-cols-[40px_minmax(0,1.6fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1fr)_36px_minmax(0,0.9fr)_52px]";
+const OPS_GRID = "grid-cols-[40px_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(0,1fr)_36px_minmax(0,0.85fr)_52px]";
 const OPS_HEADERS = ["Ref", "Vehicle", "Client", "Phone", "Amount", "Days", "Route", "Time"] as const;
 
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick, dateStr, onPrevDate, onNextDate, isToday, onTodayDate }: {
@@ -607,7 +607,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 {/* Col 1: Ref */}
                 <span className="font-mono text-xs font-medium text-muted-foreground">#{b.id}</span>
                 {/* Col 2: Vehicle + plate + booking status */}
-                <div className="flex flex-col min-w-0 overflow-hidden">
+                <div className="flex flex-col min-w-0">
                   {b.vehicle ? (
                     <>
                       <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
@@ -644,7 +644,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   }
                 </span>
                 {/* Col 5: Amount + payment status */}
-                <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0 items-start">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
                   <PaymentStatusBadge status={b.paymentStatus} />
                 </div>
