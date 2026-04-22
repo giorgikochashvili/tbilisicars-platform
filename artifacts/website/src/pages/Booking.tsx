@@ -44,7 +44,7 @@ interface VehicleModel {
   discounted_min_price_per_day?: number | null;
 }
 interface Extra { id: number; name: string; description: string | null; price: string; currency: string; pricing_type: string; max_days: number | null; }
-interface BookingConfig { locations: Location[]; vehicleModels: VehicleModel[]; extras: Extra[]; }
+interface BookingConfig { locations: Location[]; vehicleModels: VehicleModel[]; extras: Extra[]; oneWayFee?: number | null; }
 interface SelectedExtra { extraId: number; quantity: number; }
 
 interface FormData {
@@ -877,18 +877,19 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
 // ─── Vehicle card (grid / category view) ──────────────────────────────────────
 
 function VehicleCard({
-  m, selected, days, showCategoryPill = true, onSelect, onConfirm,
+  m, selected, days, showCategoryPill = true, onSelect, onConfirm, oneWayFee,
 }: {
   m: VehicleModel; selected: boolean; days: number;
   showCategoryPill?: boolean;
+  oneWayFee?: number;
   onSelect: () => void; onConfirm: () => void;
 }) {
   const hasDiscount = !!(m.website_discount_id && m.discounted_min_price_per_day != null);
   const price = hasDiscount ? m.discounted_min_price_per_day! : (m.min_price_per_day ? Number(m.min_price_per_day) : null);
   const originalPrice = hasDiscount ? m.original_min_price_per_day! : null;
   const cur = m.price_currency ?? "EUR";
-  const totalEst = price && days > 0 ? price * days : null;
-  const originalTotalEst = originalPrice && days > 0 ? originalPrice * days : null;
+  const totalEst = price && days > 0 ? price * days + (oneWayFee ?? 0) : null;
+  const originalTotalEst = originalPrice && days > 0 ? originalPrice * days + (oneWayFee ?? 0) : null;
   const isOnRequest = Number(m.vehicle_count) === 0;
   return (
     <button
@@ -1125,11 +1126,12 @@ function VehicleListRow({
 
 // ─── Step 1: Vehicle ──────────────────────────────────────────────────────────
 
-function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, onNext, isRefetching }: {
+function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, onNext, isRefetching, oneWayFee }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>;
   models: VehicleModel[]; locations: Location[]; extras: Extra[];
   quote: Quote | null; quoteLoading: boolean;
   onNext: () => void; isRefetching?: boolean;
+  oneWayFee?: number;
 }) {
   const [editSearch, setEditSearch] = useState(false);
   const [filters, setFilters] = useState({ category: "", transmission: "", seats: "", fuelType: "" });
@@ -1233,7 +1235,15 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                 <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
                   <span className="text-white font-medium normal-case tracking-normal text-sm truncate max-w-[160px] lg:max-w-[120px]">
-                    {locations.find((l) => String(l.id) === form.pickupLocationId)?.name ?? "Your Trip"}
+                    {(() => {
+                      const pickupLoc = locations.find((l) => String(l.id) === form.pickupLocationId);
+                      const isOneWay = form.dropoffLocationId && form.dropoffLocationId !== form.pickupLocationId;
+                      if (isOneWay) {
+                        const dropoffLoc = locations.find((l) => String(l.id) === form.dropoffLocationId);
+                        return `${pickupLoc?.city ?? pickupLoc?.name ?? "Pickup"} → ${dropoffLoc?.city ?? dropoffLoc?.name ?? "Dropoff"}`;
+                      }
+                      return pickupLoc?.name ?? "Your Trip";
+                    })()}
                     {days > 0 && <span className="ml-2 text-primary text-xs font-bold">· {days}d</span>}
                   </span>
                 </div>
@@ -1565,6 +1575,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                           selected={String(form.vehicleModelId) === String(m.id)}
                           days={days}
                           showCategoryPill={false}
+                          oneWayFee={oneWayFee}
                           onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
                           onConfirm={validate}
                         />
@@ -1605,6 +1616,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                           selected={String(form.vehicleModelId) === String(m.id)}
                           days={days}
                           showCategoryPill
+                          oneWayFee={oneWayFee}
                           onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
                           onConfirm={validate}
                         />
@@ -1641,6 +1653,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
                 selected={String(form.vehicleModelId) === String(m.id)}
                 days={days}
                 showCategoryPill
+                oneWayFee={oneWayFee}
                 onSelect={() => setForm((f) => ({ ...f, vehicleModelId: String(m.id) }))}
                 onConfirm={validate}
               />
@@ -2886,6 +2899,7 @@ export default function Booking() {
     queryKey: [
       "booking-config",
       form.pickupLocationId || null,
+      form.dropoffLocationId && form.dropoffLocationId !== form.pickupLocationId ? form.dropoffLocationId : null,
       form.pickupDatetime || null,
       form.dropoffDatetime || null,
       configDays > 0 ? configDays : null,
@@ -2893,6 +2907,9 @@ export default function Booking() {
     queryFn: () => {
       const params = new URLSearchParams();
       if (form.pickupLocationId) params.set("location_id", form.pickupLocationId);
+      if (form.dropoffLocationId && form.dropoffLocationId !== form.pickupLocationId) {
+        params.set("dropoff_location_id", form.dropoffLocationId);
+      }
       if (form.pickupDatetime) params.set("pickup_datetime", form.pickupDatetime);
       if (form.dropoffDatetime) params.set("dropoff_datetime", form.dropoffDatetime);
       if (configDays > 0) params.set("days", String(configDays));
@@ -2987,6 +3004,7 @@ export default function Booking() {
               form={form} setForm={setForm}
               models={models} locations={locations}
               extras={extras} quote={quote} quoteLoading={quoteLoading}
+              oneWayFee={config?.oneWayFee ?? undefined}
               onNext={next} isRefetching={configFetching && !isLoading}
             />
           </div>

@@ -45,6 +45,14 @@ router.get("/public/booking-config", async (req, res) => {
     !isNaN(new Date(pickupDt).getTime()) &&
     !isNaN(new Date(dropoffDt).getTime());
 
+  // Optional: dropoff location for one-way fee lookup.
+  const dropoffLocationIdRaw = req.query.dropoff_location_id;
+  const dropoffLocationId =
+    dropoffLocationIdRaw && !Array.isArray(dropoffLocationIdRaw)
+      ? parseInt(String(dropoffLocationIdRaw), 10)
+      : NaN;
+  const filterByDropoffLocation = !isNaN(dropoffLocationId) && dropoffLocationId > 0;
+
   // Optional: select the rate tier matching the given trip duration so vehicle
   // cards display the correct per-day price rather than the global minimum.
   const daysRaw = req.query.days;
@@ -332,10 +340,23 @@ router.get("/public/booking-config", async (req, res) => {
     }
   }
 
+  // ── One-way fee: resolve when both pickup and dropoff locations are set and different ──
+  let configOneWayFee: number | null = null;
+  if (filterByLocation && filterByDropoffLocation && locationId !== dropoffLocationId) {
+    const { rows: owfRows } = await pool.query<{ fee: string }>(
+      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
+      [locationId, dropoffLocationId],
+    );
+    if (owfRows[0] && Number(owfRows[0].fee) > 0) {
+      configOneWayFee = Number(owfRows[0].fee);
+    }
+  }
+
   res.json({
     locations: locRows.rows,
     vehicleModels,
     extras: extraRows.rows,
+    ...(configOneWayFee !== null ? { oneWayFee: configOneWayFee } : {}),
   });
 });
 
