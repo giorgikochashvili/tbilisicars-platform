@@ -1,0 +1,85 @@
+#231 - Website One-Way Fee Fix in Search Results and Booking Summary
+
+What & Why
+The website booking flow is not correctly applying One-Way Fee pricing when the pick-up and drop-off locations are different.
+
+This is a serious pricing bug because the CRM already has a One Way Fee system configured by route, but the website does not correctly reflect it in customer-facing pricing.
+
+Example:
+- Pick-up: Tbilisi International Airport
+- Drop-off: Kutaisi International Airport
+- CRM one-way fee for this route: 50 EUR
+
+If the selected car rental total is 131.25 EUR, the customer should see:
+181.25 EUR total
+
+But currently the website does NOT add the one-way fee correctly in search results / vehicle cards, and the booking summary also does not clearly show the One-way fee row.
+
+There is also a UI issue in the left summary panel: when pickup and drop-off differ, the location display is incomplete or misleading and should not show only the pickup side.
+
+Goal
+Fix website pricing and booking summary so One-Way Fee is:
+- correctly calculated
+- correctly added to the displayed total
+- clearly shown as its own line item
+- reflected consistently across the booking flow
+
+Strict rules
+- Do NOT change CRM one-way fee management logic
+- Do NOT redesign unrelated booking UI
+- Do NOT change discount logic beyond what is necessary to correctly include one-way fee
+- Do NOT apply promo or website discounts to one-way fee
+- Keep extras logic unchanged
+- Keep changes surgical and minimal
+
+Investigation required first
+Before proposing implementation, inspect the real current pricing path and determine:
+
+1. Where one-way fee is currently fetched/resolved
+2. Whether the fee exists in the quote response already and is simply not displayed
+3. Whether the fee is missing from the website quote calculation entirely
+4. Whether route matching between pickup/drop-off and CRM one-way fee records is working correctly
+5. Whether currency handling is correct
+6. Whether search results cards, booking summary, and later step summaries are all using the same quote source or different calculations
+
+Check these areas first
+- artifacts/website/src/pages/Booking.tsx
+- artifacts/api-server/src/routes/public-bookings.ts
+- any pricing/quote helpers involved in website search results
+- CRM / API one-way fee lookup logic if referenced in website pricing
+- any type/interface that already exposes oneWayFee / oneWayFeeAmount / route fee in quote data
+
+Look specifically for
+- where vehicle card total is calculated
+- where rental total vs estimated total is separated
+- where one-way fee should be added to displayed total
+- where booking summary rows are rendered
+- where the left-side trip panel renders pickup/drop-off display
+
+Business rules to preserve
+1. One-way fee applies only when pickup location != drop-off location
+2. One-way fee comes from the CRM-configured route fee system
+3. Website discount applies only to rental price
+4. Promo code applies only to rental price (not one-way fee)
+5. Extras remain unchanged
+6. Final displayed total = rental after discounts + one-way fee + extras
+
+Done looks like
+- Vehicle search results show correct total including one-way fee when applicable
+- Example route Tbilisi Airport → Kutaisi Airport correctly includes +50 EUR
+- Booking summary shows a separate row:
+  One-way fee | +50 EUR
+- Left-side trip summary clearly reflects both pickup and drop-off when they differ
+- Discount logic remains rental-only
+- Promo logic remains rental-only
+- No TypeScript/runtime errors
+- No regressions for same-location bookings
+
+Output format
+Return:
+1. exact current one-way fee flow
+2. exact bug/root cause
+3. exact files to change
+4. whether the fee is already in quote data or missing
+5. safest implementation strategy
+6. whether this should go directly to Build or needs a Revise step
