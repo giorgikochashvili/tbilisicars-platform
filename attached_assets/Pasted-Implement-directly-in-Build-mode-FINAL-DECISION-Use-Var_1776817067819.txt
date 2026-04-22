@@ -1,0 +1,58 @@
+Implement directly in Build mode.
+
+FINAL DECISION:
+Use Variant A.
+
+Desired flow:
+- Clicking a Featured Car card should navigate to /fleet?modelId=<vehicleModelId>
+- Clicking the CTA button inside the Featured Car card should ALSO navigate to /fleet?modelId=<vehicleModelId>
+- The Fleet page should preserve intent by highlighting the matching vehicle card and auto-scrolling to it
+
+Scope:
+Two files only:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/pages/Fleet.tsx
+
+Requirements:
+
+1. Home.tsx
+- Update Featured Cars interactions so both:
+  - card click / keyboard activation
+  - CTA button click
+  navigate to /fleet?modelId=<vehicleModelId>
+- Use the real vehicle model id already available in the featured item
+- Keep using the existing wouter navigation pattern already present in the file
+
+2. Fleet.tsx
+- Read modelId from the current URL using existing wouter useLocation() + URLSearchParams
+- Add id="vehicle-<id>" to each vehicle card outer wrapper
+- If a card matches selectedModelId:
+  - apply subtle premium highlight styling only
+  - use something like ring-2 ring-primary shadow-lg shadow-primary/20
+  - add a small subtle "Selected" badge in the image area at bottom-left so it does not collide with the existing top-left category badge
+- Add a useEffect that, after the fleet data is ready, finds the selected card by DOM id and scrolls it into view with:
+  - behavior: "smooth"
+  - block: "center"
+  - small delay (~150ms) is acceptable to allow grid paint first
+
+3. Fallback behavior
+- If modelId is missing, invalid, or not found:
+  - page behaves exactly as normal
+  - no errors
+  - no warnings
+  - no layout changes
+
+Important:
+- Do NOT add filtering logic
+- Do NOT redesign cards
+- Do NOT change backend
+- Do NOT touch Booking page
+- Keep UI changes minimal and premium
+- No new dependencies
+
+Done looks like:
+- Featured Cars now route to /fleet?modelId=<id>
+- Matching Fleet card is highlighted
+- Page scrolls to the selected vehicle
+- No regressions
+- No TypeScript errors

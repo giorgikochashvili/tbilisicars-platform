@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search, Package } from "lucide-react";
@@ -70,7 +70,13 @@ function fuelLabel(f: string | null) {
 }
 
 export default function Fleet() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+
+  const selectedModelId = useMemo(() => {
+    const search = location.includes("?") ? location.slice(location.indexOf("?") + 1) : "";
+    const v = Number(new URLSearchParams(search).get("modelId"));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  }, [location]);
 
   const { data: config, isLoading, error } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
@@ -78,6 +84,14 @@ export default function Fleet() {
   });
 
   const models = config?.vehicleModels ?? [];
+
+  useEffect(() => {
+    if (!selectedModelId || !config) return;
+    const t = setTimeout(() => {
+      document.getElementById(`vehicle-${selectedModelId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [selectedModelId, config]);
 
   function bookVehicle(modelId: number) {
     navigate(`/booking?vehicleModelId=${modelId}`);
@@ -170,10 +184,17 @@ export default function Fleet() {
               const currency = m.price_currency ?? "GEL";
               const isOnRequest = Number(m.vehicle_count) === 0;
 
+              const isSelected = m.id === selectedModelId;
+
               return (
                 <div
                   key={m.id}
-                  className="bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/40 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 group flex flex-col"
+                  id={`vehicle-${m.id}`}
+                  className={`bg-card border rounded-2xl overflow-hidden transition-all duration-200 group flex flex-col ${
+                    isSelected
+                      ? "border-primary ring-2 ring-primary shadow-lg shadow-primary/20"
+                      : "border-border hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+                  }`}
                 >
                   {/* Vehicle image */}
                   <div className="relative aspect-[16/10] bg-gradient-to-br from-secondary to-card overflow-hidden shrink-0">
@@ -186,6 +207,12 @@ export default function Fleet() {
                     {m.category && (
                       <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
                         {m.category}
+                      </span>
+                    )}
+                    {/* Selected badge — bottom left */}
+                    {isSelected && (
+                      <span className="absolute bottom-3 left-3 bg-primary/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide z-10">
+                        Selected
                       </span>
                     )}
                     {/* On Request badge — top right */}

@@ -516,8 +516,8 @@ export default function Home() {
                     key={item.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
+                    onClick={() => navigate(`/fleet?modelId=${item.vehicleModelId}`)}
+                    onKeyDown={(e) => e.key === "Enter" && navigate(`/fleet?modelId=${item.vehicleModelId}`)}
                     className="flex-shrink-0 w-[340px] sm:w-[400px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col cursor-pointer"
                     style={{ background: "hsl(211,55%,9%)" }}
                   >
@@ -552,7 +552,7 @@ export default function Home() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/booking?vehicleModelId=${item.vehicleModelId}`);
+                          navigate(`/fleet?modelId=${item.vehicleModelId}`);
                         }}
                         className="w-full text-center bg-primary hover:bg-accent text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm"
                       >

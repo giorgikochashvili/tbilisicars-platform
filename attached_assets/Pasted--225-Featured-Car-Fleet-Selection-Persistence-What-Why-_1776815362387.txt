@@ -1,0 +1,44 @@
+#225 - Featured Car → Fleet Selection Persistence
+
+What & Why
+When a user clicks a car from the Featured Cars section on the homepage, they are redirected to the Fleet page but lose the context of which car they selected.
+
+This creates friction and weakens conversion because users must visually search again for the same vehicle.
+
+We need to preserve intent by passing the selected vehicle model and highlighting it on the Fleet page.
+
+Done looks like
+Clicking a Featured Car redirects to /fleet?modelId=<id>
+Fleet page reads modelId from query params
+Matching vehicle card is visually highlighted
+Page auto-scrolls smoothly to the selected vehicle
+If modelId is missing or not found, the page behaves normally
+No layout breaks and no TypeScript errors
+
+Out of scope
+No filtering logic (do NOT filter vehicle list)
+No redesign of vehicle cards
+No backend changes
+No changes outside Featured Cars and Fleet page
+
+Steps
+Pass modelId from Featured Cars click — In Home.tsx, update the click/CTA handler to navigate to /fleet?modelId=<vehicleModelId> using the existing wouter navigate function. Use the real vehicle model ID, not title or name.
+
+Read modelId in Fleet page — In Fleet.tsx, parse query params using useLocation and URLSearchParams to extract modelId.
+
+Highlight selected vehicle card — In the vehicle card render loop, compare vehicle.id with selectedModelId and conditionally apply highlight styles (e.g. ring-2 ring-red-500). Keep styling subtle and consistent.
+
+Add optional selected badge — If a card is selected, render a small subtle "Selected" label.
+
+Auto-scroll to selected vehicle — Use useEffect after data load to find the DOM element by id (vehicle-<id>) and scrollIntoView with smooth behavior and center alignment.
+
+Graceful fallback — If modelId is invalid or not found, do nothing and render normally without errors.
+
+Relevant files
+artifacts/website/src/pages/Home.tsx
+artifacts/website/src/pages/Fleet.tsx
+
+Notes
+Use wouter routing (not react-router)
+Do not introduce new dependencies
+Keep UI changes minimal and premium
