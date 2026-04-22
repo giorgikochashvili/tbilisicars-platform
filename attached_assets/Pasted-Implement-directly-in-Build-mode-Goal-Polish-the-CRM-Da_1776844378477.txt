@@ -1,0 +1,69 @@
+Implement directly in Build mode.
+
+Goal:
+Polish the CRM Dashboard Operations desktop table so it becomes compact, balanced, and visually clean.
+
+File:
+artifacts/crm/src/pages/Dashboard.tsx
+
+Strict scope:
+- desktop Operations table only
+- do NOT change data, API, sorting, filtering, or mobile card layout
+- do NOT redesign the whole component
+- only rebalance layout and tighten visual presentation
+
+Problems to fix:
+1. Columns still have too much empty space between them
+2. Vehicle plate badge should remain visible and well-positioned, not hidden and not too close
+3. Payment status badges (UNPAID / PARTIAL / PAID) and their colored line/background are too stretched and visually ugly
+
+Requirements:
+
+1. Rebalance desktop column widths
+- Reduce unnecessary gaps between Vehicle, Client, Phone, Amount
+- Keep column order:
+  Ref | Vehicle | Client | Phone | Amount | Days | Route | Time
+- Make the table denser and more proportional
+- Days and Route must have clear separation
+- Time remains narrow on the far right
+
+2. Vehicle + plate presentation
+- Vehicle model remains primary text
+- License plate must be visible in every row
+- Plate badge should be compact, auto-width, and sit naturally under or near the vehicle name
+- Do NOT let the plate disappear because of overflow or clipping
+- Do NOT place it too close to surrounding content
+- Use subtle badge styling, consistent with the CRM design
+
+3. Payment status presentation
+- Keep amount as primary
+- Payment status badge stays directly under or next to the amount
+- The colored line / pill / background for PAID / UNPAID / PARTIAL must NOT stretch across a long width
+- Make the payment status element fit-content / auto-width only
+- It should look like a compact status badge, not a long progress bar
+- Keep colors the same meaning-wise, but reduce the visual width drastically
+
+4. Tighten row density
+- Keep rows slightly compact
+- Make the table easier to scan
+- Remove the feeling of stretched empty space
+
+5. Header alignment
+- Ensure headers align naturally with content
+- Especially Days, Route, and Amount should feel balanced and clearly separated
+
+Visual goal:
+- compact
+- premium
+- readable
+- no wasted space
+- no overly long status bars
+- no hidden plate badges
+
+Done looks like:
+- spacing between columns is tighter and cleaner
+- plate badge is visible and properly positioned
+- payment status badges are compact, not stretched
+- amount block looks neat
+- table feels balanced and professional
+- no TypeScript errors
