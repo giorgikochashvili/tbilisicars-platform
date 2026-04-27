@@ -424,14 +424,34 @@ export async function appendBookingPhotos(
   if (existing.length === 0) {
     throw new NotFoundError(`Booking ${bookingId} not found`);
   }
+
+  // Strip null/empty and deduplicate within the incoming batch.
+  const cleanUrls = [...new Set(photoUrls.filter((u) => u && u.trim().length > 0))];
+  if (cleanUrls.length === 0) return { added: 0 };
+
+  // Exclude URLs already stored for this booking+type so retries don't create duplicates.
+  const existingRows = await db
+    .select({ photoUrl: bookingphotoTable.photoUrl })
+    .from(bookingphotoTable)
+    .where(
+      and(
+        eq(bookingphotoTable.bookingId, bookingId),
+        eq(bookingphotoTable.photoType, photoType),
+      ),
+    );
+  const existingUrls = new Set(existingRows.map((r) => r.photoUrl));
+  const newUrls = cleanUrls.filter((u) => !existingUrls.has(u));
+
+  if (newUrls.length === 0) return { added: 0 };
+
   await db.insert(bookingphotoTable).values(
-    photoUrls.map((url) => ({
+    newUrls.map((url) => ({
       bookingId,
       photoUrl: url,
       photoType,
     })),
   );
-  return { added: photoUrls.length };
+  return { added: newUrls.length };
 }
 
 // ─── Service: get single booking detail ───────────────────────────────────────

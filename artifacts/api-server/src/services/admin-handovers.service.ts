@@ -35,6 +35,9 @@ export async function createHandover(data: {
     pickupSatisfaction = null,
   } = data;
 
+  // Strip null/empty strings before any DB work so we never create broken rows.
+  const validUrls = photoUrls.filter((u) => u && u.trim().length > 0);
+
   // Satisfaction is required for PICKUP only.
   if (handoverType === "PICKUP" && !pickupSatisfaction) {
     throw new Error("pickupSatisfaction is required for PICKUP handovers");
@@ -100,11 +103,11 @@ export async function createHandover(data: {
 
     if (!handoverRow) throw new Error("Failed to create handover record");
 
-    // Bulk-insert photos if provided
-    if (photoUrls.length > 0) {
+    // Bulk-insert photos if provided (validUrls already stripped of null/empty)
+    if (validUrls.length > 0) {
       const photoType = handoverType === "PICKUP" ? "PICKUP" : "RETURN";
       await tx.insert(bookingphotoTable).values(
-        photoUrls.map((url) => ({
+        validUrls.map((url) => ({
           bookingId,
           photoUrl: url,
           photoType: photoType as "PICKUP" | "RETURN",
@@ -121,7 +124,7 @@ export async function createHandover(data: {
     const parts: string[] = [];
     if (mileage != null) parts.push(`mileage: ${mileage} km`);
     if (fuelLevel != null) parts.push(`fuel: ${fuelLevel}%`);
-    if (photoUrls.length > 0) parts.push(`${photoUrls.length} photo(s)`);
+    if (validUrls.length > 0) parts.push(`${validUrls.length} photo(s)`);
     const description =
       `${handoverType === "PICKUP" ? "Pick Up" : "Drop Off"} recorded` +
       (parts.length > 0 ? ` — ${parts.join(", ")}` : "");
@@ -179,19 +182,24 @@ export async function getHandoversForBooking(bookingId: number) {
     .where(eq(bookingHandoverTable.bookingId, bookingId))
     .orderBy(asc(bookingHandoverTable.actionAt));
 
-  // Fetch photos for each handover
+  // Fetch photos — exclude archived rows and guard against null photoUrl values.
   const photoRows = await db
     .select()
     .from(bookingphotoTable)
-    .where(eq(bookingphotoTable.bookingId, bookingId))
+    .where(
+      and(
+        eq(bookingphotoTable.bookingId, bookingId),
+        isNull(bookingphotoTable.photoArchivedAt),
+      ),
+    )
     .orderBy(asc(bookingphotoTable.id));
 
   const pickupPhotos = photoRows
-    .filter((p) => p.photoType === "PICKUP")
-    .map((p) => p.photoUrl);
+    .filter((p) => p.photoType === "PICKUP" && p.photoUrl !== null)
+    .map((p) => p.photoUrl as string);
   const returnPhotos = photoRows
-    .filter((p) => p.photoType === "RETURN")
-    .map((p) => p.photoUrl);
+    .filter((p) => p.photoType === "RETURN" && p.photoUrl !== null)
+    .map((p) => p.photoUrl as string);
 
   const pickup = handoverRows.find((h) => h.handoverType === "PICKUP") ?? null;
   const dropoff = handoverRows.find((h) => h.handoverType === "DROPOFF") ?? null;

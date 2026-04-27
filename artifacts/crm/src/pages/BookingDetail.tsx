@@ -558,6 +558,44 @@ function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" | "PR
   );
 }
 
+function HandoverPhotoThumb({
+  url,
+  label,
+}: {
+  url: string;
+  label: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = toStorageSrc(url);
+  return (
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20"
+    >
+      {failed || !src ? (
+        <div
+          className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground/50"
+          title={url}
+        >
+          <ImageIcon className="w-5 h-5" />
+          <span className="text-[9px] text-center leading-tight px-1">
+            Unavailable
+          </span>
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={label}
+          className="w-full h-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </a>
+  );
+}
+
 function HandoverDisplay({
   handover,
   type,
@@ -631,22 +669,11 @@ function HandoverDisplay({
           </div>
           <div className="flex flex-wrap gap-2">
             {handover.photos.map((url: string, i: number) => (
-              <a
+              <HandoverPhotoThumb
                 key={i}
-                href={toStorageSrc(url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20"
-              >
-                <img
-                  src={toStorageSrc(url)}
-                  alt={`${type} photo ${i + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              </a>
+                url={url}
+                label={`${type} photo ${i + 1}`}
+              />
             ))}
           </div>
         </div>
@@ -730,6 +757,9 @@ function PhotoAppendDialog({
     }
   }, []);
 
+  const HEIC_TYPES = ["image/heic", "image/heif"];
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const accepted: FileItem[] = [];
     const skipped: string[] = [];
@@ -741,18 +771,27 @@ function PhotoAppendDialog({
         accepted.some(
           (fi) => fi.file.name === f.name && fi.file.size === f.size,
         );
-      if (isDupe) skipped.push(`${f.name} (duplicate)`);
-      else if (f.size > MAX_MB * 1024 * 1024)
-        skipped.push(`${f.name} (too large)`);
-      else if (!f.type.startsWith("image/"))
-        skipped.push(`${f.name} (not an image)`);
-      else
+      const mimeType = f.type.toLowerCase();
+      if (isDupe) {
+        skipped.push(`${f.name} (duplicate)`);
+      } else if (f.size === 0) {
+        skipped.push(`${f.name} (empty file)`);
+      } else if (f.size > MAX_MB * 1024 * 1024) {
+        skipped.push(`${f.name} (too large — max ${MAX_MB} MB)`);
+      } else if (HEIC_TYPES.includes(mimeType)) {
+        skipped.push(
+          `${f.name} (HEIC/HEIF not supported — use JPEG, PNG, or WebP, or disable HEIC in iPhone camera settings)`,
+        );
+      } else if (!ALLOWED_TYPES.includes(mimeType)) {
+        skipped.push(`${f.name} (unsupported format — use JPEG, PNG, or WebP)`);
+      } else {
         accepted.push({
           id: crypto.randomUUID(),
           file: f,
           preview: URL.createObjectURL(f),
           status: "pending",
         });
+      }
     }
     if (skipped.length)
       toast({
@@ -845,7 +884,7 @@ function PhotoAppendDialog({
               <input
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -1059,6 +1098,9 @@ function HandoverModal({
     }
   }, []);
 
+  const HEIC_TYPES_HM = ["image/heic", "image/heif"];
+  const ALLOWED_TYPES_HM = ["image/jpeg", "image/png", "image/webp"];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const accepted: FileItem[] = [];
     const skipped: string[] = [];
@@ -1070,12 +1112,19 @@ function HandoverModal({
         accepted.some(
           (fi) => fi.file.name === f.name && fi.file.size === f.size,
         );
+      const mimeType = f.type.toLowerCase();
       if (isDupe) {
         skipped.push(`${f.name} (duplicate)`);
+      } else if (f.size === 0) {
+        skipped.push(`${f.name} (empty file)`);
       } else if (f.size > MAX_MB * 1024 * 1024) {
-        skipped.push(`${f.name} (too large)`);
-      } else if (!f.type.startsWith("image/")) {
-        skipped.push(`${f.name} (not an image)`);
+        skipped.push(`${f.name} (too large — max ${MAX_MB} MB)`);
+      } else if (HEIC_TYPES_HM.includes(mimeType)) {
+        skipped.push(
+          `${f.name} (HEIC/HEIF not supported — use JPEG, PNG, or WebP, or disable HEIC in iPhone camera settings)`,
+        );
+      } else if (!ALLOWED_TYPES_HM.includes(mimeType)) {
+        skipped.push(`${f.name} (unsupported format — use JPEG, PNG, or WebP)`);
       } else {
         accepted.push({
           id: crypto.randomUUID(),
@@ -1358,7 +1407,7 @@ function HandoverModal({
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   onChange={handleFileChange}
                 />
