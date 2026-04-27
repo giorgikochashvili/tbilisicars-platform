@@ -1,0 +1,319 @@
+# TASK — Make CRM Booking Photo Upload & Viewing Production-Reliable
+
+We need to harden the CRM booking photo system so uploads and old photo viewing are reliable across:
+- Desktop browsers
+- iOS Safari / iPhone
+- Android Chrome
+- Pickup process
+- Dropoff process
+- Manual Booking Detail photo upload
+- Existing old uploaded photos
+
+This is a production system. Make safe, targeted fixes only.
+
+---
+
+## PROBLEM
+
+Photos sometimes:
+- fail to upload
+- show blank/white boxes
+- disappear from old bookings
+- do not display after refresh
+- cause confusion during pickup/dropoff
+- behave inconsistently between pickup/dropoff/manual upload flows
+
+Photo upload and display must be reliable from every entry point.
+
+---
+
+## STRICT RULES
+
+- Do NOT rewrite CRM architecture
+- Do NOT change booking/payment/pricing logic
+- Do NOT change pickup/dropoff business rules except photo reliability
+- Do NOT remove existing uploaded photos
+- Do NOT change DB schema unless absolutely necessary
+- Do NOT break old photo URLs
+- Make changes small, safe, and backwards-compatible
+- Keep old photos viewable
+
+---
+
+# PART 1 — Backend: Clean and stable photo data returned to CRM
+
+## File:
+artifacts/api-server/src/services/admin-handovers.service.ts
+
+### 1. Filter null photo URLs
+
+In getHandoversForBooking(), ensure pickupPhotos and returnPhotos NEVER include null/undefined photoUrl values.
+
+Change photo arrays to filter:
+- correct photoType
+- photoUrl !== null
+- photoArchivedAt is null if available in query
+
+Example target logic:
+
+const pickupPhotos = photoRows
+  .filter((p) => p.photoType === "PICKUP" && p.photoUrl !== null)
+  .map((p) => p.photoUrl as string);
+
+const returnPhotos = photoRows
+  .filter((p) => p.photoType === "RETURN" && p.photoUrl !== null)
+  .map((p) => p.photoUrl as string);
+
+### 2. Exclude archived photos consistently
+
+Where booking photos are queried for handover display, add:
+
+isNull(bookingphotoTable.photoArchivedAt)
+
+so handover photo display matches pickupPhotoCount / returnPhotoCount logic.
+
+Import isNull/and from drizzle-orm if needed.
+
+---
+
+# PART 2 — Backend: Object/local storage photos must be visible in <img>
+
+## File:
+artifacts/api-server/src/routes/storage.ts
+
+Review all photo serving routes:
+- local upload serving
+- object storage serving
+- /api/storage/objects/*
+- /storage/local-uploads/* or equivalent
+
+Goal:
+CRM <img src="..."> must be able to load photo URLs reliably.
+
+If object photo GET route currently requires requireAdmin and thumbnails load via plain <img>, remove requireAdmin ONLY from the read/GET object photo route, because browser image tags may not send auth/session reliably depending on route/origin.
+
+Important:
+- Do NOT remove auth from upload request endpoints.
+- Do NOT remove auth from admin APIs.
+- Only make uploaded photo file GET readable by opaque UUID path.
+- Keep upload endpoints protected.
+
+Add safe cache headers for images if appropriate:
+Cache-Control: public, max-age=31536000, immutable
+
+Do not break old local-upload URLs.
+
+---
+
+# PART 3 — Backend: Prevent broken DB records after upload failures
+
+Inspect:
+- append booking photos endpoint
+- pickup endpoint photo handling
+- dropoff endpoint photo handling
+- any code that creates bookingphoto rows
+
+Goal:
+DB should only store photoUrl values that came from successful uploaded files.
+
+Ensure:
+- no null photoUrl rows are inserted
+- no empty string photoUrl rows are inserted
+- duplicate photoUrl rows for the same booking are not inserted if staff retries after a failed save
+
+Add defensive filtering server-side:
+- trim photoUrl
+- reject null/empty
+- deduplicate photoUrls per booking + photoType before insert
+
+If duplicate rows already exist, do not delete them automatically in this task. Just prevent future duplicates.
+
+---
+
+# PART 4 — Frontend: Strong upload validation for desktop/iOS/Android
+
+## File:
+artifacts/crm/src/pages/BookingDetail.tsx
+
+Review both upload entry points:
+- HandoverModal file selection/upload
+- PhotoAppendDialog file selection/upload
+
+Make sure both use the same validation rules.
+
+### Required validation:
+
+Accept:
+- image/jpeg
+- image/png
+- image/webp
+
+Reject with clear message:
+- HEIC / HEIF files
+- empty files
+- non-image files
+- files over the current allowed size limit
+
+Important iOS note:
+iPhones often create HEIC/HEIF images. If the app cannot reliably convert HEIC to JPEG, reject HEIC/HEIF clearly:
+"HEIC/HEIF photos are not supported. Please use JPEG/PNG/WebP or disable HEIC in camera settings."
+
+Do not silently upload HEIC as PNG/JPEG.
+
+---
+
+# PART 5 — Frontend: Upload must be transactional and clear
+
+In BookingDetail.tsx upload pipeline:
+
+Ensure upload flow is:
+
+1. User selects files
+2. Client validates files
+3. Each file uploads to storage
+4. Only successful uploaded photo URLs are sent to backend
+5. If any file fails:
+   - show exact failed filename
+   - allow retry
+   - do NOT pretend success
+   - do NOT create DB photo rows for failed files
+
+For pickup/dropoff process:
+- If photo upload fails, do not silently continue as if photos exist.
+- Show staff a clear error and retry option.
+- Do not block already successful uploaded files from being saved.
+
+After successful save:
+- await/refetch booking data and handover data
+- refresh photo count and photo list
+- avoid stale UI
+
+If current code calls fetchBooking() / fetchHandovers() fire-and-forget, change to await them where safe or add catch logging and loading state so UI does not show stale photo state.
+
+---
+
+# PART 6 — Frontend: Broken image fallback
+
+## File:
+artifacts/crm/src/pages/BookingDetail.tsx
+
+In photo thumbnail rendering:
+- Do NOT hide broken images leaving empty/white/grey boxes.
+- If image fails to load, show a visible fallback:
+  - broken image icon or "Image unavailable"
+  - keep container visible
+  - allow clicking/opening original URL if possible
+  - optionally add title with the image URL for debugging
+
+Do not use:
+img.style.display = "none"
+
+Instead:
+- use local error state per image, or
+- render a fallback overlay when onError fires
+
+Goal:
+Staff must never see unexplained blank white boxes.
+
+---
+
+# PART 7 — URL normalization / old photo compatibility
+
+Review toStorageSrc() or any helper that converts stored photoUrl to browser src.
+
+Ensure it supports old and new formats:
+- /storage/local-uploads/...
+- /api/storage/objects/...
+- full https URLs
+- relative local upload paths
+- legacy local-upload paths if they exist
+
+Do not break old DB records.
+
+If stored photoUrl is null/empty/invalid:
+- do not render img tag
+- render safe fallback or skip it
+
+---
+
+# PART 8 — Production diagnostics
+
+Add lightweight logging only where useful:
+
+Backend:
+- log upload request-url failures
+- log photo append failures with bookingId and count
+- log storage PUT failures
+- do not log sensitive customer data
+
+Frontend:
+- console.warn only for failed thumbnail loads and upload failures
+- no noisy logs in normal success path
+
+---
+
+# DONE LOOKS LIKE
+
+1. Manual Booking Detail photo upload works on desktop.
+2. Manual Booking Detail photo upload works on Android.
+3. Manual Booking Detail photo upload works on iPhone with supported formats.
+4. HEIC/HEIF is rejected clearly, not silently uploaded.
+5. Pickup process photos upload and remain visible after refresh.
+6. Dropoff process photos upload and remain visible after refresh.
+7. Old previously uploaded photos still display.
+8. Broken/missing old photos show a clear fallback, not blank/white boxes.
+9. Failed upload does not create broken DB photo rows.
+10. Retrying upload does not create duplicate rows.
+11. No CRM/payment/booking/pricing logic is changed.
+
+---
+
+# TEST CASES
+
+Test A — Manual upload:
+- Open existing booking
+- Upload 2 JPEG photos from Booking Detail
+- Save
+- Refresh page
+- Photos still visible
+
+Test B — Pickup:
+- Start pickup process
+- Upload photos
+- Record pickup
+- Refresh booking
+- Pickup photos visible
+
+Test C — Dropoff:
+- Start dropoff process
+- Upload photos
+- Record dropoff
+- Refresh booking
+- Dropoff photos visible
+
+Test D — Broken old photo:
+- Use a test booking with an invalid/missing photo URL
+- CRM shows fallback indicator, not blank box
+
+Test E — HEIC:
+- Try uploading HEIC/HEIF
+- App rejects with clear message
+- No broken photo row is created
+
+Test F — Duplicate retry:
+- Simulate failed backend save after successful file upload
+- Retry save
+- Same photo should not appear twice
+
+---
+
+# AFTER IMPLEMENTATION
+
+Explain exactly:
+- Which files changed
+- Which root causes were fixed
+- How upload reliability improved
+- How old photo viewing improved
+- Whether object storage GET auth was changed
+- How unsupported mobile formats are handled
+- What manual tests were performed
