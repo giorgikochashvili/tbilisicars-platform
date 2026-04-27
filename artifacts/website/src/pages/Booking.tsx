@@ -2839,6 +2839,16 @@ export default function Booking() {
 
   // ── Session draft restore (mount-only) ──────────────────────────────────────
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // If the user arrived from a homepage search, the URL already contains fresh
+    // trip params. Clear the stale draft so it cannot overwrite them.
+    if (urlParams.get("pickupLocationId")) {
+      try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch {}
+      return;
+    }
+
+    // Otherwise (direct /booking or "Book Now" with no params), restore draft.
     try {
       const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
       if (raw) {
