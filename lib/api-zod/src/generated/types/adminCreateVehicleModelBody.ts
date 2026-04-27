@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminCreateVehicleModelBodyDriveType } from "./adminCreateVehicleModelBodyDriveType";
 import type { AdminCreateVehicleModelBodyFuelType } from "./adminCreateVehicleModelBodyFuelType";
 import type { AdminCreateVehicleModelBodyTransmission } from "./adminCreateVehicleModelBodyTransmission";
 
@@ -21,6 +22,8 @@ export interface AdminCreateVehicleModelBody {
   transmission?: AdminCreateVehicleModelBodyTransmission;
   fuelType?: AdminCreateVehicleModelBodyFuelType;
   luggageCapacity?: number;
+  /** @nullable */
+  driveType?: AdminCreateVehicleModelBodyDriveType;
   mileageLimitPerDay?: number;
   deposit?: string;
 }

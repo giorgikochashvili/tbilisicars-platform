@@ -19,5 +19,4 @@ export type ListAdminBookingsParams = {
   bookingId?: number;
   vehicleSearch?: string;
   locationId?: number;
-  phoneSearch?: string;
 };

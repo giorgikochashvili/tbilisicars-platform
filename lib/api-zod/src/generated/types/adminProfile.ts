@@ -12,7 +12,6 @@ export interface AdminProfile {
   email: string;
   fullName: string;
   adminRole: AdminProfileAdminRole;
-  roleId?: number | null;
   canManageVehicles: boolean;
   canManageBookings: boolean;
   canManageUsers: boolean;
@@ -27,11 +26,4 @@ export interface AdminProfile {
   canManageTasks: boolean;
   canViewCalendar: boolean;
   canManageCases: boolean;
-  canManageService: boolean;
-  canViewAccounting: boolean;
-  canManageAccounting: boolean;
-  canViewAlerts: boolean;
-  canViewAuditLog: boolean;
-  canManageParking: boolean;
-  canUseAdminAI: boolean;
 }

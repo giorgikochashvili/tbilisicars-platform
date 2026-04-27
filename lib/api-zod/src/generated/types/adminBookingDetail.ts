@@ -50,10 +50,6 @@ export type AdminBookingDetail = AdminBookingRow & {
   updatedAt: Date;
   /** @nullable */
   deletedAt?: string | null;
-  /** @nullable */
-  externalReservationCode?: string | null;
-  /** @nullable */
-  voucherImportRef?: string | null;
   extras: AdminBookingExtra[];
   payments: AdminBookingPayment[];
 };

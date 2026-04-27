@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdminVehicleModelDetailBrand } from "./adminVehicleModelDetailBrand";
+import type { AdminVehicleModelDetailDriveType } from "./adminVehicleModelDetailDriveType";
 import type { AdminVehicleModelDetailFuelType } from "./adminVehicleModelDetailFuelType";
 import type { AdminVehicleModelDetailTransmission } from "./adminVehicleModelDetailTransmission";
 
@@ -31,6 +32,8 @@ export interface AdminVehicleModelDetail {
   fuelType?: AdminVehicleModelDetailFuelType;
   /** @nullable */
   luggageCapacity?: number | null;
+  /** @nullable */
+  driveType?: AdminVehicleModelDetailDriveType;
   /** @nullable */
   mileageLimitPerDay?: number | null;
   /** @nullable */

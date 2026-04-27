@@ -14,7 +14,7 @@ export interface AdminCreateVehicleBody {
   vehicleModelId?: number;
   vehicleGroupId?: number;
   licensePlate?: string;
-  techpassportNumber?: string;
+  vin?: string;
   year?: number;
   color?: string;
   vehicleClass?: AdminCreateVehicleBodyVehicleClass;

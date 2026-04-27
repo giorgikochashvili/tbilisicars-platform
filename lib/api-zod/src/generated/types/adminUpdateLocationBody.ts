@@ -16,5 +16,4 @@ export interface AdminUpdateLocationBody {
   longitude?: string;
   locationType?: AdminUpdateLocationBodyLocationType;
   isActive?: boolean;
-  reservationCodePrefix?: string | null;
 }
