@@ -1,0 +1,182 @@
+# TASK — Fix Step 1 / Step 2 Pricing Mismatch (Child vs Parent Rate)
+
+We need to fix a confirmed pricing inconsistency in the public booking flow.
+
+---
+
+## 🔴 PROBLEM
+
+Step 1 (vehicle selection) shows the correct seasonal/child rate,  
+but Step 2+ (booking summary and all later steps) sometimes switch to a higher parent/base rate.
+
+---
+
+## 📊 CONFIRMED EXAMPLE
+
+Search:
+- Pickup: Tbilisi International Airport
+- Dropoff: Kutaisi International Airport
+- Dates: 05 May 2026 09:00 → 12 May 2026 09:00
+- Duration: 7 days
+- Vehicle: Mitsubishi Attrage
+- One-way fee: 50 EUR
+- Discount: 15%
+
+Step 1 (correct):
+- 25 EUR/day × 7 = 175
+- Discount = -26.25
+- Rental = 148.75
+- +50 one-way fee
+- TOTAL = 198.75 EUR
+
+Step 2 (WRONG):
+- 35 EUR/day × 7 = 245
+- Discount = -36.75
+- Rental = 208.25
+- +50 one-way fee
+- TOTAL = 258.25 EUR
+
+---
+
+## 🧠 ROOT CAUSE (CONFIRMED)
+
+In:
+artifacts/api-server/src/routes/public-bookings.ts
+
+The Step 1 endpoint:
+GET /api/public/booking-config
+
+uses SQL that resolves rates using:
+
+CURRENT_DATE
+
+But Step 2+:
+POST /api/public/quote
+
+uses resolveRateTier() with:
+pickupDate (correct)
+
+So Step 1 and Step 2 use DIFFERENT date references.
+
+---
+
+## 🎯 GOAL
+
+Make Step 1 use the SAME rate resolution logic as Step 2:
+👉 based on the USER’S PICKUP DATE
+
+NOT today's date.
+
+---
+
+## ⚠️ IMPORTANT RULES
+
+- DO NOT modify frontend
+- DO NOT touch Booking.tsx
+- DO NOT touch CRM
+- DO NOT modify discount logic
+- DO NOT modify one-way fee logic
+- DO NOT rewrite pricing system
+- DO NOT change resolveRateTier()
+
+ONLY fix booking-config SQL date logic
+
+---
+
+## 🛠️ IMPLEMENTATION
+
+### FILE:
+artifacts/api-server/src/routes/public-bookings.ts
+
+---
+
+### STEP 1 — Add rateCheckDate
+
+Before the priceLateral SQL block, define:
+
+const rateCheckDate = filterByDates
+  ? `'${new Date(pickupDt!).toISOString().slice(0, 10)}'`
+  : "CURRENT_DATE";
+
+---
+
+### STEP 2 — Replace ALL CURRENT_DATE usages
+
+Inside the priceLateral SQL block, replace ALL occurrences of:
+
+CURRENT_DATE
+
+with:
+
+${rateCheckDate}
+
+Specifically these 4 lines:
+
+r.valid_from::date <= CURRENT_DATE
+r.valid_until::date >= CURRENT_DATE
+r2.valid_from::date <= CURRENT_DATE
+r2.valid_until::date >= CURRENT_DATE
+
+---
+
+## 🧠 RESULT
+
+Now Step 1 will resolve rates using:
+pickup date (e.g. 2026-05-05)
+
+Same as Step 2 quote endpoint.
+
+---
+
+## 🟢 PRICING CONSISTENCY RULE (CRITICAL)
+
+The resolved rate must remain IDENTICAL across all steps:
+
+- Step 1 (vehicle cards)
+- Step 2 (summary)
+- Step 3 (insurance)
+- Step 4 (user info)
+- Step 5 (payment)
+- Step 6 (confirmation)
+- final booking creation
+- email/PDF voucher
+
+System must NEVER switch:
+child/seasonal → parent/base rate mid-flow.
+
+---
+
+## ✅ DONE LOOKS LIKE
+
+Test 1:
+Tbilisi → Kutaisi, 05 May → 12 May, Mitsubishi Attrage
+
+Expected:
+- Step 1 total = 198.75 EUR
+- Step 2 total = 198.75 EUR
+- Step 6 total = 198.75 EUR
+
+Test 2:
+Same-location booking:
+- No one-way fee
+- Correct total without +50
+
+Test 3:
+Different season:
+- Correct seasonal/parent rate based on pickup date
+
+Test 4:
+Non-discounted vehicle:
+- No discount applied
+- Correct base total
+
+---
+
+## 📌 AFTER IMPLEMENTATION
+
+Explain:
+- Where rateCheckDate was added
+- Which CURRENT_DATE usages were replaced
+- Confirm Step 1 now uses pickup date
+- Confirm Step 2 was NOT modified
+- Confirm one-way fee logic unchanged
