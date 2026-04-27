@@ -59,6 +59,14 @@ router.get("/public/booking-config", async (req, res) => {
   const daysInt = daysRaw && !Array.isArray(daysRaw) ? parseInt(String(daysRaw), 10) : NaN;
   const filterDays = !isNaN(daysInt) && daysInt > 0;
 
+  // When the user has provided pickup/dropoff dates, resolve rates against the
+  // customer's actual pickup date (same reference used by POST /public/quote via
+  // resolveRateTier). This ensures Step 1 vehicle card prices match Step 2+.
+  // Without dates we fall back to CURRENT_DATE so browsing without dates still works.
+  const rateCheckDate = filterByDates
+    ? `'${new Date(pickupDt!).toISOString().slice(0, 10)}'`
+    : "CURRENT_DATE";
+
   // Shared price lateral — identical across all four query variants.
   // Only WEB rates that are currently valid contribute to the "from" price;
   // broker rates and expired/future rates are excluded.
@@ -79,8 +87,8 @@ router.get("/public/booking-config", async (req, res) => {
         AND rt.price_per_day > 0
         AND r.is_active = true
         AND (r.rate_type = 'web' OR r.rate_type IS NULL)
-        AND r.valid_from::date <= CURRENT_DATE
-        AND r.valid_until::date >= CURRENT_DATE
+        AND r.valid_from::date <= ${rateCheckDate}
+        AND r.valid_until::date >= ${rateCheckDate}
         AND r.id = (
           SELECT r2.id
           FROM rate r2
@@ -89,8 +97,8 @@ router.get("/public/booking-config", async (req, res) => {
             AND rt2.price_per_day > 0
           WHERE r2.is_active = true
             AND (r2.rate_type = 'web' OR r2.rate_type IS NULL)
-            AND r2.valid_from::date <= CURRENT_DATE
-            AND r2.valid_until::date >= CURRENT_DATE
+            AND r2.valid_from::date <= ${rateCheckDate}
+            AND r2.valid_until::date >= ${rateCheckDate}
           ORDER BY
             (CASE WHEN r2.parent_rate_id IS NOT NULL THEN 1 ELSE 0 END) DESC,
             r2.valid_from DESC
