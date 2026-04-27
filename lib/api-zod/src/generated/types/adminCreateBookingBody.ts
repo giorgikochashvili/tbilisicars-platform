@@ -36,10 +36,4 @@ export interface AdminCreateBookingBody {
   documentType?: string;
   documentNumber?: string;
   deposit?: string;
-  /** Auto-generated reservation code (leave null to auto-generate) */
-  reservationCode?: string | null;
-  /** Voucher or reference code from the external system */
-  externalReservationCode?: string | null;
-  /** Object storage path of the uploaded voucher file */
-  voucherImportRef?: string | null;
 }

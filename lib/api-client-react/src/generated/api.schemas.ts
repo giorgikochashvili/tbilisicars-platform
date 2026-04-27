@@ -1636,7 +1636,7 @@ export interface AdminUpdateBookingBody {
   contactFullName?: string;
   contactEmail?: string;
   contactPhone?: string;
-  vehicleId?: number;
+  vehicleId?: number | null;
   vehicleModelId?: number;
   vehicleGroupId?: number;
   pickupLocationId?: number;

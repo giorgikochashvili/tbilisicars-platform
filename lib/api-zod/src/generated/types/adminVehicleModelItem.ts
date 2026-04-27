@@ -5,7 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AdminVehicleModelItemDriveType } from "./adminVehicleModelItemDriveType";
 import type { AdminVehicleModelItemFuelType } from "./adminVehicleModelItemFuelType";
 import type { AdminVehicleModelItemTransmission } from "./adminVehicleModelItemTransmission";
 
@@ -22,10 +21,6 @@ export interface AdminVehicleModelItem {
   transmission?: AdminVehicleModelItemTransmission;
   /** @nullable */
   fuelType?: AdminVehicleModelItemFuelType;
-  /** @nullable */
-  luggageCapacity?: number | null;
-  /** @nullable */
-  driveType?: AdminVehicleModelItemDriveType;
   /** @nullable */
   imageUrl?: string | null;
   /** @nullable */
