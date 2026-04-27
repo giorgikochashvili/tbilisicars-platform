@@ -148,20 +148,18 @@ export async function listAdminModels(filters: { city?: string } = {}) {
   };
 
   // When city is provided, restrict to models that have at least one
-  // ASSIGNABLE vehicle (status AVAILABLE) in that city. Used by the
-  // booking-detail "Assign Vehicle" dialog so the model selector only
-  // lists models the dispatcher can actually assign right now.
+  // vehicle located in that city — regardless of current status. Used by the
+  // booking-detail "Assign Vehicle" dialog so the model selector shows all
+  // models a dispatcher could assign for a future booking, including models
+  // where every vehicle is currently RENTED (but may be free by pickup date).
+  // Backend conflict validation (checkVehicleConflict) still blocks impossible
+  // assignments after the model and vehicle are selected.
   const cityModelIds = filters.city
     ? db
         .selectDistinct({ id: vehicleTable.vehicleModelId })
         .from(vehicleTable)
         .innerJoin(locationTable, eq(vehicleTable.locationId, locationTable.id))
-        .where(
-          and(
-            eq(locationTable.city, filters.city),
-            eq(vehicleTable.status, "AVAILABLE"),
-          ),
-        )
+        .where(eq(locationTable.city, filters.city))
     : null;
 
   const rows = cityModelIds
