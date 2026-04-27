@@ -67,7 +67,6 @@ import type {
   AdminVehicleModelItem,
   AdminVehiclePaginatedResponse,
   Brand,
-  ChangeAdminVehicleLocationBody,
   DeleteResponse,
   ErrorResponse,
   Extra,
@@ -5607,94 +5606,6 @@ export const useUpdateAdminVehicleStatus = <
   TContext
 > => {
   return useMutation(getUpdateAdminVehicleStatusMutationOptions(options));
-};
-
-/**
- * @summary Change vehicle city/region (admin)
- */
-export const getChangeAdminVehicleLocationUrl = (id: number) => {
-  return `/api/admin/fleet/vehicles/${id}/location`;
-};
-
-export const changeAdminVehicleLocation = async (
-  id: number,
-  changeAdminVehicleLocationBody: ChangeAdminVehicleLocationBody,
-  options?: RequestInit,
-): Promise<AdminVehicleDetail> => {
-  return customFetch<AdminVehicleDetail>(getChangeAdminVehicleLocationUrl(id), {
-    ...options,
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(changeAdminVehicleLocationBody),
-  });
-};
-
-export const getChangeAdminVehicleLocationMutationOptions = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof changeAdminVehicleLocation>>,
-    TError,
-    { id: number; data: BodyType<ChangeAdminVehicleLocationBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof changeAdminVehicleLocation>>,
-  TError,
-  { id: number; data: BodyType<ChangeAdminVehicleLocationBody> },
-  TContext
-> => {
-  const mutationKey = ["changeAdminVehicleLocation"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof changeAdminVehicleLocation>>,
-    { id: number; data: BodyType<ChangeAdminVehicleLocationBody> }
-  > = (props) => {
-    const { id, data } = props ?? {};
-
-    return changeAdminVehicleLocation(id, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type ChangeAdminVehicleLocationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof changeAdminVehicleLocation>>
->;
-export type ChangeAdminVehicleLocationMutationBody =
-  BodyType<ChangeAdminVehicleLocationBody>;
-export type ChangeAdminVehicleLocationMutationError = ErrorType<ErrorResponse>;
-
-/**
- * @summary Change vehicle city/region (admin)
- */
-export const useChangeAdminVehicleLocation = <
-  TError = ErrorType<ErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof changeAdminVehicleLocation>>,
-    TError,
-    { id: number; data: BodyType<ChangeAdminVehicleLocationBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof changeAdminVehicleLocation>>,
-  TError,
-  { id: number; data: BodyType<ChangeAdminVehicleLocationBody> },
-  TContext
-> => {
-  return useMutation(getChangeAdminVehicleLocationMutationOptions(options));
 };
 
 /**
