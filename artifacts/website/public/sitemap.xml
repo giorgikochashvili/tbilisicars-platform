@@ -49,4 +49,22 @@
     <priority>0.3</priority>
   </url>
 
+  <url>
+    <loc>https://tbilisicars.com/car-rental-tbilisi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://tbilisicars.com/car-rental-kutaisi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://tbilisicars.com/car-rental-batumi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
 </urlset>
