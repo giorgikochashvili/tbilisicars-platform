@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Shield, Star, Users, MapPin, Clock, Award } from "lucide-react";
 import { Link } from "wouter";
 
@@ -44,6 +45,11 @@ const VALUES = [
 export default function About() {
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>About Tbilisicars – Your Trusted Car Rental Partner in Georgia</title>
+        <meta name="description" content="Learn about Tbilisicars, Georgia's trusted car rental company serving Tbilisi, Kutaisi and Batumi with full insurance and 24/7 support." />
+        <link rel="canonical" href="https://tbilisicars.com/about" />
+      </Helmet>
       <div className="max-w-5xl mx-auto">
         {/* Hero */}
         <div className="text-center mb-16">

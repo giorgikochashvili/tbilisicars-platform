@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Building2, Plane, Clock } from "lucide-react";
 import { Link } from "wouter";
@@ -44,6 +45,11 @@ export default function Locations() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Car Rental Locations – Tbilisi, Kutaisi &amp; Batumi | Tbilisicars</title>
+        <meta name="description" content="Find Tbilisicars pickup and dropoff points at Tbilisi, Kutaisi and Batumi airports and city centres." />
+        <link rel="canonical" href="https://tbilisicars.com/locations" />
+      </Helmet>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

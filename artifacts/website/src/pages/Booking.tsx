@@ -8,6 +8,7 @@
  * - WhatsApp as opt-in checkbox; separate Terms and Privacy checkboxes in Step 4
  */
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -3028,6 +3029,11 @@ export default function Booking() {
 
   return (
     <div className="min-h-screen py-6 px-4">
+      <Helmet>
+        <title>Book a Rental Car in Georgia | Tbilisicars</title>
+        <meta name="description" content="Book your rental car online in minutes. Choose dates, extras and insurance — instant confirmation for Tbilisi, Kutaisi and Batumi." />
+        <link rel="canonical" href="https://tbilisicars.com/booking" />
+      </Helmet>
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>
           {/* Main step card */}

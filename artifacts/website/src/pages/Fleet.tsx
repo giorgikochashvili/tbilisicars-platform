@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search, Package } from "lucide-react";
@@ -99,6 +100,11 @@ export default function Fleet() {
 
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars</title>
+        <meta name="description" content="Browse our fleet of rental cars in Georgia. Economy, SUV, automatic and manual vehicles available in Tbilisi, Kutaisi and Batumi." />
+        <link rel="canonical" href="https://tbilisicars.com/fleet" />
+      </Helmet>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

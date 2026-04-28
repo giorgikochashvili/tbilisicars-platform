@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -295,6 +296,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <title>Tbilisicars – Car Rental Georgia | Tbilisi, Kutaisi, Batumi</title>
+        <meta name="description" content="Reliable car rental in Georgia. Rent a car in Tbilisi, Kutaisi or Batumi with full insurance, unlimited mileage and 24/7 support." />
+        <link rel="canonical" href="https://tbilisicars.com/" />
+      </Helmet>
       {/* ── Hero ── */}
       <section
         className="relative flex flex-col items-center px-4 pt-14 pb-12 sm:pt-20 sm:pb-16"

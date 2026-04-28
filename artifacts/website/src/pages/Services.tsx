@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Car, MapPin, Phone, Shield, Users, Infinity, HeartHandshake } from "lucide-react";
 import { Link } from "wouter";
 
@@ -49,6 +50,11 @@ const SERVICES = [
 export default function Services() {
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Car Rental Services – Insurance, Delivery &amp; More | Tbilisicars</title>
+        <meta name="description" content="Explore Tbilisicars services: full insurance, unlimited mileage, airport delivery, child seats and 24/7 roadside assistance in Georgia." />
+        <link rel="canonical" href="https://tbilisicars.com/services" />
+      </Helmet>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-14">

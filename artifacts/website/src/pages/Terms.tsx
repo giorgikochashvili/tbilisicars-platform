@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export const TERMS_SECTIONS = [
@@ -155,6 +156,11 @@ function TermsSection({ title, content }: { title: string; content: string[] }) 
 export default function Terms() {
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Terms &amp; Conditions | Tbilisicars</title>
+        <meta name="description" content="Read the terms and conditions for renting a car with Tbilisicars in Georgia." />
+        <link rel="canonical" href="https://tbilisicars.com/terms" />
+      </Helmet>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-primary/15 border border-primary/25 rounded-full px-4 py-1.5 text-sm text-primary mb-4">

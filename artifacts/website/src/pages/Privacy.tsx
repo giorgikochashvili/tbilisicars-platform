@@ -1,3 +1,5 @@
+import { Helmet } from "react-helmet-async";
+
 export const PRIVACY_SECTIONS = [
   {
     title: "Information We Collect",
@@ -55,6 +57,11 @@ export const PRIVACY_SECTIONS = [
 export default function Privacy() {
   return (
     <div className="min-h-screen py-12 px-4">
+      <Helmet>
+        <title>Privacy Policy | Tbilisicars</title>
+        <meta name="description" content="Read the Tbilisicars privacy policy to understand how we handle your personal data." />
+        <link rel="canonical" href="https://tbilisicars.com/privacy" />
+      </Helmet>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
