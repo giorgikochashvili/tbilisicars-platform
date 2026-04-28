@@ -3031,7 +3031,7 @@ export default function Booking() {
     <div className="min-h-screen py-6 px-4">
       <Helmet>
         <title>Book a Rental Car in Georgia | Tbilisicars</title>
-        <meta name="description" content="Book your rental car online in minutes. Choose dates, extras and insurance — instant confirmation for Tbilisi, Kutaisi and Batumi." />
+        <meta name="description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
         <link rel="canonical" href="https://tbilisicars.com/booking" />
       </Helmet>
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>

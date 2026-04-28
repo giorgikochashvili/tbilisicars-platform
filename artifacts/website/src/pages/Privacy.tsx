@@ -59,7 +59,7 @@ export default function Privacy() {
     <div className="min-h-screen py-12 px-4">
       <Helmet>
         <title>Privacy Policy | Tbilisicars</title>
-        <meta name="description" content="Read the Tbilisicars privacy policy to understand how we handle your personal data." />
+        <meta name="description" content="Learn how Tbilisicars collects and uses your personal data when you rent a car in Georgia." />
         <link rel="canonical" href="https://tbilisicars.com/privacy" />
       </Helmet>
       <div className="max-w-4xl mx-auto">
