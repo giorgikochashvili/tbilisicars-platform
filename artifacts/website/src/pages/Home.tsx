@@ -310,6 +310,31 @@ export default function Home() {
         <meta name="twitter:title" content="Tbilisicars – Car Rental Georgia | Tbilisi, Kutaisi, Batumi" />
         <meta name="twitter:description" content="Reliable car rental in Georgia. Rent a car in Tbilisi, Kutaisi or Batumi with full insurance, unlimited mileage and 24/7 support." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
+  "@type": ["Organization", "AutoRental"],
+  "name": "Tbilisicars",
+  "url": "https://tbilisicars.com/",
+  "logo": "https://tbilisicars.com/opengraph.jpg",
+  "image": "https://tbilisicars.com/opengraph.jpg",
+  "description": "Tbilisicars provides car rental services in Georgia for international travelers, tourists and local customers, with pickup and dropoff options in Tbilisi, Kutaisi and Batumi.",
+  "areaServed": [
+    { "@type": "Country", "name": "Georgia" },
+    { "@type": "City", "name": "Tbilisi" },
+    { "@type": "City", "name": "Kutaisi" },
+    { "@type": "City", "name": "Batumi" }
+  ],
+  "serviceType": [
+    "Car rental in Georgia",
+    "Airport car rental",
+    "City car delivery",
+    "Rental cars for international travelers"
+  ],
+  "availableLanguage": ["English", "Georgian"],
+  "sameAs": []
+}
+`}</script>
       </Helmet>
       {/* ── Hero ── */}
       <section

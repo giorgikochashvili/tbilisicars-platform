@@ -1,0 +1,94 @@
+We are working on the live TBILISICARS CRM&WEB production project.
+
+TASK 5 ONLY: Add safe structured data JSON-LD for Tbilisicars as a car rental business in Georgia.
+
+Goal:
+Help Google understand that Tbilisicars is a car rental company operating in Georgia, serving international travelers and tourists across Tbilisi, Kutaisi, and Batumi.
+
+STRICT RULES:
+- Do NOT change UI/layout.
+- Do NOT change booking flow.
+- Do NOT change API/backend.
+- Do NOT change CRM.
+- Do NOT change routing.
+- Do NOT invent fake ratings, reviews, addresses, awards, or prices.
+- Do NOT add unsupported claims.
+- Only add safe JSON-LD structured data through the existing Helmet setup.
+
+Context:
+Previous tasks already added:
+- react-helmet-async
+- page-specific title/description/canonical
+- Open Graph/Twitter tags
+- improved sitemap.xml
+
+Required:
+Add JSON-LD structured data to the Home page only for now.
+
+File:
+artifacts/website/src/pages/Home.tsx
+
+Use existing Helmet block and add:
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": ["Organization", "AutoRental"],
+  "name": "Tbilisicars",
+  "url": "https://tbilisicars.com/",
+  "logo": "https://tbilisicars.com/opengraph.jpg",
+  "image": "https://tbilisicars.com/opengraph.jpg",
+  "description": "Tbilisicars provides car rental services in Georgia for international travelers, tourists and local customers, with pickup and dropoff options in Tbilisi, Kutaisi and Batumi.",
+  "areaServed": [
+    {
+      "@type": "Country",
+      "name": "Georgia"
+    },
+    {
+      "@type": "City",
+      "name": "Tbilisi"
+    },
+    {
+      "@type": "City",
+      "name": "Kutaisi"
+    },
+    {
+      "@type": "City",
+      "name": "Batumi"
+    }
+  ],
+  "serviceType": [
+    "Car rental in Georgia",
+    "Airport car rental",
+    "City car delivery",
+    "Rental cars for international travelers"
+  ],
+  "availableLanguage": [
+    "English",
+    "Georgian"
+  ],
+  "sameAs": []
+}
+</script>
+
+Important:
+- If there are confirmed social profile URLs already in the codebase, add them to sameAs.
+- If there are no confirmed social URLs, leave sameAs as an empty array or omit it.
+- Do NOT add aggregateRating.
+- Do NOT add review.
+- Do NOT add priceRange unless already confirmed in the code/content.
+- Do NOT add fake street addresses.
+- Do NOT add phone numbers unless already confirmed in existing public footer/contact content.
+
+Testing checklist:
+- Website builds successfully.
+- Home page loads normally.
+- No console errors.
+- Existing title/meta/canonical/OG tags remain unchanged.
+- JSON-LD is visible in the page head.
+- Booking flow still works.
+
+After implementation:
+- List exact files changed.
+- Show the final JSON-LD added.
+- Confirm no backend/API/CRM/booking files were touched.
