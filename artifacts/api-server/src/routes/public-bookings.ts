@@ -62,12 +62,20 @@ router.get("/public/booking-config", async (req, res) => {
   // When the user has provided pickup/dropoff dates, resolve rates against the
   // customer's actual pickup date (same reference used by POST /public/quote via
   // resolveRateTier). This ensures Step 1 vehicle card prices match Step 2+.
-  // Without dates we fall back to CURRENT_DATE so browsing without dates still works.
-  const rateCheckDate = filterByDates
-    ? `'${new Date(pickupDt!).toISOString().slice(0, 10)}'`
-    : "CURRENT_DATE";
+  // Without dates, pass null so the SQL falls back to CURRENT_DATE via COALESCE —
+  // preserving database-side date semantics without any JS timezone risk.
+  const rateCheckDateValue = filterByDates
+    ? new Date(pickupDt!).toISOString().slice(0, 10)
+    : null;
 
-  // Shared price lateral — identical across all four query variants.
+  // Price lateral factory — called once per query variant with the correct $N
+  // placeholder for the rate-check date bind value and (when filtering by trip
+  // duration) the $N placeholder for the days bind value.
+  //
+  // rateCheckParam: e.g. "$1", "$3" — bind placeholder for the date value.
+  //   COALESCE($N::date, CURRENT_DATE) falls back to CURRENT_DATE when null.
+  // daysParam: e.g. "$2" when filterDays is true, null to omit the days clause.
+  //
   // Only WEB rates that are currently valid contribute to the "from" price;
   // broker rates and expired/future rates are excluded.
   //
@@ -78,7 +86,7 @@ router.get("/public/booking-config", async (req, res) => {
   //   2. From the winning rate's tiers, return the minimum price_per_day > 0.
   //      price_per_day = 0 is treated as an unfilled placeholder and ignored.
   //   If no valid non-zero tier exists the lateral returns NULL (LEFT JOIN propagates).
-  const priceLateral = `
+  const makePriceLateral = (rateCheckParam: string, daysParam: string | null) => `
     LEFT JOIN LATERAL (
       SELECT rt.price_per_day AS min_price_per_day, rt.currency AS price_currency
       FROM ratetier rt
@@ -87,8 +95,8 @@ router.get("/public/booking-config", async (req, res) => {
         AND rt.price_per_day > 0
         AND r.is_active = true
         AND (r.rate_type = 'web' OR r.rate_type IS NULL)
-        AND r.valid_from::date <= ${rateCheckDate}
-        AND r.valid_until::date >= ${rateCheckDate}
+        AND r.valid_from::date <= COALESCE(${rateCheckParam}::date, CURRENT_DATE)
+        AND r.valid_until::date >= COALESCE(${rateCheckParam}::date, CURRENT_DATE)
         AND r.id = (
           SELECT r2.id
           FROM rate r2
@@ -97,15 +105,15 @@ router.get("/public/booking-config", async (req, res) => {
             AND rt2.price_per_day > 0
           WHERE r2.is_active = true
             AND (r2.rate_type = 'web' OR r2.rate_type IS NULL)
-            AND r2.valid_from::date <= ${rateCheckDate}
-            AND r2.valid_until::date >= ${rateCheckDate}
+            AND r2.valid_from::date <= COALESCE(${rateCheckParam}::date, CURRENT_DATE)
+            AND r2.valid_until::date >= COALESCE(${rateCheckParam}::date, CURRENT_DATE)
           ORDER BY
             (CASE WHEN r2.parent_rate_id IS NOT NULL THEN 1 ELSE 0 END) DESC,
             r2.valid_from DESC
           LIMIT 1
         )
       ORDER BY
-        ${filterDays ? `(CASE WHEN rt.from_days <= ${daysInt} AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= ${daysInt}) THEN 0 ELSE 1 END) ASC,` : ""}
+        ${daysParam ? `(CASE WHEN rt.from_days <= ${daysParam} AND (rt.to_days IS NULL OR rt.to_days = 0 OR rt.to_days >= ${daysParam}) THEN 0 ELSE 1 END) ASC,` : ""}
         rt.price_per_day ASC
       LIMIT 1
     ) price_info ON true`;
@@ -150,7 +158,7 @@ router.get("/public/booking-config", async (req, res) => {
     FROM vehicle_model vm
     JOIN brand br ON br.id = vm.brand_id
     LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-    ${priceLateral}
+    ${makePriceLateral("$1", filterDays ? "$2" : null)}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
     ORDER BY br.name, vm.name
@@ -177,7 +185,7 @@ router.get("/public/booking-config", async (req, res) => {
     FROM vehicle_model vm
     JOIN brand br ON br.id = vm.brand_id
     LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-    ${priceLateral}
+    ${makePriceLateral("$3", filterDays ? "$4" : null)}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
     ORDER BY br.name, vm.name
@@ -213,7 +221,7 @@ router.get("/public/booking-config", async (req, res) => {
         SELECT id FROM location
         WHERE city = (SELECT city FROM location WHERE id = $1)
       )
-    ${priceLateral}
+    ${makePriceLateral("$2", filterDays ? "$3" : null)}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
     ORDER BY br.name, vm.name
@@ -245,22 +253,25 @@ router.get("/public/booking-config", async (req, res) => {
         SELECT id FROM location
         WHERE city = (SELECT city FROM location WHERE id = $1)
       )
-    ${priceLateral}
+    ${makePriceLateral("$4", filterDays ? "$5" : null)}
     WHERE vm.available_for_external_systems = true AND vm.active = true
     GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
     ORDER BY br.name, vm.name
   `;
 
   // Choose the appropriate query based on which filters are active.
+  // rateCheckDateValue and (when filterDays) daysInt are always appended last
+  // so their $N positions stay consistent with what makePriceLateral emitted.
+  const daysParams = filterDays ? [daysInt] : [];
   let modelQueryPromise: Promise<{ rows: unknown[] }>;
   if (filterByLocation && filterByDates) {
-    modelQueryPromise = pool.query(cityModelWithDatesSql, [locationId, pickupDt, dropoffDt]);
+    modelQueryPromise = pool.query(cityModelWithDatesSql, [locationId, pickupDt, dropoffDt, rateCheckDateValue, ...daysParams]);
   } else if (filterByLocation) {
-    modelQueryPromise = pool.query(cityModelSql, [locationId]);
+    modelQueryPromise = pool.query(cityModelSql, [locationId, rateCheckDateValue, ...daysParams]);
   } else if (filterByDates) {
-    modelQueryPromise = pool.query(globalModelWithDatesSql, [pickupDt, dropoffDt]);
+    modelQueryPromise = pool.query(globalModelWithDatesSql, [pickupDt, dropoffDt, rateCheckDateValue, ...daysParams]);
   } else {
-    modelQueryPromise = pool.query(globalModelSql);
+    modelQueryPromise = pool.query(globalModelSql, [rateCheckDateValue, ...daysParams]);
   }
 
   const [locRows, modelRows, extraRows] = await Promise.all([

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { LogIn, Eye, EyeOff, Shield, Clock } from "lucide-react";
 import { Link } from "wouter";
@@ -13,6 +13,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "robots");
+    meta.setAttribute("content", "noindex,nofollow");
+    meta.setAttribute("data-page-meta", "login-noindex");
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

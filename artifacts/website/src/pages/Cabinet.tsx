@@ -129,6 +129,15 @@ function BookingCard({ b }: { b: CustomerBooking }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Cabinet() {
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "robots");
+    meta.setAttribute("content", "noindex,nofollow");
+    meta.setAttribute("data-page-meta", "cabinet-noindex");
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
+
   const [, navigate] = useLocation();
 
   const meQuery = useQuery<CustomerMe>({

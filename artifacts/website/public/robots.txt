@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /login
+Disallow: /cabinet
+Disallow: /crm/
 
 Sitemap: https://tbilisicars.com/sitemap.xml
