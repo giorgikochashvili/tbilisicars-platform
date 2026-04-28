@@ -18,6 +18,9 @@ import Login from "./pages/Login";
 import Cabinet from "./pages/Cabinet";
 import NotFound from "./pages/not-found";
 import ChatbotWidget from "./components/ChatbotWidget";
+import CityRentalTbilisi from "./pages/CityRentalTbilisi";
+import CityRentalKutaisi from "./pages/CityRentalKutaisi";
+import CityRentalBatumi from "./pages/CityRentalBatumi";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +60,9 @@ function App() {
                 <Route path="/booking" component={Booking} />
                 <Route path="/login" component={Login} />
                 <Route path="/cabinet" component={Cabinet} />
+                <Route path="/car-rental-tbilisi" component={CityRentalTbilisi} />
+                <Route path="/car-rental-kutaisi" component={CityRentalKutaisi} />
+                <Route path="/car-rental-batumi" component={CityRentalBatumi} />
                 <Route component={NotFound} />
               </Switch>
             </main>
