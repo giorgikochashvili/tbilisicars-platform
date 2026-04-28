@@ -61,6 +61,16 @@ export default function Privacy() {
         <title>Privacy Policy | Tbilisicars</title>
         <meta name="description" content="Learn how Tbilisicars collects and uses your personal data when you rent a car in Georgia." />
         <link rel="canonical" href="https://tbilisicars.com/privacy" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/privacy" />
+        <meta property="og:title" content="Privacy Policy | Tbilisicars" />
+        <meta property="og:description" content="Learn how Tbilisicars collects and uses your personal data when you rent a car in Georgia." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Privacy Policy | Tbilisicars" />
+        <meta name="twitter:description" content="Learn how Tbilisicars collects and uses your personal data when you rent a car in Georgia." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-4xl mx-auto">
         {/* Header */}

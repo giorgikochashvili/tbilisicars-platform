@@ -3033,6 +3033,16 @@ export default function Booking() {
         <title>Book a Rental Car in Georgia | Tbilisicars</title>
         <meta name="description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
         <link rel="canonical" href="https://tbilisicars.com/booking" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/booking" />
+        <meta property="og:title" content="Book a Rental Car in Georgia | Tbilisicars" />
+        <meta property="og:description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Book a Rental Car in Georgia | Tbilisicars" />
+        <meta name="twitter:description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>

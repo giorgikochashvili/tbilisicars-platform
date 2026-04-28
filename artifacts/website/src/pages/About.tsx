@@ -49,6 +49,16 @@ export default function About() {
         <title>About Tbilisicars – Your Trusted Car Rental Partner in Georgia</title>
         <meta name="description" content="Learn about Tbilisicars, Georgia's trusted car rental company serving Tbilisi, Kutaisi and Batumi with full insurance and 24/7 support." />
         <link rel="canonical" href="https://tbilisicars.com/about" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/about" />
+        <meta property="og:title" content="About Tbilisicars – Your Trusted Car Rental Partner in Georgia" />
+        <meta property="og:description" content="Learn about Tbilisicars, Georgia's trusted car rental company serving Tbilisi, Kutaisi and Batumi with full insurance and 24/7 support." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About Tbilisicars – Your Trusted Car Rental Partner in Georgia" />
+        <meta name="twitter:description" content="Learn about Tbilisicars, Georgia's trusted car rental company serving Tbilisi, Kutaisi and Batumi with full insurance and 24/7 support." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">
         {/* Hero */}

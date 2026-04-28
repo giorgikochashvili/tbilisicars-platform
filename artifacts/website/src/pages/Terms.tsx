@@ -160,6 +160,16 @@ export default function Terms() {
         <title>Terms &amp; Conditions | Tbilisicars</title>
         <meta name="description" content="Read the terms and conditions for renting a car with Tbilisicars in Georgia." />
         <link rel="canonical" href="https://tbilisicars.com/terms" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/terms" />
+        <meta property="og:title" content="Terms & Conditions | Tbilisicars" />
+        <meta property="og:description" content="Read the terms and conditions for renting a car with Tbilisicars in Georgia." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Terms & Conditions | Tbilisicars" />
+        <meta name="twitter:description" content="Read the terms and conditions for renting a car with Tbilisicars in Georgia." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">

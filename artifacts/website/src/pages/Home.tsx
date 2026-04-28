@@ -300,6 +300,16 @@ export default function Home() {
         <title>Tbilisicars – Car Rental Georgia | Tbilisi, Kutaisi, Batumi</title>
         <meta name="description" content="Reliable car rental in Georgia. Rent a car in Tbilisi, Kutaisi or Batumi with full insurance, unlimited mileage and 24/7 support." />
         <link rel="canonical" href="https://tbilisicars.com/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/" />
+        <meta property="og:title" content="Tbilisicars – Car Rental Georgia | Tbilisi, Kutaisi, Batumi" />
+        <meta property="og:description" content="Reliable car rental in Georgia. Rent a car in Tbilisi, Kutaisi or Batumi with full insurance, unlimited mileage and 24/7 support." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Tbilisicars – Car Rental Georgia | Tbilisi, Kutaisi, Batumi" />
+        <meta name="twitter:description" content="Reliable car rental in Georgia. Rent a car in Tbilisi, Kutaisi or Batumi with full insurance, unlimited mileage and 24/7 support." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       {/* ── Hero ── */}
       <section

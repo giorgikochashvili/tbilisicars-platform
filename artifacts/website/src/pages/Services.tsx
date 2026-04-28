@@ -54,6 +54,16 @@ export default function Services() {
         <title>Car Rental Services – Insurance, Delivery &amp; More | Tbilisicars</title>
         <meta name="description" content="Explore Tbilisicars services: full insurance, unlimited mileage, airport delivery, child seats and 24/7 roadside assistance in Georgia." />
         <link rel="canonical" href="https://tbilisicars.com/services" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/services" />
+        <meta property="og:title" content="Car Rental Services – Insurance, Delivery & More | Tbilisicars" />
+        <meta property="og:description" content="Explore Tbilisicars services: full insurance, unlimited mileage, airport delivery, child seats and 24/7 roadside assistance in Georgia." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Car Rental Services – Insurance, Delivery & More | Tbilisicars" />
+        <meta name="twitter:description" content="Explore Tbilisicars services: full insurance, unlimited mileage, airport delivery, child seats and 24/7 roadside assistance in Georgia." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">
         {/* Header */}

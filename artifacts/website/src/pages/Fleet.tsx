@@ -104,6 +104,16 @@ export default function Fleet() {
         <title>Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars</title>
         <meta name="description" content="Browse our fleet of rental cars in Georgia. Economy, SUV, automatic and manual vehicles available in Tbilisi, Kutaisi and Batumi." />
         <link rel="canonical" href="https://tbilisicars.com/fleet" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Tbilisicars" />
+        <meta property="og:url" content="https://tbilisicars.com/fleet" />
+        <meta property="og:title" content="Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars" />
+        <meta property="og:description" content="Browse our fleet of rental cars in Georgia. Economy, SUV, automatic and manual vehicles available in Tbilisi, Kutaisi and Batumi." />
+        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars" />
+        <meta name="twitter:description" content="Browse our fleet of rental cars in Georgia. Economy, SUV, automatic and manual vehicles available in Tbilisi, Kutaisi and Batumi." />
+        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
