@@ -2841,9 +2841,9 @@ export default function Booking() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
 
-    // If the user arrived from a homepage search, the URL already contains fresh
-    // trip params. Clear the stale draft so it cannot overwrite them.
-    if (urlParams.get("pickupLocationId")) {
+    // If the user arrived from a homepage search or a featured car link, the URL
+    // already contains fresh params. Clear the stale draft so it cannot overwrite them.
+    if (urlParams.get("pickupLocationId") || urlParams.get("vehicleModelId")) {
       try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch {}
       return;
     }
