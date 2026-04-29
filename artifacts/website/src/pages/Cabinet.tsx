@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -129,15 +130,6 @@ function BookingCard({ b }: { b: CustomerBooking }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Cabinet() {
-  useEffect(() => {
-    const meta = document.createElement("meta");
-    meta.setAttribute("name", "robots");
-    meta.setAttribute("content", "noindex,nofollow");
-    meta.setAttribute("data-page-meta", "cabinet-noindex");
-    document.head.appendChild(meta);
-    return () => { document.head.removeChild(meta); };
-  }, []);
-
   const [, navigate] = useLocation();
 
   const meQuery = useQuery<CustomerMe>({
@@ -191,6 +183,7 @@ export default function Cabinet() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <Helmet><meta name="robots" content="noindex,nofollow" /></Helmet>
       {/* Page header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { LogIn, Eye, EyeOff, Shield, Clock } from "lucide-react";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 
 // Temporary flag — set to false to re-enable the customer login form
 const COMING_SOON = true;
@@ -13,15 +14,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const meta = document.createElement("meta");
-    meta.setAttribute("name", "robots");
-    meta.setAttribute("content", "noindex,nofollow");
-    meta.setAttribute("data-page-meta", "login-noindex");
-    document.head.appendChild(meta);
-    return () => { document.head.removeChild(meta); };
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +51,7 @@ export default function Login() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-background">
+      <Helmet><meta name="robots" content="noindex,nofollow" /></Helmet>
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-card border border-border rounded-2xl shadow-xl p-8">
