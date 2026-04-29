@@ -1,0 +1,83 @@
+We are working on the live TBILISICARS production project.
+
+TASK: Refine existing SEO meta titles and descriptions ONLY.
+
+IMPORTANT:
+All Helmet SEO structure is already implemented correctly.
+We are NOT adding new functionality.
+We are ONLY slightly improving wording for SEO.
+
+STRICT RULES:
+- Do NOT touch any logic
+- Do NOT change routes
+- Do NOT modify UI text content inside pages
+- ONLY update Helmet title + description strings
+- Keep changes minimal and safe
+
+Update the following:
+
+1) Home.tsx
+Title:
+Tbilisicars – Car Rental in Georgia | Tbilisi, Kutaisi, Batumi
+
+Description:
+Reliable car rental in Georgia. Rent cars in Tbilisi, Kutaisi and Batumi with full insurance, unlimited mileage and 24/7 support.
+
+---
+
+2) Fleet.tsx
+Update description to:
+Browse our fleet of rental cars in Georgia. Economy, SUV and business class vehicles available in Tbilisi, Kutaisi and Batumi.
+
+---
+
+3) About.tsx
+Title:
+About Tbilisicars – Car Rental Company in Georgia
+
+Description:
+Learn more about Tbilisicars, a trusted car rental company in Georgia offering reliable service across Tbilisi, Kutaisi and Batumi.
+
+---
+
+4) Locations.tsx
+Title:
+Car Rental Locations in Georgia – Tbilisi, Kutaisi, Batumi
+
+Description:
+Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options.
+
+---
+
+5) Services.tsx
+Title:
+Car Rental Services in Georgia | Tbilisicars
+
+Description:
+Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia.
+
+---
+
+6) Booking.tsx
+Title:
+Book a Car in Georgia | Tbilisicars
+
+Description:
+Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation.
+
+---
+
+DO NOT:
+- Change OG image
+- Change canonical URLs
+- Add new tags
+- Modify index.html
+
+Testing:
+- Build must pass
+- No TS errors
+- Titles update correctly on navigation
+- Booking flow unchanged
+
+After:
+List changed files only.

@@ -46,14 +46,14 @@ export default function Locations() {
   return (
     <div className="min-h-screen py-12 px-4">
       <Helmet>
-        <title>Car Rental Locations – Tbilisi, Kutaisi &amp; Batumi | Tbilisicars</title>
-        <meta name="description" content="Find Tbilisicars pickup and dropoff points at Tbilisi, Kutaisi and Batumi airports and city centres." />
+        <title>Car Rental Locations in Georgia – Tbilisi, Kutaisi, Batumi</title>
+        <meta name="description" content="Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options." />
         <link rel="canonical" href="https://tbilisicars.com/locations" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Tbilisicars" />
         <meta property="og:url" content="https://tbilisicars.com/locations" />
-        <meta property="og:title" content="Car Rental Locations – Tbilisi, Kutaisi & Batumi | Tbilisicars" />
-        <meta property="og:description" content="Find Tbilisicars pickup and dropoff points at Tbilisi, Kutaisi and Batumi airports and city centres." />
+        <meta property="og:title" content="Car Rental Locations in Georgia – Tbilisi, Kutaisi, Batumi" />
+        <meta property="og:description" content="Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Car Rental Locations – Tbilisi, Kutaisi & Batumi | Tbilisicars" />

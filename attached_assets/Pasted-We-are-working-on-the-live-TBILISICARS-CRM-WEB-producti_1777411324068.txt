@@ -1,0 +1,171 @@
+We are working on the live TBILISICARS CRM&WEB production project.
+
+TASK 2 ONLY: SEO Meta Foundation for public website.
+
+Goal:
+Add safe, minimal, per-page SEO metadata (title, description, canonical, basic Open Graph).
+
+STRICT RULES:
+- Do NOT touch API code
+- Do NOT touch CRM
+- Do NOT touch booking logic
+- Do NOT touch pricing logic
+- Do NOT change routes
+- Do NOT change layout structure
+- Do NOT refactor unrelated code
+- Do NOT change existing UI design
+- Keep this minimal and production-safe
+
+Scope:
+ONLY public website React pages.
+
+---
+
+Part A — Setup (if not already present)
+
+Check if react-helmet-async is already installed.
+
+IF NOT installed:
+- Install it in artifacts/website:
+  pnpm --filter @workspace/website add react-helmet-async
+
+- Wrap the root app with HelmetProvider:
+  File: artifacts/website/src/App.tsx (or root entry)
+  Add:
+    import { HelmetProvider } from 'react-helmet-async';
+
+    Wrap the app:
+    <HelmetProvider>
+      <App />
+    </HelmetProvider>
+
+IF already installed:
+- DO NOT reinstall or duplicate providers
+
+---
+
+Part B — Add per-page SEO metadata
+
+For each page below, add Helmet with:
+- <title>
+- <meta name="description">
+- <link rel="canonical">
+- basic Open Graph tags
+
+Pages:
+
+1) Home.tsx
+Title:
+Tbilisicars – Car Rental in Georgia | Tbilisi, Kutaisi, Batumi
+
+Description:
+Reliable car rental in Georgia. Rent cars in Tbilisi, Kutaisi and Batumi with full insurance, unlimited mileage and 24/7 support.
+
+Canonical:
+https://tbilisicars.com/
+
+---
+
+2) Fleet.tsx
+Title:
+Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars
+
+Description:
+Browse our fleet of rental cars in Georgia. Economy, SUV and business class vehicles available in Tbilisi, Kutaisi and Batumi.
+
+Canonical:
+https://tbilisicars.com/fleet
+
+---
+
+3) About.tsx
+Title:
+About Tbilisicars – Car Rental Company in Georgia
+
+Description:
+Learn more about Tbilisicars, a trusted car rental company in Georgia offering reliable service across Tbilisi, Kutaisi and Batumi.
+
+Canonical:
+https://tbilisicars.com/about
+
+---
+
+4) Locations.tsx
+Title:
+Car Rental Locations in Georgia – Tbilisi, Kutaisi, Batumi
+
+Description:
+Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options.
+
+Canonical:
+https://tbilisicars.com/locations
+
+---
+
+5) Services.tsx (if exists)
+Title:
+Car Rental Services in Georgia | Tbilisicars
+
+Description:
+Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia.
+
+Canonical:
+https://tbilisicars.com/services
+
+---
+
+6) Booking.tsx
+Title:
+Book a Car in Georgia | Tbilisicars
+
+Description:
+Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation.
+
+Canonical:
+https://tbilisicars.com/booking
+
+---
+
+Part C — Open Graph (same structure on all pages)
+
+Inside Helmet, add:
+
+<meta property="og:title" content="PAGE TITLE" />
+<meta property="og:description" content="PAGE DESCRIPTION" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="PAGE URL" />
+
+Optional (only if already exists globally):
+<meta property="og:image" content="https://tbilisicars.com/og-image.jpg" />
+
+---
+
+Part D — DO NOT TOUCH
+
+- Do NOT modify index.html meta (keep fallback as is)
+- Do NOT implement structured data
+- Do NOT change routing
+- Do NOT add new pages
+- Do NOT modify CSS/layout
+- Do NOT change booking steps
+
+---
+
+Testing checklist:
+
+- Website builds successfully
+- No TypeScript errors
+- Each page shows correct title in browser tab
+- Navigation between pages updates title correctly
+- No console errors
+- Booking flow still works
+- CRM unaffected
+
+---
+
+After implementation report:
+
+1) List all modified files
+2) Confirm no other files were touched
+3) Confirm no logic changes were made
+4) Give exact commands to build and test locally

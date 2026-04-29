@@ -3030,14 +3030,14 @@ export default function Booking() {
   return (
     <div className="min-h-screen py-6 px-4">
       <Helmet>
-        <title>Book a Rental Car in Georgia | Tbilisicars</title>
-        <meta name="description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
+        <title>Book a Car in Georgia | Tbilisicars</title>
+        <meta name="description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
         <link rel="canonical" href="https://tbilisicars.com/booking" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Tbilisicars" />
         <meta property="og:url" content="https://tbilisicars.com/booking" />
-        <meta property="og:title" content="Book a Rental Car in Georgia | Tbilisicars" />
-        <meta property="og:description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
+        <meta property="og:title" content="Book a Car in Georgia | Tbilisicars" />
+        <meta property="og:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Book a Rental Car in Georgia | Tbilisicars" />
