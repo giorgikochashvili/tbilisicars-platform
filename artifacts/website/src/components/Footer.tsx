@@ -11,7 +11,7 @@ export default function Footer() {
   return (
     <footer className="bg-[hsl(211,55%,8%)] border-t border-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 sm:gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
@@ -65,6 +65,24 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+            </ul>
+          </div>
+
+          {/* Car Rental Cities */}
+          <div>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Car Rental Cities</h3>
+            <ul className="space-y-2">
+              {[
+                { label: "Car Rental Tbilisi", href: "/car-rental-tbilisi" },
+                { label: "Car Rental Kutaisi", href: "/car-rental-kutaisi" },
+                { label: "Car Rental Batumi",  href: "/car-rental-batumi"  },
+              ].map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-sm text-muted-foreground hover:text-white transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
