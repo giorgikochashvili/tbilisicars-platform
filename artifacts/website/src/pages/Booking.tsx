@@ -3040,8 +3040,8 @@ export default function Booking() {
         <meta property="og:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Book a Rental Car in Georgia | Tbilisicars" />
-        <meta name="twitter:description" content="Reserve your rental car online in Georgia. Choose dates, extras and insurance — fast, easy and secure booking at Tbilisicars." />
+        <meta name="twitter:title" content="Book a Car in Georgia | Tbilisicars" />
+        <meta name="twitter:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>

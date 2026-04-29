@@ -56,8 +56,8 @@ export default function About() {
         <meta property="og:description" content="Learn more about Tbilisicars, a trusted car rental company in Georgia offering reliable service across Tbilisi, Kutaisi and Batumi." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="About Tbilisicars – Your Trusted Car Rental Partner in Georgia" />
-        <meta name="twitter:description" content="Learn about Tbilisicars, Georgia's trusted car rental company serving Tbilisi, Kutaisi and Batumi with full insurance and 24/7 support." />
+        <meta name="twitter:title" content="About Tbilisicars – Car Rental Company in Georgia" />
+        <meta name="twitter:description" content="Learn more about Tbilisicars, a trusted car rental company in Georgia offering reliable service across Tbilisi, Kutaisi and Batumi." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">

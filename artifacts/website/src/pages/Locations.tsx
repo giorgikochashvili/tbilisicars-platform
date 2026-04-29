@@ -56,8 +56,8 @@ export default function Locations() {
         <meta property="og:description" content="Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Car Rental Locations – Tbilisi, Kutaisi & Batumi | Tbilisicars" />
-        <meta name="twitter:description" content="Find Tbilisicars pickup and dropoff points at Tbilisi, Kutaisi and Batumi airports and city centres." />
+        <meta name="twitter:title" content="Car Rental Locations in Georgia – Tbilisi, Kutaisi, Batumi" />
+        <meta name="twitter:description" content="Find Tbilisicars rental locations in Tbilisi, Kutaisi and Batumi including airport and city delivery options." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">

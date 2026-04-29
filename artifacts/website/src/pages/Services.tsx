@@ -61,8 +61,8 @@ export default function Services() {
         <meta property="og:description" content="Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Car Rental Services – Insurance, Delivery & More | Tbilisicars" />
-        <meta name="twitter:description" content="Explore Tbilisicars services: full insurance, unlimited mileage, airport delivery, child seats and 24/7 roadside assistance in Georgia." />
+        <meta name="twitter:title" content="Car Rental Services in Georgia | Tbilisicars" />
+        <meta name="twitter:description" content="Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">

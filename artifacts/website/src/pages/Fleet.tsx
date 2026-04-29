@@ -112,7 +112,7 @@ export default function Fleet() {
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Car Rental Fleet Georgia – Choose Your Vehicle | Tbilisicars" />
-        <meta name="twitter:description" content="Browse our fleet of rental cars in Georgia. Economy, SUV, automatic and manual vehicles available in Tbilisi, Kutaisi and Batumi." />
+        <meta name="twitter:description" content="Browse our fleet of rental cars in Georgia. Economy, SUV and business class vehicles available in Tbilisi, Kutaisi and Batumi." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-7xl mx-auto">
