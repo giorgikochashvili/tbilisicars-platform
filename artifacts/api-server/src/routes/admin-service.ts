@@ -7,6 +7,8 @@ import {
   getServiceRecord,
   updateServiceRecord,
   deleteServiceRecord,
+  listServiceComments,
+  createServiceComment,
 } from "../services/admin-service.service.js";
 import { logAudit } from "../services/audit.service.js";
 
@@ -138,6 +140,49 @@ router.delete("/admin/service/:id", requireAdmin, async (req, res) => {
     summary: `Admin deleted service record ${svcRef(id)}`,
   });
   res.json(result);
+});
+
+// ── Service Comments ──────────────────────────────────────────────────────────
+
+router.get("/admin/service/:id/comments", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid service record ID" });
+    return;
+  }
+  const comments = await listServiceComments(id);
+  res.json({ comments });
+});
+
+router.post("/admin/service/:id/comments", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid service record ID" });
+    return;
+  }
+  const { body } = req.body as { body?: string };
+  const trimmed = (body ?? "").trim();
+  if (!trimmed) {
+    res.status(400).json({ error: "body is required" });
+    return;
+  }
+  if (trimmed.length > 4000) {
+    res.status(400).json({ error: "body must be 4000 characters or fewer" });
+    return;
+  }
+  // Verify the service record exists before writing the comment
+  try {
+    await getServiceRecord(id);
+  } catch {
+    res.status(404).json({ error: "Service record not found" });
+    return;
+  }
+  const comment = await createServiceComment({
+    serviceId: id,
+    authorAdminId: req.session.adminId ?? null,
+    body: trimmed,
+  });
+  res.status(201).json(comment);
 });
 
 export default router;

@@ -85,6 +85,105 @@ function parseServiceItems(raw: string | null | undefined): ServiceItem[] {
   }
 }
 
+// ─── ServiceCommentsPanel ─────────────────────────────────────────────────────
+
+interface ServiceComment {
+  id: number;
+  serviceId: number;
+  authorAdminId: number | null;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+}
+
+function ServiceCommentsPanel({ serviceId }: { serviceId: number }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState("");
+
+  const { data, isLoading } = useQuery<{ comments: ServiceComment[] }>({
+    queryKey: ["service-comments", serviceId],
+    queryFn: () => apiFetch(`/api/admin/service/${serviceId}/comments`),
+  });
+
+  const addComment = useMutation({
+    mutationFn: (body: string) =>
+      apiFetch(`/api/admin/service/${serviceId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+    onSuccess: () => {
+      setDraft("");
+      qc.invalidateQueries({ queryKey: ["service-comments", serviceId] });
+    },
+    onError: (e: any) =>
+      toast({ title: "Could not add comment", description: e.message, variant: "destructive" }),
+  });
+
+  const handleSubmit = () => {
+    const body = draft.trim();
+    if (!body) return;
+    addComment.mutate(body);
+  };
+
+  const comments = data?.comments ?? [];
+
+  return (
+    <div className="flex flex-col gap-2 pt-1">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        Internal Comments
+      </span>
+      <div className="flex flex-col gap-1.5">
+        {isLoading ? (
+          <div className="h-8 animate-pulse rounded bg-muted/30" />
+        ) : comments.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">No comments yet.</p>
+        ) : (
+          comments.map((c) => (
+            <div
+              key={c.id}
+              className="rounded-md border border-border/40 bg-background/60 px-3 py-2 text-xs"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="font-semibold text-foreground">
+                  {c.authorName ?? "Unknown"}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  {new Date(c.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{c.body}</p>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5 pt-1">
+        <Textarea
+          rows={2}
+          placeholder="Add an internal comment (staff only)…"
+          className="text-xs resize-none bg-background/60"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
+          }}
+        />
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={handleSubmit}
+            disabled={!draft.trim() || addComment.isPending}
+          >
+            {addComment.isPending ? "Posting…" : "Add comment"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const EMPTY_FORM = {
   vehicleId: "",
   serviceDate: new Date().toISOString().split("T")[0],
@@ -705,6 +804,11 @@ export default function ServicePage() {
                                 {items.length === 0 && !r.description && !r.mechanicName && !r.shopName && (
                                   <p className="text-sm text-muted-foreground italic">No additional details recorded.</p>
                                 )}
+
+                                {/* ── Internal Comments ── */}
+                                <div className="border-t border-border/30 pt-3">
+                                  <ServiceCommentsPanel serviceId={r.id} />
+                                </div>
                               </div>
                             </TableCell>
                           </TableRow>

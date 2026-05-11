@@ -15,6 +15,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { vehicleTable } from "./fleet";
 import { adminsTable } from "./admins";
+import { relations } from "drizzle-orm";
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,29 @@ export const maintenanceServicesTable = pgTable(
   ],
 );
 
+// ─── Maintenance Service Comments ─────────────────────────────────────────────
+// Append-only internal staff comments on a service record.
+
+export const maintenanceServiceCommentTable = pgTable(
+  "maintenance_service_comments",
+  {
+    id: serial("id").primaryKey(),
+    serviceId: integer("service_id")
+      .notNull()
+      .references(() => maintenanceServicesTable.id, { onDelete: "cascade" }),
+    authorAdminId: integer("author_admin_id").references(
+      () => adminsTable.id,
+      { onDelete: "set null" },
+    ),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_svc_comments_service_id").on(t.serviceId),
+    index("idx_svc_comments_created_at").on(t.createdAt),
+  ],
+);
+
 // ─── Insert Schemas ───────────────────────────────────────────────────────────
 
 export const insertMaintenanceServiceTypeSchema = createInsertSchema(
@@ -91,6 +115,10 @@ export const insertMaintenanceServiceTypeSchema = createInsertSchema(
 export const insertMaintenanceServiceSchema = createInsertSchema(
   maintenanceServicesTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
+
+export const insertMaintenanceServiceCommentSchema = createInsertSchema(
+  maintenanceServiceCommentTable,
+).omit({ id: true, createdAt: true });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -103,4 +131,10 @@ export type InsertMaintenanceServiceType = z.infer<
 export type MaintenanceService = typeof maintenanceServicesTable.$inferSelect;
 export type InsertMaintenanceService = z.infer<
   typeof insertMaintenanceServiceSchema
+>;
+
+export type MaintenanceServiceComment =
+  typeof maintenanceServiceCommentTable.$inferSelect;
+export type InsertMaintenanceServiceComment = z.infer<
+  typeof insertMaintenanceServiceCommentSchema
 >;

@@ -2,9 +2,11 @@ import {
   db,
   maintenanceServicesTable,
   maintenanceServiceTypesTable,
+  maintenanceServiceCommentTable,
   vehicleTable,
   vehicleModelTable,
   brandTable,
+  adminsTable,
 } from "@workspace/db";
 import { asc, desc, eq, and, gte, lte, count } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
@@ -243,4 +245,41 @@ export async function deleteServiceRecord(id: number) {
     .returning();
   if (!row) throw new NotFoundError(`Service record ${id} not found`);
   return { message: "Service record deleted" };
+}
+
+// ─── Service Comments ─────────────────────────────────────────────────────────
+
+export async function listServiceComments(serviceId: number) {
+  return db
+    .select({
+      id: maintenanceServiceCommentTable.id,
+      serviceId: maintenanceServiceCommentTable.serviceId,
+      authorAdminId: maintenanceServiceCommentTable.authorAdminId,
+      authorName: adminsTable.fullName,
+      body: maintenanceServiceCommentTable.body,
+      createdAt: maintenanceServiceCommentTable.createdAt,
+    })
+    .from(maintenanceServiceCommentTable)
+    .leftJoin(
+      adminsTable,
+      eq(adminsTable.id, maintenanceServiceCommentTable.authorAdminId),
+    )
+    .where(eq(maintenanceServiceCommentTable.serviceId, serviceId))
+    .orderBy(asc(maintenanceServiceCommentTable.createdAt));
+}
+
+export async function createServiceComment(params: {
+  serviceId: number;
+  authorAdminId: number | null;
+  body: string;
+}) {
+  const [row] = await db
+    .insert(maintenanceServiceCommentTable)
+    .values({
+      serviceId: params.serviceId,
+      authorAdminId: params.authorAdminId,
+      body: params.body,
+    })
+    .returning();
+  return row;
 }
