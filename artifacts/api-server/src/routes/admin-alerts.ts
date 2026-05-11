@@ -370,31 +370,28 @@ router.get("/admin/alerts", requireAdmin, async (req, res) => {
   }
 
   // ── PARKING_OVERFLOW ────────────────────────────────────────────────────────
+  // AIRPORT capacity = 15. Includes legacy TERMINAL/OUT rows for backwards compat.
   if (!type || type === "PARKING_OVERFLOW") {
-    const CAPACITIES: Record<string, number> = { TERMINAL: 5, OUT: 10 };
+    const AIRPORT_CAPACITY = 15;
     const { rows: pRows } = await pool.query(`
-      SELECT zone, COUNT(*) AS count
+      SELECT COUNT(*) AS count
       FROM parking_assignment
-      WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
-      GROUP BY zone
+      WHERE removed_at IS NULL AND zone IN ('AIRPORT', 'TERMINAL', 'OUT')
     `);
-    for (const r of pRows) {
-      const cap = CAPACITIES[r.zone as string];
-      const count = parseInt(r.count as string, 10);
-      if (cap && count > cap) {
-        alerts.push({
-          id: `parking-overflow-${(r.zone as string).toLowerCase()}`,
-          alertType: "PARKING_OVERFLOW",
-          vehicleId: null,
-          bookingId: null,
-          vehicleLabel: `Zone ${r.zone}`,
-          region: "Tbilisi",
-          customer: null,
-          message: `Zone ${r.zone} is over capacity: ${count}/${cap}`,
-          eventDatetime: now,
-          generatedAt: now,
-        });
-      }
+    const airportCount = parseInt(pRows[0]?.count as string ?? "0", 10);
+    if (airportCount > AIRPORT_CAPACITY) {
+      alerts.push({
+        id: "parking-overflow-airport",
+        alertType: "PARKING_OVERFLOW",
+        vehicleId: null,
+        bookingId: null,
+        vehicleLabel: "Zone AIRPORT",
+        region: "Tbilisi",
+        customer: null,
+        message: `Zone AIRPORT is over capacity: ${airportCount}/${AIRPORT_CAPACITY}`,
+        eventDatetime: now,
+        generatedAt: now,
+      });
     }
   }
 
@@ -610,19 +607,14 @@ router.get("/admin/alerts/summary", requireAdmin, async (req, res) => {
           FROM best
         `),
 
-    // Parking overflow — TBS-specific, only meaningful globally
+    // Parking overflow — TBS-specific, only meaningful globally.
+    // AIRPORT capacity = 15; includes legacy TERMINAL/OUT rows.
     city
       ? Promise.resolve({ rows: [{ n: "0" }] })
       : pool.query(`
-          SELECT COALESCE(SUM(CASE WHEN cnt > capacity THEN 1 ELSE 0 END), 0) AS n
-          FROM (
-            SELECT zone,
-                   COUNT(*) AS cnt,
-                   CASE zone WHEN 'TERMINAL' THEN 5 WHEN 'OUT' THEN 10 END AS capacity
-            FROM parking_assignment
-            WHERE removed_at IS NULL AND zone IN ('TERMINAL', 'OUT')
-            GROUP BY zone
-          ) sub
+          SELECT CASE WHEN COUNT(*) > 15 THEN 1 ELSE 0 END AS n
+          FROM parking_assignment
+          WHERE removed_at IS NULL AND zone IN ('AIRPORT', 'TERMINAL', 'OUT')
         `),
   ]);
 

@@ -13,12 +13,20 @@ type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 // ─── Zone capacity rules ────────────────────────────────────────────────────────
 
 export const ZONE_CAPACITIES: Record<string, number | null> = {
-  TERMINAL: 5,
-  OUT: 10,
+  AIRPORT: 15,
   FREE: null, // unlimited
+  TASHKENT: null, // unlimited
 };
 
 export const VALID_ZONES = Object.keys(ZONE_CAPACITIES);
+
+// Legacy stored zone values → canonical display zone (backwards compat, read-only).
+// Existing TERMINAL/OUT rows in the DB are folded into AIRPORT at read time.
+// No data migration required.
+const LEGACY_ZONE_MAP: Record<string, string> = {
+  TERMINAL: "AIRPORT",
+  OUT: "AIRPORT",
+};
 
 // ─── List all active assignments grouped by zone ───────────────────────────────
 
@@ -52,11 +60,11 @@ export async function listParkingByZone() {
   }
 
   for (const row of rows) {
-    const zone = row.zone;
-    if (!grouped[zone]) {
-      grouped[zone] = { capacity: null, assignments: [] };
+    const displayZone = LEGACY_ZONE_MAP[row.zone] ?? row.zone;
+    if (!grouped[displayZone]) {
+      grouped[displayZone] = { capacity: ZONE_CAPACITIES[displayZone] ?? null, assignments: [] };
     }
-    grouped[zone].assignments.push(row);
+    grouped[displayZone].assignments.push(row);
   }
 
   return grouped;

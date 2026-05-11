@@ -28,9 +28,9 @@ async function apiFetch(path: string, opts?: RequestInit) {
 // ─── Zone configuration ────────────────────────────────────────────────────────
 
 const ZONES = [
-  { name: "TERMINAL", capacity: 5, color: "text-blue-400", borderColor: "border-blue-500/30", bgColor: "bg-blue-500/10" },
-  { name: "OUT", capacity: 10, color: "text-amber-400", borderColor: "border-amber-500/30", bgColor: "bg-amber-500/10" },
-  { name: "FREE", capacity: null, color: "text-emerald-400", borderColor: "border-emerald-500/30", bgColor: "bg-emerald-500/10" },
+  { name: "AIRPORT",  capacity: 15,   color: "text-blue-400",   borderColor: "border-blue-500/30",   bgColor: "bg-blue-500/10" },
+  { name: "FREE",     capacity: null, color: "text-emerald-400", borderColor: "border-emerald-500/30", bgColor: "bg-emerald-500/10" },
+  { name: "TASHKENT", capacity: null, color: "text-violet-400", borderColor: "border-violet-500/30", bgColor: "bg-violet-500/10" },
 ] as const;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

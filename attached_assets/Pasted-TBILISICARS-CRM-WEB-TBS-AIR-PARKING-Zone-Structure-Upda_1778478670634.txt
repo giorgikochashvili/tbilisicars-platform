@@ -1,0 +1,212 @@
+TBILISICARS CRM&WEB — TBS AIR PARKING Zone Structure Update
+
+We need to safely update the existing TBS AIR PARKING module and related parking zone logic.
+
+This is a LIVE production CRM system.
+Changes must be minimal, surgical, backwards-compatible, and must NOT break:
+- booking lifecycle
+- vehicle state transitions
+- pricing
+- payments
+- SEO
+- website booking flow
+- unrelated CRM modules
+
+IMPORTANT:
+Do NOT broadly refactor the parking module.
+Do NOT redesign architecture.
+Do NOT change unrelated logic.
+Only implement the exact parking-zone update described below.
+
+==================================================
+NEW REQUIRED PARKING STRUCTURE
+==================================================
+
+Current zones:
+- TERMINAL (capacity 5)
+- OUT (capacity 10)
+- FREE (unlimited)
+
+New required user-facing zones:
+1. AIRPORT — capacity 15
+2. FREE — unlimited
+3. TASHKENT — unlimited
+
+Business meaning:
+- AIRPORT replaces/combines the old TERMINAL + OUT airport parking areas.
+- FREE remains the unlimited airport overflow/free parking area.
+- TASHKENT is the city parking zone.
+
+User-facing UI should ONLY show:
+- AIRPORT
+- FREE
+- TASHKENT
+
+The word “PARKING” should NOT appear in individual zone names/cards.
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+1. TBS AIR PARKING PAGE
+
+Update the TBS AIR PARKING page to show exactly 3 parking columns/cards:
+
+- AIRPORT
+  - capacity 15
+  - show current count / 15
+  - support overflow state if count > 15
+
+- FREE
+  - unlimited
+  - show current count only
+
+- TASHKENT
+  - unlimited
+  - show current count only
+
+2. DASHBOARD PARKING WIDGET
+
+Update the compact Dashboard parking widget to show:
+
+- AIRPORT current count / 15
+- FREE current count
+- TASHKENT current count
+
+Only AIRPORT should show over-capacity state when count > 15.
+
+FREE and TASHKENT should never show capacity warnings.
+
+3. EXISTING DATA COMPATIBILITY
+
+IMPORTANT:
+Existing parked vehicles stored with old zones MUST NOT disappear.
+
+Backwards compatibility rules:
+- Existing TERMINAL records must behave/display as AIRPORT
+- Existing OUT records must behave/display as AIRPORT
+- Existing FREE records must behave/display as FREE
+
+Do NOT delete old parking rows.
+Do NOT run destructive migrations.
+Do NOT break existing parking data.
+
+4. INTERNAL ZONE MAPPING
+
+If parking zones are stored as enum/text/constants:
+
+- Preserve compatibility with old values:
+  TERMINAL
+  OUT
+  FREE
+
+- New user-facing structure must display:
+  AIRPORT
+  FREE
+  TASHKENT
+
+- New records may use safe canonical internal values if needed, for example:
+  AIRPORT
+  FREE
+  TASHKENT
+
+BUT:
+Old TERMINAL and OUT records must still load correctly and count under AIRPORT.
+
+Keep the mapping centralized and safe.
+
+5. VEHICLE MOVEMENT BETWEEN ZONES
+
+Vehicle move/change-zone functionality must support only:
+
+- AIRPORT
+- FREE
+- TASHKENT
+
+6. MANUAL “ENTER CAR IN PARKING”
+
+The “Enter Car in Parking” flow should allow selecting only:
+
+- AIRPORT
+- FREE
+- TASHKENT
+
+7. DROP-OFF WORKFLOW INTEGRATION
+
+If the Tbilisi Airport dropoff workflow currently requires parking-zone selection:
+
+Update selectable zones safely to:
+- AIRPORT
+- FREE
+- TASHKENT
+
+IMPORTANT:
+- Do NOT break existing dropoff flow logic.
+- Do NOT automatically force TASHKENT.
+- Staff must manually choose the intended zone.
+
+If validation currently only accepts TERMINAL/OUT/FREE,
+update validation safely and minimally.
+
+8. CAPACITY LOGIC
+
+AIRPORT:
+- capacity = 15
+- overflow allowed if previous system allowed overflow
+- show over-capacity state when count > 15
+
+FREE:
+- unlimited
+- no capacity warnings
+
+TASHKENT:
+- unlimited
+- no capacity warnings
+
+9. AUDIT / HISTORY
+
+Preserve existing parking audit/history behavior.
+
+When a vehicle is moved/assigned,
+logs should display the new user-facing zone names correctly.
+
+==================================================
+IMPORTANT SAFETY RULES
+==================================================
+
+- Do NOT touch booking pricing logic
+- Do NOT touch payment logic
+- Do NOT touch vehicle lifecycle logic unless parking integration requires minimal adjustment
+- Do NOT refactor unrelated backend services
+- Do NOT change unrelated routes
+- Do NOT change SEO logic
+- Do NOT redesign the parking module
+- Keep all changes minimal and production-safe
+
+==================================================
+BEFORE CODING
+==================================================
+
+First:
+1. Locate all parking-zone definitions/usages in frontend and backend
+2. Identify:
+   - DB storage format
+   - enum/text/constants
+   - dashboard widget usage
+   - dropoff workflow validation
+3. Report the exact files requiring modification
+
+Then implement only the minimal required changes.
+
+==================================================
+AFTER CODING
+==================================================
+
+Provide:
+- List of changed files
+- Explanation of old-to-new zone mapping
+- Confirmation that TERMINAL/OUT records still appear under AIRPORT
+- Confirmation Dashboard widget uses new zones
+- Confirmation dropoff workflow uses new zones
+- Confirmation no destructive migration was used
+- Any manual DB step required, if absolutely unavoidable

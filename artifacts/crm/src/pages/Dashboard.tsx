@@ -107,9 +107,9 @@ interface ParkingZoneData {
 }
 
 interface ParkingOverviewData {
-  TERMINAL?: ParkingZoneData;
-  OUT?: ParkingZoneData;
+  AIRPORT?: ParkingZoneData;
   FREE?: ParkingZoneData;
+  TASHKENT?: ParkingZoneData;
 }
 
 // ─── Widget config ─────────────────────────────────────────────────────────────
@@ -381,9 +381,9 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
   const [, navigate] = useLocation();
 
   const zones: Array<{ key: keyof ParkingOverviewData; label: string; capacity: number | null; colorClass: string }> = [
-    { key: "TERMINAL", label: "Terminal", capacity: 5, colorClass: "text-sky-400" },
-    { key: "OUT", label: "Out", capacity: 10, colorClass: "text-violet-400" },
-    { key: "FREE", label: "Free", capacity: null, colorClass: "text-emerald-400" },
+    { key: "AIRPORT",  label: "Airport",  capacity: 15,   colorClass: "text-sky-400" },
+    { key: "FREE",     label: "Free",     capacity: null, colorClass: "text-emerald-400" },
+    { key: "TASHKENT", label: "Tashkent", capacity: null, colorClass: "text-violet-400" },
   ];
 
   return (
