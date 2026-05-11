@@ -57,11 +57,29 @@ const GEORGIAN_CATEGORIES = [
   "საბურავები",
 ];
 
-function parseCategories(raw: string | null | undefined): string[] {
+interface ServiceItem {
+  name: string;
+  completed: boolean;
+  cost: string | null;
+}
+
+function parseServiceItems(raw: string | null | undefined): ServiceItem[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item: any): ServiceItem => {
+        if (typeof item === "string") {
+          return { name: item, completed: false, cost: null };
+        }
+        return {
+          name: String(item.name ?? ""),
+          completed: Boolean(item.completed),
+          cost: item.cost != null ? String(item.cost) : null,
+        };
+      })
+      .filter((item) => item.name.trim() !== "");
   } catch {
     return [];
   }
@@ -83,7 +101,7 @@ export default function ServicePage() {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<ServiceItem[]>([]);
 
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const toggleExpand = (id: number) =>
@@ -204,6 +222,15 @@ export default function ServicePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const patchMutation = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: any }) =>
+      apiFetch(`/api/admin/service/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-records"] });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   // ── Handlers ──────────────────────────────────────────────────────
 
   const handleOpenModal = (record: any = null) => {
@@ -226,8 +253,8 @@ export default function ServicePage() {
         description: record.description ?? "",
         status: record.status ?? "SCHEDULED",
       });
-      // Pre-fill categories
-      setSelectedCategories(parseCategories(record.serviceCategories));
+      // Pre-fill categories — normalises old string-array format into object-array
+      setSelectedItems(parseServiceItems(record.serviceCategories));
       // Pre-fill cascade from saved vehicle
       const savedVehicle = vehicles.find((v: any) => v.id?.toString() === record.vehicleId?.toString());
       setSvcPlateSearch(savedVehicle?.licensePlate ?? "");
@@ -236,7 +263,7 @@ export default function ServicePage() {
     } else {
       setEditingRecord(null);
       setFormData(EMPTY_FORM);
-      setSelectedCategories([]);
+      setSelectedItems([]);
     }
     setIsModalOpen(true);
   };
@@ -246,13 +273,13 @@ export default function ServicePage() {
       toast({ title: "Validation Error", description: "Vehicle is required", variant: "destructive" });
       return;
     }
-    if (!editingRecord && selectedCategories.length === 0) {
+    if (!editingRecord && selectedItems.length === 0) {
       toast({ title: "Validation Error", description: "At least one service category is required", variant: "destructive" });
       return;
     }
     const body = {
       vehicleId: parseInt(formData.vehicleId),
-      serviceCategories: JSON.stringify(selectedCategories),
+      serviceCategories: JSON.stringify(selectedItems),
       serviceDate: formData.serviceDate || null,
       mileage: formData.mileage ? parseInt(formData.mileage) : null,
       cost: formData.cost || null,
@@ -272,6 +299,14 @@ export default function ServicePage() {
     if (confirm("Delete this service record? This cannot be undone.")) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleToggleItem = (record: any, itemName: string) => {
+    const items = parseServiceItems(record.serviceCategories);
+    const updated = items.map((item) =>
+      item.name === itemName ? { ...item, completed: !item.completed } : item
+    );
+    patchMutation.mutate({ id: record.id, body: { serviceCategories: JSON.stringify(updated) } });
   };
 
   const clearFilters = () => {
@@ -453,7 +488,7 @@ export default function ServicePage() {
                 </TableRow>
               ) : (
                 records.map((r: any) => {
-                  const cats = parseCategories(r.serviceCategories);
+                  const items = parseServiceItems(r.serviceCategories);
                   const isExpanded = expandedRows.has(r.id);
                   const svcRef = `SVC-${String(r.id).padStart(5, "0")}`;
                   return (
@@ -481,11 +516,15 @@ export default function ServicePage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {cats.length > 0 ? (
+                          {items.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {cats.map((c: string) => (
-                                <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                                  {c}
+                              {items.map((item) => (
+                                <Badge
+                                  key={item.name}
+                                  variant="secondary"
+                                  className={`text-xs ${item.completed ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-primary/10 text-primary border-primary/20"}`}
+                                >
+                                  {item.name}
                                 </Badge>
                               ))}
                             </div>
@@ -547,53 +586,130 @@ export default function ServicePage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                      {isExpanded && (
-                        <TableRow key={`${r.id}-detail`} className="border-border/20 bg-muted/10 hover:bg-muted/10">
-                          <TableCell colSpan={8} className="px-6 py-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3 text-sm">
-                              <div>
-                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Record ID</span>
-                                <span className="font-mono text-foreground">{svcRef}</span>
+                      {isExpanded && (() => {
+                        const itemCostTotal = items.some((i) => i.cost != null && i.cost !== "")
+                          ? items.reduce((sum, i) => sum + (i.cost ? parseFloat(i.cost) : 0), 0)
+                          : null;
+                        const displayTotal = itemCostTotal != null
+                          ? itemCostTotal
+                          : (r.cost ? parseFloat(r.cost) : null);
+                        const allDone = items.length > 0 && items.every((i) => i.completed);
+                        return (
+                          <TableRow key={`${r.id}-detail`} className="border-border/20 bg-muted/10 hover:bg-muted/10">
+                            <TableCell colSpan={8} className="px-6 py-4">
+                              <div className="flex flex-col gap-4">
+
+                                {/* ── Meta: record ID, mechanic, shop, timestamps ── */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2 text-sm">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Record ID</span>
+                                    <span className="font-mono text-foreground">{svcRef}</span>
+                                  </div>
+                                  {r.mechanicName && (
+                                    <div>
+                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Mechanic</span>
+                                      <span className="text-foreground">{r.mechanicName}</span>
+                                    </div>
+                                  )}
+                                  {r.shopName && (
+                                    <div>
+                                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Shop / Vendor</span>
+                                      <span className="text-foreground">{r.shopName}</span>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Created</span>
+                                    <span className="text-muted-foreground text-xs">{r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Last Updated</span>
+                                    <span className="text-muted-foreground text-xs">{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</span>
+                                  </div>
+                                </div>
+
+                                {/* ── Per-item checklist ── */}
+                                {items.length > 0 && (
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Work Items</span>
+                                    <div className="border border-border/40 rounded-md divide-y divide-border/30 overflow-hidden">
+                                      {items.map((item) => (
+                                        <div
+                                          key={item.name}
+                                          className="flex items-center gap-3 px-3 py-2.5 bg-background/50 text-sm"
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleToggleItem(r, item.name); }}
+                                            disabled={patchMutation.isPending}
+                                            className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                              item.completed
+                                                ? "bg-emerald-500 border-emerald-500 text-white"
+                                                : "border-red-400 bg-transparent hover:border-red-500"
+                                            }`}
+                                            title={item.completed ? "Mark as pending" : "Mark as complete"}
+                                          >
+                                            {item.completed && (
+                                              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                                                <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                          <span className={`flex-1 ${item.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                                            {item.name}
+                                          </span>
+                                          <span className="text-xs font-mono text-muted-foreground min-w-[60px] text-right">
+                                            {item.cost && parseFloat(item.cost) > 0 ? `₾${parseFloat(item.cost).toFixed(2)}` : "—"}
+                                          </span>
+                                          <Badge
+                                            variant="outline"
+                                            className={`text-xs w-20 justify-center ${item.completed ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-red-500/10 text-red-500 border-red-500/20"}`}
+                                          >
+                                            {item.completed ? "Done" : "Pending"}
+                                          </Badge>
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* ── Total cost row ── */}
+                                    {displayTotal != null && (
+                                      <div className="flex justify-end items-center gap-2 pt-1 pr-1 text-sm">
+                                        <span className="text-muted-foreground text-xs">
+                                          {itemCostTotal != null ? "Items total:" : "Total cost:"}
+                                        </span>
+                                        <span className="font-mono font-medium text-foreground">
+                                          ₾{displayTotal.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* ── All-done hint ── */}
+                                    {allDone && r.status !== "COMPLETED" && (
+                                      <div className="mt-1 flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">
+                                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                          <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 110-2 1 1 0 010 2z"/>
+                                        </svg>
+                                        All items completed — you may want to mark this record as Completed.
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* ── Notes ── */}
+                                {r.description && (
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-1">Notes / Description</span>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{r.description}</p>
+                                  </div>
+                                )}
+
+                                {items.length === 0 && !r.description && !r.mechanicName && !r.shopName && (
+                                  <p className="text-sm text-muted-foreground italic">No additional details recorded.</p>
+                                )}
                               </div>
-                              {r.mechanicName && (
-                                <div>
-                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Mechanic</span>
-                                  <span className="text-foreground">{r.mechanicName}</span>
-                                </div>
-                              )}
-                              {r.shopName && (
-                                <div>
-                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Shop / Vendor</span>
-                                  <span className="text-foreground">{r.shopName}</span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Created</span>
-                                <span className="text-muted-foreground">
-                                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Last Updated</span>
-                                <span className="text-muted-foreground">
-                                  {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}
-                                </span>
-                              </div>
-                              {r.description && (
-                                <div className="sm:col-span-2 lg:col-span-3">
-                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Notes / Description</span>
-                                  <p className="text-foreground whitespace-pre-wrap leading-relaxed">{r.description}</p>
-                                </div>
-                              )}
-                              {!r.description && !r.mechanicName && !r.shopName && (
-                                <div className="sm:col-span-2 lg:col-span-3 text-muted-foreground italic">
-                                  No additional details recorded.
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })()}
                     </>
                   );
                 })
@@ -725,46 +841,79 @@ export default function ServicePage() {
               </Select>
             </div>
 
-            {/* ── Service Categories (multi-select) ── */}
+            {/* ── Service Categories (multi-select with per-item cost) ── */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label>
                   Service Categories <span className="text-destructive">*</span>
                 </Label>
-                {selectedCategories.length > 0 && (
-                  <span className="text-xs text-muted-foreground">{selectedCategories.length} selected</span>
+                {selectedItems.length > 0 && (
+                  <span className="text-xs text-muted-foreground">{selectedItems.length} selected</span>
                 )}
               </div>
-              {selectedCategories.length > 0 && (
+              {selectedItems.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {selectedCategories.map((c) => (
-                    <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                      {c}
+                  {selectedItems.map((item) => (
+                    <Badge key={item.name} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                      {item.name}
                     </Badge>
                   ))}
                 </div>
               )}
-              <div className="border border-border rounded-md bg-background divide-y divide-border/40 max-h-52 overflow-y-auto">
-                {GEORGIAN_CATEGORIES.map((cat) => (
-                  <div key={cat} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id={`cat-${cat}`}
-                      checked={selectedCategories.includes(cat)}
-                      onCheckedChange={(checked) => {
-                        setSelectedCategories((prev) =>
-                          checked ? [...prev, cat] : prev.filter((c) => c !== cat)
-                        );
-                      }}
-                    />
-                    <label
-                      htmlFor={`cat-${cat}`}
-                      className="text-sm cursor-pointer select-none flex-1"
-                    >
-                      {cat}
-                    </label>
-                  </div>
-                ))}
+              <div className="border border-border rounded-md bg-background divide-y divide-border/40 max-h-56 overflow-y-auto">
+                {GEORGIAN_CATEGORIES.map((cat) => {
+                  const existing = selectedItems.find((i) => i.name === cat);
+                  const isChecked = !!existing;
+                  return (
+                    <div key={cat} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 transition-colors">
+                      <Checkbox
+                        id={`cat-${cat}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedItems((prev) => [...prev, { name: cat, completed: false, cost: null }]);
+                          } else {
+                            setSelectedItems((prev) => prev.filter((i) => i.name !== cat));
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`cat-${cat}`}
+                        className="text-sm cursor-pointer select-none flex-1"
+                      >
+                        {cat}
+                      </label>
+                      {isChecked && (
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-xs text-muted-foreground">₾</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={existing?.cost ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSelectedItems((prev) =>
+                                prev.map((i) => i.name === cat ? { ...i, cost: val || null } : i)
+                              );
+                            }}
+                            className="h-7 w-24 text-xs bg-muted/50 px-2"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              {selectedItems.some((i) => i.cost && parseFloat(i.cost) > 0) && (
+                <div className="flex justify-end items-center gap-2 text-xs text-muted-foreground pr-1">
+                  <span>Items total:</span>
+                  <span className="font-mono font-medium text-foreground">
+                    ₾{selectedItems.reduce((s, i) => s + (i.cost ? parseFloat(i.cost) : 0), 0).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* ── Date + Status ── */}
