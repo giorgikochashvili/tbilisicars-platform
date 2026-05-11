@@ -27,6 +27,21 @@ export default function CityRentalBatumi() {
         <meta name="twitter:title" content="Car Rental Batumi – Rent a Car in Georgia | Tbilisicars" />
         <meta name="twitter:description" content="Rent a car in Batumi with full insurance, unlimited mileage and airport delivery. Explore Adjara and the Black Sea coast with Tbilisicars." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
+  "@type": "AutoRental",
+  "name": "Tbilisicars – Car Rental Batumi",
+  "url": "https://tbilisicars.com/car-rental-batumi",
+  "telephone": "+995557376363",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Batumi",
+    "addressCountry": "GE"
+  },
+  "areaServed": "Batumi, Georgia"
+}
+`}</script>
       </Helmet>
 
       <div className="max-w-5xl mx-auto">

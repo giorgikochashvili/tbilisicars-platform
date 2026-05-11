@@ -27,6 +27,21 @@ export default function CityRentalTbilisi() {
         <meta name="twitter:title" content="Car Rental Tbilisi – Rent a Car in Georgia | Tbilisicars" />
         <meta name="twitter:description" content="Rent a car in Tbilisi with full insurance, unlimited mileage and airport delivery. Book your car rental in Georgia with Tbilisicars." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
+  "@type": "AutoRental",
+  "name": "Tbilisicars – Car Rental Tbilisi",
+  "url": "https://tbilisicars.com/car-rental-tbilisi",
+  "telephone": "+995557376363",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Tbilisi",
+    "addressCountry": "GE"
+  },
+  "areaServed": "Tbilisi, Georgia"
+}
+`}</script>
       </Helmet>
 
       <div className="max-w-5xl mx-auto">
