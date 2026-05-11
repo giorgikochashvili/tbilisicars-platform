@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info, ChevronDown } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, Wrench, Filter, X, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VehicleDetail from "./VehicleDetail";
 
@@ -85,6 +85,14 @@ export default function ServicePage() {
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const toggleExpand = (id: number) =>
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -129,7 +137,8 @@ export default function ServicePage() {
 
   const { data: vehiclesData } = useQuery({
     queryKey: ["fleet-vehicles-for-service"],
-    queryFn: () => apiFetch("/api/admin/fleet/vehicles?limit=200"),
+    queryFn: () => apiFetch("/api/admin/fleet/vehicles?limit=500"),
+    refetchOnMount: "always",
   });
   const vehicles = vehiclesData?.data ?? [];
 
@@ -203,6 +212,8 @@ export default function ServicePage() {
     setSvcPlateSearch("");
     setSvcBrandId("");
     setSvcModelId("");
+    // Always refresh vehicle list so newly-added vehicles appear immediately
+    queryClient.invalidateQueries({ queryKey: ["fleet-vehicles-for-service"] });
     if (record) {
       setEditingRecord(record);
       setFormData({
@@ -443,86 +454,147 @@ export default function ServicePage() {
               ) : (
                 records.map((r: any) => {
                   const cats = parseCategories(r.serviceCategories);
+                  const isExpanded = expandedRows.has(r.id);
+                  const svcRef = `SVC-${String(r.id).padStart(5, "0")}`;
                   return (
-                    <TableRow key={r.id} className="border-border/20 hover:bg-muted/30 transition-colors">
-                      <TableCell className="text-sm font-mono">
-                        {r.serviceDate ? new Date(r.serviceDate).toLocaleDateString() : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm">
-                          {r.brandName} {r.vehicleModelName}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {r.vehicleLicensePlate || "—"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {cats.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {cats.map((c: string) => (
-                              <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                                {c}
-                              </Badge>
-                            ))}
+                    <>
+                      <TableRow
+                        key={r.id}
+                        className="border-border/20 hover:bg-muted/30 transition-colors cursor-pointer"
+                        onClick={() => toggleExpand(r.id)}
+                      >
+                        <TableCell className="text-sm font-mono">
+                          <div className="flex items-center gap-1.5">
+                            {isExpanded
+                              ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            }
+                            {r.serviceDate ? new Date(r.serviceDate).toLocaleDateString() : "—"}
                           </div>
-                        ) : (
-                          <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                            {r.serviceTypeName || "—"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {r.mileage ? r.mileage.toLocaleString() + " km" : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {r.cost ? `₾${parseFloat(r.cost).toFixed(2)}` : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {r.shopName || r.mechanicName || "—"}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={r.status}
-                          onValueChange={(val) => statusMutation.mutate({ id: r.id, status: val })}
-                          disabled={statusMutation.isPending}
-                        >
-                          <SelectTrigger className={`h-7 text-xs w-36 border ${STATUS_COLORS[r.status] ?? ""}`}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Object.entries(STATUS_LABELS) as [string, string][]).map(([val, label]) => (
-                              <SelectItem key={val} value={val} className="text-xs">
-                                <Badge variant="outline" className={`text-xs ${STATUS_COLORS[val] ?? ""}`}>
-                                  {label}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-sm">
+                            {r.brandName} {r.vehicleModelName}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {r.vehicleLicensePlate || "—"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {cats.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {cats.map((c: string) => (
+                                <Badge key={c} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                                  {c}
                                 </Badge>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-52">
-                            {r.vehicleId && (
-                              <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
-                                <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
+                              ))}
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                              {r.serviceTypeName || "—"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {r.mileage ? r.mileage.toLocaleString() + " km" : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm font-mono">
+                          {r.cost ? `₾${parseFloat(r.cost).toFixed(2)}` : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {r.shopName || r.mechanicName || "—"}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={r.status}
+                            onValueChange={(val) => statusMutation.mutate({ id: r.id, status: val })}
+                            disabled={statusMutation.isPending}
+                          >
+                            <SelectTrigger className={`h-7 text-xs w-36 border ${STATUS_COLORS[r.status] ?? ""}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.entries(STATUS_LABELS) as [string, string][]).map(([val, label]) => (
+                                <SelectItem key={val} value={val} className="text-xs">
+                                  <Badge variant="outline" className={`text-xs ${STATUS_COLORS[val] ?? ""}`}>
+                                    {label}
+                                  </Badge>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              {r.vehicleId && (
+                                <DropdownMenuItem onClick={() => setDetailVehicleId(r.vehicleId)}>
+                                  <Info className="w-4 h-4 mr-2" /> View Vehicle Detail
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleOpenModal(r)}>
+                                <Edit className="w-4 h-4 mr-2" /> Edit Full Record
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleOpenModal(r)}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit Full Record
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(r.id)} className="text-destructive focus:text-destructive">
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                              <DropdownMenuItem onClick={() => handleDelete(r.id)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow key={`${r.id}-detail`} className="border-border/20 bg-muted/10 hover:bg-muted/10">
+                          <TableCell colSpan={8} className="px-6 py-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3 text-sm">
+                              <div>
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Record ID</span>
+                                <span className="font-mono text-foreground">{svcRef}</span>
+                              </div>
+                              {r.mechanicName && (
+                                <div>
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Mechanic</span>
+                                  <span className="text-foreground">{r.mechanicName}</span>
+                                </div>
+                              )}
+                              {r.shopName && (
+                                <div>
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Shop / Vendor</span>
+                                  <span className="text-foreground">{r.shopName}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Created</span>
+                                <span className="text-muted-foreground">
+                                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Last Updated</span>
+                                <span className="text-muted-foreground">
+                                  {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}
+                                </span>
+                              </div>
+                              {r.description && (
+                                <div className="sm:col-span-2 lg:col-span-3">
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-0.5">Notes / Description</span>
+                                  <p className="text-foreground whitespace-pre-wrap leading-relaxed">{r.description}</p>
+                                </div>
+                              )}
+                              {!r.description && !r.mechanicName && !r.shopName && (
+                                <div className="sm:col-span-2 lg:col-span-3 text-muted-foreground italic">
+                                  No additional details recorded.
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })
               )}
