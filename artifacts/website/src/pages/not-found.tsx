@@ -1,9 +1,15 @@
 import { Link } from "wouter";
 import { AlertCircle } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 export default function NotFound() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4">
+    <>
+      <Helmet>
+        <title>404 Not Found | Tbilisicars</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Helmet>
+      <div className="min-h-[60vh] flex items-center justify-center px-4">
       <div className="text-center">
         <div className="w-16 h-16 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="w-8 h-8 text-destructive" />
@@ -18,5 +24,6 @@ export default function NotFound() {
         </Link>
       </div>
     </div>
+    </>
   );
 }
