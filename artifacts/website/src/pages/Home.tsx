@@ -7,6 +7,7 @@ import {
   Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft, Users,
 } from "lucide-react";
 import { DateTimePicker } from "@/components/DateTimePicker";
+import SearchButton from "@/components/SearchButton";
 
 interface Location {
   id: number;
@@ -276,15 +277,19 @@ export default function Home() {
     if (sameLocation) setDropoffLocationId(pickupLocationId);
   }, [sameLocation, pickupLocationId]);
 
-  function handleSearch() {
+  function validateSearch(): boolean {
     setError(null);
-    if (!pickupLocationId) { setError("Please select a pickup location"); return; }
-    if (!sameLocation && !dropoffLocationId) { setError("Please select a drop-off location"); return; }
-    if (!pickupDatetime) { setError("Please select a pickup date & time"); return; }
-    if (!dropoffDatetime) { setError("Please select a return date & time"); return; }
+    if (!pickupLocationId) { setError("Please select a pickup location"); return false; }
+    if (!sameLocation && !dropoffLocationId) { setError("Please select a drop-off location"); return false; }
+    if (!pickupDatetime) { setError("Please select a pickup date & time"); return false; }
+    if (!dropoffDatetime) { setError("Please select a return date & time"); return false; }
     const pickup = new Date(pickupDatetime);
     const dropoff = new Date(dropoffDatetime);
-    if (dropoff <= pickup) { setError("Return date must be after pickup date"); return; }
+    if (dropoff <= pickup) { setError("Return date must be after pickup date"); return false; }
+    return true;
+  }
+
+  function navigateToBooking() {
     const params = new URLSearchParams({
       pickupLocationId,
       dropoffLocationId: sameLocation ? pickupLocationId : dropoffLocationId,
@@ -461,13 +466,7 @@ export default function Home() {
               <p className="text-sm text-destructive mb-4">{error}</p>
             )}
 
-            <button
-              onClick={handleSearch}
-              className="w-full bg-primary hover:bg-accent text-white font-semibold py-3 px-6 rounded-xl transition-colors text-base shadow-md flex items-center justify-center gap-2"
-            >
-              Search Vehicles
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            <SearchButton onValidate={validateSearch} onSearch={navigateToBooking} />
           </div>
 
         </div>

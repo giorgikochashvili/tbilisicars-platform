@@ -3,11 +3,12 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
 interface SearchButtonProps {
+  onValidate: () => boolean;
   onSearch: () => void;
   className?: string;
 }
 
-export default function SearchButton({ onSearch, className }: SearchButtonProps) {
+export default function SearchButton({ onValidate, onSearch, className }: SearchButtonProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const reducedMotion = useReducedMotion();
   const fallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -20,6 +21,8 @@ export default function SearchButton({ onSearch, className }: SearchButtonProps)
 
   function handleClick() {
     if (isAnimating) return;
+
+    if (!onValidate()) return;
 
     if (reducedMotion) {
       onSearch();
@@ -56,12 +59,12 @@ export default function SearchButton({ onSearch, className }: SearchButtonProps)
       <motion.span
         animate={
           isAnimating
-            ? { x: [0, 10, 18], scale: [1, 1.2, 0.8], opacity: [1, 1, 0] }
+            ? { x: [0, 8, 16], scale: [1, 1.2, 0.8], opacity: [1, 1, 0] }
             : { x: 0, scale: 1, opacity: 1 }
         }
         transition={
           isAnimating
-            ? { duration: 0.7, ease: "easeOut" }
+            ? { duration: 0.6, ease: "easeOut" }
             : { duration: 0 }
         }
         onAnimationComplete={isAnimating ? handleAnimationComplete : undefined}
