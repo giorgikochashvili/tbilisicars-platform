@@ -1,0 +1,131 @@
+You are working on the LIVE production Tbilisicars CRM&WEB monorepo.
+
+IMPORTANT:
+This is PLAN MODE ONLY.
+Do NOT edit any files.
+Do NOT create any code.
+Do NOT change any UI.
+Do NOT run migrations.
+Do NOT touch production logic.
+
+We want to explore a future premium UX feature for the public website booking flow:
+
+Feature idea:
+When a customer fills the homepage booking search form and clicks the red “Search Vehicles” button, the small arrow/icon at the end of the button should trigger a premium micro-transition animation before navigating to the vehicle results page.
+
+Desired creative direction:
+- The button arrow subtly animates/moves.
+- The arrow/motion lines transform into a sleek travel/vehicle/airplane motion cue.
+- A small premium airplane-like visual or motion trail appears from the right side of the button.
+- It flies out smoothly and transitions the user into the vehicle results page.
+- The feeling should be premium, minimal, elegant, travel-tech style.
+- It must NOT look childish, cartoonish, casino-like, cheap, or slow.
+- It should feel like a luxury travel app micro-interaction.
+- Duration should likely be around 0.8–1.5 seconds max.
+- It must not block the booking flow if something fails.
+
+Critical restrictions:
+- Do NOT touch CRM.
+- Do NOT touch backend/API.
+- Do NOT touch booking logic.
+- Do NOT touch pricing logic.
+- Do NOT touch payment logic.
+- Do NOT touch email/PDF logic.
+- Do NOT change database schema.
+- Do NOT refactor architecture.
+- Do NOT change routes.
+- Do NOT change SEO metadata.
+- Do NOT change homepage layout in this planning step.
+- Do NOT introduce heavy assets, videos, or large animation libraries unless already present and justified.
+
+Primary goal of this planning task:
+Analyze the current implementation and produce a safe technical plan for how this animation could be implemented later with minimal risk.
+
+Please inspect the actual codebase and identify:
+
+1. Where the homepage booking search form is implemented
+- exact file paths
+- exact component names
+- how the “Search Vehicles” button works
+- how submit/navigation currently happens
+
+2. Whether the project already uses animation libraries
+- Framer Motion?
+- CSS animations?
+- Lottie?
+- existing icon system?
+- existing loading/transition patterns?
+
+3. Best implementation approach
+Compare:
+- pure CSS/SVG animation
+- Framer Motion
+- Lottie
+- inline SVG + CSS transform
+- route transition wrapper
+
+Recommend the safest and lightest approach for this project.
+
+4. Proposed UX behavior
+Describe exactly what should happen:
+- before click
+- on click
+- during animation
+- after animation
+- what happens on mobile
+- what happens if validation fails
+- what happens if navigation is instant
+- what happens if user has reduced-motion enabled
+
+5. Risk analysis
+Assess risks:
+- booking flow regression
+- mobile performance
+- accessibility
+- animation feeling cheap
+- delaying navigation too much
+- interfering with form validation
+- React state/routing risks
+
+6. Safe phased implementation plan
+Break into phases:
+
+Phase 1:
+- tiny prototype only
+- isolated component
+- no booking logic change
+
+Phase 2:
+- integrate with homepage button
+- only after validation passes
+- no API/booking/pricing changes
+
+Phase 3:
+- polish and mobile optimization
+
+7. Files likely affected
+List expected files only.
+Do not edit them.
+
+8. Out of scope
+Explicitly list what must not be touched.
+
+9. Done looks like
+Define what a good implementation would look like visually and technically.
+
+10. First future Replit build prompt
+Write a separate future prompt for the smallest safe prototype implementation ONLY.
+That future prompt must:
+- not touch CRM/API/booking/pricing/payment/email/PDF
+- not change routes
+- not change validation logic
+- not add heavy assets
+- create a reusable lightweight animation component if appropriate
+- keep animation disabled for prefers-reduced-motion users
+- preserve existing button behavior if animation fails
+
+Again:
+PLAN ONLY.
+Do NOT edit files.
+Do NOT implement.
+Return your analysis and recommended plan.
