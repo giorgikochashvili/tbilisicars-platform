@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { PlaneTakeoff } from "lucide-react";
 
 interface SearchButtonProps {
   onValidate: () => boolean;
@@ -56,22 +56,26 @@ export default function SearchButton({ onValidate, onSearch, className }: Search
       }
     >
       Search Vehicles
-      <motion.span
-        animate={
-          isAnimating
-            ? { x: [0, 8, 16], scale: [1, 1.2, 0.8], opacity: [1, 1, 0] }
-            : { x: 0, scale: 1, opacity: 1 }
-        }
-        transition={
-          isAnimating
-            ? { duration: 0.6, ease: "easeOut" }
-            : { duration: 0 }
-        }
-        onAnimationComplete={isAnimating ? handleAnimationComplete : undefined}
-        style={{ display: "inline-flex", alignItems: "center" }}
-      >
-        <ChevronRight className="w-5 h-5" />
-      </motion.span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "2px", position: "relative" }}>
+        <motion.span
+          style={{ display: "block", width: 6, height: 1, borderRadius: 1, background: "rgba(255,255,255,0.5)" }}
+          animate={isAnimating ? { opacity: [0, 0.55, 0], x: [0, -5, -10] } : { opacity: 0, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
+        />
+        <motion.span
+          style={{ display: "block", width: 4, height: 1, borderRadius: 1, background: "rgba(255,255,255,0.4)" }}
+          animate={isAnimating ? { opacity: [0, 0.4, 0], x: [0, -5, -10] } : { opacity: 0, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
+        />
+        <motion.span
+          animate={isAnimating ? { x: [0, 14, 24], scale: [1, 1.15, 0.6], opacity: [1, 1, 0] } : { x: 0, scale: 1, opacity: 1 }}
+          transition={isAnimating ? { duration: 0.65, ease: "easeOut" } : { duration: 0 }}
+          onAnimationComplete={isAnimating ? handleAnimationComplete : undefined}
+          style={{ display: "inline-flex", alignItems: "center" }}
+        >
+          <PlaneTakeoff className="w-5 h-5" />
+        </motion.span>
+      </span>
     </button>
   );
 }
