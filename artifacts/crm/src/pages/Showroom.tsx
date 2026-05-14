@@ -189,7 +189,7 @@ function CarouselModal({
   // ── Fullscreen presentation mode ──────────────────────────────────────────
   if (fullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-[#07101e] overflow-hidden">
         {/* Exit fullscreen — z-30, always above everything */}
         <button
           className="absolute top-4 left-4 z-30 flex items-center gap-1.5 text-white/30 hover:text-white transition-colors text-xs"
@@ -200,7 +200,10 @@ function CarouselModal({
         </button>
 
         {/* Image layer — fills entire screen, behind info panel */}
-        <div className="absolute inset-0 flex items-center justify-center px-20 py-24">
+        <div
+          className="absolute inset-0 flex items-center justify-center px-20 py-24"
+          style={{ background: "radial-gradient(ellipse 60% 50% at 50% 45%, #0e2a4a 0%, #07101e 100%)" }}
+        >
           {toStorageSrc(model.imageUrl) ? (
             <img
               src={toStorageSrc(model.imageUrl)}
@@ -235,7 +238,7 @@ function CarouselModal({
         )}
 
         {/* Info panel — z-10 overlay, bottom-anchored, never behind image */}
-        <div className="absolute bottom-0 inset-x-0 z-10 flex items-end justify-between px-10 pb-8 pt-20 gap-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+        <div className="absolute bottom-0 inset-x-0 z-10 flex items-end justify-between px-10 pb-8 pt-20 gap-6 bg-gradient-to-t from-[#07101e] via-[#07101e]/60 to-transparent">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               {model.brandName && (
@@ -282,7 +285,7 @@ function CarouselModal({
 
   // ── Normal carousel (admin view) ────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-[#07101e] overflow-hidden">
       {/* Top bar — z-20, always above image */}
       <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-6 pt-5 pb-6 bg-gradient-to-b from-black/80 to-transparent">
         <button
@@ -302,7 +305,10 @@ function CarouselModal({
       </div>
 
       {/* Image layer — fills entire screen, behind all overlays */}
-      <div className="absolute inset-0 flex items-center justify-center px-20 py-8">
+      <div
+        className="absolute inset-0 flex items-center justify-center px-20 py-8"
+        style={{ background: "radial-gradient(ellipse 60% 50% at 50% 45%, #0e2a4a 0%, #07101e 100%)" }}
+      >
         {toStorageSrc(model.imageUrl) ? (
           <img
             src={toStorageSrc(model.imageUrl)}
@@ -337,7 +343,7 @@ function CarouselModal({
       )}
 
       {/* Info panel — z-10, bottom overlay, always in front of image */}
-      <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-8 pb-6 pt-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+      <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-8 pb-6 pt-20 bg-gradient-to-t from-[#07101e] via-[#07101e]/60 to-transparent">
         <div className="w-full max-w-lg flex flex-col items-center gap-3">
           {/* Name + category */}
           <div className="text-center">
@@ -886,7 +892,7 @@ function SlideshowPlayer({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#0a0a0f] flex items-center justify-center select-none overflow-hidden">
+    <div className="fixed inset-0 z-[60] bg-[#07101e] flex items-center justify-center select-none overflow-hidden">
       {/* Loading */}
       {isLoading && (
         <div className="flex flex-col items-center gap-3 text-white/40">
@@ -923,7 +929,7 @@ function SlideshowPlayer({
           )}
 
           {/* Bottom gradient */}
-          <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#07101e] via-[#07101e]/80 to-transparent pointer-events-none" />
 
           {/* Text panel */}
           <div
@@ -1427,7 +1433,7 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
   const carouselSlide = carouselModel ? slideMap.get(carouselModel.id) : undefined;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#07101e]">
       {/* Top bar */}
       <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -1471,7 +1477,10 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
       {viewMode === "carousel" ? (
         <div className="flex-1 relative overflow-hidden">
           {/* Image layer — fills the whole content area, behind overlays */}
-          <div className="absolute inset-0 flex items-center justify-center px-20 py-8">
+          <div
+            className="absolute inset-0 flex items-center justify-center px-20 py-8"
+            style={{ background: "radial-gradient(ellipse 60% 50% at 50% 45%, #0e2a4a 0%, #07101e 100%)" }}
+          >
             {toStorageSrc(carouselModel?.imageUrl) ? (
               <img
                 src={toStorageSrc(carouselModel?.imageUrl)}
@@ -1506,7 +1515,7 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
           )}
 
           {/* Info panel — z-10, bottom overlay, always in front of image */}
-          <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-6 pb-6 pt-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+          <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-6 pb-6 pt-16 bg-gradient-to-t from-[#07101e] via-[#07101e]/60 to-transparent">
             <div className="w-full max-w-lg flex flex-col items-center gap-3">
               <div className="text-center">
                 {carouselModel?.brandName && (
@@ -1556,7 +1565,7 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
             return (
               <div
                 key={model.id}
-                className="relative bg-zinc-900 border border-white/10 rounded-2xl p-5 flex flex-col items-center gap-3 w-52 flex-shrink-0"
+                className="relative bg-[#0c1e32] border border-white/10 rounded-2xl p-5 flex flex-col items-center gap-3 w-52 flex-shrink-0"
               >
                 <button
                   className="absolute top-3 right-3 text-white/25 hover:text-white/70 transition-colors"
