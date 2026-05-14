@@ -31,7 +31,7 @@ export default function CityRentalTbilisi() {
 {
   "@context": "https://schema.org",
   "@type": "AutoRental",
-  "name": "Tbilisicars – Car Rental Tbilisi",
+  "name": "Tbilisicars – Tbilisi Airport",
   "url": "https://tbilisicars.com/car-rental-tbilisi",
   "telephone": "+995557376363",
   "address": {

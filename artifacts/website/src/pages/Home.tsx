@@ -321,7 +321,7 @@ export default function Home() {
   "@type": ["Organization", "AutoRental"],
   "name": "Tbilisicars",
   "url": "https://tbilisicars.com/",
-  "logo": "https://tbilisicars.com/opengraph.jpg",
+  "logo": "https://tbilisicars.com/tbilisicars-logo.png",
   "image": "https://tbilisicars.com/opengraph.jpg",
   "description": "Tbilisicars provides car rental services in Georgia for international travelers, tourists and local customers, with pickup and dropoff options in Tbilisi, Kutaisi and Batumi.",
   "areaServed": [

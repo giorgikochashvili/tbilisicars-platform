@@ -2,8 +2,8 @@ import { Link } from "wouter";
 import { Phone, Mail, MapPin } from "lucide-react";
 
 const OFFICES = [
-  { city: "Tbilisi Office", phone: "+995 557 37 63 63" },
-  { city: "Kutaisi Office", phone: "+995 595 28 66 00" },
+  { city: "Tbilisi Airport", phone: "+995 557 37 63 63" },
+  { city: "Kutaisi Airport", phone: "+995 595 28 66 00" },
   { city: "Batumi Office", phone: "+995 557 37 63 63" },
 ];
 

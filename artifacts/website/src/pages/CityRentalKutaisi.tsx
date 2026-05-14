@@ -31,7 +31,7 @@ export default function CityRentalKutaisi() {
 {
   "@context": "https://schema.org",
   "@type": "AutoRental",
-  "name": "Tbilisicars – Car Rental Kutaisi",
+  "name": "Tbilisicars – Kutaisi Airport",
   "url": "https://tbilisicars.com/car-rental-kutaisi",
   "telephone": "+995595286600",
   "address": {

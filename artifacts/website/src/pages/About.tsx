@@ -4,7 +4,7 @@ import { Link } from "wouter";
 
 const STATS = [
   { value: "10+", label: "Years Experience" },
-  { value: "10,000+", label: "Served Customers" },
+  { value: "15,000+", label: "Served Customers" },
   { value: "250+", label: "Vehicles" },
   { value: "4.6", label: "Overall Rating" },
 ];
@@ -87,7 +87,7 @@ export default function About() {
           <h2 className="text-2xl font-bold text-white mb-4">Our Story</h2>
           <div className="space-y-4 text-muted-foreground leading-relaxed">
             <p>
-              Founded in Tbilisi over a decade ago, Tbilisicars set out to redefine car rental in Georgia. With more than 10,000 satisfied customers and a fleet of 250+ vehicles across the country, we have grown to become one of Georgia's most trusted rental providers.
+              Founded in Tbilisi over a decade ago, Tbilisicars set out to redefine car rental in Georgia. With more than 15,000 satisfied customers and a fleet of 250+ vehicles across the country, we have grown to become one of Georgia's most trusted rental providers.
             </p>
             <p>
               We specialize in airport services at Tbilisi International Airport, Kutaisi International Airport, and Batumi International Airport — ensuring seamless vehicle handover from the moment you land. Our team is present at each airport, ready to welcome you and complete the process in minutes.
