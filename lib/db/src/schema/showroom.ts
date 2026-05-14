@@ -80,6 +80,20 @@ export const showroomSettingTable = pgTable("showroom_settings", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
+// ─── Showroom Model Settings ──────────────────────────────────────────────────
+
+export const showroomModelSettingTable = pgTable("showroom_model_settings", {
+  id: serial("id").primaryKey(),
+  vehicleModelId: integer("vehicle_model_id")
+    .notNull()
+    .unique()
+    .references(() => vehicleModelTable.id, { onDelete: "cascade" }),
+  visible: boolean("visible").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(9999),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ShowroomSlide = typeof showroomSlideTable.$inferSelect;
@@ -87,3 +101,4 @@ export type ShowroomPlaylist = typeof showroomPlaylistTable.$inferSelect;
 export type ShowroomPlaylistItem = typeof showroomPlaylistItemTable.$inferSelect;
 export type ShowroomModelPrice = typeof showroomModelPriceTable.$inferSelect;
 export type ShowroomSetting = typeof showroomSettingTable.$inferSelect;
+export type ShowroomModelSetting = typeof showroomModelSettingTable.$inferSelect;

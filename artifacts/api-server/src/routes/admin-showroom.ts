@@ -17,6 +17,8 @@ import {
   upsertPrice,
   getSettings,
   updateSettings,
+  listModelSettings,
+  batchUpsertModelSettings,
 } from "../services/admin-showroom.service.js";
 
 const router = Router();
@@ -192,6 +194,33 @@ router.put("/admin/showroom/settings", requireAdmin, async (req, res) => {
   }
   const settings = await updateSettings(parsed.data);
   res.json(settings);
+});
+
+// ─── Model Settings ───────────────────────────────────────────────────────────
+
+const modelSettingItemSchema = z.object({
+  vehicleModelId: z.number().int().positive(),
+  visible: z.boolean(),
+  sortOrder: z.number().int(),
+});
+
+const modelSettingsBatchSchema = z.object({
+  settings: z.array(modelSettingItemSchema),
+});
+
+router.get("/admin/showroom/model-settings", requireAdmin, async (_req, res) => {
+  const settings = await listModelSettings();
+  res.json(settings);
+});
+
+router.put("/admin/showroom/model-settings/batch", requireAdmin, async (req, res) => {
+  const parsed = modelSettingsBatchSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid body", details: parsed.error.issues });
+    return;
+  }
+  const result = await batchUpsertModelSettings(parsed.data.settings);
+  res.json(result);
 });
 
 export default router;

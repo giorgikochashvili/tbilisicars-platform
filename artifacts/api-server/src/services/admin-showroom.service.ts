@@ -5,6 +5,7 @@ import {
   showroomPlaylistItemTable,
   showroomModelPriceTable,
   showroomSettingTable,
+  showroomModelSettingTable,
   vehicleModelTable,
   brandTable,
 } from "@workspace/db";
@@ -298,6 +299,63 @@ export async function upsertPrice(vehicleModelId: number, input: PriceInput) {
     .where(eq(showroomModelPriceTable.vehicleModelId, vehicleModelId));
 
   return row;
+}
+
+// ─── Model Settings ───────────────────────────────────────────────────────────
+
+export interface ModelSettingInput {
+  vehicleModelId: number;
+  visible: boolean;
+  sortOrder: number;
+}
+
+export async function listModelSettings() {
+  return db
+    .select({
+      id: showroomModelSettingTable.id,
+      vehicleModelId: showroomModelSettingTable.vehicleModelId,
+      visible: showroomModelSettingTable.visible,
+      sortOrder: showroomModelSettingTable.sortOrder,
+      modelName: vehicleModelTable.name,
+      modelImageUrl: vehicleModelTable.imageUrl,
+      brandName: brandTable.name,
+      category: vehicleModelTable.category,
+      fleetActive: vehicleModelTable.active,
+    })
+    .from(showroomModelSettingTable)
+    .leftJoin(
+      vehicleModelTable,
+      eq(showroomModelSettingTable.vehicleModelId, vehicleModelTable.id),
+    )
+    .leftJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
+    .orderBy(asc(showroomModelSettingTable.sortOrder));
+}
+
+export async function batchUpsertModelSettings(items: ModelSettingInput[]) {
+  for (const item of items) {
+    const [existing] = await db
+      .select({ id: showroomModelSettingTable.id })
+      .from(showroomModelSettingTable)
+      .where(eq(showroomModelSettingTable.vehicleModelId, item.vehicleModelId));
+
+    if (existing) {
+      await db
+        .update(showroomModelSettingTable)
+        .set({
+          visible: item.visible,
+          sortOrder: item.sortOrder,
+          updatedAt: new Date(),
+        })
+        .where(eq(showroomModelSettingTable.vehicleModelId, item.vehicleModelId));
+    } else {
+      await db.insert(showroomModelSettingTable).values({
+        vehicleModelId: item.vehicleModelId,
+        visible: item.visible,
+        sortOrder: item.sortOrder,
+      });
+    }
+  }
+  return listModelSettings();
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

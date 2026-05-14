@@ -1,0 +1,81 @@
+Proceed in Build mode with Phase 4: Showroom Model Visibility & Ordering.
+
+Use the approved plan, with one additional important requirement:
+Digital Showroom must display vehicle Brand + Model name, not only model name.
+
+Examples:
+- Toyota RAV4
+- Jeep Compass
+- Mazda CX-3
+- BMW X5
+- Mercedes-Benz E-Class
+
+Apply Brand + Model display consistently where vehicle names appear in Digital Showroom:
+- Vehicles tab cards
+- Manage Showroom Models panel
+- Vehicle Presentation Carousel
+- Compare tray/modal
+- Slideshow player if vehicle name is shown
+- Slide/playlist item previews where appropriate
+
+Use existing brandName already available from the vehicle model API / joins. Do not modify the brand table or vehicle_model table.
+
+Strict scope:
+- Add only isolated showroom_model_settings table.
+- Extend only admin-showroom service/routes as needed for model settings.
+- Update only Digital Showroom UI in artifacts/crm/src/pages/Showroom.tsx.
+- Do NOT touch booking logic.
+- Do NOT touch pricing/rates/promotions logic.
+- Do NOT touch payment/accounting logic.
+- Do NOT touch public website files.
+- Do NOT touch vehicle image upload logic.
+- Do NOT alter vehicle_model table.
+- Do NOT add permission changes.
+- Do NOT add drag-and-drop, video, device assignment, AI, analytics, QR, live availability, dynamic pricing, or booking creation.
+
+Approved functionality:
+1. Add showroom_model_settings table:
+   - id
+   - vehicle_model_id unique FK to vehicle_model.id
+   - visible boolean default true
+   - sort_order integer default 9999
+   - created_at
+   - updated_at
+
+2. Add API endpoints:
+   - GET /api/admin/showroom/model-settings
+   - PUT /api/admin/showroom/model-settings/batch
+
+3. Vehicles tab:
+   - Use visibility settings.
+   - Models without settings rows remain visible by default.
+   - Models without settings rows sort after explicitly ordered models.
+   - Category ordering should use a safe frontend priority map.
+   - Categories should still be collapsible and open by default.
+   - Display Brand + Model.
+
+4. Manage Showroom Models UI:
+   - Add “Manage Models” button in Vehicles tab.
+   - Show all active fleet models including hidden ones.
+   - Display thumbnail, Brand + Model, category.
+   - Allow visible/hidden toggle.
+   - Allow ordering with simple Up/Down buttons or numeric order.
+   - Save with batch PUT.
+   - No drag-and-drop.
+
+5. Preserve existing working behavior:
+   - Showroom prices
+   - Slides editor
+   - Playlists
+   - Fullscreen slideshow
+   - Compare mode
+   - Presentation carousel
+
+Deployment/build:
+- If schema push is needed in Replit dev DB, do it safely.
+- Report exact files changed.
+- Report exact DB/schema changes.
+- Run API typecheck/build as appropriate.
+- Run CRM typecheck/build.
+- Confirm no forbidden logic/files were touched.
+- Do not proceed to any next phase.

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Monitor, ListVideo, DollarSign, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Loader2, AlertCircle, Car, PenLine, Trash2, Plus, Check, X, ArrowLeft, Scale,
-  Maximize2, Minimize2, Play,
+  Maximize2, Minimize2, Play, Eye, EyeOff, Settings2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +131,35 @@ interface SlideshowSettings {
   currency: SlideshowCurrency;
   showPrice: boolean;
 }
+
+interface ShowroomModelSetting {
+  id: number;
+  vehicleModelId: number;
+  visible: boolean;
+  sortOrder: number;
+  modelName: string | null;
+  modelImageUrl: string | null;
+  brandName: string | null;
+  category: string | null;
+  fleetActive: boolean | null;
+}
+
+const CATEGORY_SORT_PRIORITY: Record<string, number> = {
+  "Economy":           1,
+  "Intermediate":      2,
+  "Standard":          3,
+  "Full-Size":         4,
+  "Crossover":         5,
+  "Intermediate SUV":  6,
+  "Full-Size SUV":     7,
+  "Premium SUV":       8,
+  "Business Class":    9,
+  "7 Seater SUV":      10,
+  "Off-Road":          11,
+  "Sports":            12,
+  "Convertible":       13,
+  "Special":           14,
+};
 
 // ─── CarouselModal ─────────────────────────────────────────────────────────────
 
@@ -1616,6 +1645,217 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
   );
 }
 
+// ─── ManageModelsPanel ────────────────────────────────────────────────────────
+
+interface ManageModelsLocalItem {
+  model: VehicleModel;
+  visible: boolean;
+  sortOrder: number;
+}
+
+function ManageModelsPanel({
+  allModels,
+  onBack,
+}: {
+  allModels: VehicleModel[];
+  onBack: () => void;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: modelSettings = [], isLoading } = useQuery<ShowroomModelSetting[]>({
+    queryKey: ["showroom-model-settings"],
+    queryFn: () => apiFetch("/api/admin/showroom/model-settings"),
+  });
+
+  const [localList, setLocalList] = useState<ManageModelsLocalItem[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (isLoading || initialized) return;
+    const map = new Map(modelSettings.map((s) => [s.vehicleModelId, s]));
+    const merged = allModels
+      .map((model) => {
+        const s = map.get(model.id);
+        return { model, visible: s?.visible ?? true, sortOrder: s?.sortOrder ?? 9999 };
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.model.name.localeCompare(b.model.name));
+    setLocalList(merged);
+    setInitialized(true);
+  }, [modelSettings, allModels, isLoading, initialized]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/admin/showroom/model-settings/batch", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: localList.map((item, i) => ({
+            vehicleModelId: item.model.id,
+            visible: item.visible,
+            sortOrder: (i + 1) * 10,
+          })),
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["showroom-model-settings"] });
+      toast({ title: "Showroom model settings saved" });
+      onBack();
+    },
+    onError: () => toast({ title: "Failed to save settings", variant: "destructive" }),
+  });
+
+  const moveUp = (i: number) => {
+    if (i === 0) return;
+    setLocalList((prev) => {
+      const next = [...prev];
+      [next[i - 1], next[i]] = [next[i], next[i - 1]];
+      return next;
+    });
+  };
+
+  const moveDown = (i: number) => {
+    if (i === localList.length - 1) return;
+    setLocalList((prev) => {
+      const next = [...prev];
+      [next[i], next[i + 1]] = [next[i + 1], next[i]];
+      return next;
+    });
+  };
+
+  const toggleVisible = (i: number) => {
+    setLocalList((prev) =>
+      prev.map((item, idx) => (idx === i ? { ...item, visible: !item.visible } : item)),
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onBack}
+          className="text-muted-foreground flex-shrink-0 px-2"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Vehicles
+        </Button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white">Manage Showroom Models</p>
+          <p className="text-xs text-muted-foreground">
+            {localList.filter((x) => x.visible).length} visible · {localList.length} total · use Up/Down to reorder
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="flex-shrink-0"
+        >
+          {saveMutation.isPending && (
+            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+          )}
+          Save
+        </Button>
+      </div>
+
+      {/* Model list */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        {localList.length === 0 ? (
+          <div className="text-center text-muted-foreground py-12 text-sm">
+            No active fleet models found.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {localList.map((item, i) => (
+              <div
+                key={item.model.id}
+                className={`flex items-center gap-3 px-3 py-2.5 bg-card transition-opacity ${
+                  item.visible ? "opacity-100" : "opacity-40"
+                }`}
+              >
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0 flex-shrink-0">
+                  <button
+                    className="text-muted-foreground hover:text-white disabled:opacity-25 transition-colors p-0.5"
+                    onClick={() => moveUp(i)}
+                    disabled={i === 0 || saveMutation.isPending}
+                    aria-label="Move up"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="text-muted-foreground hover:text-white disabled:opacity-25 transition-colors p-0.5"
+                    onClick={() => moveDown(i)}
+                    disabled={i === localList.length - 1 || saveMutation.isPending}
+                    aria-label="Move down"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Order number */}
+                <span className="text-xs text-muted-foreground/40 w-5 text-right flex-shrink-0 tabular-nums">
+                  {i + 1}
+                </span>
+
+                {/* Thumbnail */}
+                {toStorageSrc(item.model.imageUrl) ? (
+                  <img
+                    src={toStorageSrc(item.model.imageUrl)}
+                    alt={item.model.name}
+                    className="w-14 h-9 object-contain flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-9 flex items-center justify-center bg-muted rounded flex-shrink-0">
+                    <Car className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                )}
+
+                {/* Name + category */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate leading-tight">
+                    {item.model.brandName ? `${item.model.brandName} ` : ""}
+                    {item.model.name}
+                  </p>
+                  {item.model.category && (
+                    <p className="text-xs text-muted-foreground truncate">{item.model.category}</p>
+                  )}
+                </div>
+
+                {/* Visibility toggle */}
+                <button
+                  className={`flex-shrink-0 p-1 rounded transition-colors ${
+                    item.visible
+                      ? "text-green-400 hover:text-green-300"
+                      : "text-muted-foreground/40 hover:text-muted-foreground"
+                  }`}
+                  onClick={() => toggleVisible(i)}
+                  disabled={saveMutation.isPending}
+                  aria-label={item.visible ? "Hide from showroom" : "Show in showroom"}
+                  title={item.visible ? "Visible — click to hide" : "Hidden — click to show"}
+                >
+                  {item.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── VehiclesTab ──────────────────────────────────────────────────────────────
 
 interface VehiclesTabProps {
@@ -1635,7 +1875,18 @@ function VehiclesTab({
     queryFn: () => apiFetch("/api/admin/fleet/models"),
   });
 
+  const { data: tabModelSettings = [] } = useQuery<ShowroomModelSetting[]>({
+    queryKey: ["showroom-model-settings"],
+    queryFn: () => apiFetch("/api/admin/showroom/model-settings"),
+  });
+
+  const settingsMap = useMemo(
+    () => new Map(tabModelSettings.map((s) => [s.vehicleModelId, s])),
+    [tabModelSettings],
+  );
+
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [showManage, setShowManage] = useState(false);
 
   const toggleCat = (cat: string) =>
     setCollapsed((prev) => {
@@ -1662,17 +1913,54 @@ function VehiclesTab({
     );
   }
 
-  const active = models.filter((m) => m.active);
-  const grouped = active.reduce<Record<string, VehicleModel[]>>((acc, m) => {
+  if (showManage) {
+    return (
+      <ManageModelsPanel
+        allModels={models.filter((m) => m.active)}
+        onBack={() => setShowManage(false)}
+      />
+    );
+  }
+
+  const visible = models
+    .filter((m) => m.active && settingsMap.get(m.id)?.visible !== false)
+    .sort(
+      (a, b) =>
+        (settingsMap.get(a.id)?.sortOrder ?? 9999) -
+        (settingsMap.get(b.id)?.sortOrder ?? 9999),
+    );
+
+  const grouped = visible.reduce<Record<string, VehicleModel[]>>((acc, m) => {
     const cat = m.category ?? "Other";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(m);
     return acc;
   }, {});
-  const categories = Object.keys(grouped).sort();
+
+  const categories = Object.keys(grouped).sort(
+    (a, b) =>
+      (CATEGORY_SORT_PRIORITY[a] ?? 99) - (CATEGORY_SORT_PRIORITY[b] ?? 99) ||
+      a.localeCompare(b),
+  );
 
   return (
     <div className="space-y-6">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {visible.length} model{visible.length !== 1 ? "s" : ""} in showroom
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-1.5 text-xs"
+          onClick={() => setShowManage(true)}
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          Manage Models
+        </Button>
+      </div>
+
       {categories.map((cat) => {
         const catModels = grouped[cat];
         const isOpen = !collapsed.has(cat);
@@ -2336,6 +2624,11 @@ export default function Showroom() {
     queryFn: () => apiFetch("/api/admin/showroom/slides"),
   });
 
+  const { data: modelSettings = [] } = useQuery<ShowroomModelSetting[]>({
+    queryKey: ["showroom-model-settings"],
+    queryFn: () => apiFetch("/api/admin/showroom/model-settings"),
+  });
+
   // ── Computed maps ─────────────────────────────────────────────────────────────
   const priceMap = useMemo(
     () => new Map((prices ?? []).map((p) => [p.vehicleModelId, p])),
@@ -2358,9 +2651,27 @@ export default function Showroom() {
   );
 
   const eurRate = parseFloat(settings?.usdToEurRate ?? "0.92");
+
   const activeModels = useMemo(
     () => (models ?? []).filter((m) => m.active),
     [models],
+  );
+
+  const modelSettingsMap = useMemo(
+    () => new Map(modelSettings.map((s) => [s.vehicleModelId, s])),
+    [modelSettings],
+  );
+
+  const showroomModels = useMemo(
+    () =>
+      (models ?? [])
+        .filter((m) => m.active && modelSettingsMap.get(m.id)?.visible !== false)
+        .sort(
+          (a, b) =>
+            (modelSettingsMap.get(a.id)?.sortOrder ?? 9999) -
+            (modelSettingsMap.get(b.id)?.sortOrder ?? 9999),
+        ),
+    [models, modelSettingsMap],
   );
 
   // ── Slideshow state ───────────────────────────────────────────────────────────
@@ -2407,7 +2718,7 @@ export default function Showroom() {
   const [carousel, setCarousel] = useState<CarouselState | null>(null);
 
   const openCarousel = (cat: string, idx: number) => {
-    const grouped = activeModels.reduce<Record<string, VehicleModel[]>>((acc, m) => {
+    const grouped = showroomModels.reduce<Record<string, VehicleModel[]>>((acc, m) => {
       const c = m.category ?? "Other";
       if (!acc[c]) acc[c] = [];
       acc[c].push(m);
