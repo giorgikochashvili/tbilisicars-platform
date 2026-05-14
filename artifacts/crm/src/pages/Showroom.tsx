@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Monitor, ListVideo, DollarSign, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Loader2, AlertCircle, Car, PenLine, Trash2, Plus, Check, X, ArrowLeft, Scale,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -130,21 +131,29 @@ function CarouselModal({
   priceMap, eurRate, slideMap, compareList, onAddToCompare, onEditSlide,
 }: CarouselModalProps) {
   const [eurMode, setEurMode] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const total = catModels.length;
   const prev = () => onIndexChange((index - 1 + total) % total);
   const next = () => onIndexChange((index + 1) % total);
 
   useEffect(() => {
+    if (open) setFullscreen(false);
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") prev();
       else if (e.key === "ArrowRight") next();
-      else if (e.key === "Escape") onClose();
+      else if (e.key === "Escape") {
+        if (fullscreen) setFullscreen(false);
+        else onClose();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open, index, total]);
+  }, [open, index, total, fullscreen]);
 
   if (!open || !catModels[index]) return null;
   const model = catModels[index];
@@ -155,72 +164,152 @@ function CarouselModal({
   const inCompare = compareList.some((c) => c.id === model.id);
   const compareFull = !inCompare && compareList.length >= 4;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/96"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      {/* Close */}
-      <button
-        className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-        onClick={onClose}
-      >
-        <X className="w-5 h-5" />
-      </button>
-
-      {/* Prev */}
-      {total > 1 && (
+  // ── Fullscreen presentation mode ──────────────────────────────────────────
+  if (fullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
+        {/* Exit fullscreen — top-left, minimal */}
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          onClick={prev}
-          aria-label="Previous vehicle"
+          className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-white/30 hover:text-white transition-colors text-xs"
+          onClick={() => setFullscreen(false)}
         >
-          <ChevronLeft className="w-7 h-7" />
+          <Minimize2 className="w-4 h-4" />
+          <span>Exit</span>
         </button>
-      )}
 
-      {/* Next */}
-      {total > 1 && (
-        <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-          onClick={next}
-          aria-label="Next vehicle"
-        >
-          <ChevronRight className="w-7 h-7" />
-        </button>
-      )}
-
-      {/* Content */}
-      <div className="flex flex-col items-center gap-5 px-20 max-w-xl w-full">
-        {/* Image */}
-        <div className="w-full h-60 flex items-center justify-center">
+        {/* Image — fills the available space */}
+        <div className="flex-1 flex items-center justify-center min-h-0 px-20 py-10">
           {toStorageSrc(model.imageUrl) ? (
             <img
               src={toStorageSrc(model.imageUrl)}
               alt={model.name}
-              className="max-h-60 max-w-full object-contain drop-shadow-2xl"
+              className="max-h-full max-w-full object-contain drop-shadow-2xl"
             />
           ) : (
-            <div className="w-44 h-44 flex items-center justify-center bg-white/5 rounded-2xl">
-              <Car className="w-16 h-16 text-white/20" />
+            <div className="flex items-center justify-center bg-white/5 rounded-3xl w-64 h-64">
+              <Car className="w-24 h-24 text-white/10" />
             </div>
           )}
         </div>
 
-        {/* Name */}
+        {/* Prev / Next — edge arrows */}
+        {total > 1 && (
+          <button
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
+            onClick={prev}
+            aria-label="Previous vehicle"
+          >
+            <ChevronLeft className="w-9 h-9" />
+          </button>
+        )}
+        {total > 1 && (
+          <button
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
+            onClick={next}
+            aria-label="Next vehicle"
+          >
+            <ChevronRight className="w-9 h-9" />
+          </button>
+        )}
+
+        {/* Bottom info strip */}
+        <div className="flex-shrink-0 flex items-end justify-between px-10 pb-8 gap-6 bg-gradient-to-t from-black/80 to-transparent pt-16">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              {model.brandName && (
+                <span className="text-xs text-white/40 uppercase tracking-widest">{model.brandName}</span>
+              )}
+              {model.category && (
+                <span className="text-xs text-white/25">· {model.category}</span>
+              )}
+            </div>
+            <h2 className="text-4xl font-bold text-white">{model.name}</h2>
+            {slide?.badgeEn && (
+              <span className="inline-block px-3 py-0.5 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
+                {slide.badgeEn}
+              </span>
+            )}
+            {slide?.bodyEn && (
+              <p className="text-base text-white/55 max-w-lg leading-relaxed">{slide.bodyEn}</p>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {usd !== null ? (
+              <>
+                <span className="text-3xl font-bold text-white">{fmtPrice(usd, eurMode, eurRate)}</span>
+                <div className="flex items-center bg-white/10 rounded-lg p-0.5">
+                  <button
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${!eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+                    onClick={() => setEurMode(false)}
+                  >USD</button>
+                  <button
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+                    onClick={() => setEurMode(true)}
+                  >EUR</button>
+                </div>
+              </>
+            ) : null}
+            {total > 1 && (
+              <p className="text-xs text-white/20">{index + 1} / {total}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal carousel (admin view) ────────────────────────────────────────────
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <div className="flex-shrink-0 flex items-center justify-between px-6 pt-5 pb-2">
+        <button
+          className="flex items-center gap-1.5 text-white/40 hover:text-white transition-colors text-xs"
+          onClick={() => setFullscreen(true)}
+          title="Enter fullscreen presentation"
+        >
+          <Maximize2 className="w-4 h-4" />
+          <span className="hidden sm:inline">Present</span>
+        </button>
+        <button
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          onClick={onClose}
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Image — as large as possible */}
+      <div className="flex-1 flex items-center justify-center px-20 min-h-0">
+        {toStorageSrc(model.imageUrl) ? (
+          <img
+            src={toStorageSrc(model.imageUrl)}
+            alt={model.name}
+            className="max-h-full max-w-full object-contain drop-shadow-2xl"
+          />
+        ) : (
+          <div className="flex items-center justify-center bg-white/5 rounded-3xl w-56 h-56">
+            <Car className="w-20 h-20 text-white/20" />
+          </div>
+        )}
+      </div>
+
+      {/* Info strip */}
+      <div className="flex-shrink-0 flex flex-col items-center gap-3 px-8 py-6">
+        {/* Name + category */}
         <div className="text-center">
           {model.brandName && (
             <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{model.brandName}</p>
           )}
           <h2 className="text-2xl font-bold text-white">{model.name}</h2>
           {model.category && (
-            <p className="text-sm text-white/35 mt-1">{model.category}</p>
+            <p className="text-sm text-white/35 mt-0.5">{model.category}</p>
           )}
         </div>
 
-        {/* Slide overlay content */}
+        {/* Slide badge/body */}
         {(slide?.badgeEn || slide?.bodyEn) && (
-          <div className="text-center space-y-1.5">
+          <div className="text-center space-y-1">
             {slide.badgeEn && (
               <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
                 {slide.badgeEn}
@@ -232,7 +321,7 @@ function CarouselModal({
           </div>
         )}
 
-        {/* Price + currency toggle */}
+        {/* Price + currency */}
         <div className="flex items-center gap-3">
           {usd !== null ? (
             <>
@@ -253,7 +342,7 @@ function CarouselModal({
           )}
         </div>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="flex items-center gap-3 flex-wrap justify-center">
           <Button
             size="sm"
@@ -282,11 +371,30 @@ function CarouselModal({
           </Button>
         </div>
 
-        {/* Counter */}
         {total > 1 && (
           <p className="text-xs text-white/20">{index + 1} / {total}</p>
         )}
       </div>
+
+      {/* Prev / Next */}
+      {total > 1 && (
+        <button
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          onClick={prev}
+          aria-label="Previous vehicle"
+        >
+          <ChevronLeft className="w-8 h-8" />
+        </button>
+      )}
+      {total > 1 && (
+        <button
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          onClick={next}
+          aria-label="Next vehicle"
+        >
+          <ChevronRight className="w-8 h-8" />
+        </button>
+      )}
     </div>
   );
 }
@@ -423,26 +531,14 @@ function SlideEditorModal({
               </Select>
             </div>
 
-            {/* Active + sort order */}
-            <div className="flex items-center gap-5">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="slide-active"
-                  checked={form.active}
-                  onCheckedChange={(v) => set("active", v)}
-                />
-                <Label htmlFor="slide-active">Active</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="sort-order" className="text-sm text-muted-foreground whitespace-nowrap">Sort order</Label>
-                <Input
-                  id="sort-order"
-                  type="number"
-                  className="w-20 h-8 text-sm"
-                  value={form.sortOrder}
-                  onChange={(e) => set("sortOrder", parseInt(e.target.value) || 0)}
-                />
-              </div>
+            {/* Active */}
+            <div className="flex items-center gap-2">
+              <Switch
+                id="slide-active"
+                checked={form.active}
+                onCheckedChange={(v) => set("active", v)}
+              />
+              <Label htmlFor="slide-active">Active</Label>
             </div>
 
             {/* Language tabs */}
@@ -878,47 +974,50 @@ interface CompareTrayProps {
 function CompareTray({ list, onRemove, onOpenCompare, onClear }: CompareTrayProps) {
   if (list.length === 0) return null;
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 border-t border-border backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center gap-4">
-        <Scale className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto">
-          {list.map((m) => (
-            <div key={m.id} className="relative flex-shrink-0">
-              {toStorageSrc(m.imageUrl) ? (
-                <img
-                  src={toStorageSrc(m.imageUrl)}
-                  alt={m.name}
-                  className="h-10 w-16 object-contain"
-                />
-              ) : (
-                <div className="h-10 w-16 flex items-center justify-center bg-muted rounded">
-                  <Car className="w-4 h-4 text-muted-foreground" />
-                </div>
-              )}
-              <button
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-zinc-700 hover:bg-destructive flex items-center justify-center transition-colors"
-                onClick={() => onRemove(m.id)}
-                aria-label={`Remove ${m.name}`}
-              >
-                <X className="w-2.5 h-2.5 text-white" />
-              </button>
-            </div>
-          ))}
-          <span className="text-sm text-muted-foreground flex-shrink-0 ml-1">
-            {list.length} vehicle{list.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={onClear}>
-            Clear
-          </Button>
-          <Button size="sm" onClick={onOpenCompare} disabled={list.length < 2}>
-            Compare
-            {list.length < 2 && (
-              <span className="text-xs ml-1 opacity-50">(need 2+)</span>
+    <div className="fixed bottom-5 right-5 z-40 bg-zinc-950/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl shadow-black/60 px-3 py-2.5 flex flex-col gap-2 max-w-xs">
+      {/* Thumbnails row */}
+      <div className="flex items-center gap-1.5 overflow-x-auto">
+        <Scale className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
+        {list.map((m) => (
+          <div key={m.id} className="relative flex-shrink-0">
+            {toStorageSrc(m.imageUrl) ? (
+              <img
+                src={toStorageSrc(m.imageUrl)}
+                alt={m.name}
+                className="h-9 w-14 object-contain"
+              />
+            ) : (
+              <div className="h-9 w-14 flex items-center justify-center bg-white/5 rounded">
+                <Car className="w-3.5 h-3.5 text-white/20" />
+              </div>
             )}
-          </Button>
-        </div>
+            <button
+              className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-zinc-700 hover:bg-destructive flex items-center justify-center transition-colors"
+              onClick={() => onRemove(m.id)}
+              aria-label={`Remove ${m.name}`}
+            >
+              <X className="w-2 h-2 text-white" />
+            </button>
+          </div>
+        ))}
+      </div>
+      {/* Actions row */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-white/30 flex-1">{list.length} of 4</span>
+        <button
+          className="text-xs text-white/35 hover:text-white/70 transition-colors px-1.5 py-0.5"
+          onClick={onClear}
+        >
+          Clear
+        </button>
+        <Button
+          size="sm"
+          className="h-7 text-xs px-3"
+          onClick={onOpenCompare}
+          disabled={list.length < 2}
+        >
+          Compare
+        </Button>
       </div>
     </div>
   );
@@ -938,33 +1037,66 @@ interface CompareModalProps {
 
 function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideMap }: CompareModalProps) {
   const [eurMode, setEurMode] = useState(false);
+  const [viewMode, setViewMode] = useState<"carousel" | "grid">("carousel");
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  const safeIdx = Math.min(carouselIdx, Math.max(0, list.length - 1));
+  const prevCompare = () => setCarouselIdx((i) => (i - 1 + list.length) % list.length);
+  const nextCompare = () => setCarouselIdx((i) => (i + 1) % list.length);
+
+  useEffect(() => {
+    if (open) { setCarouselIdx(0); setViewMode("carousel"); }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (viewMode === "carousel") {
+        if (e.key === "ArrowLeft") prevCompare();
+        else if (e.key === "ArrowRight") nextCompare();
+      }
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [open]);
+  }, [open, viewMode, list.length]);
 
-  if (!open) return null;
+  if (!open || list.length === 0) return null;
+
+  const carouselModel = list[safeIdx];
+  const carouselPrice = priceMap.get(carouselModel?.id ?? -1);
+  const carouselUsd = carouselPrice?.priceUsd ? parseFloat(carouselPrice.priceUsd) : null;
+  const carouselSlide = carouselModel ? slideMap.get(carouselModel.id) : undefined;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950 overflow-y-auto">
-      {/* Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      {/* Top bar */}
+      <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <Scale className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-bold text-white">Compare Vehicles</h2>
-          <span className="text-sm text-white/30">{list.length} selected</span>
+          <h2 className="text-lg font-bold text-white">Compare</h2>
+          <span className="text-sm text-white/30">{list.length} vehicles</span>
         </div>
         <div className="flex items-center gap-3">
+          {/* View mode */}
           <div className="flex items-center bg-white/10 rounded-lg p-0.5">
             <button
-              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${!eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${viewMode === "carousel" ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+              onClick={() => setViewMode("carousel")}
+            >Carousel</button>
+            <button
+              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${viewMode === "grid" ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+              onClick={() => setViewMode("grid")}
+            >Grid</button>
+          </div>
+          {/* Currency */}
+          <div className="flex items-center bg-white/10 rounded-lg p-0.5">
+            <button
+              className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${!eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
               onClick={() => setEurMode(false)}
             >USD</button>
             <button
-              className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+              className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
               onClick={() => setEurMode(true)}
             >EUR</button>
           </div>
@@ -977,66 +1109,140 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
         </div>
       </div>
 
-      {/* Vehicle columns */}
-      <div className="flex-1 flex items-start justify-center gap-4 p-6 flex-wrap">
-        {list.map((model) => {
-          const price = priceMap.get(model.id);
-          const usd = price?.priceUsd ? parseFloat(price.priceUsd) : null;
-          const slide = slideMap.get(model.id);
-
-          return (
-            <div
-              key={model.id}
-              className="relative bg-zinc-900 border border-white/10 rounded-2xl p-5 flex flex-col items-center gap-3 w-52 flex-shrink-0"
-            >
-              <button
-                className="absolute top-3 right-3 text-white/25 hover:text-white/70 transition-colors"
-                onClick={() => onRemove(model.id)}
-                aria-label={`Remove ${model.name}`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              {toStorageSrc(model.imageUrl) ? (
-                <img
-                  src={toStorageSrc(model.imageUrl)}
-                  alt={model.name}
-                  className="w-full h-32 object-contain"
-                />
-              ) : (
-                <div className="w-full h-32 flex items-center justify-center bg-white/5 rounded-xl">
-                  <Car className="w-10 h-10 text-white/20" />
-                </div>
-              )}
-
-              <div className="text-center space-y-0.5 w-full">
-                {model.brandName && (
-                  <p className="text-xs text-white/35 uppercase tracking-widest">{model.brandName}</p>
-                )}
-                <p className="text-base font-bold text-white leading-snug">{model.name}</p>
-                {model.category && (
-                  <p className="text-xs text-white/35">{model.category}</p>
-                )}
+      {/* ── Carousel mode ──────────────────────────────────────────────────────── */}
+      {viewMode === "carousel" ? (
+        <div className="flex-1 flex flex-col min-h-0 relative">
+          {/* Large image */}
+          <div className="flex-1 flex items-center justify-center px-20 min-h-0">
+            {toStorageSrc(carouselModel?.imageUrl) ? (
+              <img
+                src={toStorageSrc(carouselModel?.imageUrl)}
+                alt={carouselModel?.name}
+                className="max-h-full max-w-full object-contain drop-shadow-2xl"
+              />
+            ) : (
+              <div className="flex items-center justify-center bg-white/5 rounded-3xl w-56 h-56">
+                <Car className="w-20 h-20 text-white/20" />
               </div>
+            )}
+          </div>
 
-              {usd !== null ? (
-                <p className="text-lg font-bold text-primary">{fmtPrice(usd, eurMode, eurRate)}</p>
-              ) : (
-                <p className="text-xs text-white/20 italic">No showroom price</p>
+          {/* Info */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-3 pb-8 px-6">
+            <div className="text-center">
+              {carouselModel?.brandName && (
+                <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">{carouselModel.brandName}</p>
               )}
-
-              {slide?.badgeEn && (
-                <span className="inline-block px-2 py-0.5 bg-primary/20 border border-primary/40 text-primary text-xs font-semibold rounded-full text-center">
-                  {slide.badgeEn}
-                </span>
-              )}
-              {slide?.bodyEn && (
-                <p className="text-xs text-white/45 text-center leading-snug">{slide.bodyEn}</p>
+              <h2 className="text-2xl font-bold text-white">{carouselModel?.name}</h2>
+              {carouselModel?.category && (
+                <p className="text-sm text-white/35 mt-0.5">{carouselModel.category}</p>
               )}
             </div>
-          );
-        })}
-      </div>
+            {carouselSlide?.badgeEn && (
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
+                {carouselSlide.badgeEn}
+              </span>
+            )}
+            {carouselSlide?.bodyEn && (
+              <p className="text-sm text-white/50 text-center max-w-md leading-relaxed">{carouselSlide.bodyEn}</p>
+            )}
+            {carouselUsd !== null ? (
+              <p className="text-xl font-bold text-white">{fmtPrice(carouselUsd, eurMode, eurRate)}</p>
+            ) : (
+              <p className="text-sm text-white/25 italic">No showroom price</p>
+            )}
+            {/* Dot indicators */}
+            {list.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                {list.map((m, i) => (
+                  <button
+                    key={m.id}
+                    className={`w-2 h-2 rounded-full transition-colors ${i === safeIdx ? "bg-white" : "bg-white/25 hover:bg-white/50"}`}
+                    onClick={() => setCarouselIdx(i)}
+                    aria-label={m.name}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Prev / Next */}
+          {list.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                onClick={prevCompare}
+                aria-label="Previous vehicle"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                onClick={nextCompare}
+                aria-label="Next vehicle"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        /* ── Grid mode ────────────────────────────────────────────────────────── */
+        <div className="flex-1 flex items-start justify-center gap-4 p-6 overflow-y-auto flex-wrap">
+          {list.map((model) => {
+            const price = priceMap.get(model.id);
+            const usd = price?.priceUsd ? parseFloat(price.priceUsd) : null;
+            const slide = slideMap.get(model.id);
+            return (
+              <div
+                key={model.id}
+                className="relative bg-zinc-900 border border-white/10 rounded-2xl p-5 flex flex-col items-center gap-3 w-52 flex-shrink-0"
+              >
+                <button
+                  className="absolute top-3 right-3 text-white/25 hover:text-white/70 transition-colors"
+                  onClick={() => onRemove(model.id)}
+                  aria-label={`Remove ${model.name}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {toStorageSrc(model.imageUrl) ? (
+                  <img
+                    src={toStorageSrc(model.imageUrl)}
+                    alt={model.name}
+                    className="w-full h-32 object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-32 flex items-center justify-center bg-white/5 rounded-xl">
+                    <Car className="w-10 h-10 text-white/20" />
+                  </div>
+                )}
+                <div className="text-center space-y-0.5 w-full">
+                  {model.brandName && (
+                    <p className="text-xs text-white/35 uppercase tracking-widest">{model.brandName}</p>
+                  )}
+                  <p className="text-base font-bold text-white leading-snug">{model.name}</p>
+                  {model.category && (
+                    <p className="text-xs text-white/35">{model.category}</p>
+                  )}
+                </div>
+                {usd !== null ? (
+                  <p className="text-lg font-bold text-primary">{fmtPrice(usd, eurMode, eurRate)}</p>
+                ) : (
+                  <p className="text-xs text-white/20 italic">No showroom price</p>
+                )}
+                {slide?.badgeEn && (
+                  <span className="inline-block px-2 py-0.5 bg-primary/20 border border-primary/40 text-primary text-xs font-semibold rounded-full text-center">
+                    {slide.badgeEn}
+                  </span>
+                )}
+                {slide?.bodyEn && (
+                  <p className="text-xs text-white/45 text-center leading-snug">{slide.bodyEn}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
