@@ -1,0 +1,213 @@
+We are starting implementation of a new CRM module called “Digital Showroom” for TBILISICARS.
+
+IMPORTANT:
+This is Phase 1 only. Keep the scope small, isolated, additive, and rollback-safe.
+
+The previous analysis plan is approved only partially. Apply the corrections below:
+- Do NOT add canManageShowroom or any new permission column in v1.
+- Digital Showroom should be visible to all CRM users for now.
+- Do NOT add video upload in v1.
+- Do NOT add device assignment in v1.
+- Do NOT connect Showroom prices to existing Rates, Pricing, Promotions, Booking quote, or public booking logic.
+- Do NOT modify existing vehicle image upload logic.
+- Use existing vehicle model images read-only.
+- Do NOT show technical specs such as transmission, seats, doors, fuel type, or engine details.
+- Text and badges must be visual overlays only, not edits to the original PNG/image files.
+
+Project context:
+TBILISICARS CRM&WEB is a live production system. Digital Showroom must be added as a new independent CRM module for airport/office staff to visually present vehicle models to walk-in customers on a tablet or screen.
+
+Digital Showroom v1 purpose:
+- Category-first vehicle presentation for fast desk sales.
+- Use existing transparent vehicle model PNG/images.
+- Allow manual sales/promo text overlays.
+- Support English, Hebrew, Arabic text fields.
+- Support separate manual Showroom Prices in USD, with EUR calculated from a manual showroom exchange rate.
+- Prepare foundation for slides, playlists, compare mode, and fullscreen slideshow, but do not implement everything in one step.
+
+==================================================
+PHASE 1 SCOPE
+==================================================
+
+Implement only the foundation:
+
+1. Database schema
+Add isolated new tables only:
+
+A) showroom_slides
+Suggested fields:
+- id
+- vehicle_model_id nullable FK to vehicle_model.id
+- title_en
+- title_he
+- title_ar
+- body_en
+- body_he
+- body_ar
+- badge_en
+- badge_he
+- badge_ar
+- active default true
+- sort_order default 0
+- created_at
+- updated_at
+
+B) showroom_playlists
+Suggested fields:
+- id
+- name
+- active default true
+- created_at
+- updated_at
+
+C) showroom_playlist_items
+Suggested fields:
+- id
+- playlist_id FK to showroom_playlists.id, cascade delete
+- slide_id FK to showroom_slides.id, cascade delete
+- position
+- duration_seconds default 8
+
+D) showroom_model_prices
+Suggested fields:
+- id
+- vehicle_model_id FK to vehicle_model.id
+- price_usd numeric/decimal
+- active default true
+- updated_at
+
+E) showroom_settings
+Suggested fields:
+- id
+- usd_to_eur_rate numeric/decimal
+- updated_at
+
+Rules:
+- Do NOT modify booking tables.
+- Do NOT modify rates/pricing/promo tables.
+- Do NOT modify vehicle_model structure except reading it.
+- Do NOT modify upload/storage tables or upload behavior.
+- Do NOT add permissions.
+
+2. Backend API foundation
+Create a new isolated admin showroom service and route.
+
+Suggested files:
+- artifacts/api-server/src/services/admin-showroom.service.ts
+- artifacts/api-server/src/routes/admin-showroom.ts
+
+Mount under:
+- /api/admin/showroom
+
+Use existing admin authentication only:
+- requireAdmin
+- Do NOT require a new permission key in v1.
+
+Implement basic endpoints only:
+
+Slides:
+- GET /api/admin/showroom/slides
+- POST /api/admin/showroom/slides
+- PUT /api/admin/showroom/slides/:id
+- DELETE /api/admin/showroom/slides/:id
+
+Playlists:
+- GET /api/admin/showroom/playlists
+- POST /api/admin/showroom/playlists
+- GET /api/admin/showroom/playlists/:id
+- PUT /api/admin/showroom/playlists/:id
+- DELETE /api/admin/showroom/playlists/:id
+- PUT /api/admin/showroom/playlists/:id/items
+
+Prices:
+- GET /api/admin/showroom/prices
+- PUT /api/admin/showroom/prices/:vehicleModelId
+
+Settings:
+- GET /api/admin/showroom/settings
+- PUT /api/admin/showroom/settings
+
+Important price rules:
+- Showroom prices are separate manual desk/showroom prices.
+- Base editable price is USD.
+- EUR is calculated using showroom_settings.usd_to_eur_rate.
+- Do NOT use existing booking/rates/pricing/promo logic.
+- Do NOT create or alter bookings from this module.
+
+3. CRM route/menu skeleton
+Add a new CRM page:
+- artifacts/crm/src/pages/Showroom.tsx
+
+Add route:
+- /showroom
+
+Add sidebar item:
+- “Digital Showroom”
+- visible to all CRM users for v1
+- no permissionKey required
+
+The page should be a safe skeleton with tabs/placeholders:
+- Vehicles
+- Slides
+- Playlists
+- Prices
+
+For Phase 1 UI, implement only basic loading/listing:
+- Confirm the page opens.
+- Show existing vehicle models grouped or filterable by category if simple.
+- Show a Prices tab skeleton/list if feasible.
+- No fullscreen player yet.
+- No compare mode yet.
+- No video.
+- No drag-and-drop.
+
+4. Vehicle image handling
+Use existing vehicle model image_url read-only.
+Use the same /storage image access pattern already used in CRM pages.
+Do not change vehicle model image upload or storage behavior.
+
+5. Build/check
+After implementation:
+- Run typecheck/build commands normally used for this monorepo.
+- Report exact files changed.
+- Confirm no booking/pricing/payment/public website files were changed except route/menu registration if applicable.
+- Confirm no existing destructive migrations or table alterations were introduced.
+
+==================================================
+STRICT OUT OF SCOPE
+==================================================
+
+Do NOT implement in Phase 1:
+- Fullscreen slideshow player
+- Compare mode
+- Video upload
+- Device assignment
+- AI
+- Analytics
+- QR codes
+- Dynamic pricing
+- Live availability
+- Public website changes
+- Booking creation from showroom
+- Permission system
+- Drag-and-drop editor
+- Technical spec display
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+Phase 1 is complete only if:
+- New isolated showroom DB schema exists.
+- Admin showroom API routes exist and are mounted.
+- CRM has a Digital Showroom page accessible from sidebar.
+- Existing vehicle model images can be read/displayed without changing upload logic.
+- Showroom price structure exists separately from Rates/Pricing.
+- No booking, pricing, payment, public website booking flow, or vehicle upload logic was changed.
+- All changes are additive and rollback-safe.
+
+Return:
+1. Summary of what was implemented.
+2. Exact files changed.
+3. Build/typecheck results.
+4. Any risks or questions before Phase 2.

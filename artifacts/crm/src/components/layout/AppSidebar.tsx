@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, Percent,
-  LogOut, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X
+  LogOut, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X, Monitor
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -47,6 +47,7 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
   { title: "TBS AIR PARKING", url: "/tbs-parking",     icon: PlaneTakeoff,     permissionKey: "canManageParking" },
   { title: "Monitoring",      url: "/monitoring",      icon: Smile,            permissionKey: "canManageBookings" },
   { title: "Admin AI",        url: "/admin-ai",        icon: Bot,              permissionKey: "canUseAdminAI" },
+  { title: "Digital Showroom", url: "/showroom",       icon: Monitor,          permissionKey: null },
 ];
 
 export function AppSidebar() {

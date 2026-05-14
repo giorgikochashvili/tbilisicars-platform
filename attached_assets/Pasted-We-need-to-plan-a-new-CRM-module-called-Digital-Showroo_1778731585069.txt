@@ -1,0 +1,90 @@
+We need to plan a new CRM module called “Digital Showroom” for TBILISICARS.
+
+IMPORTANT:
+This is ANALYSIS ONLY. Do not modify any files. Do not create code. Do not run migrations. Do not change existing logic.
+
+Project context:
+TBILISICARS CRM&WEB is a live production system. The new Digital Showroom must be added safely as a new independent CRM module without touching existing booking, pricing, payment, public website booking flow, vehicle model image upload logic, or deployment behavior.
+
+Digital Showroom v1 purpose:
+- A CRM module for staff to present vehicle models on a tablet at the desk.
+- A fullscreen slideshow mode for office/airport screens.
+- Use existing transparent vehicle model PNG/images already stored for vehicle models.
+- Use existing CRM/site vehicle categories where possible.
+- Allow staff to create editable showroom slides using existing vehicle model images.
+- Allow manual selling texts and promo/discount badge texts.
+- Support multilingual text fields for v1:
+  - English
+  - Hebrew
+  - Arabic
+- Support playlist-based fullscreen slideshow:
+  - create playlist
+  - add slides
+  - set slide order
+  - set slide duration
+  - start fullscreen slideshow
+- Image-first system only for v1.
+- Do not implement heavy video upload in v1.
+- Do not implement device assignment in v1.
+- Do not implement AI, dynamic pricing, live availability, analytics, or QR codes in v1.
+
+Please analyze the current codebase and provide a safe implementation plan only.
+
+Your analysis must include:
+
+1. Existing relevant structure
+- CRM routing/menu structure
+- Fleet vehicle model/category/image structure
+- Existing admin API patterns
+- Existing DB schema patterns
+- Existing upload/static image access patterns
+- Existing permission structure
+
+2. Recommended Digital Showroom v1 architecture
+- CRM pages/components to add
+- API routes to add
+- DB tables needed, if any
+- Whether existing vehicle model images can be reused read-only
+- How to keep this isolated from booking/pricing/payment logic
+
+3. Suggested data model
+For example:
+- showroom_slides
+- showroom_playlists
+- showroom_playlist_items
+Only suggest tables if truly needed.
+Do not alter existing booking/pricing/fleet tables unless absolutely necessary.
+
+4. Frontend UX plan
+- Main Digital Showroom page
+- Slide editor
+- Playlist manager
+- Fullscreen slideshow player
+- Tablet-friendly showroom view
+
+5. Risk assessment
+- What files would likely be affected
+- What must not be touched
+- Regression risks
+- How to keep the change rollback-friendly
+
+6. Recommended implementation phases
+Break into small safe tasks:
+- Phase 1: database/API foundation
+- Phase 2: CRM UI
+- Phase 3: fullscreen player
+- Phase 4: polish
+
+Hard rules:
+- Do not modify files.
+- Do not run migrations.
+- Do not change booking logic.
+- Do not change pricing logic.
+- Do not change payment/accounting logic.
+- Do not change public website booking flow.
+- Do not change vehicle image upload behavior.
+- Do not add video upload yet.
+- Do not invent large architecture.
+- Keep everything surgical and production-safe.
+
+Return only the analysis and proposed plan.

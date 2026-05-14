@@ -18,3 +18,4 @@ export * from "./audit";
 export * from "./parking";
 export * from "./homepage-slider";
 export * from "./discounts";
+export * from "./showroom";
