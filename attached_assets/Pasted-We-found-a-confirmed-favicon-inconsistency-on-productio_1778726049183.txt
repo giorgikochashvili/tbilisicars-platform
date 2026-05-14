@@ -1,0 +1,43 @@
+We found a confirmed favicon inconsistency on production:
+
+https://tbilisicars.com/favicon.png shows an old maroon car icon.
+https://tbilisicars.com/favicon.ico shows a different red square icon.
+The Organization JSON-LD logo was already updated to:
+https://tbilisicars.com/tbilisicars-logo.png
+
+We need a narrow, production-safe favicon cleanup for the public website only.
+
+Scope:
+- Public website static assets and index.html favicon references only.
+- Do not touch CRM, API, backend, booking, pricing, database, payment, email, deployment, nginx, or business logic.
+- Do not change SEO titles/descriptions/canonicals/schema except favicon/icon references if needed.
+
+Please inspect current favicon/icon assets and references:
+1. artifacts/website/public/favicon.ico
+2. artifacts/website/public/favicon.png
+3. artifacts/website/public/tbilisicars-logo.png
+4. artifacts/website/index.html favicon/apple-touch-icon/meta references
+5. any other website public icon files such as apple-touch-icon.png, favicon.svg, icon*.png, logo*.png
+
+Goal:
+- Make favicon assets consistent with the official brand mark from:
+  artifacts/website/public/tbilisicars-logo.png
+- Replace/regenerate favicon.png and favicon.ico from this official logo.
+- If apple-touch-icon.png exists or is referenced, align it too.
+- Remove or ignore stale favicon.svg only if it is still referenced or copied into build output and causing conflict.
+- Preserve file names:
+  /favicon.ico
+  /favicon.png
+  /tbilisicars-logo.png
+
+Important:
+- favicon.png should show the same official Tbilisicars brand mark, not the old maroon car icon.
+- favicon.ico should show the same official Tbilisicars brand mark, not the old red square partial mark.
+- Do not invent a new design.
+- Use the uploaded official logo as source.
+
+Validation:
+- Run website build.
+- Confirm dist/public contains updated favicon.ico, favicon.png, and tbilisicars-logo.png.
+- Report exact files changed.
+- Confirm no CRM/API/backend files changed.
