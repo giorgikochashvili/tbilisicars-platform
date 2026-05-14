@@ -167,18 +167,18 @@ function CarouselModal({
   // ── Fullscreen presentation mode ──────────────────────────────────────────
   if (fullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* Exit fullscreen — top-left, minimal */}
+      <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+        {/* Exit fullscreen — z-30, always above everything */}
         <button
-          className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-white/30 hover:text-white transition-colors text-xs"
+          className="absolute top-4 left-4 z-30 flex items-center gap-1.5 text-white/30 hover:text-white transition-colors text-xs"
           onClick={() => setFullscreen(false)}
         >
           <Minimize2 className="w-4 h-4" />
           <span>Exit</span>
         </button>
 
-        {/* Image — fills the available space */}
-        <div className="flex-1 flex items-center justify-center min-h-0 px-20 py-10">
+        {/* Image layer — fills entire screen, behind info panel */}
+        <div className="absolute inset-0 flex items-center justify-center px-20 py-24">
           {toStorageSrc(model.imageUrl) ? (
             <img
               src={toStorageSrc(model.imageUrl)}
@@ -192,10 +192,10 @@ function CarouselModal({
           )}
         </div>
 
-        {/* Prev / Next — edge arrows */}
+        {/* Prev / Next — z-20, above image */}
         {total > 1 && (
           <button
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
+            className="absolute z-20 left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
             onClick={prev}
             aria-label="Previous vehicle"
           >
@@ -204,7 +204,7 @@ function CarouselModal({
         )}
         {total > 1 && (
           <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
+            className="absolute z-20 right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full text-white/30 hover:text-white hover:bg-white/10 transition-all"
             onClick={next}
             aria-label="Next vehicle"
           >
@@ -212,8 +212,8 @@ function CarouselModal({
           </button>
         )}
 
-        {/* Bottom info strip */}
-        <div className="flex-shrink-0 flex items-end justify-between px-10 pb-8 gap-6 bg-gradient-to-t from-black/80 to-transparent pt-16">
+        {/* Info panel — z-10 overlay, bottom-anchored, never behind image */}
+        <div className="absolute bottom-0 inset-x-0 z-10 flex items-end justify-between px-10 pb-8 pt-20 gap-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               {model.brandName && (
@@ -260,9 +260,9 @@ function CarouselModal({
 
   // ── Normal carousel (admin view) ────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <div className="flex-shrink-0 flex items-center justify-between px-6 pt-5 pb-2">
+    <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+      {/* Top bar — z-20, always above image */}
+      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-6 pt-5 pb-6 bg-gradient-to-b from-black/80 to-transparent">
         <button
           className="flex items-center gap-1.5 text-white/40 hover:text-white transition-colors text-xs"
           onClick={() => setFullscreen(true)}
@@ -279,8 +279,8 @@ function CarouselModal({
         </button>
       </div>
 
-      {/* Image — as large as possible */}
-      <div className="flex-1 flex items-center justify-center px-20 min-h-0">
+      {/* Image layer — fills entire screen, behind all overlays */}
+      <div className="absolute inset-0 flex items-center justify-center px-20 py-8">
         {toStorageSrc(model.imageUrl) ? (
           <img
             src={toStorageSrc(model.imageUrl)}
@@ -294,92 +294,10 @@ function CarouselModal({
         )}
       </div>
 
-      {/* Info strip */}
-      <div className="flex-shrink-0 flex flex-col items-center gap-3 px-8 py-6">
-        {/* Name + category */}
-        <div className="text-center">
-          {model.brandName && (
-            <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{model.brandName}</p>
-          )}
-          <h2 className="text-2xl font-bold text-white">{model.name}</h2>
-          {model.category && (
-            <p className="text-sm text-white/35 mt-0.5">{model.category}</p>
-          )}
-        </div>
-
-        {/* Slide badge/body */}
-        {(slide?.badgeEn || slide?.bodyEn) && (
-          <div className="text-center space-y-1">
-            {slide.badgeEn && (
-              <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
-                {slide.badgeEn}
-              </span>
-            )}
-            {slide.bodyEn && (
-              <p className="text-sm text-white/55 max-w-sm leading-relaxed">{slide.bodyEn}</p>
-            )}
-          </div>
-        )}
-
-        {/* Price + currency */}
-        <div className="flex items-center gap-3">
-          {usd !== null ? (
-            <>
-              <span className="text-xl font-bold text-white">{fmtPrice(usd, eurMode, eurRate)}</span>
-              <div className="flex items-center bg-white/10 rounded-lg p-0.5">
-                <button
-                  className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${!eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
-                  onClick={() => setEurMode(false)}
-                >USD</button>
-                <button
-                  className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
-                  onClick={() => setEurMode(true)}
-                >EUR</button>
-              </div>
-            </>
-          ) : (
-            <span className="text-sm text-white/25 italic">No showroom price</span>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-3 flex-wrap justify-center">
-          <Button
-            size="sm"
-            variant="outline"
-            className={
-              inCompare
-                ? "border-primary/60 text-primary bg-primary/10"
-                : compareFull
-                ? "border-white/15 text-white/40 cursor-not-allowed"
-                : "border-white/20 text-white hover:bg-white/10"
-            }
-            disabled={compareFull}
-            onClick={() => { if (!inCompare) onAddToCompare(model); }}
-          >
-            <Scale className="w-3.5 h-3.5 mr-1.5" />
-            {inCompare ? "In Compare" : compareFull ? "Compare full (4 max)" : "Add to Compare"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
-            onClick={() => onEditSlide(model, slide ?? null)}
-          >
-            <PenLine className="w-3.5 h-3.5 mr-1.5" />
-            {slide ? "Edit Slide" : "Create Slide"}
-          </Button>
-        </div>
-
-        {total > 1 && (
-          <p className="text-xs text-white/20">{index + 1} / {total}</p>
-        )}
-      </div>
-
-      {/* Prev / Next */}
+      {/* Prev / Next — z-20, above image */}
       {total > 1 && (
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute z-20 left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           onClick={prev}
           aria-label="Previous vehicle"
         >
@@ -388,13 +306,97 @@ function CarouselModal({
       )}
       {total > 1 && (
         <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute z-20 right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           onClick={next}
           aria-label="Next vehicle"
         >
           <ChevronRight className="w-8 h-8" />
         </button>
       )}
+
+      {/* Info panel — z-10, bottom overlay, always in front of image */}
+      <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-8 pb-6 pt-20 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+        <div className="w-full max-w-lg flex flex-col items-center gap-3">
+          {/* Name + category */}
+          <div className="text-center">
+            {model.brandName && (
+              <p className="text-xs text-white/40 uppercase tracking-widest mb-1">{model.brandName}</p>
+            )}
+            <h2 className="text-2xl font-bold text-white">{model.name}</h2>
+            {model.category && (
+              <p className="text-sm text-white/35 mt-0.5">{model.category}</p>
+            )}
+          </div>
+
+          {/* Slide badge/body */}
+          {(slide?.badgeEn || slide?.bodyEn) && (
+            <div className="text-center space-y-1">
+              {slide.badgeEn && (
+                <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
+                  {slide.badgeEn}
+                </span>
+              )}
+              {slide.bodyEn && (
+                <p className="text-sm text-white/55 max-w-sm leading-relaxed">{slide.bodyEn}</p>
+              )}
+            </div>
+          )}
+
+          {/* Price + currency */}
+          <div className="flex items-center gap-3">
+            {usd !== null ? (
+              <>
+                <span className="text-xl font-bold text-white">{fmtPrice(usd, eurMode, eurRate)}</span>
+                <div className="flex items-center bg-white/10 rounded-lg p-0.5">
+                  <button
+                    className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${!eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+                    onClick={() => setEurMode(false)}
+                  >USD</button>
+                  <button
+                    className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${eurMode ? "bg-white text-black" : "text-white/50 hover:text-white"}`}
+                    onClick={() => setEurMode(true)}
+                  >EUR</button>
+                </div>
+              </>
+            ) : (
+              <span className="text-sm text-white/25 italic">No showroom price</span>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Button
+              size="sm"
+              variant="outline"
+              className={
+                inCompare
+                  ? "border-primary/60 text-primary bg-primary/10"
+                  : compareFull
+                  ? "border-white/15 text-white/40 cursor-not-allowed"
+                  : "border-white/20 text-white hover:bg-white/10"
+              }
+              disabled={compareFull}
+              onClick={() => { if (!inCompare) onAddToCompare(model); }}
+            >
+              <Scale className="w-3.5 h-3.5 mr-1.5" />
+              {inCompare ? "In Compare" : compareFull ? "Compare full (4 max)" : "Add to Compare"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+              onClick={() => onEditSlide(model, slide ?? null)}
+            >
+              <PenLine className="w-3.5 h-3.5 mr-1.5" />
+              {slide ? "Edit Slide" : "Create Slide"}
+            </Button>
+          </div>
+
+          {total > 1 && (
+            <p className="text-xs text-white/20">{index + 1} / {total}</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1111,9 +1113,9 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
 
       {/* ── Carousel mode ──────────────────────────────────────────────────────── */}
       {viewMode === "carousel" ? (
-        <div className="flex-1 flex flex-col min-h-0 relative">
-          {/* Large image */}
-          <div className="flex-1 flex items-center justify-center px-20 min-h-0">
+        <div className="flex-1 relative overflow-hidden">
+          {/* Image layer — fills the whole content area, behind overlays */}
+          <div className="absolute inset-0 flex items-center justify-center px-20 py-8">
             {toStorageSrc(carouselModel?.imageUrl) ? (
               <img
                 src={toStorageSrc(carouselModel?.imageUrl)}
@@ -1127,57 +1129,18 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
             )}
           </div>
 
-          {/* Info */}
-          <div className="flex-shrink-0 flex flex-col items-center gap-3 pb-8 px-6">
-            <div className="text-center">
-              {carouselModel?.brandName && (
-                <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">{carouselModel.brandName}</p>
-              )}
-              <h2 className="text-2xl font-bold text-white">{carouselModel?.name}</h2>
-              {carouselModel?.category && (
-                <p className="text-sm text-white/35 mt-0.5">{carouselModel.category}</p>
-              )}
-            </div>
-            {carouselSlide?.badgeEn && (
-              <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
-                {carouselSlide.badgeEn}
-              </span>
-            )}
-            {carouselSlide?.bodyEn && (
-              <p className="text-sm text-white/50 text-center max-w-md leading-relaxed">{carouselSlide.bodyEn}</p>
-            )}
-            {carouselUsd !== null ? (
-              <p className="text-xl font-bold text-white">{fmtPrice(carouselUsd, eurMode, eurRate)}</p>
-            ) : (
-              <p className="text-sm text-white/25 italic">No showroom price</p>
-            )}
-            {/* Dot indicators */}
-            {list.length > 1 && (
-              <div className="flex items-center gap-1.5">
-                {list.map((m, i) => (
-                  <button
-                    key={m.id}
-                    className={`w-2 h-2 rounded-full transition-colors ${i === safeIdx ? "bg-white" : "bg-white/25 hover:bg-white/50"}`}
-                    onClick={() => setCarouselIdx(i)}
-                    aria-label={m.name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Prev / Next */}
+          {/* Prev / Next — z-20, always above image */}
           {list.length > 1 && (
             <>
               <button
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="absolute z-20 left-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
                 onClick={prevCompare}
                 aria-label="Previous vehicle"
               >
                 <ChevronLeft className="w-8 h-8" />
               </button>
               <button
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="absolute z-20 right-4 top-1/2 -translate-y-1/2 w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
                 onClick={nextCompare}
                 aria-label="Next vehicle"
               >
@@ -1185,6 +1148,47 @@ function CompareModal({ open, onClose, list, onRemove, priceMap, eurRate, slideM
               </button>
             </>
           )}
+
+          {/* Info panel — z-10, bottom overlay, always in front of image */}
+          <div className="absolute bottom-0 inset-x-0 z-10 flex justify-center px-6 pb-6 pt-16 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+            <div className="w-full max-w-lg flex flex-col items-center gap-3">
+              <div className="text-center">
+                {carouselModel?.brandName && (
+                  <p className="text-xs text-white/40 uppercase tracking-widest mb-0.5">{carouselModel.brandName}</p>
+                )}
+                <h2 className="text-2xl font-bold text-white">{carouselModel?.name}</h2>
+                {carouselModel?.category && (
+                  <p className="text-sm text-white/35 mt-0.5">{carouselModel.category}</p>
+                )}
+              </div>
+              {carouselSlide?.badgeEn && (
+                <span className="inline-block px-3 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-xs font-semibold uppercase tracking-wider">
+                  {carouselSlide.badgeEn}
+                </span>
+              )}
+              {carouselSlide?.bodyEn && (
+                <p className="text-sm text-white/50 text-center max-w-md leading-relaxed">{carouselSlide.bodyEn}</p>
+              )}
+              {carouselUsd !== null ? (
+                <p className="text-xl font-bold text-white">{fmtPrice(carouselUsd, eurMode, eurRate)}</p>
+              ) : (
+                <p className="text-sm text-white/25 italic">No showroom price</p>
+              )}
+              {/* Dot indicators */}
+              {list.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  {list.map((m, i) => (
+                    <button
+                      key={m.id}
+                      className={`w-2 h-2 rounded-full transition-colors ${i === safeIdx ? "bg-white" : "bg-white/25 hover:bg-white/50"}`}
+                      onClick={() => setCarouselIdx(i)}
+                      aria-label={m.name}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         /* ── Grid mode ────────────────────────────────────────────────────────── */
