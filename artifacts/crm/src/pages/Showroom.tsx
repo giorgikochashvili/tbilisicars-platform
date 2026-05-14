@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Monitor, ListVideo, DollarSign, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Loader2, AlertCircle, Car, PenLine, Trash2, Plus, Check, X, ArrowLeft, Scale,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Play,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,19 @@ async function apiFetch(path: string, options?: RequestInit) {
 function fmtPrice(usd: number, eur: boolean, rate: number) {
   if (eur) return `€${Math.round(usd * rate)}/day`;
   return `$${Math.round(usd)}/day`;
+}
+
+function getSlideText(
+  slide: ShowroomSlide,
+  lang: SlideshowLang,
+  field: "title" | "body" | "badge",
+): string | null {
+  const cap = lang === "en" ? "En" : lang === "he" ? "He" : "Ar";
+  const key = `${field}${cap}` as keyof ShowroomSlide;
+  const val = slide[key] as string | null | undefined;
+  if (val) return val;
+  const fallbackKey = `${field}En` as keyof ShowroomSlide;
+  return (slide[fallbackKey] as string | null | undefined) ?? null;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,6 +121,15 @@ interface ShowroomPrice {
 interface ShowroomSettings {
   id: number;
   usdToEurRate: string;
+}
+
+type SlideshowLang = "en" | "he" | "ar";
+type SlideshowCurrency = "usd" | "eur";
+
+interface SlideshowSettings {
+  lang: SlideshowLang;
+  currency: SlideshowCurrency;
+  showPrice: boolean;
 }
 
 // ─── CarouselModal ─────────────────────────────────────────────────────────────
@@ -658,6 +680,332 @@ function SlideEditorModal({
   );
 }
 
+// ─── LaunchSettingsModal ───────────────────────────────────────────────────────
+
+interface LaunchSettingsModalProps {
+  open: boolean;
+  onClose: () => void;
+  onLaunch: (settings: SlideshowSettings) => void;
+  hasItems: boolean;
+}
+
+function LaunchSettingsModal({ open, onClose, onLaunch, hasItems }: LaunchSettingsModalProps) {
+  const [lang, setLang] = useState<SlideshowLang>("en");
+  const [currency, setCurrency] = useState<SlideshowCurrency>("usd");
+  const [showPrice, setShowPrice] = useState(true);
+
+  const langOptions: { value: SlideshowLang; label: string }[] = [
+    { value: "en", label: "English" },
+    { value: "he", label: "Hebrew" },
+    { value: "ar", label: "Arabic" },
+  ];
+  const currencyOptions: { value: SlideshowCurrency; label: string }[] = [
+    { value: "usd", label: "USD $" },
+    { value: "eur", label: "EUR €" },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Launch Slideshow</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5 py-1">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Language</Label>
+            <div className="flex gap-2">
+              {langOptions.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setLang(value)}
+                  className={`flex-1 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                    lang === value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-white hover:border-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Currency</Label>
+            <div className="flex gap-2">
+              {currencyOptions.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setCurrency(value)}
+                  className={`flex-1 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                    currency === value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-white hover:border-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm text-muted-foreground">Show Price</Label>
+            <Switch checked={showPrice} onCheckedChange={setShowPrice} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button
+            disabled={!hasItems}
+            onClick={() => onLaunch({ lang, currency, showPrice })}
+          >
+            <Play className="w-3.5 h-3.5 mr-1.5" />
+            Start Slideshow
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── SlideshowPlayer ──────────────────────────────────────────────────────────
+
+const SLIDESHOW_RTL: SlideshowLang[] = ["he", "ar"];
+
+interface SlideshowPlayerProps {
+  playlistId: number;
+  settings: SlideshowSettings;
+  slideIdMap: Map<number, ShowroomSlide>;
+  priceMap: Map<number, ShowroomPrice>;
+  eurRate: number;
+  onClose: () => void;
+}
+
+function SlideshowPlayer({
+  playlistId,
+  settings,
+  slideIdMap,
+  priceMap,
+  eurRate,
+  onClose,
+}: SlideshowPlayerProps) {
+  const { data, isLoading } = useQuery<ShowroomPlaylistDetail>({
+    queryKey: ["showroom-playlist-detail", playlistId],
+    queryFn: () => apiFetch(`/api/admin/showroom/playlists/${playlistId}`),
+  });
+
+  const items = data?.items ?? [];
+
+  const resolvedItems = useMemo(() => {
+    return items
+      .map((item) => ({
+        item,
+        slide: item.slideId != null ? slideIdMap.get(item.slideId) : undefined,
+      }))
+      .filter((r): r is { item: PlaylistItemFlat; slide: ShowroomSlide } =>
+        r.slide != null,
+      );
+  }, [items, slideIdMap]);
+
+  const [idx, setIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRTL = SLIDESHOW_RTL.includes(settings.lang);
+
+  const goTo = useCallback(
+    (nextIdx: number) => {
+      if (resolvedItems.length === 0) return;
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(nextIdx);
+        setVisible(true);
+      }, 280);
+    },
+    [resolvedItems.length],
+  );
+
+  useEffect(() => {
+    if (resolvedItems.length === 0) return;
+    const current = resolvedItems[idx];
+    if (!current) return;
+    const ms = (current.item.durationSeconds ?? 8) * 1000;
+    timerRef.current = setTimeout(() => {
+      goTo((idx + 1) % resolvedItems.length);
+    }, ms);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [idx, resolvedItems, goTo]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (resolvedItems.length === 0) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        goTo((idx + 1) % resolvedItems.length);
+      }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        goTo((idx - 1 + resolvedItems.length) % resolvedItems.length);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [idx, resolvedItems, goTo, onClose]);
+
+  useEffect(() => {
+    if (resolvedItems.length > 0 && idx >= resolvedItems.length) {
+      setIdx(0);
+    }
+  }, [resolvedItems.length, idx]);
+
+  const current = resolvedItems[idx];
+  const slide = current?.slide;
+  const item = current?.item;
+
+  const title = slide ? getSlideText(slide, settings.lang, "title") : null;
+  const body = slide ? getSlideText(slide, settings.lang, "body") : null;
+  const badge = slide ? getSlideText(slide, settings.lang, "badge") : null;
+  const imgSrc = toStorageSrc(item?.slideModelImageUrl ?? slide?.modelImageUrl);
+
+  let priceStr: string | null = null;
+  if (settings.showPrice && item?.slideModelId != null) {
+    const entry = priceMap.get(item.slideModelId);
+    if (entry?.priceUsd && entry.active) {
+      priceStr = fmtPrice(parseFloat(entry.priceUsd), settings.currency === "eur", eurRate);
+    }
+  }
+
+  const prev = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    goTo((idx - 1 + resolvedItems.length) % resolvedItems.length);
+  };
+  const next = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    goTo((idx + 1) % resolvedItems.length);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-[#0a0a0f] flex items-center justify-center select-none overflow-hidden">
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex flex-col items-center gap-3 text-white/40">
+          <Loader2 className="w-10 h-10 animate-spin" />
+          <p className="text-sm tracking-wide">Loading playlist…</p>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!isLoading && resolvedItems.length === 0 && (
+        <div className="flex flex-col items-center gap-3 text-white/30">
+          <Car className="w-20 h-20" />
+          <p className="text-sm tracking-wide">No slides to display</p>
+        </div>
+      )}
+
+      {/* Slide content */}
+      {!isLoading && slide && (
+        <div
+          className={`absolute inset-0 transition-opacity duration-[280ms] ease-in-out ${visible ? "opacity-100" : "opacity-0"}`}
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          {/* Vehicle image — fills most of the screen */}
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={slide.modelName ?? ""}
+              className="absolute inset-0 w-full h-full object-contain px-8 pt-8 pb-48 sm:px-20 sm:pt-12 sm:pb-56"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center pb-40">
+              <Car className="w-40 h-40 text-white/8" />
+            </div>
+          )}
+
+          {/* Bottom gradient */}
+          <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent pointer-events-none" />
+
+          {/* Text panel */}
+          <div
+            className={`absolute bottom-0 inset-x-0 px-8 pb-12 sm:px-16 sm:pb-16 space-y-3 ${isRTL ? "text-right" : "text-left"}`}
+          >
+            {badge && (
+              <div>
+                <span className="inline-block px-4 py-1 bg-primary/90 text-white text-sm font-semibold rounded-full tracking-wide shadow-lg">
+                  {badge}
+                </span>
+              </div>
+            )}
+            {title && (
+              <h2 className="text-4xl sm:text-6xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl">
+                {title}
+              </h2>
+            )}
+            {body && (
+              <p className="text-lg sm:text-2xl text-white/65 leading-relaxed max-w-3xl drop-shadow">
+                {body}
+              </p>
+            )}
+            {priceStr && (
+              <div className="inline-block mt-1 px-5 py-2.5 bg-white/8 backdrop-blur-md border border-white/15 rounded-2xl shadow-xl">
+                <span className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
+                  {priceStr}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Exit button */}
+      <button
+        onClick={onClose}
+        className="absolute top-5 right-5 z-[61] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 text-white/50 hover:text-white text-xs font-medium transition-colors backdrop-blur-sm border border-white/10"
+      >
+        <X className="w-3.5 h-3.5" />
+        Exit
+      </button>
+
+      {/* Slide counter */}
+      {resolvedItems.length > 1 && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[61] px-3 py-1 rounded-full bg-white/8 text-white/40 text-xs backdrop-blur-sm border border-white/10">
+          {idx + 1} / {resolvedItems.length}
+        </div>
+      )}
+
+      {/* Prev / Next */}
+      {resolvedItems.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-[61] w-11 h-11 flex items-center justify-center rounded-full bg-white/8 hover:bg-white/18 text-white/50 hover:text-white transition-colors backdrop-blur-sm border border-white/10"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={next}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-[61] w-11 h-11 flex items-center justify-center rounded-full bg-white/8 hover:bg-white/18 text-white/50 hover:text-white transition-colors backdrop-blur-sm border border-white/10"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </>
+      )}
+
+      {/* Progress bar */}
+      {resolvedItems.length > 1 && (
+        <div className="absolute bottom-0 inset-x-0 z-[61] h-[2px] bg-white/8">
+          <div
+            className="h-full bg-primary/70 transition-none"
+            style={{ width: `${((idx + 1) / resolvedItems.length) * 100}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── PlaylistEditor ────────────────────────────────────────────────────────────
 
 interface PlaylistEditorProps {
@@ -665,9 +1013,10 @@ interface PlaylistEditorProps {
   initialName: string;
   onBack: () => void;
   allSlides: ShowroomSlide[];
+  onStartSlideshow?: (playlistId: number) => void;
 }
 
-function PlaylistEditor({ playlistId, initialName, onBack, allSlides }: PlaylistEditorProps) {
+function PlaylistEditor({ playlistId, initialName, onBack, allSlides, onStartSlideshow }: PlaylistEditorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -823,7 +1172,14 @@ function PlaylistEditor({ playlistId, initialName, onBack, allSlides }: Playlist
             </div>
           )}
         </div>
-        <Button size="sm" variant="outline" disabled className="opacity-40 text-xs flex-shrink-0">
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-xs flex-shrink-0"
+          disabled={localItems.length === 0}
+          onClick={() => onStartSlideshow?.(playlistId)}
+        >
+          <Play className="w-3 h-3 mr-1" />
           Start Fullscreen
         </Button>
       </div>
@@ -1531,9 +1887,10 @@ function SlidesTab({ slides, isLoading, error, vehicleModels }: SlidesTabProps) 
 
 interface PlaylistsTabProps {
   allSlides: ShowroomSlide[];
+  onStartSlideshow: (playlistId: number) => void;
 }
 
-function PlaylistsTab({ allSlides }: PlaylistsTabProps) {
+function PlaylistsTab({ allSlides, onStartSlideshow }: PlaylistsTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
@@ -1596,6 +1953,7 @@ function PlaylistsTab({ allSlides }: PlaylistsTabProps) {
         initialName={editingName}
         onBack={() => setEditingId(null)}
         allSlides={allSlides}
+        onStartSlideshow={onStartSlideshow}
       />
     );
   }
@@ -1663,6 +2021,15 @@ function PlaylistsTab({ allSlides }: PlaylistsTabProps) {
               ) : (
                 <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>
               )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-white h-7 px-2 flex-shrink-0"
+                onClick={() => onStartSlideshow(pl.id)}
+              >
+                <Play className="w-3 h-3 mr-1" />
+                Play
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -1976,11 +2343,42 @@ export default function Showroom() {
     [slides],
   );
 
+  const slideIdMap = useMemo(
+    () => new Map(slides.map((s) => [s.id, s])),
+    [slides],
+  );
+
   const eurRate = parseFloat(settings?.usdToEurRate ?? "0.92");
   const activeModels = useMemo(
     () => (models ?? []).filter((m) => m.active),
     [models],
   );
+
+  // ── Slideshow state ───────────────────────────────────────────────────────────
+  const [launchPlaylistId, setLaunchPlaylistId] = useState<number | null>(null);
+  const [launchSettingsOpen, setLaunchSettingsOpen] = useState(false);
+  const [slideshowActive, setSlideshowActive] = useState(false);
+  const [slideshowSettings, setSlideshowSettings] = useState<SlideshowSettings>({
+    lang: "en",
+    currency: "usd",
+    showPrice: true,
+  });
+
+  const handleStartSlideshow = (playlistId: number) => {
+    setLaunchPlaylistId(playlistId);
+    setLaunchSettingsOpen(true);
+  };
+
+  const handleLaunch = (s: SlideshowSettings) => {
+    setSlideshowSettings(s);
+    setLaunchSettingsOpen(false);
+    setSlideshowActive(true);
+  };
+
+  const handleCloseSlideshow = () => {
+    setSlideshowActive(false);
+    setLaunchPlaylistId(null);
+  };
 
   // ── Compare state ─────────────────────────────────────────────────────────────
   const [compareList, setCompareList] = useState<VehicleModel[]>([]);
@@ -2076,7 +2474,7 @@ export default function Showroom() {
         </TabsContent>
 
         <TabsContent value="playlists" className="mt-6">
-          <PlaylistsTab allSlides={slides} />
+          <PlaylistsTab allSlides={slides} onStartSlideshow={handleStartSlideshow} />
         </TabsContent>
 
         <TabsContent value="prices" className="mt-6">
@@ -2131,6 +2529,26 @@ export default function Showroom() {
         eurRate={eurRate}
         slideMap={slideMap}
       />
+
+      {/* ── Launch settings modal ──────────────────────────────────────────────────── */}
+      <LaunchSettingsModal
+        open={launchSettingsOpen}
+        onClose={() => setLaunchSettingsOpen(false)}
+        onLaunch={handleLaunch}
+        hasItems={launchPlaylistId !== null}
+      />
+
+      {/* ── Slideshow player ──────────────────────────────────────────────────────── */}
+      {slideshowActive && launchPlaylistId !== null && (
+        <SlideshowPlayer
+          playlistId={launchPlaylistId}
+          settings={slideshowSettings}
+          slideIdMap={slideIdMap}
+          priceMap={priceMap}
+          eurRate={eurRate}
+          onClose={handleCloseSlideshow}
+        />
+      )}
     </div>
   );
 }

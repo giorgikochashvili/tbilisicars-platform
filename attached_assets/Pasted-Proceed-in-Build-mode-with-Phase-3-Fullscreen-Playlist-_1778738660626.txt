@@ -1,0 +1,66 @@
+Proceed in Build mode with Phase 3: Fullscreen Playlist Slideshow.
+
+Strict scope:
+- Change only artifacts/crm/src/pages/Showroom.tsx.
+- Do not modify backend files.
+- Do not modify DB/schema files.
+- Do not modify routes, App.tsx, Sidebar, permissions, booking, pricing, payment, public website, upload logic, or fleet APIs.
+- Do not add new API routes.
+- Do not add new tables.
+- Do not implement video upload, device assignment, AI, analytics, QR codes, live availability, dynamic pricing, or booking creation.
+
+Approved implementation:
+- Add LaunchSettingsModal inside Showroom.tsx.
+- Add SlideshowPlayer inside Showroom.tsx.
+- Use existing playlist data and GET /api/admin/showroom/playlists/:id.
+- Use existing slideMap for full EN/HE/AR slide content.
+- Use existing priceMap and eurRate for showroom-only prices.
+- Keep player as fixed fullscreen overlay, not a new route.
+- Activate Start Fullscreen from playlist editor/list where appropriate.
+
+Launch settings:
+- Language: English / Hebrew / Arabic
+- Currency: USD / EUR
+- Show Price: ON / OFF
+- Defaults: English, USD, Show Price ON
+
+Slideshow behavior:
+- Use playlist item order.
+- Use duration_seconds per item.
+- Auto-advance with timer.
+- Loop continuously.
+- Manual previous/next arrows.
+- Escape / Exit closes slideshow.
+- If playlist is empty, Start Fullscreen must be disabled.
+- If a slide is missing from slideMap, do not crash; skip it or render a safe fallback.
+- If selected language text is missing, fallback to English.
+- Hebrew/Arabic must use RTL layout.
+- If Show Price is OFF, no price appears.
+- If Show Price is ON but model has no showroom price, omit price silently.
+- Never use Rates/Pricing/Booking logic for price.
+
+Visual requirements:
+- Premium dark Tbilisicars fullscreen display.
+- Very large vehicle image.
+- Clean title/body/badge.
+- Optional price in selected currency.
+- Minimal Exit and previous/next controls.
+- No technical specs.
+- No admin table feeling.
+- Suitable for TV/tablet display.
+
+Preserve existing behavior:
+- Vehicles tab
+- Prices tab
+- Slides editor
+- Playlists editor
+- Compare
+- Presentation carousel
+- Existing Phase 1/2 functions
+
+After implementation:
+- Report exact files changed.
+- Confirm only Showroom.tsx changed.
+- Run CRM typecheck/build.
+- Confirm no forbidden logic/files were touched.
+- Do not proceed beyond Phase 3.
