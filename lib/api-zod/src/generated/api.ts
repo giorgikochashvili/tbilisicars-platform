@@ -1871,6 +1871,7 @@ export const CreateAdminBookingBody = zod.object({
   reservationCode: zod.string().nullish(),
   externalReservationCode: zod.string().nullish(),
   voucherImportRef: zod.string().nullish(),
+  extras: zod.array(zod.object({ extraId: zod.number().int().positive(), quantity: zod.number().int().positive() })).optional(),
 });
 
 /**

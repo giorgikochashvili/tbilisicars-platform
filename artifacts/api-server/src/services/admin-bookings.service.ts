@@ -604,6 +604,7 @@ export async function createAdminBooking(data: {
   reservationCode?: string | null;
   externalReservationCode?: string | null;
   voucherImportRef?: string | null;
+  extras?: { extraId: number; quantity: number }[] | null;
 }) {
   const pickupDate = new Date(data.pickupDatetime);
   const dropoffDate = new Date(data.dropoffDatetime);
@@ -641,7 +642,7 @@ export async function createAdminBooking(data: {
     userId = customer.id;
   }
 
-  const { customerId, customerData, customerEmail, customerPhone, customerFullName, ...rest } = data;
+  const { customerId, customerData, customerEmail, customerPhone, customerFullName, extras, ...rest } = data;
 
   const [row] = await db
     .insert(bookingTable)
@@ -652,6 +653,33 @@ export async function createAdminBooking(data: {
       dropoffDatetime: dropoffDate,
     } as any)
     .returning();
+
+  if (extras && extras.length > 0) {
+    for (const item of extras) {
+      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+        throw Object.assign(new Error("One or more extras have an invalid quantity"), { statusCode: 422, body: { error: "One or more extras have an invalid quantity" } });
+      }
+    }
+    const extraIds = extras.map((e) => e.extraId);
+    const { rows: extraRows } = await pool.query(
+      `SELECT id, price, pricing_type, max_days FROM extra WHERE id = ANY($1) AND is_active = true`,
+      [extraIds],
+    );
+    if (extraRows.length !== extraIds.length) {
+      throw Object.assign(new Error("One or more extras are invalid or inactive"), { statusCode: 422, body: { error: "One or more extras are invalid or inactive" } });
+    }
+    const extraMap = new Map<number, { price: string; pricingType: string; maxDays: number | null }>(
+      extraRows.map((r: any) => [r.id, { price: String(r.price), pricingType: r.pricing_type, maxDays: r.max_days != null ? Number(r.max_days) : null }]),
+    );
+    await db.insert(bookingextraTable).values(
+      extras.map((e) => ({
+        bookingId: row!.id,
+        extraId: e.extraId,
+        quantity: e.quantity,
+        priceAtBooking: extraMap.get(e.extraId)!.price,
+      })),
+    );
+  }
 
   const initialStatus = data.status;
   if (

@@ -221,8 +221,9 @@ const EMPTY_BOOKING = {
   dropoffType: "airport" as "airport" | "hotel" | "office",
   dropoffAddress: "",
   totalAmount: "",
-  currency: "GEL",
+  currency: "EUR",
   notes: "",
+  extras: [] as { extraId: number; quantity: number }[],
   status: "CONFIRMED" as const,
   paymentStatus: "UNPAID" as string,
   source: "Walkin" as string,
@@ -268,6 +269,10 @@ export default function BookingsPage() {
   const [customerSnapshot, setCustomerSnapshot] = useState<{id: string; fullName: string; phone?: string; email?: string} | null>(null);
   const customerSearchRef = useRef<HTMLInputElement>(null);
   const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const [availableExtras, setAvailableExtras] = useState<any[]>([]);
+  const [quoteResult, setQuoteResult] = useState<any | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
+  const lastAutoTotalRef = useRef("");
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -376,6 +381,9 @@ export default function BookingsPage() {
     setCustomerSearch("");
     setCustomerSnapshot(null);
     setEditBookingId(null);
+    setAvailableExtras([]);
+    setQuoteResult(null);
+    lastAutoTotalRef.current = "";
     setIsNewBookingOpen(true);
   };
 
@@ -429,6 +437,7 @@ export default function BookingsPage() {
       paymentStatus: bookingRow.paymentStatus || "UNPAID",
       source: bookingRow.source || "Walkin",
       externalCode: bookingRow.externalReservationCode || "",
+      extras: [],
     });
     setCustomerSearch(hasExistingCustomer ? customerName : "");
     setCustomerSnapshot(hasExistingCustomer ? {
@@ -477,6 +486,7 @@ export default function BookingsPage() {
     if (booking.vehicleId && booking.vehicleId !== "none") payload.vehicleId = parseInt(booking.vehicleId);
     if (booking.totalAmount) payload.totalAmount = booking.totalAmount;
     payload.currency = booking.currency;
+    if (!isEditMode && booking.extras.length > 0) payload.extras = booking.extras;
 
     if (booking.customerMode === "existing" && booking.customerId) {
       payload.customerId = parseInt(booking.customerId);
@@ -586,6 +596,64 @@ export default function BookingsPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isNewBookingOpen && editBookingId === null) {
+      fetch("/api/admin/extras", { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => setAvailableExtras(Array.isArray(data) ? data.filter((e: any) => e.isActive) : (data.data || []).filter((e: any) => e.isActive)))
+        .catch(() => setAvailableExtras([]));
+    }
+    if (!isNewBookingOpen) {
+      setAvailableExtras([]);
+      setQuoteResult(null);
+      lastAutoTotalRef.current = "";
+    }
+  }, [isNewBookingOpen, editBookingId]);
+
+  useEffect(() => {
+    if (editBookingId !== null) return;
+    const modelId = parseInt(booking.vehicleModelId);
+    if (!booking.vehicleModelId || isNaN(modelId) || booking.vehicleModelId === "any") return;
+    if (!booking.pickupDate || !booking.pickupTime) return;
+    if (!booking.dropoffDate || !booking.dropoffTime) return;
+    const pickupLocId = parseInt(booking.pickupLocationId);
+    const dropoffLocId = parseInt(booking.dropoffLocationId);
+    if (!booking.pickupLocationId || isNaN(pickupLocId)) return;
+    if (!booking.dropoffLocationId || isNaN(dropoffLocId)) return;
+
+    const pickupDatetime = new Date(`${booking.pickupDate}T${booking.pickupTime}:00`).toISOString();
+    const dropoffDatetime = new Date(`${booking.dropoffDate}T${booking.dropoffTime}:00`).toISOString();
+    const body: any = { vehicleModelId: modelId, pickupDatetime, dropoffDatetime, pickupLocationId: pickupLocId, dropoffLocationId: dropoffLocId };
+    if (booking.extras.length > 0) body.extras = booking.extras;
+
+    let cancelled = false;
+    setIsQuoteLoading(true);
+    fetch("/api/public/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setQuoteResult(data);
+        if (data.quotable && data.estimatedTotal != null) {
+          const computed = String(data.estimatedTotal);
+          setBooking((prev) => {
+            if (prev.totalAmount === "" || prev.totalAmount === lastAutoTotalRef.current) {
+              lastAutoTotalRef.current = computed;
+              return { ...prev, totalAmount: computed, currency: data.baseCurrency || prev.currency };
+            }
+            lastAutoTotalRef.current = computed;
+            return prev;
+          });
+        }
+      })
+      .catch(() => { if (!cancelled) setQuoteResult(null); })
+      .finally(() => { if (!cancelled) setIsQuoteLoading(false); });
+    return () => { cancelled = true; };
+  }, [booking.vehicleModelId, booking.pickupDate, booking.pickupTime, booking.dropoffDate, booking.dropoffTime, booking.pickupLocationId, booking.dropoffLocationId, booking.extras, editBookingId]);
 
   const isEditMode = editBookingId !== null;
 
@@ -981,7 +1049,7 @@ export default function BookingsPage() {
 
       {/* ─── New / Edit Booking Modal ────────────────────────────────────── */}
       <Dialog open={isNewBookingOpen} onOpenChange={(open) => {
-        if (!open) { setIsNewBookingOpen(false); setEditBookingId(null); }
+        if (!open) { setIsNewBookingOpen(false); setEditBookingId(null); setAvailableExtras([]); setQuoteResult(null); lastAutoTotalRef.current = ""; }
       }}>
         <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1181,81 +1249,6 @@ export default function BookingsPage() {
               </div>
             </div>
 
-            {/* Vehicle Section */}
-            <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</h3>
-              <div className="grid gap-2">
-                <Label>Brand</Label>
-                <Select
-                  value={booking.brandId}
-                  onValueChange={(v) => setBooking({ ...booking, brandId: v, vehicleModelId: "", vehicleId: "" })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Any brand…" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any brand</SelectItem>
-                    {(() => {
-                      const modelCountByBrand = new Map<number, number>();
-                      for (const m of allModels) {
-                        const bid: number = m.brandId ?? m.brand?.id;
-                        if (bid != null) modelCountByBrand.set(bid, (modelCountByBrand.get(bid) ?? 0) + 1);
-                      }
-                      return [...allBrands].sort((a: any, b: any) => {
-                        const diff = (modelCountByBrand.get(b.id) ?? 0) - (modelCountByBrand.get(a.id) ?? 0);
-                        return diff !== 0 ? diff : a.name.localeCompare(b.name);
-                      });
-                    })().map((b: any) => (
-                      <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Model <span className="text-destructive">*</span></Label>
-                <Select
-                  value={booking.vehicleModelId}
-                  onValueChange={(v) => setBooking({ ...booking, vehicleModelId: v, vehicleId: "" })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Choose model…" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any model</SelectItem>
-                    {[...filteredModels].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((m: any) => (
-                      <SelectItem key={m.id} value={m.id.toString()}>
-                        {m.brand?.name} {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label className="flex items-center gap-2">
-                  Specific Vehicle
-                  <span className="text-muted-foreground font-normal text-xs">(optional — can be assigned later)</span>
-                </Label>
-                <Select value={booking.vehicleId} onValueChange={(v) => setBooking({ ...booking, vehicleId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Any available vehicle" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Any available vehicle</SelectItem>
-                    {allVehicles
-                      .filter((v: any) =>
-                        v.status === "AVAILABLE" ||
-                        v.status === "RESERVED" ||
-                        (v.status === "RENTED" && v.returningSoon === true)
-                      )
-                      .map((v: any) => (
-                        <SelectItem
-                          key={v.id}
-                          value={v.id.toString()}
-                          className={v.returningSoon ? "text-cyan-600 font-medium" : ""}
-                        >
-                          {v.vehicleModel?.brand?.name} {v.vehicleModel?.name} — {v.licensePlate}
-                          {v.returningSoon ? " ⚠ returning soon" : ` (${v.status})`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             {/* Pickup Section */}
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pickup</h3>
@@ -1362,9 +1355,164 @@ export default function BookingsPage() {
               })()}
             </div>
 
+            {/* Vehicle Section */}
+            <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vehicle</h3>
+              <div className="grid gap-2">
+                <Label>Brand</Label>
+                <Select
+                  value={booking.brandId}
+                  onValueChange={(v) => setBooking({ ...booking, brandId: v, vehicleModelId: "", vehicleId: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Any brand…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any brand</SelectItem>
+                    {(() => {
+                      const modelCountByBrand = new Map<number, number>();
+                      for (const m of allModels) {
+                        const bid: number = m.brandId ?? m.brand?.id;
+                        if (bid != null) modelCountByBrand.set(bid, (modelCountByBrand.get(bid) ?? 0) + 1);
+                      }
+                      return [...allBrands].sort((a: any, b: any) => {
+                        const diff = (modelCountByBrand.get(b.id) ?? 0) - (modelCountByBrand.get(a.id) ?? 0);
+                        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+                      });
+                    })().map((b: any) => (
+                      <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Model <span className="text-destructive">*</span></Label>
+                <Select
+                  value={booking.vehicleModelId}
+                  onValueChange={(v) => setBooking({ ...booking, vehicleModelId: v, vehicleId: "" })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Choose model…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any model</SelectItem>
+                    {[...filteredModels].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((m: any) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>
+                        {m.brand?.name} {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-2">
+                  Specific Vehicle
+                  <span className="text-muted-foreground font-normal text-xs">(optional — can be assigned later)</span>
+                </Label>
+                <Select value={booking.vehicleId} onValueChange={(v) => setBooking({ ...booking, vehicleId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Any available vehicle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Any available vehicle</SelectItem>
+                    {allVehicles
+                      .filter((v: any) =>
+                        v.status === "AVAILABLE" ||
+                        v.status === "RESERVED" ||
+                        (v.status === "RENTED" && v.returningSoon === true)
+                      )
+                      .map((v: any) => (
+                        <SelectItem
+                          key={v.id}
+                          value={v.id.toString()}
+                          className={v.returningSoon ? "text-cyan-600 font-medium" : ""}
+                        >
+                          {v.vehicleModel?.brand?.name} {v.vehicleModel?.name} — {v.licensePlate}
+                          {v.returningSoon ? " ⚠ returning soon" : ` (${v.status})`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Optional Extras Section — new bookings only */}
+            {!isEditMode && availableExtras.length > 0 && (
+              <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Optional Extras</h3>
+                <div className="space-y-2">
+                  {availableExtras.map((extra: any) => {
+                    const selected = booking.extras.find((e) => e.extraId === extra.id);
+                    return (
+                      <div key={extra.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id={`extra-${extra.id}`}
+                          checked={!!selected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setBooking({ ...booking, extras: [...booking.extras, { extraId: extra.id, quantity: 1 }] });
+                            } else {
+                              setBooking({ ...booking, extras: booking.extras.filter((ex) => ex.extraId !== extra.id) });
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                        />
+                        <label htmlFor={`extra-${extra.id}`} className="flex-1 text-sm cursor-pointer select-none">
+                          <span className="font-medium">{extra.name}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">
+                            {Number(extra.price).toFixed(2)} {extra.currency || "EUR"} / {extra.pricingType === "per_trip" ? "trip" : "day"}
+                          </span>
+                        </label>
+                        {selected && (
+                          <input
+                            type="number"
+                            min={1}
+                            value={selected.quantity}
+                            onChange={(e) => {
+                              const qty = Math.max(1, parseInt(e.target.value) || 1);
+                              setBooking({ ...booking, extras: booking.extras.map((ex) => ex.extraId === extra.id ? { ...ex, quantity: qty } : ex) });
+                            }}
+                            className="w-16 h-8 text-sm rounded-md border border-input bg-background px-2 text-center"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Pricing & Notes */}
             <div className="space-y-3 rounded-lg border border-border/50 p-4 bg-muted/20">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pricing & Notes</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Pricing & Notes
+                {isQuoteLoading && <span className="ml-2 text-xs font-normal text-muted-foreground animate-pulse">Calculating…</span>}
+              </h3>
+
+              {quoteResult && quoteResult.quotable && (
+                <div className="rounded-md border border-border/40 bg-background/40 p-3 text-sm space-y-1">
+                  {quoteResult.baseTotal != null && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Base rate{quoteResult.basePricePerDay != null ? ` (${quoteResult.basePricePerDay} ${quoteResult.baseCurrency}/day)` : ""}</span>
+                      <span>{quoteResult.baseTotal} {quoteResult.baseCurrency}</span>
+                    </div>
+                  )}
+                  {quoteResult.extrasTotal > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Extras</span>
+                      <span>{quoteResult.extrasTotal} {quoteResult.baseCurrency}</span>
+                    </div>
+                  )}
+                  {quoteResult.oneWayFee != null && quoteResult.oneWayFee > 0 && (
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>One-way fee</span>
+                      <span>{quoteResult.oneWayFee} {quoteResult.baseCurrency}</span>
+                    </div>
+                  )}
+                  {quoteResult.estimatedTotal != null && (
+                    <div className="flex justify-between font-semibold pt-1 border-t border-border/30 mt-1">
+                      <span>Calculated total</span>
+                      <span>{quoteResult.estimatedTotal} {quoteResult.baseCurrency}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Total Amount (optional)</Label>
@@ -1384,6 +1532,19 @@ export default function BookingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {quoteResult && quoteResult.quotable && quoteResult.estimatedTotal != null && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline text-left w-fit"
+                      onClick={() => {
+                        const v = String(quoteResult.estimatedTotal);
+                        lastAutoTotalRef.current = v;
+                        setBooking((prev) => ({ ...prev, totalAmount: v, currency: quoteResult.baseCurrency || prev.currency }));
+                      }}
+                    >
+                      Use calculated: {quoteResult.estimatedTotal} {quoteResult.baseCurrency}
+                    </button>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label>Payment Status</Label>
