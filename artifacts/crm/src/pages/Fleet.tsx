@@ -579,7 +579,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               </Select>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>License Plate <span className="text-destructive">*</span></Label>
                 <Input className="font-mono uppercase" value={formData.licensePlate} onChange={e => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})} />
@@ -661,7 +661,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
               <Input className="font-mono uppercase" value={formData.techpassportNumber} onChange={e => setFormData({...formData, techpassportNumber: e.target.value.toUpperCase()})} />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Year</Label>
                 <Input type="number" value={formData.year} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} />
@@ -1083,7 +1083,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Transmission</Label>
                 <Select value={formData.transmission} onValueChange={(val: any) => setFormData({...formData, transmission: val})}>
@@ -1119,7 +1119,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="grid gap-2">
                 <Label>Seats</Label>
                 <Input type="number" min="1" value={formData.seats} onWheel={e => e.currentTarget.blur()} onChange={e => setFormData({...formData, seats: parseInt(e.target.value) || 5})} />

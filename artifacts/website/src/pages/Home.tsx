@@ -596,7 +596,7 @@ export default function Home() {
             {sliderLoading ? (
               <div className="flex gap-5 overflow-hidden">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex-shrink-0 w-[340px] sm:w-[400px] h-[420px] rounded-2xl bg-white/5 animate-pulse" />
+                  <div key={i} className="flex-shrink-0 w-[min(340px,85vw)] sm:w-[400px] h-[420px] rounded-2xl bg-white/5 animate-pulse" />
                 ))}
               </div>
             ) : (
@@ -612,7 +612,7 @@ export default function Home() {
                     tabIndex={0}
                     onClick={() => navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
                     onKeyDown={(e) => e.key === "Enter" && navigate(`/booking?vehicleModelId=${item.vehicleModelId}`)}
-                    className="flex-shrink-0 w-[340px] sm:w-[400px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col cursor-pointer"
+                    className="flex-shrink-0 w-[min(340px,85vw)] sm:w-[400px] snap-start rounded-2xl overflow-hidden border border-border hover:border-primary/40 transition-all group flex flex-col cursor-pointer"
                     style={{ background: "hsl(211,55%,9%)" }}
                   >
                     {/* Car image */}

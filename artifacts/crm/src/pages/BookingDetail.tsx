@@ -1231,7 +1231,7 @@ function HandoverModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-0.5">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="col-span-2">
               <HandoverDateTimePicker
                 label="Action Date & Time"
@@ -1306,7 +1306,7 @@ function HandoverModal({
                 <span className="text-muted-foreground font-normal">(optional)</span>
               )}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(
                 [
                   {
@@ -1371,7 +1371,7 @@ function HandoverModal({
                 <ParkingSquare className="w-3 h-3 text-blue-400" />
                 Parking Zone (TBS Airport)
               </Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {(["AIRPORT", "FREE", "TASHKENT"] as const).map((zone) => (
                   <button
                     key={zone}
@@ -2884,7 +2884,7 @@ export default function BookingDetail({
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-primary">
                         New Payment Entry
                       </h4>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="grid gap-1.5">
                           <Label className="text-xs">
                             Payment Type{" "}
