@@ -6,7 +6,7 @@ import {
   Calendar, Shield, ChevronRight, ChevronDown,
   Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft, Users,
 } from "lucide-react";
-import { DateTimePicker, DateTimePickerRef } from "@/components/DateTimePicker";
+import { DateTimePicker, DateTimePickerHandle } from "@/components/DateTimePicker";
 import SearchButton from "@/components/SearchButton";
 
 interface Location {
@@ -263,7 +263,7 @@ export default function Home() {
   });
 
   const sliderScrollRef = useRef<HTMLDivElement>(null);
-  const dropoffPickerRef = useRef<DateTimePickerRef>(null);
+  const dropoffPickerRef = useRef<DateTimePickerHandle>(null);
 
   function scrollSlider(dir: "left" | "right") {
     const el = sliderScrollRef.current;
