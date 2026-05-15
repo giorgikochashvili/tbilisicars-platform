@@ -1232,7 +1232,7 @@ function HandoverModal({
 
         <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-0.5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <HandoverDateTimePicker
                 label="Action Date & Time"
                 dateValue={handoverForm.actionDate}
@@ -1279,7 +1279,7 @@ function HandoverModal({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-2 grid gap-1.5">
+            <div className="sm:col-span-2 grid gap-1.5">
               <Label className="text-xs">Notes</Label>
               <Textarea
                 placeholder="Optional notes about the vehicle condition…"
