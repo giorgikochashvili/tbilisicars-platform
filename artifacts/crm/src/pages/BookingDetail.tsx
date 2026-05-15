@@ -2468,6 +2468,11 @@ export default function BookingDetail({
                       <div className="text-xs text-muted-foreground truncate">
                         {booking.pickupLocation?.name}
                       </div>
+                      {booking.pickupAddress && (
+                        <div className="text-xs text-amber-400/90 mt-0.5 break-words">
+                          Delivery: {booking.pickupAddress}
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
@@ -2481,6 +2486,11 @@ export default function BookingDetail({
                       <div className="text-xs text-muted-foreground truncate">
                         {booking.dropoffLocation?.name}
                       </div>
+                      {booking.dropoffAddress && (
+                        <div className="text-xs text-amber-400/90 mt-0.5 break-words">
+                          Collection: {booking.dropoffAddress}
+                        </div>
+                      )}
                     </div>
                     {(() => {
                       const { websiteMeta, cleanNotes } = parseBookingNotes(booking.notes);

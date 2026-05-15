@@ -620,6 +620,10 @@ router.post("/public/bookings", async (req, res) => {
     whatsAppOptIn?: boolean;
     age?: string;
     flightNumber?: string;
+    pickupType?: string;
+    pickupAddress?: string;
+    dropoffType?: string;
+    dropoffAddress?: string;
   };
 
   const errors: string[] = [];
@@ -952,6 +956,11 @@ router.post("/public/bookings", async (req, res) => {
           websiteDiscountAmount: serverWebsiteDiscountAmount !== null ? String(serverWebsiteDiscountAmount) : null,
           originalRentalPrice: serverOriginalRentalPrice !== null ? String(serverOriginalRentalPrice) : null,
           discountedRentalPrice: serverDiscountedRentalPrice !== null ? String(serverDiscountedRentalPrice) : null,
+          // Delivery service fields
+          pickupType: body.pickupType || null,
+          pickupAddress: body.pickupAddress || null,
+          dropoffType: body.dropoffType || null,
+          dropoffAddress: body.dropoffAddress || null,
         })
         .returning({ id: bookingTable.id });
 

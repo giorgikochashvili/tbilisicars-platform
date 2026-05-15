@@ -58,6 +58,8 @@ interface FormData {
   whatsAppOptIn: boolean; age: string; flightNumber: string;
   agreeToTerms: boolean; agreeToPrivacy: boolean;
   paymentMethod: string;
+  pickupDelivery: boolean; dropoffDelivery: boolean;
+  pickupAddress: string; dropoffAddress: string;
 }
 
 interface Quote {
@@ -814,13 +816,14 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
   form: FormData; setForm: React.Dispatch<React.SetStateAction<FormData>>; locations: Location[];
   onClose?: () => void;
 }) {
-  const cities = Array.from(new Set(locations.map((l) => l.city)));
+  const visibleLocs = locations.filter((l) => !l.name.includes("Hotel"));
+  const cities = Array.from(new Set(visibleLocs.map((l) => l.city)));
   const LocOpts = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <Sel value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">Select location…</option>
       {cities.map((city) => (
         <optgroup key={city} label={city}>
-          {locations.filter((l) => l.city === city).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          {visibleLocs.filter((l) => l.city === city).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </optgroup>
       ))}
     </Sel>
@@ -848,11 +851,26 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
       <div className="flex flex-col gap-3 mb-3">
         <div>
           <FieldLabel required>Pickup Location</FieldLabel>
-          <LocOpts value={form.pickupLocationId} onChange={(v) => setForm((f) => ({ ...f, pickupLocationId: v, dropoffLocationId: f.dropoffLocationId || v }))} />
+          <LocOpts value={form.pickupLocationId} onChange={(v) => {
+            const loc = visibleLocs.find((l) => String(l.id) === v);
+            setForm((f) => ({
+              ...f,
+              pickupLocationId: v,
+              dropoffLocationId: f.dropoffLocationId || v,
+              ...(loc && !loc.name.includes("Downtown") ? { pickupDelivery: false, pickupAddress: "" } : {}),
+            }));
+          }} />
         </div>
         <div>
           <FieldLabel required>Drop-off Location</FieldLabel>
-          <LocOpts value={form.dropoffLocationId} onChange={(v) => setForm((f) => ({ ...f, dropoffLocationId: v }))} />
+          <LocOpts value={form.dropoffLocationId} onChange={(v) => {
+            const loc = visibleLocs.find((l) => String(l.id) === v);
+            setForm((f) => ({
+              ...f,
+              dropoffLocationId: v,
+              ...(loc && !loc.name.includes("Downtown") ? { dropoffDelivery: false, dropoffAddress: "" } : {}),
+            }));
+          }} />
         </div>
         <div>
           <FieldLabel required>Pickup Date &amp; Time</FieldLabel>
@@ -1956,6 +1974,8 @@ function Step4({ form, setForm, onNext, onBack, hasWebsiteDiscount }: {
     if (!form.lastName.trim()) { toast({ title: "Last name is required", variant: "destructive" }); return; }
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { toast({ title: "Valid email address is required", variant: "destructive" }); return; }
     if (!form.phone.trim()) { toast({ title: "Phone number is required", variant: "destructive" }); return; }
+    if (form.pickupDelivery && !form.pickupAddress.trim()) { toast({ title: "Pickup delivery address is required", variant: "destructive" }); return; }
+    if (form.dropoffDelivery && !form.dropoffAddress.trim()) { toast({ title: "Return collection address is required", variant: "destructive" }); return; }
     if (!form.agreeToTerms) { toast({ title: "Please accept the Terms & Conditions to continue", variant: "destructive" }); return; }
     if (!form.agreeToPrivacy) { toast({ title: "Please accept the Privacy Policy to continue", variant: "destructive" }); return; }
     onNext();
@@ -2033,6 +2053,38 @@ function Step4({ form, setForm, onNext, onBack, hasWebsiteDiscount }: {
           <p className="text-xs text-muted-foreground mt-1">Helps us track your arrival for a smooth pick-up</p>
         </div>
       </div>
+
+      {/* Section: Delivery Details (shown only when Delivery Service selected) */}
+      {(form.pickupDelivery || form.dropoffDelivery) && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            Delivery Details
+          </div>
+          {form.pickupDelivery && (
+            <div className="mb-4">
+              <FieldLabel required>Pickup delivery address / hotel</FieldLabel>
+              <Inp
+                value={form.pickupAddress}
+                onChange={(e) => setForm((f) => ({ ...f, pickupAddress: e.target.value }))}
+                placeholder="Hotel name and full address"
+              />
+              <p className="text-xs text-muted-foreground mt-1">We will deliver the car to this location.</p>
+            </div>
+          )}
+          {form.dropoffDelivery && (
+            <div className="mb-4">
+              <FieldLabel required>Return collection address / hotel</FieldLabel>
+              <Inp
+                value={form.dropoffAddress}
+                onChange={(e) => setForm((f) => ({ ...f, dropoffAddress: e.target.value }))}
+                placeholder="Hotel name and full address"
+              />
+              <p className="text-xs text-muted-foreground mt-1">We will collect the car from this location.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Section: Preferences */}
       <div className="mb-6">
@@ -2310,6 +2362,10 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           whatsAppOptIn: form.whatsAppOptIn || undefined,
           age: form.age.trim() || undefined,
           flightNumber: form.flightNumber.trim() || undefined,
+          pickupType: form.pickupDelivery ? "hotel" : "office",
+          pickupAddress: form.pickupDelivery ? form.pickupAddress.trim() : undefined,
+          dropoffType: form.dropoffDelivery ? "hotel" : "office",
+          dropoffAddress: form.dropoffDelivery ? form.dropoffAddress.trim() : undefined,
           resolvedRateId: resolvedQuote?.rateId ?? null,
           resolvedRateTierId: resolvedQuote?.rateTierId ?? null,
           resolvedBaseRate: resolvedQuote?.basePricePerDay ?? null,
@@ -2851,6 +2907,10 @@ export default function Booking() {
       whatsAppOptIn: false, age: "", flightNumber: "",
       agreeToTerms: false, agreeToPrivacy: false,
       paymentMethod: "",
+      pickupDelivery: p.get("pickupDelivery") === "true",
+      dropoffDelivery: p.get("dropoffDelivery") === "true",
+      pickupAddress: "",
+      dropoffAddress: "",
     };
   }, []);
 

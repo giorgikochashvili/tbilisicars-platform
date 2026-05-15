@@ -161,7 +161,12 @@ function LocationSelect({
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
   const selected = options.find((o) => String(o.id) === String(value));
-  const cities = Array.from(new Set(options.map((o) => o.city)));
+  const airports = options.filter((o) => o.name.includes("Airport"));
+  const downtowns = options.filter((o) => !o.name.includes("Airport"));
+  const groups = [
+    ...(airports.length > 0 ? [{ label: "Airports", items: airports }] : []),
+    ...(downtowns.length > 0 ? [{ label: "Downtown Offices", items: downtowns }] : []),
+  ];
   return (
     <div ref={ref} className="relative">
       <button
@@ -185,12 +190,12 @@ function LocationSelect({
           style={{ background: "hsl(211,55%,7%)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
         >
           <div className="max-h-56 overflow-y-auto premium-scroll">
-            {cities.map((city) => (
-              <div key={city}>
+            {groups.map(({ label, items }) => (
+              <div key={label}>
                 <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                  {city}
+                  {label}
                 </div>
-                {options.filter((o) => o.city === city).map((o) => (
+                {items.map((o) => (
                   <button
                     key={o.id}
                     type="button"
@@ -219,6 +224,8 @@ export default function Home() {
   const [sameLocation, setSameLocation] = useState(true);
   const [pickupLocationId, setPickupLocationId] = useState("");
   const [dropoffLocationId, setDropoffLocationId] = useState("");
+  const [pickupDelivery, setPickupDelivery] = useState(false);
+  const [dropoffDelivery, setDropoffDelivery] = useState(false);
   const [pickupDatetime, setPickupDatetime] = useState("");
   const [dropoffDatetime, setDropoffDatetime] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -271,12 +278,32 @@ export default function Home() {
     el.scrollBy({ left: dir === "left" ? -340 : 340, behavior: "smooth" });
   }
 
-  const locations = sortLocations(config?.locations ?? []);
-  const cities = Array.from(new Set(locations.map((l) => l.city)));
+  const allLocations = sortLocations(config?.locations ?? []);
+  const visibleLocations = allLocations.filter((l) => !l.name.includes("Hotel"));
+
+  const pickupLoc = visibleLocations.find((l) => String(l.id) === pickupLocationId);
+  const dropoffLoc = visibleLocations.find((l) => String(l.id) === dropoffLocationId);
+  const pickupIsDowntown = pickupLoc?.name.includes("Downtown") ?? false;
+  const dropoffIsDowntown = dropoffLoc?.name.includes("Downtown") ?? false;
 
   useEffect(() => {
-    if (sameLocation) setDropoffLocationId(pickupLocationId);
+    if (sameLocation) {
+      setDropoffLocationId(pickupLocationId);
+      setDropoffDelivery(false);
+    }
   }, [sameLocation, pickupLocationId]);
+
+  function handlePickupChange(id: string) {
+    setPickupLocationId(id);
+    const loc = visibleLocations.find((l) => String(l.id) === id);
+    if (!loc?.name.includes("Downtown")) setPickupDelivery(false);
+  }
+
+  function handleDropoffChange(id: string) {
+    setDropoffLocationId(id);
+    const loc = visibleLocations.find((l) => String(l.id) === id);
+    if (!loc?.name.includes("Downtown")) setDropoffDelivery(false);
+  }
 
   function validateSearch(): boolean {
     setError(null);
@@ -297,6 +324,8 @@ export default function Home() {
       pickupDatetime,
       dropoffDatetime,
     });
+    if (pickupDelivery) params.set("pickupDelivery", "true");
+    if (dropoffDelivery && !sameLocation) params.set("dropoffDelivery", "true");
     navigate(`/booking?${params.toString()}`);
   }
 
@@ -405,10 +434,21 @@ export default function Home() {
                 </label>
                 <LocationSelect
                   value={pickupLocationId}
-                  onChange={setPickupLocationId}
-                  options={locations}
+                  onChange={handlePickupChange}
+                  options={visibleLocations}
                   placeholder="Select location…"
                 />
+                {pickupIsDowntown && (
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={pickupDelivery}
+                      onChange={(e) => setPickupDelivery(e.target.checked)}
+                      className="w-4 h-4 rounded border-border accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground">Delivery Service</span>
+                  </label>
+                )}
               </div>
 
               {!sameLocation && (
@@ -418,10 +458,21 @@ export default function Home() {
                   </label>
                   <LocationSelect
                     value={dropoffLocationId}
-                    onChange={setDropoffLocationId}
-                    options={locations}
+                    onChange={handleDropoffChange}
+                    options={visibleLocations}
                     placeholder="Select location…"
                   />
+                  {dropoffIsDowntown && (
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={dropoffDelivery}
+                        onChange={(e) => setDropoffDelivery(e.target.checked)}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">Delivery Service</span>
+                    </label>
+                  )}
                 </div>
               )}
             </div>
