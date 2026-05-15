@@ -6,9 +6,11 @@
  */
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { readFileSync, existsSync } from "fs";
+import { readFile } from "fs/promises";
 import { join } from "path";
 import type { EmailExtra } from "./email.service.js";
 import { calculateChargeableDays } from "../lib/pricing.js";
+import { PRIMARY, LEGACY } from "../lib/uploads-dir.js";
 
 // ── Logo asset ─────────────────────────────────────────────────────────────────
 // IMPORTANT: import.meta.url is undefined when bundled to CommonJS (dist/index.cjs).
@@ -84,6 +86,15 @@ function trunc(s: string, max = 55): string {
 function capitalize(s: string): string {
   if (!s) return s;
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/** Detect image format from raw bytes. Returns 'jpeg', 'png', or 'unsupported'. */
+function detectImageFormat(bytes: Buffer): "jpeg" | "png" | "unsupported" {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+    return "jpeg";
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47)
+    return "png";
+  return "unsupported"; // webp, gif, svg, etc.
 }
 
 /** Convert TC-00316 → #316 for customer-facing display only. */
@@ -380,60 +391,136 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   // ── Vehicle image (right column, beside Trip Details section) ────────────────
   // Centred vertically in the Trip Details block at x ≈ 422.
   // Left-column text ends at x: MARGIN+152=200; no overlap is possible.
-  // All fetch/embed failures are caught silently — PDF always completes.
+  // All fetch/read/embed failures are caught silently — PDF always completes.
   if (vehicleImageUrl) {
+    console.debug(`[pdf-voucher] vehicle_image_start ref=${reference} raw=${vehicleImageUrl}`);
     try {
-      // Resolve relative storage paths to the correct local API route.
-      // DB stores images as /local-uploads/<file>; the storage router serves
-      // them at /api/storage/local-uploads/<file>.
       const port = process.env.PORT ?? "8080";
-      let imgSrc: string;
-      if (vehicleImageUrl.startsWith("http")) {
-        imgSrc = vehicleImageUrl;
-      } else if (vehicleImageUrl.startsWith("/local-uploads/")) {
-        imgSrc = `http://localhost:${port}/api/storage${vehicleImageUrl}`;
-      } else if (vehicleImageUrl.startsWith("/api/storage/")) {
-        imgSrc = `http://localhost:${port}${vehicleImageUrl}`;
-      } else if (vehicleImageUrl.startsWith("/storage/")) {
-        imgSrc = `http://localhost:${port}/api${vehicleImageUrl}`;
-      } else {
-        imgSrc = `http://localhost:${port}${vehicleImageUrl}`;
+      let imgBytes: Buffer | null = null;
+      let resolvedMode = "unknown";
+
+      // ── 1. Local-upload files: read directly from filesystem (no HTTP hop) ──
+      // DB stores as /local-uploads/<filename>; also handle bare local-uploads/<filename>.
+      const localUploadMatch =
+        vehicleImageUrl.match(/^\/local-uploads\/(.+)$/) ??
+        vehicleImageUrl.match(/^local-uploads\/(.+)$/);
+
+      if (localUploadMatch) {
+        const filename = localUploadMatch[1];
+        const searchDirs = [PRIMARY, ...LEGACY];
+        for (const dir of searchDirs) {
+          try {
+            const filePath = `${dir}/${filename}`;
+            imgBytes = await readFile(filePath);
+            resolvedMode = `file:${filePath}`;
+            break;
+          } catch {
+            // not in this dir — try next
+          }
+        }
+        // Fallback to HTTP if file not found on disk
+        if (!imgBytes) {
+          const fetchUrl = `http://127.0.0.1:${port}/api/storage/local-uploads/${filename}`;
+          console.debug(`[pdf-voucher] vehicle_image_resolved ref=${reference} source=${fetchUrl} mode=fetch_fallback`);
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 4000);
+          try {
+            const resp = await fetch(fetchUrl, { signal: controller.signal });
+            clearTimeout(tid);
+            if (resp.ok) {
+              imgBytes = Buffer.from(await resp.arrayBuffer());
+              resolvedMode = `fetch:${fetchUrl}`;
+            } else {
+              console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=not_found status=${resp.status}`);
+            }
+          } catch (fetchErr) {
+            clearTimeout(tid);
+            const reason = fetchErr instanceof Error && fetchErr.name === "AbortError" ? "timeout" : "fetch_failed";
+            console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=${reason}`);
+          }
+        }
+      }
+      // ── 2. Absolute http(s) URLs (e.g. GCS public objects) ──────────────────
+      else if (vehicleImageUrl.startsWith("http://") || vehicleImageUrl.startsWith("https://")) {
+        const fetchUrl = vehicleImageUrl;
+        console.debug(`[pdf-voucher] vehicle_image_resolved ref=${reference} source=${fetchUrl} mode=fetch`);
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 4000);
+        try {
+          const resp = await fetch(fetchUrl, { signal: controller.signal });
+          clearTimeout(tid);
+          if (resp.ok) {
+            imgBytes = Buffer.from(await resp.arrayBuffer());
+            resolvedMode = `fetch:${fetchUrl}`;
+          } else {
+            console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=not_found status=${resp.status}`);
+          }
+        } catch (fetchErr) {
+          clearTimeout(tid);
+          const reason = fetchErr instanceof Error && fetchErr.name === "AbortError" ? "timeout" : "fetch_failed";
+          console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=${reason}`);
+        }
+      }
+      // ── 3. Other relative paths (/api/storage/..., /storage/..., etc.) ───────
+      else {
+        let relPath = vehicleImageUrl;
+        if (relPath.startsWith("/storage/")) relPath = `/api${relPath}`;
+        const fetchUrl = `http://127.0.0.1:${port}${relPath}`;
+        console.debug(`[pdf-voucher] vehicle_image_resolved ref=${reference} source=${fetchUrl} mode=fetch`);
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 4000);
+        try {
+          const resp = await fetch(fetchUrl, { signal: controller.signal });
+          clearTimeout(tid);
+          if (resp.ok) {
+            imgBytes = Buffer.from(await resp.arrayBuffer());
+            resolvedMode = `fetch:${fetchUrl}`;
+          } else {
+            console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=not_found status=${resp.status}`);
+          }
+        } catch (fetchErr) {
+          clearTimeout(tid);
+          const reason = fetchErr instanceof Error && fetchErr.name === "AbortError" ? "timeout" : "fetch_failed";
+          console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=${reason}`);
+        }
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
-      const resp = await fetch(imgSrc, { signal: controller.signal });
-      clearTimeout(timeout);
+      if (imgBytes) {
+        console.debug(`[pdf-voucher] vehicle_image_resolved ref=${reference} source=${resolvedMode} mode=${resolvedMode.split(":")[0]}`);
 
-      if (resp.ok) {
-        const imgBytes = Buffer.from(await resp.arrayBuffer());
-        const isJpeg = /\.jpe?g($|\?)/i.test(vehicleImageUrl);
-        const embedded = isJpeg
-          ? await pdfDoc.embedJpg(imgBytes)
-          : await pdfDoc.embedPng(imgBytes);
+        // ── Format detection by magic bytes (not extension) ──────────────────
+        const fmt = detectImageFormat(imgBytes);
+        if (fmt === "unsupported") {
+          console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=unsupported_format`);
+        } else {
+          const embedded = fmt === "jpeg"
+            ? await pdfDoc.embedJpg(imgBytes)
+            : await pdfDoc.embedPng(imgBytes);
 
-        const IMG_W = 125;
-        const IMG_H = Math.min(
-          Math.round((embedded.height / embedded.width) * IMG_W),
-          90,
-        );
-        const IMG_X = PAGE_W - MARGIN - IMG_W;   // ≈ 422.28
+          const IMG_W = 125;
+          const IMG_H = Math.min(
+            Math.round((embedded.height / embedded.width) * IMG_W),
+            90,
+          );
+          const IMG_X = PAGE_W - MARGIN - IMG_W;   // ≈ 422.28
 
-        // Centre vertically inside the Trip Details section.
-        // Section spans from just after the section-header line (TRIP_TOP)
-        // to after the Duration row (TRIP_BOTTOM). Both are deterministic.
-        const TRIP_TOP    = PAGE_H - HEADER_H - 18 - 70 - GAP - 6 - 15; // ≈ 632.89
-        const TRIP_BOTTOM = TRIP_TOP - 6 * ROW_H;                        // ≈ 518.89
-        const IMG_Y = Math.max(
-          Math.round((TRIP_TOP + TRIP_BOTTOM) / 2 - IMG_H / 2),
-          TRIP_BOTTOM,
-        );
+          // Centre vertically inside the Trip Details section.
+          const TRIP_TOP    = PAGE_H - HEADER_H - 18 - 70 - GAP - 6 - 15; // ≈ 632.89
+          const TRIP_BOTTOM = TRIP_TOP - 6 * ROW_H;                        // ≈ 518.89
+          const IMG_Y = Math.max(
+            Math.round((TRIP_TOP + TRIP_BOTTOM) / 2 - IMG_H / 2),
+            TRIP_BOTTOM,
+          );
 
-        page.drawImage(embedded, { x: IMG_X, y: IMG_Y, width: IMG_W, height: IMG_H });
+          page.drawImage(embedded, { x: IMG_X, y: IMG_Y, width: IMG_W, height: IMG_H });
+          console.debug(`[pdf-voucher] vehicle_image_drawn ref=${reference} width=${IMG_W} height=${IMG_H}`);
+        }
       }
-    } catch {
-      // Network error, timeout, unsupported format, or embed failure — skip silently
+    } catch (unexpectedErr) {
+      console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=embed_failed err=${unexpectedErr instanceof Error ? unexpectedErr.message : String(unexpectedErr)}`);
     }
+  } else {
+    console.debug(`[pdf-voucher] vehicle_image_skipped ref=${reference} reason=missing`);
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────────
