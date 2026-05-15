@@ -853,11 +853,12 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
           <FieldLabel required>Pickup Location</FieldLabel>
           <LocOpts value={form.pickupLocationId} onChange={(v) => {
             const loc = visibleLocs.find((l) => String(l.id) === v);
+            const isDowntown = loc?.name.includes("Downtown") ?? false;
             setForm((f) => ({
               ...f,
               pickupLocationId: v,
               dropoffLocationId: f.dropoffLocationId || v,
-              ...(loc && !loc.name.includes("Downtown") ? { pickupDelivery: false, pickupAddress: "" } : {}),
+              ...(!isDowntown ? { pickupDelivery: false, pickupAddress: "" } : {}),
             }));
           }} />
         </div>
@@ -865,10 +866,11 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
           <FieldLabel required>Drop-off Location</FieldLabel>
           <LocOpts value={form.dropoffLocationId} onChange={(v) => {
             const loc = visibleLocs.find((l) => String(l.id) === v);
+            const isDowntown = loc?.name.includes("Downtown") ?? false;
             setForm((f) => ({
               ...f,
               dropoffLocationId: v,
-              ...(loc && !loc.name.includes("Downtown") ? { dropoffDelivery: false, dropoffAddress: "" } : {}),
+              ...(!isDowntown ? { dropoffDelivery: false, dropoffAddress: "" } : {}),
             }));
           }} />
         </div>
