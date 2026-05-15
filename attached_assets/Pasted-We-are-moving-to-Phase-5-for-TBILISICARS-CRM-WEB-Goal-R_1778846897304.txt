@@ -1,0 +1,100 @@
+We are moving to Phase 5 for TBILISICARS CRM&WEB.
+
+Goal:
+Redesign the public website booking location flow so Hotel Delivery is no longer a separate pickup/dropoff location option, and instead appears as a Delivery Service option when a Downtown location is selected.
+
+Important:
+- PLAN ONLY. Do not implement yet.
+- Do not change database schema unless absolutely required and justified.
+- Do not change pricing calculation logic.
+- Do not change availability logic.
+- Do not change payment logic.
+- Do not change CRM manual booking changes from Phase 4.
+- Do not change emails/PDFs unless only display of the new delivery address requires it and you explicitly explain it first.
+- Do not refactor architecture.
+- Keep this strictly to the public booking/search flow and the minimum booking payload/display changes required.
+
+Current business issue:
+The current homepage pickup/dropoff location dropdown groups locations by city and includes Hotel Delivery as a separate location. This is confusing because Hotel Delivery is a service option, not a core location. We want customers to select the city Downtown location first, then choose Delivery Service if they need hotel/address delivery.
+
+Required location dropdown order:
+Airports:
+1. Tbilisi International Airport
+2. Kutaisi International Airport
+3. Batumi International Airport
+
+Downtowns:
+1. Tbilisi Downtown
+2. Kutaisi Downtown
+3. Batumi Downtown
+
+Hotel Delivery should be removed from the pickup/dropoff location dropdown options.
+
+Required Delivery Service behavior:
+1. If the selected pickup location is a Downtown location, show a checkbox/option labelled:
+   "Delivery Service"
+2. If the customer checks Delivery Service for pickup, then in the customer/details step, show a required field for pickup delivery address / hotel address.
+3. If Same location return is disabled and the selected dropoff/return location is a Downtown location, show a similar return-side Delivery Service option.
+4. If the customer checks Delivery Service for return, then in the customer/details step, show a required field for return collection address / hotel address.
+5. Airport locations should not show Delivery Service by default.
+6. If the customer changes from Downtown to Airport, clear or hide the Delivery Service option/address for that side so stale delivery data is not submitted.
+
+Text:
+- Use the visible label "Delivery Service" near the search form.
+- In customer/details fields, use clear labels such as:
+  "Pickup delivery address / hotel"
+  "Return collection address / hotel"
+or better wording if existing style already has labels.
+
+Technical areas to inspect:
+- artifacts/website/src/pages/Home.tsx
+  Homepage search form, pickup/dropoff location dropdown, same location return logic.
+- artifacts/website/src/pages/Booking.tsx
+  Booking flow state, edit search/trip details banner, customer/details step, booking create payload.
+- Location data shape/API used by website.
+- Existing hotel delivery/location handling, if any, from previous location-driven behavior.
+- CRM booking detail display if delivery address data already exists.
+- Public booking create endpoint if delivery address fields are already accepted or need minimal safe support.
+
+Plan requirements:
+1. Identify exact current location dropdown rendering code and sorting/grouping logic.
+2. Identify whether Hotel Delivery currently exists as a location record in the DB/API and how it is identified.
+3. Explain how to exclude Hotel Delivery from the dropdown without deleting it from DB.
+4. Explain how to group visible locations as Airports first, then Downtowns, in the exact order requested.
+5. Explain how to detect Downtown locations safely.
+6. Explain where Delivery Service checkbox state will live.
+7. Explain how Delivery Service state will carry from Home search into Booking page.
+8. Explain where the delivery address fields will be shown in the booking customer/details step.
+9. Explain whether existing booking payload fields can store pickup/return hotel/address details.
+10. If backend payload changes are needed, list the minimal API/schema/service changes and why.
+11. Explain how this will appear in CRM Booking Detail so staff can see the delivery/return address.
+12. List exact files proposed to change.
+13. List risks and how to avoid regressions.
+14. Do not implement yet.
+
+Important constraints:
+- Do not delete or mutate existing location records.
+- Do not break existing bookings that used Hotel Delivery locations in the past.
+- Do not change one-way fee logic unless strictly necessary.
+- Do not change pricing engine.
+- Do not change availability logic.
+- Do not change CRM manual booking.
+- Do not change emails/PDF in this phase unless you identify a very small display-only need and ask first.
+
+Out of scope:
+- No admin location management redesign.
+- No Delivery Service pricing changes.
+- No manual booking delivery service support in this phase.
+- No email/PDF redesign.
+- No mobile responsiveness broad redesign.
+- No database migration unless proven unavoidable.
+
+Done looks like after implementation:
+- Homepage pickup/dropoff dropdown shows Airports first, then Downtowns, in the exact requested order.
+- Hotel Delivery no longer appears as a dropdown location option.
+- Selecting a Downtown pickup shows "Delivery Service".
+- Selecting Delivery Service asks for pickup hotel/address later in booking details.
+- If return location is Downtown and same-location return is off, return-side Delivery Service can be selected and return address is collected.
+- Staff can see the entered delivery/return address in the created booking.
+- Existing booking/pricing/availability flow remains intact.
+- Build/typecheck passes.
