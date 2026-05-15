@@ -1,0 +1,95 @@
+We need a small, safe Phase 1 bugfix/UX update for the existing TBILISICARS CRM&WEB codebase.
+
+Important rules:
+- Do not refactor architecture.
+- Do not change database schema.
+- Do not change booking pricing, availability, booking creation, payment logic, email/PDF logic, or CRM status logic.
+- Keep changes limited to the files and behaviors listed below.
+- Preserve existing styling and component patterns.
+- After changes, run the normal build/typecheck command and report exact files changed.
+
+Tasks:
+
+1) Fix CRM Fleet Add Vehicle / Edit Vehicle Current Location dropdown bug
+File: artifacts/crm/src/pages/Fleet.tsx
+
+Current issue:
+- In Add Vehicle modal, selecting Tbilisi or Kutaisi does not visibly stay selected in the Current Location field, although saving may still work.
+- Selecting Batumi shows/saves incorrectly as Kutaisi.
+- The current code uses a hard-coded CITY_DEFAULT_LOCATION_ID mapping. This likely causes selected dropdown values and saved locationId values to mismatch.
+
+Required behavior:
+- Current Location dropdown must show exactly 3 region choices: Tbilisi, Kutaisi, Batumi.
+- Selecting Tbilisi must visibly show Tbilisi and save a valid Tbilisi locationId.
+- Selecting Kutaisi must visibly show Kutaisi and save a valid Kutaisi locationId.
+- Selecting Batumi must visibly show Batumi and save a valid Batumi locationId.
+- Do not use stale hard-coded location IDs for city mapping.
+- Use the loaded locations data as the source of truth.
+- Ensure Add Vehicle and Edit Vehicle both display the selected region correctly.
+- Existing vehicles must not be modified.
+
+2) Improve CRM photo upload unsupported-format warning in Georgian
+File: artifacts/crm/src/pages/BookingDetail.tsx
+
+Current issue:
+- When iOS users select RAW/DNG or unsupported files, a large destructive toast lists many filenames and covers too much of the mobile screen.
+- We do NOT want DNG-to-JPG conversion.
+- We do NOT want to add new packages/tools.
+
+Required behavior:
+- Keep allowed formats: JPG/JPEG, PNG, WebP.
+- Keep max size: 20 MB per photo.
+- DNG/RAW/HEIC/unsupported files should be skipped.
+- Replace the large English skipped-files toast with a short Georgian message:
+  "RAW/DNG ფოტოები არ იტვირთება. გთხოვთ გამოიყენოთ ჩვეულებრივი ფოტო და არა iPhone RAW/ProRAW. დაშვებულია JPG, PNG, WebP. მაქს. 20 MB თითო ფოტოზე."
+- Do not list every skipped filename in the toast.
+- If needed, use the same Georgian message for unsupported/HEIC/DNG/too-large skipped files.
+- The upload modal must remain usable on mobile; buttons and upload area must not be covered by a huge error.
+- Apply this to both photo upload flows in BookingDetail.tsx if both have separate validation blocks.
+
+3) Homepage pickup Done should auto-open return date/time picker
+Files:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/DateTimePicker.tsx only if absolutely necessary
+
+Current DateTimePicker already exposes:
+- onDone
+- ref.openPicker()
+
+Required behavior:
+- On the homepage search form, after the user selects Pickup Date & Time and clicks Done, automatically open the Return Date & Time picker.
+- Do not alter date formatting, timezone logic, min-date logic, or booking navigation.
+- Use existing DateTimePicker ref/onDone API if possible.
+
+4) Website booking Step 1 short-notice warning
+File: artifacts/website/src/pages/Booking.tsx
+
+Required behavior:
+- If pickupDatetime is within 12 hours from the current time, including exactly 12 hours, show a clear yellow/amber warning banner on Step 1 / vehicle selection.
+- Do NOT block vehicle search.
+- Do NOT hide cars.
+- Do NOT change availability or pricing logic.
+- Banner text:
+  "For bookings less than 12 hours before pickup, please contact us by phone or email so we can confirm vehicle availability and pricing."
+- Include reservations@tbilisicars.com in the banner if it fits naturally.
+- The warning should disappear when pickupDatetime is more than 12 hours away.
+- The banner should be visible in the vehicle selection area, not only inside the edit search drawer.
+
+Out of scope:
+- No changes to API routes.
+- No changes to database schema.
+- No changes to pricing engine.
+- No changes to booking creation logic.
+- No changes to emails/PDF vouchers.
+- No broad responsive redesign.
+- No Delivery Service / Hotel Delivery changes in this phase.
+- No manual booking pricing/extras changes in this phase.
+- No original booked car / unassign logic changes in this phase.
+
+Done looks like:
+- Add Vehicle Current Location works correctly for Tbilisi, Kutaisi, Batumi.
+- DNG/RAW upload warning is short, Georgian, and mobile-friendly.
+- Homepage pickup Done opens return picker automatically.
+- Booking Step 1 shows a yellow warning for pickup times within 12 hours, without blocking vehicles.
+- Build/typecheck passes.
+- Report exact files changed and a short test checklist.
