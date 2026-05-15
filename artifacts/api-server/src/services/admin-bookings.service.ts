@@ -720,12 +720,14 @@ export async function updateAdminBooking(
     const booking = current[0];
     if (!booking) throw new NotFoundError(`Booking ${id} not found`);
 
-    const modelId = data.vehicleModelId ?? booking.vehicleModelId;
     const pickup = data.pickupDatetime ? new Date(data.pickupDatetime) : booking.pickupDatetime;
     const dropoff = data.dropoffDatetime ? new Date(data.dropoffDatetime) : booking.dropoffDatetime;
 
-    if (modelId) {
-      const belongs = await validateVehicleBelongsToModel(data.vehicleId, modelId);
+    // Only validate model ownership when the admin is also explicitly changing
+    // the model in the same request. Pure vehicle-only assignments (replacement
+    // vehicles from a different model) are allowed as a manual staff override.
+    if (data.vehicleModelId) {
+      const belongs = await validateVehicleBelongsToModel(data.vehicleId, data.vehicleModelId);
       if (!belongs) {
         throw new ConflictError("Vehicle does not belong to the selected model");
       }

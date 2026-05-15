@@ -1753,16 +1753,9 @@ export default function BookingDetail({
       if (!bookingId) return;
       setSavingAssign(true);
       try {
-        const patch: Record<string, unknown> = { vehicleId };
-        if (
-          assignSelectedModelId !== null &&
-          assignSelectedModelId !== booking?.vehicleModelId
-        ) {
-          patch.vehicleModelId = assignSelectedModelId;
-        }
-        await apiFetch(`/admin/bookings/${bookingId}`, {
+          await apiFetch(`/admin/bookings/${bookingId}`, {
           method: "PATCH",
-          body: JSON.stringify(patch),
+          body: JSON.stringify({ vehicleId }),
         });
         setIsAssignOpen(false);
         await fetchBooking();
@@ -1777,7 +1770,7 @@ export default function BookingDetail({
         setSavingAssign(false);
       }
     },
-    [bookingId, fetchBooking, assignSelectedModelId, booking?.vehicleModelId],
+    [bookingId, fetchBooking],
   );
 
   const handleUnassignVehicle = useCallback(async () => {
@@ -2393,32 +2386,45 @@ export default function BookingDetail({
                         Vehicle
                       </div>
                       {booking.vehicle ? (
-                        <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <button
-                            className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
-                            onClick={() => {
-                              onClose();
-                              setLocation(
-                                `/fleet?vehicleId=${booking.vehicle.id}`,
-                              );
-                            }}
-                          >
-                            <span className="truncate">
-                              {booking.vehicle.brandName
-                                ? `${booking.vehicle.brandName} `
-                                : ""}
-                              {booking.vehicle.modelName} ·{" "}
-                              {booking.vehicle.licensePlate}
-                            </span>
-                            <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
-                          </button>
-                          <button
-                            type="button"
-                            className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
-                            onClick={openAssignDialog}
-                          >
-                            Change
-                          </button>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <button
+                              className="font-medium text-left flex items-center gap-1 min-w-0 overflow-hidden hover:text-primary transition-colors group"
+                              onClick={() => {
+                                onClose();
+                                setLocation(
+                                  `/fleet?vehicleId=${booking.vehicle.id}`,
+                                );
+                              }}
+                            >
+                              <span className="truncate">
+                                {booking.vehicle.brandName
+                                  ? `${booking.vehicle.brandName} `
+                                  : ""}
+                                {booking.vehicle.modelName} ·{" "}
+                                {booking.vehicle.licensePlate}
+                              </span>
+                              <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
+                              onClick={openAssignDialog}
+                            >
+                              Change
+                            </button>
+                          </div>
+                          {booking.vehicleModelName &&
+                            booking.vehicle.modelName !==
+                              booking.vehicleModelName && (
+                              <div className="text-xs text-muted-foreground">
+                                Original booked car:{" "}
+                                {booking.vehicleModelBrandName
+                                  ? `${booking.vehicleModelBrandName} `
+                                  : ""}
+                                {booking.vehicleModelName}
+                              </div>
+                            )}
                         </div>
                       ) : booking.vehicleModelName ? (
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
