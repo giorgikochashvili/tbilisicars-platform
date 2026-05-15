@@ -1,0 +1,139 @@
+Targeted PDF voucher vehicle image implementation only.
+
+Important:
+- This is a surgical PDF improvement only.
+- Do NOT change booking logic.
+- Do NOT change pricing.
+- Do NOT change email layout.
+- Do NOT change API/schema/routes/database.
+- Do NOT redesign the voucher.
+- Do NOT move existing sections.
+- Do NOT add packages.
+- Do NOT remove silent fallback behavior.
+- Vehicle image failure must NEVER break PDF generation.
+
+Goal:
+Render the booked vehicle image inside the PDF voucher in the empty right-side area beside the Trip Details section.
+
+Primary file:
+artifacts/api-server/src/services/pdf-voucher.service.ts
+
+========================================
+TARGET LAYOUT
+========================================
+
+Place the booked vehicle image in the empty right-side white area beside:
+- Vehicle
+- Pickup Location
+- Drop-off Location
+- Pickup Date
+- Return Date
+- Duration
+
+Exactly where the empty space currently exists.
+
+Desired final visual:
+- Professional clean catalog-style vehicle image
+- Roughly 20% smaller than the previous implementation attempt
+- Centered vertically in the right-side area
+- Preserve whitespace around the image
+- Do not overlap any text
+- Do not push any existing content downward
+- Keep single-page PDF
+
+========================================
+IMPLEMENTATION REQUIREMENTS
+========================================
+
+1. IMAGE SOURCE
+Use the vehicle model image already attached to the booking/model.
+
+Investigate and use the existing working vehicle image field already used elsewhere in the website/CRM.
+
+Support:
+- /storage/ URLs
+- relative URLs
+- absolute URLs
+
+If needed:
+- prepend https://tbilisicars.com for relative storage URLs.
+
+========================================
+2. IMAGE POSITION
+========================================
+
+Render image inside the Trip Details section right-side area.
+
+Safe target area:
+- right side of Trip Details block
+- approximately aligned with Pickup/Dropoff rows vertically
+
+Suggested constraints:
+- max width around 150–170 pt
+- max height around 85–95 pt
+
+Keep aspect ratio.
+
+Center the image visually inside that area.
+
+========================================
+3. IMAGE FALLBACK
+========================================
+
+If image:
+- missing
+- invalid
+- fetch fails
+- unsupported format
+- timeout occurs
+
+Then:
+- skip rendering silently
+- PDF must still generate perfectly
+
+Add ONLY a safe console debug log:
+- why image was skipped
+
+Do not throw.
+
+========================================
+4. SAFE IMAGE FETCHING
+========================================
+
+Keep timeout protection.
+
+Support current production environment:
+- local uploads
+- public storage URLs
+- absolute URLs
+
+Do not assume localhost paths only.
+
+========================================
+5. DO NOT CHANGE
+========================================
+
+Do NOT modify:
+- header
+- logo
+- pricing layout
+- customer details
+- booking reference block
+- fonts
+- colors
+- spacing outside the image area
+- pickup instructions
+- email templates
+
+========================================
+VALIDATION
+========================================
+
+After implementation:
+- run API build
+- confirm zero TypeScript errors
+- generate a sample voucher
+- confirm vehicle image appears in the right-side Trip Details area
+- confirm no overlap
+- confirm PDF remains single-page
+- report exact image sizing and coordinates used
