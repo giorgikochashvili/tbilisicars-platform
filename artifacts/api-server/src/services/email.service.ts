@@ -156,7 +156,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   function extraHtmlRow(ex: EmailExtra): string {
     const lineTotal = extraLineTotal(ex);
     const label = `${esc(ex.name)}${ex.quantity > 1 ? ` &times;${ex.quantity}` : ""}`;
-    return `<div class="row"><span class="label">${label}</span><span class="value">${fmt(lineTotal)}</span></div>`;
+    return `<tr><td style="padding:7px 0;font-size:13px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.06);">${label}</td><td style="padding:7px 0;font-size:13px;color:#e2e8f0;font-weight:500;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.06);">${fmt(lineTotal)}</td></tr>`;
   }
 
   function extraTextLine(ex: EmailExtra): string {
@@ -171,22 +171,26 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   const pricingSection = estimatedTotal != null ? `
         <div class="pricing-section">
           <div class="section-title">Pricing Summary</div>
-          ${effectiveBaseRate != null ? `<div class="row"><span class="label">Base rate (${days} ${days === 1 ? "day" : "days"})</span><span class="value">${fmt(effectiveBaseRate)}</span></div>` : ""}
-          ${extras.map(extraHtmlRow).join("")}
-          ${oneWayFee != null && oneWayFee > 0 ? `<div class="row"><span class="label">One-way transfer fee</span><span class="value">${fmt(oneWayFee)}</span></div>` : ""}
-          ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<div class="row" style="color:#22c55e;"><span class="label">Discount</span><span class="value">&minus;${fmt(websiteDiscountAmount)}</span></div>` : ""}
-          ${promoCode && discountAmount != null && discountAmount > 0 ? `<div class="row"><span class="label">Promo discount</span><span class="value">&minus;${fmt(discountAmount)}</span></div>` : ""}
-          <div class="total-row">
-            <span class="total-label">Total Amount</span>
-            <span class="total-value">${fmt(estimatedTotal)}</span>
-          </div>
-          <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">Final pricing is confirmed before any charge is made.</p>
+          <table role="presentation" cellspacing="0" cellpadding="0" width="100%">
+            ${effectiveBaseRate != null ? `<tr><td style="padding:7px 0;font-size:13px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.06);">Base rate (${days} ${days === 1 ? "day" : "days"})</td><td style="padding:7px 0;font-size:13px;color:#e2e8f0;font-weight:500;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.06);">${fmt(effectiveBaseRate)}</td></tr>` : ""}
+            ${extras.map(extraHtmlRow).join("")}
+            ${oneWayFee != null && oneWayFee > 0 ? `<tr><td style="padding:7px 0;font-size:13px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.06);">One-way transfer fee</td><td style="padding:7px 0;font-size:13px;color:#e2e8f0;font-weight:500;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.06);">${fmt(oneWayFee)}</td></tr>` : ""}
+            ${websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0 ? `<tr><td style="padding:7px 0;font-size:13px;color:#22c55e;border-bottom:1px solid rgba(255,255,255,0.06);">Discount</td><td style="padding:7px 0;font-size:13px;color:#22c55e;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.06);">&minus;${fmt(websiteDiscountAmount)}</td></tr>` : ""}
+            ${promoCode && discountAmount != null && discountAmount > 0 ? `<tr><td style="padding:7px 0;font-size:13px;color:#22c55e;border-bottom:1px solid rgba(255,255,255,0.06);">Promo discount</td><td style="padding:7px 0;font-size:13px;color:#22c55e;font-weight:600;text-align:right;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,0.06);">&minus;${fmt(discountAmount)}</td></tr>` : ""}
+            <tr>
+              <td style="padding:10px 0 2px;font-size:14px;font-weight:600;color:#e2e8f0;border-top:1px solid #1e3a5f;">Total Amount</td>
+              <td style="padding:10px 0 2px;font-size:16px;font-weight:800;color:#f1f5f9;text-align:right;white-space:nowrap;border-top:1px solid #1e3a5f;">${fmt(estimatedTotal)}</td>
+            </tr>
+          </table>
+          <p style="margin: 10px 0 0; font-size: 12px; color: #64748b;">Final pricing is confirmed before any charge is made.</p>
         </div>` : "";
 
   const extrasOnlySection = estimatedTotal == null && extras.length > 0 ? `
         <div class="section">
           <div class="section-title">Add-ons &amp; Extras</div>
-          ${extras.map(extraHtmlRow).join("")}
+          <table role="presentation" cellspacing="0" cellpadding="0" width="100%">
+            ${extras.map(extraHtmlRow).join("")}
+          </table>
         </div>` : "";
 
   // ── Meta strip: horizontal row of supplementary booking details ─────────────
@@ -216,12 +220,10 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     body { margin: 0; padding: 0; background-color: #0d1b2a; font-family: 'Segoe UI', Arial, sans-serif; color: #e2e8f0; }
     .wrapper { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
     .card { background: #132033; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #7f1d2e 0%, #9f2535 100%); padding: 28px; text-align: center; }
-    .header h1 { margin: 0; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-    .header p { margin: 5px 0 0; color: rgba(255,255,255,0.75); font-size: 13px; }
+    .header { background: linear-gradient(135deg, #0d1b2a 0%, #132033 100%); border-left: 5px solid #7f1d2e; padding: 18px 28px; }
     .body { padding: 24px 28px; }
     .greeting { font-size: 14px; color: #94a3b8; margin: 0 0 20px; line-height: 1.6; }
-    .ref-block { background: rgba(127,29,46,0.15); border: 1px solid rgba(127,29,46,0.3); border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 20px; }
+    .ref-block { background: rgba(19,32,51,0.9); border: 1px solid #1e3a5f; border-radius: 12px; padding: 16px 20px; text-align: center; margin-bottom: 20px; }
     .ref-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 4px; }
     .ref-value { font-size: 28px; font-weight: 800; color: #e05c72; letter-spacing: 2px; }
     .status-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
@@ -238,12 +240,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .row:last-child { border-bottom: none; }
     .row .label { color: #94a3b8; }
     .row .value { color: #e2e8f0; font-weight: 500; text-align: right; flex-shrink: 0; }
-    .pricing-section { background: rgba(127,29,46,0.08); border: 1px solid rgba(127,29,46,0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
-    .pricing-section .section-title { border-color: rgba(127,29,46,0.2); }
-    .pricing-section .row { border-bottom-color: rgba(127,29,46,0.15); }
-    .total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(127,29,46,0.3); }
-    .total-label { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-    .total-value { font-size: 18px; font-weight: 800; color: #f1f5f9; }
+    .pricing-section { background: rgba(19,32,51,0.8); border: 1px solid #1e3a5f; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+    .pricing-section .section-title { border-color: #1e3a5f; }
     .info-block { margin-bottom: 20px; }
     .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px; }
     .info-text { font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; }
@@ -258,9 +256,17 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   <div class="wrapper">
     <div class="card">
       <div class="header">
-        <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="160" style="display:block;margin:0 auto 10px;max-width:160px;height:auto;" />
-        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Tbilisicars</h1>
-        <p style="margin:5px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Car Rental Georgia</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" width="100%">
+          <tr>
+            <td style="vertical-align:middle;width:76px;">
+              <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="76" style="display:block;max-width:76px;height:auto;" />
+            </td>
+            <td style="vertical-align:middle;padding-left:14px;">
+              <div style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.3px;line-height:1.2;">Tbilisicars</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:3px;letter-spacing:0.3px;">Car Rental Georgia</div>
+            </td>
+          </tr>
+        </table>
       </div>
       <div class="body">
         <p class="greeting">Dear ${esc(toName)},<br/>Thank you for choosing Tbilisicars. We have received your booking request and will confirm availability shortly.</p>

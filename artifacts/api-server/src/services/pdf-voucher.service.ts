@@ -204,7 +204,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   if (LOGO_BYTES) {
     try {
       const logoImg = await pdfDoc.embedPng(LOGO_BYTES);
-      const logoW = 120;
+      const logoW = 70;
       const logoH = Math.round((logoImg.height / logoImg.width) * logoW);
       page.drawImage(logoImg, {
         x: MARGIN, y: PAGE_H - 14 - logoH,
