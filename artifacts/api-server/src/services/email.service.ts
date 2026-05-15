@@ -205,10 +205,21 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
       value: [nationality && esc(nationality), age && `Age ${esc(age)}`].filter(Boolean).join(" \u00B7 "),
     }] : []),
   ];
-  const metaCellsHtml = metaItems.map((item, i) => {
-    const borderRight = i < metaItems.length - 1 ? "border-right:1px solid #1e3a5f;" : "";
-    return `<td style="padding:10px 14px;vertical-align:top;${borderRight}"><div class="meta-label">${item.label}</div><div class="meta-value">${item.value}</div></td>`;
-  }).join("");
+  const metaRowsHtml = (() => {
+    const rows: string[] = [];
+    for (let i = 0; i < metaItems.length; i += 2) {
+      const a = metaItems[i];
+      const b = metaItems[i + 1];
+      const notLast = i + 2 < metaItems.length;
+      const rowBtm = notLast ? "border-bottom:1px solid #1e3a5f;" : "";
+      const cellA = `<td style="padding:9px 12px;vertical-align:top;width:50%;border-right:1px solid #1e3a5f;${rowBtm}"><div class="meta-label">${a.label}</div><div class="meta-value">${a.value}</div></td>`;
+      const cellB = b
+        ? `<td style="padding:9px 12px;vertical-align:top;width:50%;${rowBtm}"><div class="meta-label">${b.label}</div><div class="meta-value">${b.value}</div></td>`
+        : `<td style="width:50%;${rowBtm}"></td>`;
+      rows.push(`<tr>${cellA}${cellB}</tr>`);
+    }
+    return rows.join("");
+  })();
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -218,7 +229,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   <title>Booking Confirmation \u2014 ${esc(customerRef(reference))}</title>
   <style>
     body { margin: 0; padding: 0; background-color: #0d1b2a; font-family: 'Segoe UI', Arial, sans-serif; color: #e2e8f0; }
-    .wrapper { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+    .wrapper { max-width: 700px; margin: 0 auto; padding: 28px 16px; }
     .card { background: #132033; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden; }
     .header { background: linear-gradient(135deg, #0d1b2a 0%, #132033 100%); border-left: 5px solid #7f1d2e; padding: 18px 28px; }
     .body { padding: 24px 28px; }
@@ -229,6 +240,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .status-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .status-badge { display: inline-block; background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.3); color: #fbbf24; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .status-badge-gray { display: inline-block; background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.25); color: #94a3b8; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .status-badge-confirmed { display: inline-block; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.30); color: #4ade80; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
     .dates-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 5px; }
     .dates-location { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
     .dates-time { font-size: 12px; color: #94a3b8; }
@@ -258,8 +270,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
       <div class="header">
         <table role="presentation" cellspacing="0" cellpadding="0" width="100%">
           <tr>
-            <td style="vertical-align:middle;width:76px;">
-              <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="76" style="display:block;max-width:76px;height:auto;" />
+            <td style="vertical-align:middle;width:56px;">
+              <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="56" style="display:block;max-width:56px;height:auto;" />
             </td>
             <td style="vertical-align:middle;padding-left:14px;">
               <div style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.3px;line-height:1.2;">Tbilisicars</div>
@@ -275,7 +287,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
           <div class="ref-label">Booking Reference</div>
           <div class="ref-value">${esc(customerRef(reference))}</div>
           <div class="status-row">
-            <span class="status-badge">Booking: ${esc(bookingStatusDisplay)}</span>
+            <span class="${bookingStatus.toUpperCase() === "CONFIRMED" ? "status-badge-confirmed" : "status-badge"}">Booking: ${esc(bookingStatusDisplay)}</span>
             <span class="status-badge-gray">Payment: ${esc(paymentStatusDisplay)}</span>
           </div>
         </div>
@@ -299,7 +311,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
 
         <div style="border:1px solid #1e3a5f;border-radius:8px;overflow:hidden;margin-bottom:20px;">
           <table width="100%" cellspacing="0" cellpadding="0" role="presentation">
-            <tr>${metaCellsHtml}</tr>
+            ${metaRowsHtml}
           </table>
         </div>
 

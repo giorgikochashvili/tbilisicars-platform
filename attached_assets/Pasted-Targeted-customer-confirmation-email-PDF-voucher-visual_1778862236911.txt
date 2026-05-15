@@ -1,0 +1,92 @@
+Targeted customer confirmation email + PDF voucher visual correction only.
+
+Live testing showed the customer confirmation email is improved, but still needs specific layout fixes on desktop Gmail and mobile Gmail. The attached PDF voucher also still has logo/header overlap problems.
+
+Important:
+- Do not change booking logic.
+- Do not change pricing calculations.
+- Do not change database schema.
+- Do not change API payloads/contracts.
+- Do not change booking reference generation.
+- Do not change email sending flow.
+- Do not change payment, availability, CRM workflow, website booking flow, Delivery Service, manual booking, or vehicle assignment.
+- No new packages.
+- Keep this limited to:
+  - artifacts/api-server/src/services/email.service.ts
+  - artifacts/api-server/src/services/pdf-voucher.service.ts
+unless there is an absolutely necessary nearby helper.
+- This is visual/layout polish only.
+
+Observed issues from live email/PDF:
+
+1) Customer email desktop Gmail first view:
+- The email still looks like a narrow mobile layout sitting inside a large white Gmail area.
+- We need one responsive email template that looks good on desktop and mobile.
+- Do not create separate templates.
+- Make the main email container feel more balanced on desktop, around 680–720px max width if safe.
+- Keep mobile width safe at 100%.
+- Make the header more compact and premium.
+
+2) Customer email logo/header alignment:
+- Logo is still too large and too visually dominant.
+- Logo should be smaller and aligned cleanly with the brand text block.
+- The logo should not be taller than the combined "Tbilisicars" + "Car Rental Georgia" text block by much.
+- The logo and text should sit on the same horizontal line/row, cleanly aligned.
+- Keep dark navy dominant.
+- Red should remain only as a small accent, not a large block.
+
+3) Customer email Booking status badge:
+- For confirmed bookings, the badge "Booking: Confirmed" should be green, not yellow/gold.
+- Use a calm success green background/border/text treatment.
+- Payment unpaid badge can remain neutral/blue-gray.
+
+4) Customer email mobile layout:
+- On mobile Gmail, the second row with DURATION / INSURANCE / DRIVER AGE currently overflows/crops on the right.
+- Fix this so it never crops on mobile.
+- Use mobile-safe stacked layout or table rows that fit within the email width.
+- Pickup/Return cards should remain readable and not force horizontal cropping.
+- Text should wrap naturally without creating horizontal overflow.
+- The email should not visually cut off any columns on narrow screens.
+
+5) Customer email pricing:
+- Pricing table is improved, but keep it stable:
+  - left label, right amount
+  - no text/value touching
+  - discount green
+  - total prominent but professional
+- Make sure it works on mobile without overflow.
+
+6) PDF voucher header/logo:
+- PDF voucher still has logo and text overlapping.
+- Reduce the PDF logo size by another ~30% from the current size.
+- Move the header text ("BOOKING VOUCHER" and "Tbilisicars.com · Car Rental Georgia") slightly to the right so it does not overlap with or sit on top of the logo.
+- Keep the dark navy header clean and balanced.
+- Logo must not push into or cover text.
+- If logo embed fails, existing text fallback must continue to work.
+- Do not remove any PDF content.
+
+7) PDF voucher content:
+- Around Duration / Trip Details area, ensure labels/values do not visually collide or overlap.
+- Keep the voucher one page.
+- Do not change booking data or pricing calculation.
+
+Implementation guidance:
+- Email HTML must remain Gmail/Outlook safe.
+- Prefer tables for layout where needed, especially for mobile-safe rows.
+- Inline CSS / email-safe CSS only.
+- Avoid CSS that Gmail strips.
+- Do not rely on complex media queries only; use table layouts that degrade safely.
+- Make only surgical visual fixes.
+
+Validation:
+- Run API build.
+- Confirm no TypeScript/build errors.
+- Report exact files changed.
+- Report exact visual values adjusted:
+  - email container max width
+  - email logo size
+  - header layout changes
+  - confirmed badge color
+  - mobile detail row fix
+  - PDF logo size
+  - PDF header text x-position
