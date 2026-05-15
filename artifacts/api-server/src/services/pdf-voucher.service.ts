@@ -5,20 +5,41 @@
  * All errors are re-thrown so the caller can suppress them non-fatally.
  */
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import type { EmailExtra } from "./email.service.js";
 import { calculateChargeableDays } from "../lib/pricing.js";
 
 // ── Logo asset ─────────────────────────────────────────────────────────────────
-const __dirnameVoucher = dirname(fileURLToPath(import.meta.url));
+// IMPORTANT: import.meta.url is undefined when bundled to CommonJS (dist/index.cjs).
+// Never use fileURLToPath(import.meta.url) here — it throws at module load time and
+// crashes the API process before it can serve any requests.
+// Instead, try a prioritised list of known candidate paths; every attempt is wrapped
+// in try/catch so no failure here can ever prevent the API from starting.
 let LOGO_BYTES: Buffer | null = null;
-try {
-  LOGO_BYTES = readFileSync(join(__dirnameVoucher, "../assets/logo.png"));
-} catch {
-  // Logo file absent — will fall back to text rendering
-}
+(function loadLogo() {
+  const candidates = [
+    // Known absolute paths on the DigitalOcean production droplet
+    "/var/www/tbilisicars-platform/artifacts/api-server/src/assets/logo.png",
+    "/var/www/tbilisicars-platform/artifacts/api-server/dist/assets/logo.png",
+    // process.cwd()-relative paths (monorepo root in dev; api-server dir in prod)
+    join(process.cwd(), "artifacts/api-server/src/assets/logo.png"),
+    join(process.cwd(), "artifacts/api-server/dist/assets/logo.png"),
+    join(process.cwd(), "src/assets/logo.png"),
+    join(process.cwd(), "dist/assets/logo.png"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (existsSync(candidate)) {
+        LOGO_BYTES = readFileSync(candidate);
+        return;
+      }
+    } catch {
+      // This candidate failed — try the next one
+    }
+  }
+  // All candidates exhausted — LOGO_BYTES stays null; PDF falls back to text
+})();
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const C = {
