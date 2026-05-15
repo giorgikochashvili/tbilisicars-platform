@@ -1,0 +1,132 @@
+We are moving to Phase 3 for TBILISICARS CRM&WEB.
+
+Goal:
+Plan a safe, customer-facing polish phase for booking reference consistency, customer confirmation email redesign, internal/company email cleanup, and PDF booking voucher redesign.
+
+Important:
+- PLAN ONLY. Do not implement yet.
+- Do not change database schema.
+- Do not change booking creation logic.
+- Do not change pricing calculation logic.
+- Do not change payment logic.
+- Do not change availability logic.
+- Do not change CRM booking workflow/status logic.
+- Do not change public booking flow steps except display-only success/reference formatting if required.
+- Do not refactor architecture.
+- Do not add new packages unless absolutely unavoidable, and if you think one is needed, explain why first.
+- Keep this strictly to display/template/design layers and safe helper formatting.
+
+Current issues to solve:
+
+1) Booking reference display consistency
+Currently different surfaces display different reference formats:
+- Website success page can show something like TC-00754.
+- Customer email can show #754.
+- Internal/company notification email can still show TC format.
+- PDF voucher also needs consistent formatting.
+
+Required display format:
+Every customer/staff-facing display should use the simple format:
+#754
+
+Important:
+- Do NOT change the underlying database booking reference/id generation unless absolutely required.
+- Prefer a display formatting helper that converts stored/raw references to the display format.
+- Preserve any internal lookup ability.
+- Identify every place where the booking reference is rendered:
+  website success page, customer email, internal email, PDF voucher, email subject, PDF filename if applicable, CRM display if applicable.
+- Plan how to make them consistent safely.
+
+2) Customer confirmation email premium redesign
+The current customer email is visually weak:
+- spacing between labels/prices is poor;
+- total amount appears too red/alarming;
+- layout does not feel premium enough;
+- sections need clearer hierarchy;
+- text and prices need better spacing/readability.
+
+Required result:
+- A cleaner, premium, brand-consistent confirmation email.
+- Strong header with Tbilisicars branding.
+- Clear booking reference/status block.
+- Clear pickup/return summary.
+- Clear vehicle section.
+- Clear pricing summary.
+- Payment info and pickup instructions should remain readable.
+- Contact section should remain correct.
+- Total amount should be highlighted professionally, not red/alarm-style.
+- Discount line, if present, should be green/positive.
+- Keep email-client-safe HTML/CSS. Avoid advanced CSS that breaks Gmail.
+- Keep dark brand style if appropriate, but improve spacing and hierarchy.
+
+3) Internal/company notification email cleanup
+Internal email should:
+- use the same reference display format (#754);
+- be easier for staff to scan;
+- clearly show customer, phone/email, pickup/return, vehicle, payment status, total amount, source, notes/extras if present;
+- remain operational rather than over-designed;
+- not break existing staff notification delivery.
+
+4) PDF booking voucher redesign
+Required result:
+- Use the real Tbilisicars logo asset already in the project.
+- Use reference display format #754.
+- Add the booked vehicle image to the PDF voucher if available.
+- Vehicle image must be well-sized: visible and professional, not too large, not too small.
+- It should not push or break text layout.
+- Preferred placement: in the free right-side area near the Trip Details / Vehicle + Locations section, inside a clean frame/card if possible.
+- Pricing section should be cleaner.
+- Discount line, if present, should be green.
+- Total should be emphasized professionally, not red/alarm-style.
+- Keep the PDF one page if currently one page, unless impossible.
+- Do not remove important existing voucher information.
+
+Technical areas to inspect:
+- artifacts/api-server/src/services/email.service.ts
+  customer confirmation email and internal/staff notification email templates
+- artifacts/api-server/src/services/pdf-voucher.service.ts
+  voucher rendering, logo usage, vehicle image possibility, pricing layout
+- artifacts/website/src/pages/Booking.tsx
+  success page reference display if needed
+- any helper utilities used for booking reference formatting
+- public/static logo assets in artifacts/website/public or other available assets
+- vehicle model image source/path used by website/CRM/API
+- booking payload/data available to email/PDF functions
+
+Plan requirements:
+1. Identify exact files/functions that render booking reference.
+2. Explain the safest way to format all displayed references as #754 without changing DB generation.
+3. Identify exact customer email template section(s) to change.
+4. Identify exact internal email template section(s) to change.
+5. Identify exact PDF voucher sections to change.
+6. Explain whether vehicle image is already available to the PDF service data object.
+   - If yes, explain how you will use it.
+   - If no, explain the minimal safe way to pass or resolve it without changing booking/pricing logic.
+7. Explain which logo asset should be used and how.
+8. Explain how pricing lines/discount/total will be styled safely.
+9. List exact files you propose to change.
+10. List risks and how you will avoid regressions.
+11. Do not propose broad refactors.
+12. Do not implement yet.
+
+Out of scope:
+- No DB migration.
+- No booking creation changes.
+- No pricing calculation changes.
+- No payment logic changes.
+- No availability changes.
+- No manual booking changes.
+- No Delivery Service / Hotel Delivery changes.
+- No mobile responsiveness broad redesign.
+- No CRM vehicle assignment changes.
+- No new package unless explicitly justified and approved.
+
+Done looks like after implementation:
+- Success page, customer email, internal email, PDF voucher, and relevant subjects/filenames consistently show #754 format.
+- Customer email looks cleaner, premium, readable, and brand-consistent.
+- Internal email is cleaner and easier for staff to scan.
+- PDF voucher includes real logo and a well-placed vehicle image without breaking layout.
+- Pricing summary spacing is improved; discount is green; total is not red/alarming.
+- Emails still send successfully.
+- PDF still attaches successfully.
+- Website/API/CRM builds pass.

@@ -5,8 +5,20 @@
  * All errors are re-thrown so the caller can suppress them non-fatally.
  */
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import type { EmailExtra } from "./email.service.js";
 import { calculateChargeableDays } from "../lib/pricing.js";
+
+// ── Logo asset ─────────────────────────────────────────────────────────────────
+const __dirnameVoucher = dirname(fileURLToPath(import.meta.url));
+let LOGO_BYTES: Buffer | null = null;
+try {
+  LOGO_BYTES = readFileSync(join(__dirnameVoucher, "../assets/logo.png"));
+} catch {
+  // Logo file absent — will fall back to text rendering
+}
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const C = {
@@ -124,6 +136,7 @@ export interface VoucherParams {
   originalRentalPrice?: number | null;
   discountedRentalPrice?: number | null;
   currency?: string;
+  vehicleImageUrl?: string | null;
   generatedPassword?: string | null;
   bookingStatus?: string;
   paymentStatus?: string;
@@ -134,6 +147,7 @@ export interface VoucherParams {
 export async function generateBookingVoucherPdf(params: VoucherParams): Promise<Buffer> {
   const {
     toName, toEmail, reference, vehicle,
+    vehicleImageUrl,
     pickupLocation, dropoffLocation, pickupDatetime, dropoffDatetime,
     extras = [], insurancePlan, paymentMethod,
     flightNumber, nationality, age,
@@ -164,9 +178,28 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: PAGE_W, height: HEADER_H, color: C.headerBg });
   page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: 5, height: HEADER_H, color: C.accentRed });
 
-  page.drawText("Tbilisicars", {
-    x: MARGIN, y: PAGE_H - 38, size: 22, font: fontBold, color: C.white,
-  });
+  // Logo with double fallback: missing file → text; embedPng failure → text
+  let logoDrawn = false;
+  if (LOGO_BYTES) {
+    try {
+      const logoImg = await pdfDoc.embedPng(LOGO_BYTES);
+      const logoW = 120;
+      const logoH = Math.round((logoImg.height / logoImg.width) * logoW);
+      page.drawImage(logoImg, {
+        x: MARGIN, y: PAGE_H - 14 - logoH,
+        width: logoW, height: logoH,
+      });
+      logoDrawn = true;
+    } catch {
+      // embedPng failed — fall through to text
+    }
+  }
+  if (!logoDrawn) {
+    page.drawText("Tbilisicars", {
+      x: MARGIN, y: PAGE_H - 38, size: 22, font: fontBold, color: C.white,
+    });
+  }
+
   page.drawText("BOOKING VOUCHER", {
     x: MARGIN, y: PAGE_H - 56, size: 8.5, font, color: rgb(0.6, 0.7, 0.8),
   });
@@ -224,6 +257,12 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     y -= ROW_H;
   }
 
+  function coloredRow(label: string, value: string, color: ReturnType<typeof rgb>) {
+    page.drawText(trunc(label, 32), { x: MARGIN, y, size: 9, font, color: C.muted });
+    page.drawText(trunc(value, 42), { x: MARGIN + 152, y, size: 9, font: fontBold, color });
+    y -= ROW_H;
+  }
+
   // ── Trip Details ─────────────────────────────────────────────────────────────
   sectionHeader("TRIP DETAILS");
   row("Vehicle", vehicle);
@@ -262,10 +301,10 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       row("One-way transfer fee", fmtMoney(oneWayFee, currency));
     }
     if (websiteDiscountName && websiteDiscountAmount != null && websiteDiscountAmount > 0) {
-      row("Discount", `-${fmtMoney(websiteDiscountAmount, currency)}`);
+      coloredRow("Discount", `-${fmtMoney(websiteDiscountAmount, currency)}`, rgb(0.133, 0.773, 0.369));
     }
     if (promoCode && discountAmount != null && discountAmount > 0) {
-      row("Promo discount", `-${fmtMoney(discountAmount, currency)}`);
+      coloredRow("Promo discount", `-${fmtMoney(discountAmount, currency)}`, rgb(0.133, 0.773, 0.369));
     }
     page.drawLine({
       start: { x: MARGIN, y: y + ROW_H - 2 }, end: { x: MARGIN + CW, y: y + ROW_H - 2 },
@@ -273,7 +312,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     });
     page.drawText("TOTAL AMOUNT", { x: MARGIN, y, size: 9, font: fontBold, color: C.dark });
     page.drawText(fmtMoney(estimatedTotal, currency), {
-      x: MARGIN + 152, y, size: 10, font: fontBold, color: C.accentLite,
+      x: MARGIN + 152, y, size: 11, font: fontBold, color: C.dark,
     });
     y -= ROW_H;
     page.drawText("Final pricing confirmed before any charge.", {
@@ -313,6 +352,45 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       y -= ROW_H;
     }
     y -= GAP;
+  }
+
+  // ── Vehicle image (right column, anchored below reference block) ─────────────
+  // Placed in the free right-side space at x ≈ 392 — never overlaps left-column
+  // text which ends at x: MARGIN + 152 = 200. All failures are caught silently.
+  if (vehicleImageUrl) {
+    try {
+      const imgSrc = vehicleImageUrl.startsWith("http")
+        ? vehicleImageUrl
+        : `http://localhost:${process.env.PORT ?? 8080}${vehicleImageUrl}`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const resp = await fetch(imgSrc, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (resp.ok) {
+        const imgBytes = Buffer.from(await resp.arrayBuffer());
+        const isJpeg = /\.jpe?g($|\?)/i.test(vehicleImageUrl);
+        const embedded = isJpeg
+          ? await pdfDoc.embedJpg(imgBytes)
+          : await pdfDoc.embedPng(imgBytes);
+
+        const IMG_W = 155;
+        const IMG_H = Math.min(
+          Math.round((embedded.height / embedded.width) * IMG_W),
+          100,
+        );
+        const IMG_X = PAGE_W - MARGIN - IMG_W;
+        // Anchor just below the reference block (refH=70, gap=18+GAP+6 from header)
+        const IMG_Y = PAGE_H - HEADER_H - 18 - 70 - GAP - 10 - IMG_H;
+
+        if (IMG_Y > 100) {
+          page.drawImage(embedded, { x: IMG_X, y: IMG_Y, width: IMG_W, height: IMG_H });
+        }
+      }
+    } catch {
+      // Network error, timeout, unsupported format, or layout out-of-bounds — skip silently
+    }
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────────

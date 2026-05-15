@@ -1025,6 +1025,7 @@ router.post("/public/bookings", async (req, res) => {
     // Full notes including internal blocks — rendering layer strips [WEBSITE DATA]
     // and [RATE EXPIRED] before showing anything to the customer.
     bookingNotes: combinedNotes,
+    vehicleImageUrl: modelRows[0]?.image_url ?? null,
   };
 
   setImmediate(() => {
@@ -1077,6 +1078,7 @@ router.post("/public/bookings", async (req, res) => {
             discountedRentalPrice: emailParams.discountedRentalPrice,
             currency: emailParams.currency,
             generatedPassword: emailParams.generatedPassword,
+            vehicleImageUrl: emailParams.vehicleImageUrl,
             attachPdfVoucher: true,
             bookingStatus: emailParams.bookingStatus,
             paymentStatus: emailParams.paymentStatus,

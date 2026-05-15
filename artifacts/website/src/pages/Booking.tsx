@@ -220,6 +220,11 @@ function formatDT(iso: string) {
   return `${match[3]} ${months[parseInt(match[2], 10) - 1]} ${match[1]}, ${match[4]}:${match[5]}`;
 }
 
+function displayRef(ref: string): string {
+  const m = ref.match(/TC-0*(\d+)/i);
+  return m ? `#${m[1]}` : ref;
+}
+
 function calcDays(pickup: string, dropoff: string) {
   if (!pickup || !dropoff) return 0;
   const elapsedMs = new Date(dropoff).getTime() - new Date(pickup).getTime();
@@ -2382,10 +2387,10 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
             : "from-primary/20 to-primary/5 border-primary/30"
         )}>
           <div className={cn("text-xs font-semibold uppercase tracking-wider mb-2", result.status === "CONFIRMED" ? "text-green-400/80" : "text-primary/70")}>Your Booking Reference</div>
-          <div className="text-4xl font-black text-white tracking-widest mb-3">{result.reference}</div>
+          <div className="text-4xl font-black text-white tracking-widest mb-3">{displayRef(result.reference)}</div>
           <button
             type="button"
-            onClick={() => navigator.clipboard?.writeText(result.reference).catch(() => {})}
+            onClick={() => navigator.clipboard?.writeText(displayRef(result.reference)).catch(() => {})}
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mb-4"
           >
             <Copy className="w-3 h-3" /> Copy reference number
@@ -2418,7 +2423,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
             <div className="relative mb-5">
               <div className="absolute -left-4 top-1 w-3 h-3 rounded-full bg-green-400 border-2 border-card" />
               <div className="text-xs font-semibold text-green-400 uppercase tracking-wide">Booking Received</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Reference: <span className="text-white font-mono">{result.reference}</span></div>
+              <div className="text-xs text-muted-foreground mt-0.5">Reference: <span className="text-white font-mono">{displayRef(result.reference)}</span></div>
             </div>
             {/* Milestone: Vehicle */}
             <div className="relative mb-5">

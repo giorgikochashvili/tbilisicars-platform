@@ -76,6 +76,7 @@ export interface BookingConfirmationEmailParams {
   toName: string;
   reference: string;
   bookingId?: number;
+  vehicleImageUrl?: string | null;
   vehicle: string;
   pickupLocation: string;
   dropoffLocation: string;
@@ -108,6 +109,7 @@ export interface BookingConfirmationEmailParams {
 export async function sendBookingConfirmationEmail(params: BookingConfirmationEmailParams): Promise<void> {
   const {
     toEmail, toName, reference, bookingId,
+    vehicleImageUrl,
     vehicle,
     pickupLocation, dropoffLocation,
     pickupDatetime, dropoffDatetime,
@@ -241,7 +243,7 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     .pricing-section .row { border-bottom-color: rgba(127,29,46,0.15); }
     .total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 8px; border-top: 1px solid rgba(127,29,46,0.3); }
     .total-label { font-size: 14px; font-weight: 600; color: #e2e8f0; }
-    .total-value { font-size: 18px; font-weight: 800; color: #e05c72; }
+    .total-value { font-size: 18px; font-weight: 800; color: #f1f5f9; }
     .info-block { margin-bottom: 20px; }
     .info-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px; }
     .info-text { font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0; }
@@ -256,8 +258,9 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
   <div class="wrapper">
     <div class="card">
       <div class="header">
-        <h1>Tbilisicars</h1>
-        <p>Car Rental Georgia</p>
+        <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="160" style="display:block;margin:0 auto 10px;max-width:160px;height:auto;" />
+        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Tbilisicars</h1>
+        <p style="margin:5px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Car Rental Georgia</p>
       </div>
       <div class="body">
         <p class="greeting">Dear ${esc(toName)},<br/>Thank you for choosing Tbilisicars. We have received your booking request and will confirm availability shortly.</p>
@@ -391,6 +394,7 @@ CONTACT US
     try {
       pdfBuffer = await generateBookingVoucherPdf({
         toName, toEmail, reference, vehicle,
+        vehicleImageUrl: vehicleImageUrl ?? null,
         pickupLocation, dropoffLocation,
         pickupDatetime, dropoffDatetime,
         extras, insurancePlan, paymentMethod,
@@ -420,7 +424,7 @@ CONTACT US
       html,
       text,
       ...(pdfBuffer != null
-        ? { attachments: [{ filename: `booking-${reference}.pdf`, content: pdfBuffer }] }
+        ? { attachments: [{ filename: `booking-voucher-${customerRef(reference).replace(/^#/, "")}.pdf`, content: pdfBuffer }] }
         : {}),
     });
     console.log(`[email] sent_ok ref=${reference}`);
@@ -590,17 +594,17 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
   const totalFmt = `${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
   const rows = [
-    row("Booking Reference", esc(referenceNumber)),
+    row("Booking Reference", `<strong style="font-size:15px;letter-spacing:0.5px;">${esc(customerRef(referenceNumber))}</strong>`),
     row("Customer Name", esc(customerName)),
     row("Customer Email", `<a href="mailto:${esc(customerEmail)}" style="color:#e05c72;">${esc(customerEmail)}</a>`),
-    row("Customer Phone", customerPhone ? esc(customerPhone) : "\u2014"),
+    row("Customer Phone", customerPhone ? `<strong>${esc(customerPhone)}</strong>` : "\u2014"),
     row("Pickup Location", esc(pickupLocation)),
     row("Drop-off Location", esc(dropoffLocation)),
     row("Pickup Date", esc(fmtDate(pickupDate))),
     row("Return Date", esc(fmtDate(dropoffDate))),
     row("Vehicle", esc(vehicleModel)),
     row("Estimated Total", esc(totalFmt)),
-    row("Booking Status", `<strong>${esc(bookingStatus ?? "PENDING")}</strong>`),
+    row("Booking Status", `<strong style="color:${(bookingStatus ?? "PENDING") === "CONFIRMED" ? "#22c55e" : "#fbbf24"};">${esc(bookingStatus ?? "PENDING")}</strong>`),
     row("Source", "<strong>WEBSITE</strong>"),
     ...(notes ? [row("Notes", `<span style="white-space:pre-wrap;">${esc(notes)}</span>`)] : []),
   ].join("\n");
@@ -612,7 +616,7 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
   <div style="max-width:600px;margin:32px auto;background:#13243a;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
     <div style="background:linear-gradient(135deg,#c0384f 0%,#a02040 100%);padding:24px 32px;">
       <h1 style="margin:0;font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.3px;">&#128337; New Website Booking</h1>
-      <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">Reference: <strong>${esc(referenceNumber)}</strong></p>
+      <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">Reference: <strong>${esc(customerRef(referenceNumber))}</strong></p>
     </div>
     <div style="padding:28px 32px;">
       <table style="width:100%;border-collapse:collapse;">
@@ -627,9 +631,9 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
 </html>`;
 
   const text = [
-    `NEW WEBSITE BOOKING \u2014 ${referenceNumber}`,
+    `NEW WEBSITE BOOKING \u2014 ${customerRef(referenceNumber)}`,
     ``,
-    `Reference:       ${referenceNumber}`,
+    `Reference:       ${customerRef(referenceNumber)}`,
     `Customer:        ${customerName}`,
     `Email:           ${customerEmail}`,
     `Phone:           ${customerPhone ?? "\u2014"}`,
@@ -649,8 +653,8 @@ export async function sendNewBookingInternalEmail(params: InternalBookingEmailPa
       from: `Tbilisicars Reservations <${fromAddress}>`,
       to: "reservations@tbilisicars.com",
       subject: bookingStatus === "CONFIRMED"
-        ? `New Website Booking (CONFIRMED) \u2014 ${referenceNumber}`
-        : `New Website Booking (PENDING) \u2014 ${referenceNumber}`,
+        ? `New Website Booking (CONFIRMED) \u2014 ${customerRef(referenceNumber)}`
+        : `New Website Booking (PENDING) \u2014 ${customerRef(referenceNumber)}`,
       html,
       text,
     });
