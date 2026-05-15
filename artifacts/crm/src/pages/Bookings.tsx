@@ -614,13 +614,23 @@ export default function BookingsPage() {
   useEffect(() => {
     if (editBookingId !== null) return;
     const modelId = parseInt(booking.vehicleModelId);
-    if (!booking.vehicleModelId || isNaN(modelId) || booking.vehicleModelId === "any") return;
-    if (!booking.pickupDate || !booking.pickupTime) return;
-    if (!booking.dropoffDate || !booking.dropoffTime) return;
+    if (!booking.vehicleModelId || isNaN(modelId) || booking.vehicleModelId === "any") {
+      setQuoteResult(null); setIsQuoteLoading(false); return;
+    }
+    if (!booking.pickupDate || !booking.pickupTime) {
+      setQuoteResult(null); setIsQuoteLoading(false); return;
+    }
+    if (!booking.dropoffDate || !booking.dropoffTime) {
+      setQuoteResult(null); setIsQuoteLoading(false); return;
+    }
     const pickupLocId = parseInt(booking.pickupLocationId);
     const dropoffLocId = parseInt(booking.dropoffLocationId);
-    if (!booking.pickupLocationId || isNaN(pickupLocId)) return;
-    if (!booking.dropoffLocationId || isNaN(dropoffLocId)) return;
+    if (!booking.pickupLocationId || isNaN(pickupLocId)) {
+      setQuoteResult(null); setIsQuoteLoading(false); return;
+    }
+    if (!booking.dropoffLocationId || isNaN(dropoffLocId)) {
+      setQuoteResult(null); setIsQuoteLoading(false); return;
+    }
 
     const pickupDatetime = new Date(`${booking.pickupDate}T${booking.pickupTime}:00`).toISOString();
     const dropoffDatetime = new Date(`${booking.dropoffDate}T${booking.dropoffTime}:00`).toISOString();

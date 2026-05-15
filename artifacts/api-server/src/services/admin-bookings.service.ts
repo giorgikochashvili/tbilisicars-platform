@@ -31,7 +31,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { ConflictError, NotFoundError } from "../lib/errors.js";
+import { AppError, ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 import { removeFromParkingByVehicle } from "./admin-parking.service.js";
 
@@ -644,42 +644,51 @@ export async function createAdminBooking(data: {
 
   const { customerId, customerData, customerEmail, customerPhone, customerFullName, extras, ...rest } = data;
 
-  const [row] = await db
-    .insert(bookingTable)
-    .values({
-      ...rest,
-      userId,
-      pickupDatetime: pickupDate,
-      dropoffDatetime: dropoffDate,
-    } as any)
-    .returning();
-
+  // Validate extras quantities before any DB writes so we fail fast with a clean 422
   if (extras && extras.length > 0) {
     for (const item of extras) {
       if (!Number.isInteger(item.quantity) || item.quantity < 1) {
-        throw Object.assign(new Error("One or more extras have an invalid quantity"), { statusCode: 422, body: { error: "One or more extras have an invalid quantity" } });
+        throw new AppError(422, "One or more extras have an invalid quantity");
       }
     }
-    const extraIds = extras.map((e) => e.extraId);
-    const { rows: extraRows } = await pool.query(
-      `SELECT id, price, pricing_type, max_days FROM extra WHERE id = ANY($1) AND is_active = true`,
-      [extraIds],
-    );
-    if (extraRows.length !== extraIds.length) {
-      throw Object.assign(new Error("One or more extras are invalid or inactive"), { statusCode: 422, body: { error: "One or more extras are invalid or inactive" } });
-    }
-    const extraMap = new Map<number, { price: string; pricingType: string; maxDays: number | null }>(
-      extraRows.map((r: any) => [r.id, { price: String(r.price), pricingType: r.pricing_type, maxDays: r.max_days != null ? Number(r.max_days) : null }]),
-    );
-    await db.insert(bookingextraTable).values(
-      extras.map((e) => ({
-        bookingId: row!.id,
-        extraId: e.extraId,
-        quantity: e.quantity,
-        priceAtBooking: extraMap.get(e.extraId)!.price,
-      })),
-    );
   }
+
+  // Insert booking row + extras atomically so no partial state is possible
+  const row = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(bookingTable)
+      .values({
+        ...rest,
+        userId,
+        pickupDatetime: pickupDate,
+        dropoffDatetime: dropoffDate,
+      } as any)
+      .returning();
+
+    if (extras && extras.length > 0) {
+      const extraIds = extras.map((e) => e.extraId);
+      const { rows: extraRows } = await pool.query(
+        `SELECT id, price, pricing_type, max_days FROM extra WHERE id = ANY($1) AND is_active = true`,
+        [extraIds],
+      );
+      if (extraRows.length !== extraIds.length) {
+        throw new AppError(422, "One or more extras are invalid or inactive");
+      }
+      const extraMap = new Map<number, { price: string }>(
+        extraRows.map((r: any) => [r.id, { price: String(r.price) }]),
+      );
+      await tx.insert(bookingextraTable).values(
+        extras.map((e) => ({
+          bookingId: inserted!.id,
+          extraId: e.extraId,
+          quantity: e.quantity,
+          priceAtBooking: extraMap.get(e.extraId)!.price,
+        })),
+      );
+    }
+
+    return inserted;
+  });
 
   const initialStatus = data.status;
   if (
