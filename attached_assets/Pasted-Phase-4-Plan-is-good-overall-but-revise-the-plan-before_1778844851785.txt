@@ -1,0 +1,52 @@
+Phase 4 Plan is good overall, but revise the plan before implementation.
+
+Do not implement yet.
+
+Please revise with these safety clarifications:
+
+1) Generated API schema
+You proposed editing lib/api-zod/src/generated/api.ts.
+Confirm whether this generated file is the actual source of truth in this project, or whether there is a source schema/generation step that should be edited instead.
+Do not hand-edit generated files if there is a proper source file to update/regenerate.
+If no generator/source is available in this project and this is how the project currently works, explain that clearly.
+
+2) Existing /api/public/quote reuse
+Confirm the exact request payload expected by POST /api/public/quote and the exact response fields you will use for:
+- base rate
+- one-way fee
+- extras subtotal
+- total
+Confirm whether the quote endpoint already supports extras with quantities.
+If it does not support extras, do not invent duplicated pricing logic in the frontend; propose the minimal safe backend extension or keep extras calculation separate only if it reuses server-side extra prices.
+
+3) Manual amount overwrite protection
+Keep UX simple:
+- auto-fill amount only when empty or still equal to the previous auto-calculated amount;
+- if staff edits amount manually, do not overwrite it on later quote refresh;
+- show a small "Use calculated" action to restore calculated value.
+Do not add complex modals or confirmations.
+
+4) Extras scope
+For this Phase, extras selection/editing should be for New Booking creation only.
+Do not alter existing Booking Detail extras management.
+In edit mode, hide or disable the new extras section unless you can prove it is safe and already supported.
+
+5) Extras validation/server-side persistence
+When creating admin bookings with extras:
+- do not trust client prices;
+- validate extraId exists and is_active=true;
+- quantity must be a positive integer;
+- insert into booking_extra using DB prices/pricing type/max_days as the existing public booking flow does;
+- return a clear validation error for invalid/inactive extras.
+
+6) Scope limits
+No DB schema change.
+No pricing formula rewrite.
+No public website changes.
+No email/PDF changes.
+No payment logic changes.
+No availability changes.
+No booking status changes.
+No Delivery Service/Hotel Delivery changes.
+
+Return the revised implementation plan only, with final exact files to change.
