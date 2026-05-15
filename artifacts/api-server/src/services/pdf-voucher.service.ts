@@ -377,14 +377,28 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
     y -= GAP;
   }
 
-  // ── Vehicle image (right column, anchored below reference block) ─────────────
-  // Placed in the free right-side space at x ≈ 392 — never overlaps left-column
-  // text which ends at x: MARGIN + 152 = 200. All failures are caught silently.
+  // ── Vehicle image (right column, beside Trip Details section) ────────────────
+  // Centred vertically in the Trip Details block at x ≈ 422.
+  // Left-column text ends at x: MARGIN+152=200; no overlap is possible.
+  // All fetch/embed failures are caught silently — PDF always completes.
   if (vehicleImageUrl) {
     try {
-      const imgSrc = vehicleImageUrl.startsWith("http")
-        ? vehicleImageUrl
-        : `http://localhost:${process.env.PORT ?? 8080}${vehicleImageUrl}`;
+      // Resolve relative storage paths to the correct local API route.
+      // DB stores images as /local-uploads/<file>; the storage router serves
+      // them at /api/storage/local-uploads/<file>.
+      const port = process.env.PORT ?? "8080";
+      let imgSrc: string;
+      if (vehicleImageUrl.startsWith("http")) {
+        imgSrc = vehicleImageUrl;
+      } else if (vehicleImageUrl.startsWith("/local-uploads/")) {
+        imgSrc = `http://localhost:${port}/api/storage${vehicleImageUrl}`;
+      } else if (vehicleImageUrl.startsWith("/api/storage/")) {
+        imgSrc = `http://localhost:${port}${vehicleImageUrl}`;
+      } else if (vehicleImageUrl.startsWith("/storage/")) {
+        imgSrc = `http://localhost:${port}/api${vehicleImageUrl}`;
+      } else {
+        imgSrc = `http://localhost:${port}${vehicleImageUrl}`;
+      }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 4000);
@@ -398,21 +412,27 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
           ? await pdfDoc.embedJpg(imgBytes)
           : await pdfDoc.embedPng(imgBytes);
 
-        const IMG_W = 155;
+        const IMG_W = 125;
         const IMG_H = Math.min(
           Math.round((embedded.height / embedded.width) * IMG_W),
-          100,
+          90,
         );
-        const IMG_X = PAGE_W - MARGIN - IMG_W;
-        // Anchor just below the reference block (refH=70, gap=18+GAP+6 from header)
-        const IMG_Y = PAGE_H - HEADER_H - 18 - 70 - GAP - 10 - IMG_H;
+        const IMG_X = PAGE_W - MARGIN - IMG_W;   // ≈ 422.28
 
-        if (IMG_Y > 100) {
-          page.drawImage(embedded, { x: IMG_X, y: IMG_Y, width: IMG_W, height: IMG_H });
-        }
+        // Centre vertically inside the Trip Details section.
+        // Section spans from just after the section-header line (TRIP_TOP)
+        // to after the Duration row (TRIP_BOTTOM). Both are deterministic.
+        const TRIP_TOP    = PAGE_H - HEADER_H - 18 - 70 - GAP - 6 - 15; // ≈ 632.89
+        const TRIP_BOTTOM = TRIP_TOP - 6 * ROW_H;                        // ≈ 518.89
+        const IMG_Y = Math.max(
+          Math.round((TRIP_TOP + TRIP_BOTTOM) / 2 - IMG_H / 2),
+          TRIP_BOTTOM,
+        );
+
+        page.drawImage(embedded, { x: IMG_X, y: IMG_Y, width: IMG_W, height: IMG_H });
       }
     } catch {
-      // Network error, timeout, unsupported format, or layout out-of-bounds — skip silently
+      // Network error, timeout, unsupported format, or embed failure — skip silently
     }
   }
 
