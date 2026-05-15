@@ -1,0 +1,119 @@
+We are moving to Phase 6 for TBILISICARS CRM&WEB.
+
+Goal:
+Audit and plan targeted mobile responsiveness fixes for both the public Website and CRM. The issue is that on iOS/Android some pages stretch horizontally, move sideways, overflow, or modals/tables do not fit the screen cleanly.
+
+Important:
+- PLAN ONLY. Do not implement yet.
+- Do not redesign the website or CRM.
+- Do not change business logic.
+- Do not change API routes.
+- Do not change database schema.
+- Do not change pricing, availability, booking creation, payment logic, email/PDF, or CRM workflow logic.
+- Do not do broad refactors.
+- This must be a targeted mobile overflow/responsiveness stabilization plan.
+
+Primary goal:
+Find and fix sources of unwanted horizontal overflow and mobile layout instability.
+
+Highest-priority CRM issue:
+Booking Detail mobile/modal stability.
+
+When a booking is opened in CRM, the Booking Detail window/modal/page must remain visually stable on iOS and Android after any action:
+- uploading pickup/dropoff photos
+- completing Pick Up
+- completing Drop Off
+- adding payment
+- adding/changing assigned vehicle
+- unassigning vehicle
+- adding notes/activity/history
+- expanding/collapsing sections
+- showing original booked car line
+- showing delivery address rows
+- showing payment records or photo lists
+
+Required Booking Detail behavior:
+- The booking window must not grow wider than the mobile viewport.
+- No horizontal page scroll should appear.
+- The modal/page must not move sideways.
+- Long text, vehicle names, license plates, phone/email, payment rows, activity rows, image filenames, and delivery addresses must wrap or truncate safely.
+- Photo upload previews/lists must stay inside the container.
+- Tables or rows inside Booking Detail must stack or scroll internally if needed, without stretching the whole page.
+- Bottom/action buttons must remain visible and tappable.
+- Layout must remain stable before and after Add Payment, Pick Up, Drop Off, and photo upload.
+- Fix root causes, not only by hiding overflow globally.
+
+Areas to audit:
+
+Public Website:
+1) Homepage search form
+2) Location dropdowns
+3) Date/time pickers
+4) Booking flow Step 1 vehicle selection/cards/categories
+5) Booking Step 4 customer/details form
+6) Booking success page
+7) TripDetailsBanner / edit-search area
+8) Floating/help/chat/contact buttons if they overlap important content
+
+CRM:
+1) Booking Detail modal/page — highest priority
+2) Bookings list
+3) Pickup / Dropoff modal
+4) Photo upload areas and warning messages
+5) Add Payment flow
+6) Manual New Booking modal after Phase 4
+7) Fleet Add Vehicle / Edit Vehicle modal
+8) Dashboard/operations tables
+9) Dropdowns/date pickers inside modals
+
+Technical audit requirements:
+Search for likely mobile overflow causes:
+- fixed widths
+- min-width values
+- w-screen / 100vw usage
+- tables wider than viewport
+- grid columns that do not collapse on small screens
+- modals with fixed width or max-width that still overflow
+- inputs/buttons in one row that should stack on mobile
+- long text without wrapping
+- overflow-x behavior
+- absolute/fixed elements that extend outside viewport
+- popovers/dropdowns not constrained to viewport
+- images/cards without max-width
+- uploaded image previews or filenames that force width
+- payment/history/activity rows that force width
+- any recent Phase 1–5 additions that may cause overflow on mobile
+
+Plan requirements:
+1. List exact files/components where mobile overflow is likely.
+2. Specifically analyze BookingDetail.tsx and identify why it can still grow/move after payment/photo/pickup/dropoff actions.
+3. Separate fixes into:
+   A) Booking Detail stability fixes
+   B) global safe CSS/container fixes
+   C) website component-specific fixes
+   D) other CRM component-specific fixes
+4. For every proposed change, explain why it is safe and what it affects.
+5. Avoid hiding real content with overflow-x:hidden unless used only as a safety guard and not as a substitute for fixing the actual layout.
+6. Identify which fixes are low-risk and can be implemented first.
+7. Identify any high-risk areas that should be left for manual testing or later.
+8. List exact files proposed to change.
+9. Do not implement yet.
+
+Constraints:
+- No pricing changes.
+- No booking logic changes.
+- No CRM status/workflow changes.
+- No email/PDF changes.
+- No Delivery Service logic changes.
+- No manual booking pricing/extras logic changes.
+- No database/API changes.
+- No dependency/package changes.
+
+Done looks like after implementation:
+- Booking Detail remains stable on mobile before and after Add Payment, Pick Up, Drop Off, photo upload, Assign/Unassign, and section expansion.
+- CRM key pages/modals do not horizontally overflow.
+- Public Website does not horizontally scroll on common iPhone/Android widths.
+- Dropdowns/date pickers stay inside viewport.
+- Buttons are visible and tappable.
+- Existing desktop layout is not damaged.
+- Build/typecheck passes.
