@@ -1,0 +1,104 @@
+Final targeted PDF voucher polish only.
+
+Important:
+- This is a surgical visual/text correction only.
+- Do NOT change booking logic.
+- Do NOT change pricing.
+- Do NOT change email layout.
+- Do NOT change API/database/schema/routes.
+- Do NOT change booking references.
+- Do NOT change any business logic.
+- Do NOT touch any files except the PDF voucher service unless absolutely required.
+
+Primary file:
+artifacts/api-server/src/services/pdf-voucher.service.ts
+
+GOAL
+Perfectly align the PDF voucher header logo and text, and update the airport pickup instruction wording.
+
+========================================
+TASK 1 — PERFECT HEADER ALIGNMENT
+========================================
+
+Current issue:
+The PDF voucher header is much better now, but the logo and the subtitle text are still not perfectly aligned vertically.
+
+Required final result:
+- The bottom edge of the red logo must sit EXACTLY on the white separator line (the bottom edge of the dark navy header).
+- The bottom edge of the subtitle line:
+  "Tbilisicars.com · Car Rental Georgia"
+  must sit on the EXACT SAME horizontal line as the bottom edge of the logo.
+- Pixel-perfect alignment.
+- Keep the current logo size (49).
+- Keep the current horizontal spacing.
+- Keep the current dark header height unchanged.
+- Do NOT redesign anything else.
+
+Only adjust vertical Y positions.
+
+Current desired visual behavior:
+- Logo slightly lower than now.
+- Header text block slightly higher than now.
+- The bottom of the logo and the bottom of the subtitle text must visually align on the same line.
+
+Implementation constraints:
+- Keep:
+  - logoW = 49
+  - hdrTextX unchanged
+  - colors unchanged
+  - fonts unchanged
+  - spacing unchanged
+  - header height unchanged
+- Only modify vertical positioning values.
+
+Validation after build:
+- Open generated PDF voucher.
+- Confirm:
+  1. Logo bottom edge touches the white separator line.
+  2. Subtitle text bottom aligns perfectly with logo bottom.
+  3. No overlap exists.
+  4. Header still looks balanced and premium.
+
+========================================
+TASK 2 — REPLACE PICKUP INSTRUCTION TEXT
+========================================
+
+Current pickup instruction text for Tbilisi International Airport bookings is:
+
+"Our team will meet you at Tbilisi International Airport arrivals. Look for the Tbilisicars sign. Call +995 ..."
+
+Replace this wording with:
+
+"Please arrive at our office in the Tbilisi International Airport arrivals hall at the specified time. For additional information, please call us."
+
+Requirements:
+- Apply only for Tbilisi International Airport pickup instructions.
+- Keep the same styling/layout.
+- Keep phone number rendering behavior if the system appends numbers separately.
+- Do not affect other location instruction logic unless they reuse the same exact Tbilisi Airport string.
+- Keep professional tone.
+
+========================================
+SAFETY
+========================================
+
+Do NOT:
+- modify calculations
+- modify voucher structure
+- modify pricing rows
+- modify booking data
+- modify customer info
+- modify email templates
+- modify layout widths
+- modify mobile behavior
+- modify API responses
+- modify fallback logo logic
+
+This is only:
+1. PDF header alignment refinement
+2. Tbilisi Airport pickup instruction wording update
+
+After implementation:
+- Run API build
+- Confirm zero TypeScript/build errors
+- Report exact changed lines/values
