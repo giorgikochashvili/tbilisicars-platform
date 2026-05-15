@@ -207,7 +207,7 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
       const logoW = 49;
       const logoH = Math.round((logoImg.height / logoImg.width) * logoW);
       page.drawImage(logoImg, {
-        x: MARGIN, y: PAGE_H - 14 - logoH,
+        x: MARGIN, y: PAGE_H - HEADER_H,
         width: logoW, height: logoH,
       });
       logoDrawn = true;
@@ -224,10 +224,10 @@ export async function generateBookingVoucherPdf(params: VoucherParams): Promise<
   // Offset subtitle text to the right of the logo to avoid overlap
   const hdrTextX = logoDrawn ? MARGIN + 49 + 14 : MARGIN;
   page.drawText("BOOKING VOUCHER", {
-    x: hdrTextX, y: PAGE_H - 52, size: 8.5, font, color: rgb(0.6, 0.7, 0.8),
+    x: hdrTextX, y: PAGE_H - HEADER_H + 18, size: 8.5, font, color: rgb(0.6, 0.7, 0.8),
   });
   page.drawText("Tbilisicars.com \u00B7 Car Rental Georgia", {
-    x: hdrTextX, y: PAGE_H - 67, size: 8.5, font, color: rgb(0.5, 0.6, 0.7),
+    x: hdrTextX, y: PAGE_H - HEADER_H + 5, size: 8.5, font, color: rgb(0.5, 0.6, 0.7),
   });
 
   y = PAGE_H - HEADER_H - 18;

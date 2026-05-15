@@ -45,7 +45,7 @@ function customerRef(ref: string): string {
 }
 
 const CITY_PICKUP_INSTRUCTIONS: Record<string, string> = {
-  Tbilisi: "Our team will meet you at Tbilisi International Airport arrivals. Look for the Tbilisicars sign. Call +995 557 37 63 63 if you need assistance.",
+  Tbilisi: "Please arrive at our office in the Tbilisi International Airport arrivals hall at the specified time. For additional information, please call +995 557 37 63 63.",
   Kutaisi: "Our agent will meet you at Kutaisi International Airport arrivals. Call +995 595 28 66 00 on arrival.",
   Batumi: "Our team will meet you at Batumi International Airport arrivals. Look for the Tbilisicars sign. Call +995 557 37 63 63 if you need assistance.",
 };
