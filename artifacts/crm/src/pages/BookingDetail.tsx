@@ -795,8 +795,8 @@ function PhotoAppendDialog({
     }
     if (skipped.length)
       toast({
-        title: "Files skipped",
-        description: skipped.join(", "),
+        title: "ფოტო ვერ დაემატა",
+        description: "RAW/DNG ფოტოები არ იტვირთება. გთხოვთ გამოიყენოთ ჩვეულებრივი ფოტო და არა iPhone RAW/ProRAW. დაშვებულია JPG, PNG, WebP. მაქს. 20 MB თითო ფოტოზე.",
         variant: "destructive",
       });
     setFileItems((prev) => [...prev, ...accepted]);
@@ -1136,8 +1136,8 @@ function HandoverModal({
     }
     if (skipped.length) {
       toast({
-        title: "Files skipped",
-        description: skipped.join(", "),
+        title: "ფოტო ვერ დაემატა",
+        description: "RAW/DNG ფოტოები არ იტვირთება. გთხოვთ გამოიყენოთ ჩვეულებრივი ფოტო და არა iPhone RAW/ProRAW. დაშვებულია JPG, PNG, WebP. მაქს. 20 MB თითო ფოტოზე.",
         variant: "destructive",
       });
     }

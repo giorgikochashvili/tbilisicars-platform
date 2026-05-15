@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import {
   Car, Users, Fuel, Settings, Check, ChevronLeft, ChevronDown, ChevronUp, ArrowRight,
-  MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield,
+  MapPin, Calendar, Phone, MessageCircle, Banknote, Info, Shield, AlertTriangle,
   Lock, Copy, Package, Baby, Wifi, Clock, X, Tag, List, LayoutGrid, SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -1143,6 +1143,7 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
   const needTrip = !form.pickupLocationId || !form.dropoffLocationId || !form.pickupDatetime || !form.dropoffDatetime;
   const showBanner = needTrip || editSearch;
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
+  const isShortNotice = !!form.pickupDatetime && (new Date(form.pickupDatetime).getTime() - Date.now()) <= 12 * 60 * 60 * 1000;
 
   // Reset filters whenever the user submits new trip parameters (location or dates change)
   const prevTripKeyRef = useRef("");
@@ -1416,6 +1417,19 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
 
       {/* ── Right: vehicle list ──────────────────────────────────────────── */}
       <div>
+
+        {/* Short-notice warning — shown when pickup is within 12 hours */}
+        {isShortNotice && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4 text-sm text-amber-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>
+              For bookings less than 12 hours before pickup, please contact us by phone or email so we can confirm vehicle availability and pricing.{" "}
+              <a href="mailto:reservations@tbilisicars.com" className="underline underline-offset-2 hover:text-amber-200 transition-colors">
+                reservations@tbilisicars.com
+              </a>
+            </span>
+          </div>
+        )}
 
         {/* Heading + view switcher */}
         <div className="flex items-start justify-between mb-3 gap-3 flex-wrap">

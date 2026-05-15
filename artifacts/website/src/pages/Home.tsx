@@ -6,7 +6,7 @@ import {
   Calendar, Shield, ChevronRight, ChevronDown,
   Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft, Users,
 } from "lucide-react";
-import { DateTimePicker } from "@/components/DateTimePicker";
+import { DateTimePicker, DateTimePickerRef } from "@/components/DateTimePicker";
 import SearchButton from "@/components/SearchButton";
 
 interface Location {
@@ -263,6 +263,7 @@ export default function Home() {
   });
 
   const sliderScrollRef = useRef<HTMLDivElement>(null);
+  const dropoffPickerRef = useRef<DateTimePickerRef>(null);
 
   function scrollSlider(dir: "left" | "right") {
     const el = sliderScrollRef.current;
@@ -447,6 +448,7 @@ export default function Home() {
                   min={minDt}
                   onChange={setPickupDatetime}
                   placeholder="Select pickup date & time"
+                  onDone={() => dropoffPickerRef.current?.openPicker()}
                 />
               </div>
               <div>
@@ -454,6 +456,7 @@ export default function Home() {
                   Return Date &amp; Time
                 </label>
                 <DateTimePicker
+                  ref={dropoffPickerRef}
                   value={dropoffDatetime}
                   min={pickupDatetime || minDt}
                   onChange={setDropoffDatetime}
