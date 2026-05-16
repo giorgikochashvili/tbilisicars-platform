@@ -17,7 +17,7 @@ import {
   Lock, Copy, Package, Baby, Wifi, Clock, X, Tag, List, LayoutGrid, SlidersHorizontal,
 } from "lucide-react";
 import { Link } from "wouter";
-import { DateTimePicker } from "@/components/DateTimePicker";
+import { DateTimePicker, type DateTimePickerHandle } from "@/components/DateTimePicker";
 import { TERMS_SECTIONS } from "./Terms";
 import { PRIVACY_SECTIONS } from "./Privacy";
 
@@ -830,6 +830,7 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
   );
   const days = calcDays(form.pickupDatetime, form.dropoffDatetime);
   const md = minDT();
+  const dropoffPickerRef = useRef<DateTimePickerHandle>(null);
 
   return (
     <div className="bg-secondary/30 border border-border rounded-xl p-4 mb-4">
@@ -880,11 +881,13 @@ function TripDetailsBanner({ form, setForm, locations, onClose }: {
             value={form.pickupDatetime}
             min={md}
             onChange={(v) => setForm((f) => ({ ...f, pickupDatetime: v }))}
+            onDone={() => dropoffPickerRef.current?.openPicker()}
           />
         </div>
         <div>
           <FieldLabel required>Return Date &amp; Time</FieldLabel>
           <DateTimePicker
+            ref={dropoffPickerRef}
             value={form.dropoffDatetime}
             min={form.pickupDatetime || md}
             onChange={(v) => setForm((f) => ({ ...f, dropoffDatetime: v }))}
@@ -1448,7 +1451,15 @@ function Step1({ form, setForm, models, locations, extras, quote, quoteLoading, 
           <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 mb-4 text-sm text-amber-300">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
             <span>
-              For bookings less than 12 hours before pickup, please contact us by phone or email so we can confirm vehicle availability and pricing.{" "}
+              For bookings within 12 hours of pickup, please contact us to confirm availability:{" "}
+              <a href="tel:+995557376363" className="underline underline-offset-2 hover:text-amber-200 transition-colors">
+                +995 557 37 63 63
+              </a>
+              {" · "}
+              <a href="https://wa.me/995557376363" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-amber-200 transition-colors">
+                WhatsApp
+              </a>
+              {" · "}
               <a href="mailto:reservations@tbilisicars.com" className="underline underline-offset-2 hover:text-amber-200 transition-colors">
                 reservations@tbilisicars.com
               </a>
