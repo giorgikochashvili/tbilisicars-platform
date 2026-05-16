@@ -57,6 +57,11 @@ function fmt(dateStr: string): string {
   });
 }
 
+function displayRef(ref: string): string {
+  const m = ref.match(/TC-0*(\d+)/i);
+  return m ? `#${m[1]}` : ref;
+}
+
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
@@ -83,7 +88,7 @@ function BookingCard({ b }: { b: CustomerBooking }) {
     <div className="bg-card border border-border hover:border-border/80 rounded-xl p-5 transition-colors">
       <div className="flex items-start justify-between gap-3 mb-4">
         <span className="font-mono text-sm font-semibold text-white/90 tracking-wide">
-          {b.reference}
+          {displayRef(b.reference)}
         </span>
         <span className={`shrink-0 inline-flex items-center border text-xs font-medium px-2 py-0.5 rounded-full ${badge}`}>
           {statusLabel(b.status)}
