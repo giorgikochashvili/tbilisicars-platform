@@ -3084,10 +3084,30 @@ export default function Booking() {
   const locations = sortLocations(config?.locations ?? []);
   const extras = config?.extras ?? [];
 
+  const bookingHelmet = (
+    <Helmet>
+      <title>Book a Car in Georgia | Tbilisicars</title>
+      <meta name="description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
+      <link rel="canonical" href="https://tbilisicars.com/booking" />
+      <meta name="robots" content="noindex,follow" />
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="Tbilisicars" />
+      <meta property="og:url" content="https://tbilisicars.com/booking" />
+      <meta property="og:title" content="Book a Car in Georgia | Tbilisicars" />
+      <meta property="og:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
+      <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Book a Car in Georgia | Tbilisicars" />
+      <meta name="twitter:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
+      <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
+    </Helmet>
+  );
+
   // ── Step 1: dedicated layout — stepper above, true left-rail + vehicle grid ──
   if (step === 1) {
     return (
       <div className="min-h-screen py-6 px-4">
+        {bookingHelmet}
         <div className="mx-auto max-w-7xl">
           {/* Unified header card: title + subtitle + step progress row */}
           <div className="bg-card border border-border rounded-2xl px-6 pt-6 pb-4 mb-6">
@@ -3121,22 +3141,7 @@ export default function Booking() {
 
   return (
     <div className="min-h-screen py-6 px-4">
-      <Helmet>
-        <title>Book a Car in Georgia | Tbilisicars</title>
-        <meta name="description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
-        <link rel="canonical" href="https://tbilisicars.com/booking" />
-        <meta name="robots" content="noindex,follow" />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Tbilisicars" />
-        <meta property="og:url" content="https://tbilisicars.com/booking" />
-        <meta property="og:title" content="Book a Car in Georgia | Tbilisicars" />
-        <meta property="og:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
-        <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Book a Car in Georgia | Tbilisicars" />
-        <meta name="twitter:description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
-        <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
-      </Helmet>
+      {bookingHelmet}
       <div className={cn("mx-auto", (showSidebar || step === 6) ? "max-w-5xl" : "max-w-2xl")}>
         <div className={cn("items-start", showSidebar && "lg:grid lg:grid-cols-[1fr_288px] lg:gap-6")}>
           {/* Main step card */}
