@@ -2530,6 +2530,36 @@ export default function BookingDetail({
                         </>
                       );
                     })()}
+                    {booking.extras && booking.extras.length > 0 && (
+                      <div className="col-span-full">
+                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
+                          Extras
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          {booking.extras.map((ex: { id: number; extraId: number; extraName: string; quantity: number | null; priceAtBooking: string | null }) => {
+                            const qty = ex.quantity ?? 1;
+                            const unit = ex.priceAtBooking != null ? parseFloat(ex.priceAtBooking) : null;
+                            const line = unit != null ? unit * qty : null;
+                            const cs = currencySymbol(booking.currency ?? "GEL");
+                            return (
+                              <div key={ex.id} className="flex items-center gap-2 text-xs">
+                                <span className="text-white/90 font-medium">{ex.extraName}</span>
+                                {qty > 1 && (
+                                  <span className="text-muted-foreground">×{qty}</span>
+                                )}
+                                {line != null && (
+                                  <span className="text-muted-foreground font-mono">
+                                    {unit != null && qty > 1
+                                      ? `${cs}${unit.toFixed(2)} × ${qty} = ${cs}${line.toFixed(2)}`
+                                      : `${cs}${line.toFixed(2)}`}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Source

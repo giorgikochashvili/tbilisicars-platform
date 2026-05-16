@@ -1,0 +1,77 @@
+Plan only. Do not implement yet.
+
+Task #272 — Show CRM-created extras in Booking Detail and PDF voucher.
+
+Goal:
+Extras selected when staff creates a manual booking in CRM should be visible in:
+1) CRM Booking Detail
+2) PDF voucher
+
+Context:
+CRM Manual New Booking already supports selecting optional extras with quantities and saves them to booking_extra.
+Website/public bookings already show extras in relevant places.
+We need CRM-created booking extras to display consistently too.
+
+Important rules:
+- PLAN ONLY.
+- Do not implement yet.
+- Do not change database schema.
+- Do not change pricing calculations.
+- Do not change booking creation logic.
+- Do not change payment logic.
+- Do not change availability logic.
+- Do not change email sending flow.
+- Do not change public website booking flow.
+- Do not change Delivery Service changes from #291/#292.
+- Do not add packages.
+- Keep this as display/data passthrough only.
+
+Requirements:
+
+A) CRM Booking Detail
+- Show current booking extras in the Booking Detail page/panel.
+- Include extra name, quantity, and price if available.
+- Reuse the existing extras display pattern if website bookings already appear there.
+- Do not add edit/manage controls in this task. Management is #273 later.
+- If no extras exist, keep existing clean empty behavior.
+
+B) PDF voucher
+- Include booked extras in the voucher pricing/details area.
+- Show quantity and price clearly.
+- Reuse existing public booking voucher extras layout if already implemented.
+- Do not change pricing calculations.
+- Do not recompute totals.
+- Do not redesign PDF.
+- Only display the existing stored booking_extra data.
+
+Technical areas to inspect:
+- artifacts/crm/src/pages/BookingDetail.tsx
+  - existing extras display section
+  - booking detail data shape
+- artifacts/api-server/src/services/admin-bookings.service.ts
+  - getAdminBooking()
+  - whether extras are included in detail response
+- artifacts/api-server/src/routes/admin-bookings.ts
+  - document/PDF voucher route if it exists
+- artifacts/api-server/src/services/pdf-voucher.service.ts
+  - VoucherParams extras field and rendering
+- public booking flow for how extras are passed to PDF voucher
+- booking_extra schema if needed
+
+Plan requirements:
+1. Confirm whether getAdminBooking() already returns extras for CRM-created bookings.
+2. Confirm whether BookingDetail.tsx already renders extras when present.
+3. Confirm whether admin PDF voucher/document route passes extras to generateBookingVoucherPdf.
+4. Identify exact missing handoff/display layer.
+5. Propose minimal safe fix.
+6. List exact files to change.
+7. Confirm no edit/manage functionality will be added in this task.
+8. Confirm no price recalculation and no booking logic changes.
+9. Do not implement yet.
+
+Done looks like after implementation:
+- A CRM-created booking with extras shows those extras in Booking Detail.
+- The PDF voucher for that booking lists the extras with quantity/price.
+- Public website booking extras remain unaffected.
+- Existing bookings without extras display normally.
+- Build/typecheck passes.
