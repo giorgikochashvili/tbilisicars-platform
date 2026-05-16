@@ -1,0 +1,113 @@
+Plan only. Do not implement yet.
+
+We are doing the next operational completion phase for TBILISICARS CRM&WEB.
+
+Tasks included:
+#276 — Show Delivery badge in CRM Bookings list and include delivery/collection address in customer confirmation emails.
+#277 — Add Delivery Service option to CRM manual booking form.
+
+Goal:
+Complete Delivery Service visibility and manual booking support.
+
+Context:
+The public website already supports Delivery Service when a Downtown location is selected. It saves:
+- pickup_type = "hotel" and pickup_address
+- dropoff_type = "hotel" and dropoff_address
+
+Booking Detail already displays delivery address fields.
+
+Now we need:
+1) CRM Bookings list to clearly show when a booking is a Delivery Service booking.
+2) Customer confirmation email to include pickup delivery address and/or return collection address when present.
+3) CRM manual booking form to allow staff to select Delivery Service for Downtown pickup/dropoff and enter the address, saving the same fields.
+
+Important rules:
+- PLAN ONLY.
+- Do not implement yet.
+- Do not change database schema.
+- Do not change pricing logic.
+- Do not change availability logic.
+- Do not change payment logic.
+- Do not change booking status logic.
+- Do not change public website booking flow.
+- Do not change PDF voucher in this task unless you identify a tiny display-only need and explain it first.
+- Do not send confirmation emails automatically.
+- Do not touch Customer Cabinet.
+- Do not touch vehicle image logic.
+- No new packages.
+- Keep changes surgical.
+
+Task #276 requirements:
+
+A) CRM Bookings list Delivery badge
+- In CRM Bookings list/table/cards, show a small "Delivery" badge when:
+  pickupType === "hotel" OR dropoffType === "hotel"
+  or equivalent backend field names.
+- Badge should be subtle and clear.
+- Do not change filters unless needed.
+- Do not change booking list query behavior unless pickupType/dropoffType are missing from response.
+- If response does not include pickupType/dropoffType, identify the minimal API/service change needed to include them.
+
+B) Customer confirmation email delivery address display
+- If pickupAddress exists, show it clearly in the trip details section:
+  Pickup delivery address / hotel: <address>
+- If dropoffAddress exists, show:
+  Return collection address / hotel: <address>
+- Keep email-client-safe HTML.
+- Do not redesign the whole email.
+- Do not change plain-text fallback unless the existing plain-text body already mirrors trip details and can safely include these lines.
+- Do not change pricing/reference/email sending flow.
+
+Task #277 requirements:
+
+C) CRM manual booking Delivery Service option
+- In manual New Booking form, when pickup location is a Downtown location, show a checkbox:
+  "Delivery Service"
+- When checked, show a required address field:
+  "Pickup delivery address / hotel"
+- When dropoff/return location is Downtown, show a return-side checkbox:
+  "Delivery Service"
+- When checked, show a required address field:
+  "Return collection address / hotel"
+- Airport locations should not show Delivery Service by default.
+- If staff changes location from Downtown to Airport, clear/hide the relevant delivery option and address to avoid stale data.
+- Save using the same fields as public website:
+  pickupType: "hotel" and pickupAddress
+  dropoffType: "hotel" and dropoffAddress
+- If delivery is not selected, preserve existing office/default behavior.
+- This should apply to new manual booking creation.
+- Do not alter existing Booking Detail delivery display.
+
+Technical areas to inspect:
+- artifacts/crm/src/pages/Bookings.tsx
+  - Bookings list rows/cards
+  - manual New Booking form
+  - buildPayload / create booking payload
+- artifacts/api-server/src/services/admin-bookings.service.ts
+  - list bookings response
+  - createAdminBooking payload handling
+- artifacts/api-server/src/routes/admin-bookings.ts
+- lib/api-zod/src/generated/api.ts if admin booking schema needs pickupType/pickupAddress/dropoffType/dropoffAddress fields
+- artifacts/api-server/src/services/email.service.ts
+  - customer confirmation email trip details
+- public booking email param flow if pickup/dropoff address fields are not passed to email params
+
+Plan requirements:
+1. Identify exact files/functions to change.
+2. Confirm whether CRM Bookings list already receives pickupType/dropoffType.
+3. Confirm whether admin create booking already accepts/saves pickupType/pickupAddress/dropoffType/dropoffAddress.
+4. Confirm whether customer email params already include pickupAddress/dropoffAddress.
+5. Explain the minimal safe implementation.
+6. Explain how stale delivery state will be cleared in manual booking form.
+7. Explain validation behavior for required delivery address.
+8. Confirm no automatic confirmation email is introduced.
+9. List risks and how to avoid regressions.
+10. Do not implement yet.
+
+Done looks like after implementation:
+- Delivery bookings show a Delivery badge in CRM Bookings list.
+- Customer confirmation email includes delivery/collection address when present.
+- CRM staff can create manual delivery bookings from Downtown pickup/dropoff.
+- Delivery fields save to the existing DB columns.
+- Existing normal manual booking creation still works.
+- Build/typecheck passes.

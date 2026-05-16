@@ -1035,6 +1035,8 @@ router.post("/public/bookings", async (req, res) => {
     // and [RATE EXPIRED] before showing anything to the customer.
     bookingNotes: combinedNotes,
     vehicleImageUrl: modelRows[0]?.image_url ?? null,
+    pickupAddress: body.pickupAddress || null,
+    dropoffAddress: body.dropoffAddress || null,
   };
 
   setImmediate(() => {
@@ -1092,6 +1094,8 @@ router.post("/public/bookings", async (req, res) => {
             bookingStatus: emailParams.bookingStatus,
             paymentStatus: emailParams.paymentStatus,
             bookingNotes: emailParams.bookingNotes,
+            pickupAddress: emailParams.pickupAddress,
+            dropoffAddress: emailParams.dropoffAddress,
           });
           console.log(`[email] customer_email_sent bookingId=${emailParams.bookingId}`);
         } catch (err) {

@@ -150,6 +150,10 @@ function getLocationType(locationName: string | null | undefined): "airport" | "
   return "office";
 }
 
+function isDeliveryEligible(locationName: string | null | undefined): boolean {
+  return getLocationType(locationName) !== "airport";
+}
+
 function DateFilterPicker({
   value,
   onChange,
@@ -840,6 +844,11 @@ export default function BookingsPage() {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <StatusBadge status={b.status} />
                     <PaymentBadge status={b.paymentStatus} />
+                    {(b.pickupType === "hotel" || b.dropoffType === "hotel") && (
+                      <Badge variant="outline" className="text-[10px] uppercase bg-cyan-500/10 text-cyan-400 border-cyan-500/30">
+                        Delivery
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 {/* Row 2: vehicle */}
@@ -1292,13 +1301,31 @@ export default function BookingsPage() {
                 onTimeChange={(t) => setBooking({ ...booking, pickupTime: t })}
                 required
               />
+              {booking.pickupLocationId && (() => {
+                const loc = allLocations.find((l: any) => l.id.toString() === booking.pickupLocationId);
+                return isDeliveryEligible(loc?.name) ? (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border accent-cyan-500"
+                      checked={booking.pickupType === "hotel"}
+                      onChange={(e) => setBooking({
+                        ...booking,
+                        pickupType: e.target.checked ? "hotel" : "office",
+                        pickupAddress: e.target.checked ? booking.pickupAddress : "",
+                      })}
+                    />
+                    <span className="text-sm text-foreground">Delivery Service</span>
+                  </label>
+                ) : null;
+              })()}
               {booking.pickupType === "hotel" && (
                 <div className="grid gap-2">
-                  <Label>Hotel Name / Address</Label>
+                  <Label>Pickup delivery address / hotel <span className="text-destructive">*</span></Label>
                   <Input
                     value={booking.pickupAddress}
                     onChange={e => setBooking({...booking, pickupAddress: e.target.value})}
-                    placeholder="Enter hotel name or address"
+                    placeholder="Pickup delivery address / hotel"
                   />
                 </div>
               )}
@@ -1345,13 +1372,31 @@ export default function BookingsPage() {
                 onTimeChange={(t) => setBooking({ ...booking, dropoffTime: t })}
                 required
               />
+              {booking.dropoffLocationId && (() => {
+                const loc = allLocations.find((l: any) => l.id.toString() === booking.dropoffLocationId);
+                return isDeliveryEligible(loc?.name) ? (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border accent-cyan-500"
+                      checked={booking.dropoffType === "hotel"}
+                      onChange={(e) => setBooking({
+                        ...booking,
+                        dropoffType: e.target.checked ? "hotel" : "office",
+                        dropoffAddress: e.target.checked ? booking.dropoffAddress : "",
+                      })}
+                    />
+                    <span className="text-sm text-foreground">Delivery Service</span>
+                  </label>
+                ) : null;
+              })()}
               {booking.dropoffType === "hotel" && (
                 <div className="grid gap-2">
-                  <Label>Hotel Name / Address</Label>
+                  <Label>Return collection address / hotel <span className="text-destructive">*</span></Label>
                   <Input
                     value={booking.dropoffAddress}
                     onChange={e => setBooking({...booking, dropoffAddress: e.target.value})}
-                    placeholder="Enter hotel name or address"
+                    placeholder="Return collection address / hotel"
                   />
                 </div>
               )}

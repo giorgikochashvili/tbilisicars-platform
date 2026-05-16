@@ -82,6 +82,8 @@ const bookingRowSelect = {
   dropoffLocationCity: dropoffLoc.city,
   partnerId: partnerTable.id,
   partnerName: partnerTable.name,
+  pickupType: bookingTable.pickupType,
+  dropoffType: bookingTable.dropoffType,
 } as const;
 
 // ─── Booking detail select (additional fields for single booking view) ─────────
@@ -148,6 +150,8 @@ type BookingRowFlat = {
   partnerId: number | null;
   partnerName: string | null;
   externalReservationCode: string | null;
+  pickupType: string | null;
+  dropoffType: string | null;
 };
 
 function mapToBookingRow(row: BookingRowFlat) {
@@ -185,6 +189,8 @@ function mapToBookingRow(row: BookingRowFlat) {
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName, city: row.dropoffLocationCity },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
+    pickupType: row.pickupType,
+    dropoffType: row.dropoffType,
   };
 }
 

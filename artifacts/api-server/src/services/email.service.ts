@@ -104,6 +104,8 @@ export interface BookingConfirmationEmailParams {
   bookingStatus?: string;
   paymentStatus?: string;
   bookingNotes?: string | null;
+  pickupAddress?: string | null;
+  dropoffAddress?: string | null;
 }
 
 export async function sendBookingConfirmationEmail(params: BookingConfirmationEmailParams): Promise<void> {
@@ -126,6 +128,8 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
     bookingStatus = "PENDING",
     paymentStatus = "UNPAID",
     bookingNotes,
+    pickupAddress,
+    dropoffAddress,
   } = params;
 
   console.log(`[email] preparing ref=${reference} bookingId=${bookingId ?? "?"} to=${toEmail}`);
@@ -299,11 +303,13 @@ export async function sendBookingConfirmationEmail(params: BookingConfirmationEm
                 <div class="dates-label">Pickup</div>
                 <div class="dates-location">${esc(pickupLocation)}</div>
                 <div class="dates-time">${esc(formatDT(pickupDatetime))}</div>
+                ${pickupAddress ? `<div style="font-size:12px;color:#94a3b8;margin-top:5px;line-height:1.4;">&#x1F4CD; ${esc(pickupAddress)}</div>` : ""}
               </td>
               <td style="width:50%;padding:14px 16px;vertical-align:top;">
                 <div class="dates-label">Return</div>
                 <div class="dates-location">${esc(dropoffLocation)}</div>
                 <div class="dates-time">${esc(formatDT(dropoffDatetime))}</div>
+                ${dropoffAddress ? `<div style="font-size:12px;color:#94a3b8;margin-top:5px;line-height:1.4;">&#x1F4CD; ${esc(dropoffAddress)}</div>` : ""}
               </td>
             </tr>
           </table>
@@ -382,11 +388,11 @@ VEHICLE
 
 PICKUP
   ${pickupLocation}
-  ${formatDT(pickupDatetime)}
+  ${formatDT(pickupDatetime)}${pickupAddress ? `\n  Delivery: ${pickupAddress}` : ""}
 
 RETURN
   ${dropoffLocation}
-  ${formatDT(dropoffDatetime)}
+  ${formatDT(dropoffDatetime)}${dropoffAddress ? `\n  Collection: ${dropoffAddress}` : ""}
 
 DETAILS
 ${metaText}
