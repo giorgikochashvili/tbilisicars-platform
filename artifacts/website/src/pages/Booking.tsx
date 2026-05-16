@@ -3125,6 +3125,7 @@ export default function Booking() {
         <title>Book a Car in Georgia | Tbilisicars</title>
         <meta name="description" content="Complete your car rental booking in Georgia. Choose your vehicle, dates and extras with instant confirmation." />
         <link rel="canonical" href="https://tbilisicars.com/booking" />
+        <meta name="robots" content="noindex,follow" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Tbilisicars" />
         <meta property="og:url" content="https://tbilisicars.com/booking" />
