@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -63,6 +63,12 @@ function App() {
                 <Route path="/car-rental-tbilisi" component={CityRentalTbilisi} />
                 <Route path="/car-rental-kutaisi" component={CityRentalKutaisi} />
                 <Route path="/car-rental-batumi" component={CityRentalBatumi} />
+                {/* ── Legacy redirect routes — SEO cleanup ──────────────────── */}
+                <Route path="/tbilisi"><Redirect to="/car-rental-tbilisi" /></Route>
+                <Route path="/batumi"><Redirect to="/car-rental-batumi" /></Route>
+                <Route path="/kopitnari"><Redirect to="/car-rental-kutaisi" /></Route>
+                <Route path="/terms-and-conditions"><Redirect to="/terms" /></Route>
+                <Route path="/ru/home"><Redirect to="/" /></Route>
                 <Route component={NotFound} />
               </Switch>
             </main>
