@@ -899,6 +899,53 @@ export async function updateAdminBookingStatus(
   return getAdminBooking(id);
 }
 
+// ─── Service: update booking extras ───────────────────────────────────────────
+
+export async function updateBookingExtras(
+  bookingId: number,
+  extras: { extraId: number; quantity: number }[],
+) {
+  for (const e of extras) {
+    if (!Number.isInteger(e.quantity) || e.quantity < 1) {
+      throw new AppError(422, "All extra quantities must be positive integers");
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    const [bk] = await tx
+      .select({ id: bookingTable.id })
+      .from(bookingTable)
+      .where(and(eq(bookingTable.id, bookingId), isNull(bookingTable.deletedAt)));
+    if (!bk) throw new NotFoundError(`Booking ${bookingId} not found`);
+
+    await tx.delete(bookingextraTable).where(eq(bookingextraTable.bookingId, bookingId));
+
+    if (extras.length > 0) {
+      const extraIds = extras.map((e) => e.extraId);
+      const { rows: extraRows } = await pool.query(
+        `SELECT id, price FROM extra WHERE id = ANY($1) AND is_active = true`,
+        [extraIds],
+      );
+      if (extraRows.length !== extraIds.length) {
+        throw new AppError(422, "One or more extras are invalid or inactive");
+      }
+      const extraMap = new Map<number, string>(
+        extraRows.map((r: any) => [r.id, String(r.price)]),
+      );
+      await tx.insert(bookingextraTable).values(
+        extras.map((e) => ({
+          bookingId,
+          extraId: e.extraId,
+          quantity: e.quantity,
+          priceAtBooking: extraMap.get(e.extraId)!,
+        })),
+      );
+    }
+  });
+
+  return getAdminBooking(bookingId);
+}
+
 // ─── Service: delete booking (soft delete) ────────────────────────────────────
 
 export async function deleteAdminBooking(id: number) {

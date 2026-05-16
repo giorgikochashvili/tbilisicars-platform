@@ -1552,6 +1552,12 @@ export default function BookingDetail({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  // Extras edit state
+  const [extrasEditMode, setExtrasEditMode] = useState(false);
+  const [extrasEditList, setExtrasEditList] = useState<{ extraId: number; extraName: string; quantity: number }[]>([]);
+  const [availableExtras, setAvailableExtras] = useState<any[]>([]);
+  const [savingExtras, setSavingExtras] = useState(false);
+
   // Handover modal state
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showDropoffModal, setShowDropoffModal] = useState(false);
@@ -1595,6 +1601,46 @@ export default function BookingDetail({
   const [assignVehicles, setAssignVehicles] = useState<any[]>([]);
   const [loadingAssignVehicles, setLoadingAssignVehicles] = useState(false);
   const [savingAssign, setSavingAssign] = useState(false);
+
+  const handleExtrasEdit = async () => {
+    try {
+      const data = await apiFetch("/admin/extras");
+      setAvailableExtras(Array.isArray(data) ? data.filter((e: any) => e.isActive) : []);
+      setExtrasEditList(
+        (booking?.extras ?? []).map((ex: any) => ({
+          extraId: ex.extraId,
+          extraName: ex.extraName,
+          quantity: ex.quantity ?? 1,
+        })),
+      );
+      setExtrasEditMode(true);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleExtrasSave = async () => {
+    if (!bookingId) return;
+    setSavingExtras(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/extras`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          extras: extrasEditList.map(({ extraId, quantity }) => ({ extraId, quantity })),
+        }),
+      });
+      setExtrasEditMode(false);
+      fetchBooking();
+      toast({
+        title: "Extras updated",
+        description: "Review the booking amount manually if needed.",
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingExtras(false);
+    }
+  };
 
   const fetchBooking = useCallback(async () => {
     if (!bookingId) return;
@@ -2530,11 +2576,100 @@ export default function BookingDetail({
                         </>
                       );
                     })()}
-                    {booking.extras && booking.extras.length > 0 && (
-                      <div className="col-span-full">
-                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
+                    <div className="col-span-full">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide">
                           Extras
                         </div>
+                        {!extrasEditMode && (
+                          <button
+                            className="text-[11px] text-blue-400 hover:text-blue-300 transition-colors"
+                            onClick={handleExtrasEdit}
+                          >
+                            {booking.extras && booking.extras.length > 0 ? "Edit" : "Add extras"}
+                          </button>
+                        )}
+                      </div>
+
+                      {extrasEditMode ? (
+                        <div className="flex flex-col gap-1.5">
+                          {extrasEditList.map((ex, idx) => (
+                            <div key={ex.extraId} className="flex items-center gap-2">
+                              <span className="text-xs text-white/90 flex-1 min-w-0 truncate">{ex.extraName}</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={ex.quantity}
+                                onChange={(e) => {
+                                  const qty = parseInt(e.target.value, 10);
+                                  if (!isNaN(qty) && qty > 0) {
+                                    setExtrasEditList(
+                                      extrasEditList.map((item, i) =>
+                                        i === idx ? { ...item, quantity: qty } : item,
+                                      ),
+                                    );
+                                  }
+                                }}
+                                className="w-14 text-xs bg-zinc-800 border border-zinc-600 rounded px-1.5 py-0.5 text-center text-white focus:outline-none focus:border-zinc-400"
+                              />
+                              <button
+                                className="text-xs text-red-400 hover:text-red-300 leading-none px-0.5"
+                                onClick={() =>
+                                  setExtrasEditList(extrasEditList.filter((_, i) => i !== idx))
+                                }
+                                title="Remove"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+
+                          {availableExtras.filter(
+                            (e) => !extrasEditList.some((x) => x.extraId === e.id),
+                          ).length > 0 && (
+                            <select
+                              className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-white/70 mt-0.5 focus:outline-none focus:border-zinc-400"
+                              value=""
+                              onChange={(e) => {
+                                const id = parseInt(e.target.value, 10);
+                                const found = availableExtras.find((x) => x.id === id);
+                                if (found) {
+                                  setExtrasEditList([
+                                    ...extrasEditList,
+                                    { extraId: found.id, extraName: found.name, quantity: 1 },
+                                  ]);
+                                }
+                              }}
+                            >
+                              <option value="">+ Add extra…</option>
+                              {availableExtras
+                                .filter((e) => !extrasEditList.some((x) => x.extraId === e.id))
+                                .map((e: any) => (
+                                  <option key={e.id} value={e.id}>
+                                    {e.name}
+                                  </option>
+                                ))}
+                            </select>
+                          )}
+
+                          <div className="flex gap-2 mt-0.5">
+                            <button
+                              disabled={savingExtras}
+                              onClick={handleExtrasSave}
+                              className="text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded px-2.5 py-1 transition-colors"
+                            >
+                              {savingExtras ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              disabled={savingExtras}
+                              onClick={() => setExtrasEditMode(false)}
+                              className="text-xs text-muted-foreground hover:text-white transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : booking.extras && booking.extras.length > 0 ? (
                         <div className="flex flex-col gap-0.5">
                           {booking.extras.map((ex: { id: number; extraId: number; extraName: string; quantity: number | null; priceAtBooking: string | null }) => {
                             const qty = ex.quantity ?? 1;
@@ -2558,8 +2693,10 @@ export default function BookingDetail({
                             );
                           })}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-xs text-muted-foreground">None</div>
+                      )}
+                    </div>
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Source

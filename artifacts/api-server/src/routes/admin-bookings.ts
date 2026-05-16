@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 import { pool } from "@workspace/db";
 import {
   GetAdminBookingParams,
@@ -22,6 +22,7 @@ import {
   createAdminBooking,
   updateAdminBooking,
   updateAdminBookingStatus,
+  updateBookingExtras,
   deleteAdminBooking,
   appendBookingPhotos,
 } from "../services/admin-bookings.service.js";
@@ -213,6 +214,31 @@ router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {
     afterData: { status: (booking as any).status },
   });
   res.json(UpdateAdminBookingResponse.parse(booking));
+});
+
+const PatchBookingExtrasBody = z.object({
+  extras: z.array(
+    z.object({
+      extraId: z.number().int().positive(),
+      quantity: z.number().int().positive(),
+    }),
+  ),
+});
+
+router.patch("/admin/bookings/:id/extras", requireAdmin, async (req, res) => {
+  const { id } = GetAdminBookingParams.parse(req.params);
+  const { extras } = PatchBookingExtrasBody.parse(req.body);
+  const booking = await updateBookingExtras(id, extras);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "updated",
+    summary: `Admin updated extras for booking ${bookingRef(id)} (${extras.length} item${extras.length === 1 ? "" : "s"})`,
+    afterData: { extrasCount: extras.length },
+  });
+  res.json(GetAdminBookingResponse.parse(booking));
 });
 
 router.patch("/admin/bookings/:id/status", requireAdmin, async (req, res) => {
