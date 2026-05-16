@@ -23,6 +23,7 @@ import {
   updateAdminBooking,
   updateAdminBookingStatus,
   updateBookingExtras,
+  sendAdminBookingConfirmation,
   deleteAdminBooking,
   appendBookingPhotos,
 } from "../services/admin-bookings.service.js";
@@ -388,6 +389,22 @@ router.post("/admin/bookings/:id/dropoff", requireAdmin, async (req, res) => {
     afterData: { mileage, fuelLevel, photoCount: (photoUrls ?? []).length },
   });
   res.status(201).json(handover);
+});
+
+// Send customer confirmation email for an admin/manual booking.
+// Staff-triggered only — never called automatically on booking creation.
+router.post("/admin/bookings/:id/send-confirmation", requireAdmin, async (req, res) => {
+  const { id } = GetAdminBookingParams.parse(req.params);
+  await sendAdminBookingConfirmation(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "email_sent",
+    summary: `Admin sent customer confirmation email for booking ${bookingRef(id)}`,
+  });
+  res.json({ ok: true });
 });
 
 // Append photos to a booking without touching booking_handover or status.

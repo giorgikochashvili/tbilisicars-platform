@@ -34,6 +34,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { AppError, ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 import { removeFromParkingByVehicle } from "./admin-parking.service.js";
+import { sendBookingConfirmationEmail } from "./email.service.js";
 
 type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -944,6 +945,89 @@ export async function updateBookingExtras(
   });
 
   return getAdminBooking(bookingId);
+}
+
+// ─── Service: send customer confirmation email for admin booking ──────────────
+
+export async function sendAdminBookingConfirmation(bookingId: number): Promise<{ ok: true }> {
+  const booking = await getAdminBooking(bookingId);
+  if (!booking) throw new NotFoundError(`Booking ${bookingId} not found`);
+
+  const toEmail = booking.contactEmail?.trim() || booking.customer?.email?.trim() || null;
+  if (!toEmail) {
+    throw new AppError(422, "This booking has no customer email address — cannot send confirmation.");
+  }
+
+  const toName = booking.contactFullName?.trim() || booking.customer?.fullName?.trim() || "Valued Customer";
+
+  const vehicleLabel =
+    [booking.vehicle?.brandName, booking.vehicle?.modelName].filter(Boolean).join(" ").trim() ||
+    [booking.vehicleModelBrandName, booking.vehicleModelName].filter(Boolean).join(" ").trim() ||
+    "Vehicle TBD";
+
+  const reference = `#${booking.id}`;
+
+  const pickupLocation = booking.pickupLocation?.name ?? "";
+  const dropoffLocation = booking.dropoffLocation?.name ?? "";
+
+  let emailExtras: Array<{
+    name: string;
+    quantity: number;
+    pricePerUnit: number;
+    pricingType: string;
+    maxDays: number | null;
+  }> = [];
+
+  if (booking.extras && booking.extras.length > 0) {
+    const extraIds = booking.extras.map((e) => e.extraId);
+    const { rows: extraRows } = await pool.query<{
+      id: number;
+      pricing_type: string;
+      max_days: number | null;
+    }>(
+      `SELECT id, pricing_type, max_days FROM extra WHERE id = ANY($1)`,
+      [extraIds],
+    );
+    const extraMeta = new Map(extraRows.map((r) => [r.id, { pricingType: r.pricing_type, maxDays: r.max_days ?? null }]));
+
+    emailExtras = booking.extras.map((e) => ({
+      name: e.extraName,
+      quantity: e.quantity ?? 1,
+      pricePerUnit: Number(e.priceAtBooking),
+      pricingType: extraMeta.get(e.extraId)?.pricingType ?? "per_trip",
+      maxDays: extraMeta.get(e.extraId)?.maxDays ?? null,
+    }));
+  }
+
+  const estimatedTotal =
+    booking.totalAmount != null ? Number(booking.totalAmount) : null;
+
+  await sendBookingConfirmationEmail({
+    toEmail,
+    toName,
+    reference,
+    bookingId: booking.id,
+    vehicle: vehicleLabel,
+    pickupLocation,
+    dropoffLocation,
+    pickupDatetime: booking.pickupDatetime instanceof Date
+      ? booking.pickupDatetime.toISOString()
+      : String(booking.pickupDatetime),
+    dropoffDatetime: booking.dropoffDatetime instanceof Date
+      ? booking.dropoffDatetime.toISOString()
+      : String(booking.dropoffDatetime),
+    extras: emailExtras,
+    estimatedTotal,
+    currency: booking.currency ?? "GEL",
+    bookingStatus: booking.status ?? "PENDING",
+    paymentStatus: booking.paymentStatus ?? "UNPAID",
+    bookingNotes: booking.notes ?? null,
+    pickupAddress: booking.pickupAddress ?? null,
+    dropoffAddress: booking.dropoffAddress ?? null,
+    attachPdfVoucher: true,
+  });
+
+  return { ok: true };
 }
 
 // ─── Service: delete booking (soft delete) ────────────────────────────────────

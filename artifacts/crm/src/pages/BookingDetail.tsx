@@ -67,6 +67,7 @@ import {
   MessageCircle,
   Smile,
   Paperclip,
+  Send,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -1552,6 +1553,9 @@ export default function BookingDetail({
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
+  // Send confirmation email state
+  const [sendingConfirmation, setSendingConfirmation] = useState(false);
+
   // Extras edit state
   const [extrasEditMode, setExtrasEditMode] = useState(false);
   const [extrasEditList, setExtrasEditList] = useState<{ extraId: number; extraName: string; quantity: number }[]>([]);
@@ -1639,6 +1643,19 @@ export default function BookingDetail({
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setSavingExtras(false);
+    }
+  };
+
+  const handleSendConfirmation = async () => {
+    if (!bookingId) return;
+    setSendingConfirmation(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/send-confirmation`, { method: "POST" });
+      toast({ title: "Confirmation sent", description: "Customer confirmation email delivered successfully." });
+    } catch (e: any) {
+      toast({ title: "Failed to send", description: e.message, variant: "destructive" });
+    } finally {
+      setSendingConfirmation(false);
     }
   };
 
@@ -2302,6 +2319,24 @@ export default function BookingDetail({
               >
                 <Ticket className="w-3 h-3" />
                 Booking Voucher
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5"
+                onClick={handleSendConfirmation}
+                disabled={
+                  sendingConfirmation ||
+                  (!booking.contactEmail && !booking.customer?.email)
+                }
+                title={
+                  !booking.contactEmail && !booking.customer?.email
+                    ? "No customer email on this booking"
+                    : "Send confirmation email to customer"
+                }
+              >
+                <Send className="w-3 h-3" />
+                {sendingConfirmation ? "Sending…" : "Send confirmation"}
               </Button>
               <Button
                 size="sm"

@@ -1,0 +1,88 @@
+Plan only. Do not implement yet.
+
+Task #274 — Add explicit Send Confirmation action for CRM/manual bookings.
+
+Goal:
+Allow staff to manually send the existing customer confirmation email + PDF voucher for a booking created/managed in CRM.
+
+Important business rule:
+Do NOT send confirmation email automatically after admin/manual booking creation.
+Staff must explicitly click a "Send confirmation" action/button.
+Default behavior after creating a booking remains: no email is sent automatically.
+
+Important rules:
+- PLAN ONLY.
+- Do not implement yet.
+- Do not change booking creation behavior.
+- Do not send emails automatically from createAdminBooking or POST /admin/bookings.
+- Do not change database schema unless absolutely required and justified.
+- Do not change pricing calculation.
+- Do not change payment logic.
+- Do not change booking status logic.
+- Do not change public website booking flow.
+- Do not change Delivery Service or extras management logic except passing existing booking data to the email/PDF if required.
+- Do not redesign email/PDF templates.
+- Do not add packages.
+- Keep this surgical.
+
+Required behavior:
+1) In CRM Booking Detail, staff can click "Send confirmation email".
+2) Button should only be enabled if booking has a customer email.
+3) If no customer email exists, show disabled state or clear warning.
+4) Clicking sends the existing customer confirmation email using the existing confirmation email template and PDF voucher generation.
+5) Sending should be explicit and user-triggered only.
+6) It should not block or alter booking data if sending fails.
+7) Show success/error toast in CRM.
+8) Optional: prevent double-click while sending with loading state.
+9) Do not send internal reservations email unless explicitly justified. This action is for customer confirmation.
+
+Technical areas to inspect:
+- artifacts/crm/src/pages/BookingDetail.tsx
+  - where action buttons are located
+  - existing mutation/toast/fetch patterns
+- artifacts/api-server/src/routes/admin-bookings.ts
+  - add minimal route if needed, e.g. POST /admin/bookings/:id/send-confirmation
+- artifacts/api-server/src/services/admin-bookings.service.ts
+  - get booking details/customer/email/model/pricing/extras needed for email params
+- artifacts/api-server/src/services/email.service.ts
+  - existing sendBookingConfirmationEmail / params
+- artifacts/api-server/src/routes/public-bookings.ts
+  - how public booking constructs emailParams and calls email service
+- PDF voucher generation params if required
+
+Plan requirements:
+1. Identify exactly what data is required by sendBookingConfirmationEmail.
+2. Confirm whether admin booking detail data already contains everything needed.
+3. Explain whether to reuse public booking email param construction or add a small admin helper.
+4. Propose exact route shape.
+5. Confirm no automatic email on booking creation.
+6. Confirm whether only customer email is sent, not internal reservations notification.
+7. Explain handling of missing customer email.
+8. Explain error handling and CRM UI loading state.
+9. List exact files to change.
+10. List risks and how to avoid regressions.
+11. Do not implement yet.
+
+Recommended approach:
+- Add POST /api/admin/bookings/:id/send-confirmation
+- Backend:
+  - require admin auth
+  - load full booking detail
+  - validate customer email exists
+  - construct email params from existing booking data
+  - call existing sendBookingConfirmationEmail
+  - write audit log entry
+  - return { ok: true }
+- Frontend:
+  - add a "Send confirmation" button in Booking Detail actions area
+  - disabled if no customer email
+  - loading state while sending
+  - success/error toast
+- No automatic sending anywhere else.
+
+Done looks like after implementation:
+- Staff opens a booking in CRM and clicks Send confirmation.
+- Customer receives the same style confirmation email + attached PDF voucher.
+- No email is sent unless staff clicks.
+- Existing booking creation remains unchanged.
+- Build/typecheck passes.

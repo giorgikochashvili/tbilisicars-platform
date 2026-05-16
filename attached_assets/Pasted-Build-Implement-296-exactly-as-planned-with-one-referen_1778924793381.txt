@@ -1,0 +1,50 @@
+Build / Implement #296 exactly as planned, with one reference-format clarification.
+
+Scope:
+- Add explicit "Send confirmation" action/button in CRM Booking Detail.
+- Add backend POST /admin/bookings/:id/send-confirmation route.
+- Add service function that sends the existing customer confirmation email with PDF voucher.
+- Staff must explicitly click the button. Never auto-send on booking creation.
+
+Hard rules:
+- Do NOT send email automatically from admin/manual booking creation.
+- Do NOT send internal reservations email.
+- Do NOT change booking data.
+- Do NOT change total amount.
+- Do NOT change payment status.
+- Do NOT change booking status.
+- Do NOT change pricing logic.
+- Do NOT change public website booking flow.
+- Do NOT change email/PDF templates.
+- Do NOT change database schema.
+- Do NOT add packages.
+
+Backend requirements:
+- Require admin auth.
+- Load full booking detail.
+- Resolve customer email from contactEmail first, then customer.email fallback.
+- If no customer email exists, return a clear 422 error.
+- Build params for existing sendBookingConfirmationEmail.
+- attachPdfVoucher must be true.
+- Await the send so staff receives immediate success/failure feedback.
+- Do not call internal reservations notification email.
+- Write an audit log entry after successful send.
+- Use existing booking reference/display reference if available. If no reference exists, fallback to #bookingId. Do not invent TC values.
+
+Extras requirement:
+- If booking has extras, fetch pricingType/maxDays with the planned read-only SQL query so the existing email/PDF extra rendering has the fields it expects.
+- This query must not mutate data.
+
+Frontend requirements:
+- Add "Send confirmation" button in BookingDetail actions bar after Booking Voucher.
+- Disabled if no customer email exists.
+- Loading state while sending to prevent double-click.
+- Success toast on sent.
+- Error toast on failure.
+- Do not refresh/change booking data unless needed.
+- Do not add automatic send anywhere.
+
+Run relevant API/CRM typechecks/builds.
+Report exact files changed.
+Confirm no automatic confirmation email was added.
+Confirm no internal reservations email is sent.
