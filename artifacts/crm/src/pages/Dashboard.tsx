@@ -295,10 +295,11 @@ function ExtraChips({ extras, limit }: { extras?: { name: string; quantity: numb
   const chips = extras.slice(0, limit);
   const overflow = extras.length - limit;
   return (
-    <div className="flex flex-wrap gap-0.5 mt-0.5">
+    <>
       {chips.map((e, i) => {
         const label = extraShortLabel(e.name);
-        const display = e.quantity != null && e.quantity > 1 ? `${label} ×${e.quantity}` : label;
+        const qty = e.quantity ?? 1;
+        const display = `${label} +${qty}`;
         return (
           <span
             key={i}
@@ -313,7 +314,7 @@ function ExtraChips({ extras, limit }: { extras?: { name: string; quantity: numb
           +{overflow}
         </span>
       )}
-    </div>
+    </>
   );
 }
 
@@ -661,26 +662,28 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                       <span className="text-[10px] font-mono font-bold tracking-wider text-slate-200 px-1.5 py-0 border border-slate-400/50 bg-slate-500/15 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
-                      <div className="mt-0.5">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <StatusBadge status={b.status} />
+                        <ExtraChips extras={b.extras} limit={3} />
                       </div>
                     </>
                   ) : vehicleName ? (
                     <>
                       <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
-                      <div className="mt-0.5">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <StatusBadge status={b.status} />
+                        <ExtraChips extras={b.extras} limit={3} />
                       </div>
                     </>
                   ) : (
                     <>
                       <span className="text-xs text-muted-foreground italic">Unassigned</span>
-                      <div className="mt-0.5">
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
                         <StatusBadge status={b.status} />
+                        <ExtraChips extras={b.extras} limit={3} />
                       </div>
                     </>
                   )}
-                  <ExtraChips extras={b.extras} limit={3} />
                 </div>
                 {/* Col 3: Client */}
                 <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
@@ -740,15 +743,14 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     <span className="font-mono font-bold text-foreground/70">{routeTo}</span>
                   </span>
                 </div>
-                {/* Row 2.5: Extras */}
-                <ExtraChips extras={b.extras} limit={2} />
-                {/* Row 3: ref/days + status + amount + payment */}
+                {/* Row 3: ref/days + status + extras + amount + payment */}
                 <div className="flex items-center justify-between gap-1 min-w-0">
                   <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0">
                     #{b.id} · {rentalDays}d
                   </span>
                   <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
                     <StatusBadge status={b.status} />
+                    <ExtraChips extras={b.extras} limit={2} />
                     <span className="text-[10px] font-mono font-semibold text-foreground">{amountEl}</span>
                     <PaymentStatusBadge status={b.paymentStatus} />
                   </div>
