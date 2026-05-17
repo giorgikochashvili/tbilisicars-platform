@@ -55,7 +55,7 @@ router.get("/admin/dashboard/today", requireAdmin, async (req, res) => {
     }
   }
   const activity = await getTodayActivity(city, date);
-  res.json(GetAdminDashboardTodayResponse.parse(activity));
+  res.json(activity);
 });
 
 router.get("/admin/dashboard/fleet-snapshot", requireAdmin, async (req, res) => {

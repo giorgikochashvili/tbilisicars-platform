@@ -1,0 +1,93 @@
+Build Phase 2 using Option 3 only.
+
+Goal:
+Show booking extras directly in CRM Dashboard → Operations → Pickups/Dropoffs rows/cards.
+
+Strict implementation path:
+Use the route-local bypass plan from the approved Plan response.
+Do NOT use OpenAPI/codegen for this task.
+
+Allowed files to change ONLY:
+1. artifacts/api-server/src/services/admin-dashboard.service.ts
+2. artifacts/api-server/src/routes/admin-dashboard.ts
+3. artifacts/crm/src/pages/Dashboard.tsx
+
+Do NOT change:
+- lib/api-spec/openapi.yaml
+- lib/api-zod/**
+- lib/api-client-react/**
+- any generated files
+- any OpenAPI/codegen config
+- any database schema or migrations
+- booking creation logic
+- booking status logic
+- pricing logic
+- payment logic
+- fleet availability logic
+- website/SEO files
+- email/PDF files
+- unrelated CRM modules
+
+Backend requirements:
+1. In admin-dashboard.service.ts:
+   - Batch-load extras for all operation booking IDs using one query.
+   - Use bookingextra + extra tables.
+   - Avoid N+1 queries.
+   - Return compact extras per booking:
+     extras: [{ name: string, quantity: number | null }]
+   - Do not recalculate totals.
+   - Do not change extras management behavior.
+   - Do not change pickup/dropoff filtering logic.
+
+2. In admin-dashboard.ts:
+   - For GET /admin/dashboard/today only, avoid stripping extras from the outbound response.
+   - Change only the response serialization for this today endpoint as planned:
+     return res.json(activity)
+     instead of parsing through GetAdminDashboardTodayResponse.parse(activity)
+   - Do not change other dashboard routes.
+   - Do not remove request validation or auth.
+
+Frontend requirements:
+1. In Dashboard.tsx:
+   - Use a local type extension only, for example:
+     AdminBookingRow & { extras?: { name: string; quantity: number | null }[] }
+   - Do not change generated types.
+   - Render extras chips near the vehicle/license/status block.
+
+2. Extra label mapping:
+   - SIM Card → SIM
+   - Child Seat → Seat
+   - Baby Seat → Baby
+   - Booster Seat → Booster
+   - Additional Driver → Driver
+   - WiFi Router / Wi-Fi → WiFi
+   - GPS Navigation → GPS
+   - Snow Chains → Chains
+   - Cross Border Permit → Border
+
+3. Quantity:
+   - If quantity > 1, show compactly:
+     Seat ×2
+     SIM ×2
+
+4. Visual style:
+   - Extras chips must NOT be red.
+   - Use green/success/informational styling.
+   - Text should be slightly larger than the previous tiny chip idea, about 10% larger.
+   - Add slightly more horizontal padding/breathing room.
+   - Keep chips compact and consistent with the dark CRM theme.
+
+5. Display limits:
+   - Desktop: show up to 3 chips, then +N.
+   - Mobile: show up to 2 chips, then +N.
+   - No horizontal overflow on desktop or mobile.
+   - Existing row click/open booking behavior must remain unchanged.
+
+Verification:
+1. Confirm no OpenAPI/codegen/generated files were touched.
+2. Confirm exact files changed.
+3. Confirm booking #27 has Child Seat in DB and Dashboard today API response includes extras.
+4. Confirm Dashboard Operations row can render the green “Seat” chip.
+5. Run API and CRM typechecks or relevant checks.
+6. Separate pre-existing errors from new errors.
+7. Goal: 0 new errors.

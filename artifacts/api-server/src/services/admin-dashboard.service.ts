@@ -9,6 +9,8 @@ import {
   brandTable,
   locationTable,
   partnerTable,
+  bookingextraTable,
+  extraTable,
 } from "@workspace/db";
 import {
   and,
@@ -328,9 +330,36 @@ export async function getTodayActivity(city?: string, date?: string) {
       .orderBy(asc(bookingTable.dropoffDatetime)),
   ]);
 
+  const pickupsMapped = pickupRows.map(mapToBookingRow);
+  const dropoffsMapped = dropoffRows.map(mapToBookingRow);
+
+  const allIds = [
+    ...pickupsMapped.map((b) => b.id),
+    ...dropoffsMapped.map((b) => b.id),
+  ];
+
+  const extrasMap = new Map<number, { name: string; quantity: number | null }[]>();
+  if (allIds.length > 0) {
+    const extrasRows = await db
+      .select({
+        bookingId: bookingextraTable.bookingId,
+        name: extraTable.name,
+        quantity: bookingextraTable.quantity,
+      })
+      .from(bookingextraTable)
+      .innerJoin(extraTable, eq(bookingextraTable.extraId, extraTable.id))
+      .where(inArray(bookingextraTable.bookingId, allIds));
+
+    for (const row of extrasRows) {
+      const existing = extrasMap.get(row.bookingId) ?? [];
+      existing.push({ name: row.name, quantity: row.quantity });
+      extrasMap.set(row.bookingId, existing);
+    }
+  }
+
   return {
-    pickups: pickupRows.map(mapToBookingRow),
-    dropoffs: dropoffRows.map(mapToBookingRow),
+    pickups: pickupsMapped.map((b) => ({ ...b, extras: extrasMap.get(b.id) ?? [] })),
+    dropoffs: dropoffsMapped.map((b) => ({ ...b, extras: extrasMap.get(b.id) ?? [] })),
   };
 }
 

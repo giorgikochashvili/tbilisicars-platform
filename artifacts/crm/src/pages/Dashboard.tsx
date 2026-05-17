@@ -47,6 +47,7 @@ interface BookingRow {
   totalAmount: string | null;
   currency: string | null;
   source?: string | null;
+  extras?: { name: string; quantity: number | null }[];
   customer: { id: number; fullName: string | null; email: string | null; phone?: string | null };
   vehicle: { id: number; licensePlate: string | null; modelName: string | null; brandName?: string | null } | null;
   vehicleModelName?: string | null;
@@ -269,6 +270,52 @@ const BOOKING_STATUS_COLORS: Record<string, string> = {
   CANCELED: "bg-red-500/10 text-red-500 border-red-500/20",
   NO_SHOW: "bg-orange-500/10 text-orange-500 border-orange-500/20",
 };
+
+// ─── Extras chips ─────────────────────────────────────────────────────────────
+
+const EXTRA_LABEL: Record<string, string> = {
+  "SIM Card": "SIM",
+  "Child Seat": "Seat",
+  "Baby Seat": "Baby",
+  "Booster Seat": "Booster",
+  "Additional Driver": "Driver",
+  "WiFi Router": "WiFi",
+  "Wi-Fi": "WiFi",
+  "GPS Navigation": "GPS",
+  "Snow Chains": "Chains",
+  "Cross Border Permit": "Border",
+};
+
+function extraShortLabel(name: string): string {
+  return EXTRA_LABEL[name] ?? name;
+}
+
+function ExtraChips({ extras, limit }: { extras?: { name: string; quantity: number | null }[]; limit: number }) {
+  if (!extras || extras.length === 0) return null;
+  const chips = extras.slice(0, limit);
+  const overflow = extras.length - limit;
+  return (
+    <div className="flex flex-wrap gap-0.5 mt-0.5">
+      {chips.map((e, i) => {
+        const label = extraShortLabel(e.name);
+        const display = e.quantity != null && e.quantity > 1 ? `${label} ×${e.quantity}` : label;
+        return (
+          <span
+            key={i}
+            className="text-[11px] font-medium px-1.5 py-px rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex-shrink-0 whitespace-nowrap"
+          >
+            {display}
+          </span>
+        );
+      })}
+      {overflow > 0 && (
+        <span className="text-[11px] font-medium px-1.5 py-px rounded bg-muted border border-border text-muted-foreground flex-shrink-0">
+          +{overflow}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -633,6 +680,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                       </div>
                     </>
                   )}
+                  <ExtraChips extras={b.extras} limit={3} />
                 </div>
                 {/* Col 3: Client */}
                 <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
@@ -692,6 +740,8 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                     <span className="font-mono font-bold text-foreground/70">{routeTo}</span>
                   </span>
                 </div>
+                {/* Row 2.5: Extras */}
+                <ExtraChips extras={b.extras} limit={2} />
                 {/* Row 3: ref/days + status + amount + payment */}
                 <div className="flex items-center justify-between gap-1 min-w-0">
                   <span className="font-mono text-[9px] text-muted-foreground flex-shrink-0">
