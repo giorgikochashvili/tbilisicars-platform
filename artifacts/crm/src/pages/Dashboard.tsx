@@ -510,7 +510,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-card/30">
         {/* ── Desktop column headers (md+) ── */}
         <div className={cn(
-          "hidden md:grid items-center px-3 py-2 gap-x-2",
+          "hidden md:grid items-center px-3 py-1.5 gap-x-2",
           "sticky top-0 bg-background/80 backdrop-blur-xl z-10",
           "border-b border-border/30",
           OPS_GRID,
@@ -529,7 +529,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
               <div key={i}>
                 {/* Desktop skeleton */}
                 <div className={cn(
-                  "hidden md:grid items-center px-3 py-3 gap-x-2 border-b border-border/20",
+                  "hidden md:grid items-center px-3 py-2 gap-x-2 border-b border-border/20",
                   OPS_GRID,
                 )}>
                   <Skeleton className="h-4 w-8" />
@@ -601,7 +601,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
             >
               {/* Desktop row (md+) */}
               <div className={cn(
-                "hidden md:grid items-center px-3 py-2 gap-x-2 hover:bg-muted/40 transition-colors",
+                "hidden md:grid items-center px-3 py-1.5 gap-x-2 hover:bg-muted/40 transition-colors",
                 OPS_GRID,
               )}>
                 {/* Col 1: Ref */}
@@ -611,7 +611,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   {b.vehicle ? (
                     <>
                       <span className="text-xs font-medium text-foreground truncate">{vehicleName}</span>
-                      <span className="text-[10px] font-mono font-bold text-foreground/80 px-2 py-0.5 bg-muted rounded-md inline-flex w-fit mt-0.5 flex-shrink-0">
+                      <span className="text-[10px] font-mono font-bold tracking-wider text-slate-200 px-1.5 py-0 border border-slate-400/50 bg-slate-500/15 rounded inline-flex w-fit mt-0.5 flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
                       <div className="mt-0.5">
@@ -677,7 +677,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   {b.vehicle ? (
                     <>
                       <span className="text-[10px] text-foreground/70 truncate min-w-0">{vehicleName}</span>
-                      <span className="text-[9px] font-mono font-bold text-foreground px-1 py-0 bg-primary/10 border border-primary/30 rounded flex-shrink-0">
+                      <span className="text-[9px] font-mono font-bold tracking-wider text-slate-200 px-1.5 py-0 border border-slate-400/50 bg-slate-500/15 rounded flex-shrink-0">
                         {b.vehicle.licensePlate}
                       </span>
                     </>

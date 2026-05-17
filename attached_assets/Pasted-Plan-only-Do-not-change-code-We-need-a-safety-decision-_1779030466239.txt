@@ -1,0 +1,61 @@
+Plan only. Do not change code.
+
+We need a safety decision after the latest Dashboard Operations extras task expanded into OpenAPI/codegen/API client synchronization.
+
+Context:
+The original request was small:
+- CRM Dashboard Operations compact layout
+- show extras chips
+- later small chip color/size tweak
+
+But the implementation touched OpenAPI/codegen/generated clients and fixed multiple missing spec entries. Before we continue or deploy, we need a rollback/keep risk review.
+
+Do not change code.
+Do not run implementation.
+Do not run codegen again unless only reading/checking status is needed.
+Do not modify files.
+
+Please report:
+
+1. Exact files changed in the latest build.
+Separate them into:
+A) Required for Dashboard Operations extras
+B) Required because API server was crashing after codegen
+C) Side-effect/spec synchronization changes
+D) Any UI-only changes
+
+2. What is the current Git status?
+- list modified files
+- list generated files
+- list deleted/removed exports/files if any
+
+3. Is API server currently running?
+- yes/no
+- latest startup error if no
+
+4. Are Dashboard Operations extras working now?
+- confirm booking #27 has Child Seat in DB
+- confirm Dashboard API response includes extras for #27
+- confirm CRM row can render the chip
+
+5. What modules could be affected by the OpenAPI/codegen sync?
+Specifically check risk for:
+- Fleet
+- Discounts
+- Bookings
+- Customers
+- Dashboard
+- API client imports
+
+6. Recommend one of these options:
+A) Keep current build and do manual preview QA before deploy
+B) Revert only the OpenAPI/codegen side-effect changes and redo Dashboard extras in a smaller way
+C) Full rollback to before this task and redo from scratch with frontend-only or narrowly scoped backend
+D) Keep only API startup fix but postpone extras UI
+
+7. If rollback is recommended, explain the safest rollback method:
+- which commit/hash to revert to
+- whether to revert one commit or selected files
+- what must be preserved, if anything
+
+8. Do not make any changes. Only report the safest recommendation.

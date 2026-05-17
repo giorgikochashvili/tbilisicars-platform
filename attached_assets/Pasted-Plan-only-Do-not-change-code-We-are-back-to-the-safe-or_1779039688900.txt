@@ -1,0 +1,60 @@
+Plan only. Do not change code.
+
+We are back to the safe origin/main state before the previous Dashboard Operations/OpenAPI/codegen changes.
+
+We need to restart this task safely and in small phases.
+
+Target area:
+CRM Dashboard → Operations Center → Pickups / Dropoffs.
+
+User request:
+1. Desktop Operations rows are too wide/spread out. Make the layout more compact and easier to scan.
+2. Vehicle license plate/state number is too small. Make it more visible, like a clear pill/badge, similar visual weight to the CONFIRMED badge but neutral.
+3. If extras can be shown safely without API/OpenAPI/codegen/backend changes, show compact extras chips near the vehicle block.
+4. Extras chips must NOT be red. They should be green/success/informational style.
+5. Extras chips should use short labels:
+   - SIM Card → SIM
+   - Child Seat → Seat
+   - Baby Seat → Baby
+   - Booster Seat → Booster
+   - Additional Driver → Driver
+   - WiFi Router / Wi-Fi → WiFi
+   - GPS Navigation → GPS
+   - Snow Chains → Chains
+   - Cross Border Permit → Border
+6. Extras chip text should be slightly larger than before, about 10%, and have slightly more horizontal padding.
+7. Desktop and mobile must both remain clean and without horizontal overflow.
+
+Critical safety rules:
+- Do NOT change code in this Plan step.
+- Do NOT touch backend.
+- Do NOT touch API services.
+- Do NOT touch OpenAPI.
+- Do NOT run codegen.
+- Do NOT touch generated files.
+- Do NOT touch api-zod or api-client-react.
+- Do NOT touch database schema.
+- Do NOT touch booking/pricing/payment/status/fleet logic.
+- Do NOT touch website/SEO/email/PDF.
+- Do NOT create new packages or migrations.
+
+Your task in Plan mode:
+A) Inspect the current Dashboard.tsx and Operations row layout.
+B) Confirm whether Phase 1 can be done frontend-only by changing only Dashboard.tsx:
+   - compact desktop grid/spacing
+   - more visible license plate badge
+   - mobile-safe layout
+C) Inspect the current Dashboard operations data shape available in the frontend.
+D) Confirm whether extras names/quantities are already available in the existing Dashboard payload WITHOUT backend/API/OpenAPI changes.
+E) If extras are NOT already available in the current payload, recommend postponing extras chips to Phase 2 and do NOT propose backend/OpenAPI/codegen changes in this task.
+F) If extras ARE already available in the current payload, explain exactly how you would render them frontend-only with green compact chips.
+
+Output required:
+1. Exact current files you inspected.
+2. Whether Phase 1 is frontend-only and safe.
+3. Exact file(s) that would change for Phase 1.
+4. Whether extras are already available in current frontend payload.
+5. Recommendation:
+   - Build Phase 1 only now, or
+   - Build Phase 1 + frontend-only extras if payload already has extras.
+6. Confirm explicitly that the plan does not touch OpenAPI/codegen/API/backend/generated files.
