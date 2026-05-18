@@ -71,6 +71,7 @@ function App() {
                 <Route path="/kopitnari"><Redirect to="/car-rental-kutaisi" /></Route>
                 <Route path="/terms-and-conditions"><Redirect to="/terms" /></Route>
                 <Route path="/ru/home"><Redirect to="/" /></Route>
+                <Route path="/ru/faq"><Redirect to="/" /></Route>
                 <Route component={NotFound} />
               </Switch>
             </main>

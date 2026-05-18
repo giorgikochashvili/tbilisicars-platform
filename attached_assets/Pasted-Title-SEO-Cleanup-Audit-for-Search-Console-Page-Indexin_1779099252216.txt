@@ -1,0 +1,193 @@
+Title: SEO Cleanup Audit for Search Console Page Indexing Issues, Legacy Domain History, and Redirect Hygiene
+
+Use PLAN MODE only. Do not edit files yet.
+
+Context:
+Google Search Console is now healthier:
+- /contact is indexed
+- sitemap.xml discovered pages increased to 11
+- Homepage/contact/city landing trust improvements are live
+
+Important historical context:
+- The current tbilisicars.com domain previously had a different/older website.
+- There was also a clone/old copy on tbilisicars.live.
+- Some Search Console URLs may be old legacy URLs from the previous website, not current app bugs.
+- Some redirects may already exist from previous cleanup work.
+- Do not assume every 404 is a new problem.
+- Do not create duplicate or conflicting redirect rules.
+- Check current React routing, existing legacy redirects, public files, robots/sitemap, and any deployment/Nginx assumptions before recommending changes.
+
+Goal:
+Analyze current website routing, legacy redirects, noindex rules, sitemap, robots, and Nginx/deployment assumptions to produce a safe SEO cleanup plan.
+
+Important:
+Do not implement anything yet.
+Do not touch CRM/API/backend/DB/booking/pricing/payment/PDF/customer cabinet.
+Do not make automatic decisions.
+We need a plan that separates:
+1. normal/no-action items
+2. stale Search Console items
+3. legacy URLs from the old tbilisicars.com website
+4. possible tbilisicars.live clone/domain hygiene issues
+5. legacy URLs that should become HTTP 301 redirects
+6. junk URLs that should stay 404 or become 410
+7. parameterized search URLs that should not be indexed
+
+Search Console findings to analyze:
+
+Excluded by noindex:
+- https://tbilisicars.com/contact
+Note: URL Inspection now says /contact is indexed, so this is likely stale report data.
+
+Page with redirect:
+- http://www.tbilisicars.com/
+- http://tbilisicars.com/
+
+Alternate page with proper canonical:
+- https://www.tbilisicars.com/
+
+Discovered currently not indexed:
+- https://tbilisicars.com/booking
+- https://tbilisicars.com/locations
+- https://tbilisicars.com/privacy
+- https://tbilisicars.com/terms
+
+Crawled currently not indexed:
+- https://tbilisicars.com/about
+- long https://www.tbilisicars.com/search?... parameter URL
+- http://tbilisicars.com/ru/faq
+- https://tbilisicars.com/ru/faq
+- https://www.tbilisicars.com/ru/__Routes.infoAdicional
+
+Soft 404:
+- https://www.tbilisicars.com/ru/home
+- https://tbilisicars.com/index.php/attributes/fuel-consumption-6-8l-100km/
+
+Not found 404 examples:
+- long https://www.tbilisicars.com/search?... parameter URL
+- https://www.tbilisicars.com/cancel-booking
+- https://www.tbilisicars.com/__Routes.infoAdicional
+- https://www.tbilisicars.com/search
+- https://www.tbilisicars.com/payment-success
+- https://tbilisicars.com/terms-and-conditions
+- https://www.tbilisicars.com/tbilisi
+- https://www.tbilisicars.com/kopitnari
+- https://www.tbilisicars.com/batumi
+- https://tbilisicars.com/assets/fonts/__Routes.infoAdicional
+
+Files/areas to inspect:
+- artifacts/website/src/App.tsx
+- artifacts/website/src/pages/NotFound.tsx
+- artifacts/website/src/pages/Booking.tsx
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/pages/About.tsx
+- artifacts/website/src/pages/Locations.tsx
+- artifacts/website/src/pages/Terms.tsx
+- artifacts/website/src/pages/Privacy.tsx
+- artifacts/website/public/sitemap.xml
+- artifacts/website/public/robots.txt
+- artifacts/website/index.html
+- any Helmet/SEO helper files
+- any existing legacy redirect logic
+- any Nginx/deployment notes if available in the repo
+
+Additional domain hygiene questions:
+- Is tbilisicars.live referenced anywhere in the current repo?
+- Is tbilisicars.live mentioned in sitemap, robots, canonical, OG URLs, or public code?
+- Should tbilisicars.live be handled outside the app at DNS/Nginx level?
+- If tbilisicars.live is still accessible, should it 301 redirect to https://tbilisicars.com/?
+- Do not implement this; only report and recommend.
+
+Questions to answer:
+
+A. Current routing and SEO state
+- What current routes exist in App.tsx?
+- Which routes are intended public indexable pages?
+- Which routes have noindex?
+- Is /booking intentionally noindex?
+- Is NotFound noindex?
+- Are /terms, /privacy, /locations, /about indexable?
+- Are sitemap and robots consistent with intended indexable pages?
+
+B. Legacy redirect review
+For these legacy URLs, recommend whether each should be:
+- HTTP 301 redirect
+- client-side redirect only
+- 404
+- 410 Gone
+- no action
+
+URLs:
+- /tbilisi
+- /kopitnari
+- /batumi
+- /terms-and-conditions
+- /ru/home
+- /ru/faq
+- /__Routes.infoAdicional
+- /assets/fonts/__Routes.infoAdicional
+- /index.php/attributes/fuel-consumption-6-8l-100km/
+- /search
+- /search?... parameter URLs
+- /payment-success
+- /cancel-booking
+
+C. Nginx vs React redirects
+- Identify which redirects currently happen in React/client-side only.
+- Explain whether SEO cleanup requires server-side/Nginx 301 redirects instead.
+- If yes, propose exact Nginx redirect rules, but do not apply them.
+- Make sure proposed Nginx rules do not break SPA routing, booking flow, CRM, API, assets, city pages, tbilisicars.com canonical, or existing redirects.
+
+D. Parameterized search URLs
+- Should /search and /search?... be noindex, redirect, 404, or blocked?
+- What is safest for booking/search functionality?
+- Is /search an active route or old legacy URL?
+- Do not break /booking or booking search flow.
+
+E. Soft 404 handling
+- Why might /ru/home and index.php/attributes/... be soft 404?
+- Should they become 301 redirects or 410/404?
+- Which option is best for SEO cleanliness?
+
+F. Stale Search Console items
+- Confirm /contact noindex report is stale because URL Inspection says indexed.
+- Confirm http/www redirect and www canonical items are normal.
+- Recommend no action where appropriate.
+
+G. Proposed implementation phases
+Recommend a safe phased plan:
+Phase 1: no-code Search Console observations only
+Phase 2: server-side legacy redirects if needed
+Phase 3: parameterized search/noindex cleanup if needed
+Phase 4: tbilisicars.live domain/canonical/redirect hygiene if needed
+Phase 5: Search Console validation
+
+H. Exact files likely to change later
+Group by:
+- Website React files
+- Public static files
+- Nginx config if needed
+- DNS/domain-level action if needed
+- No files if no change needed
+
+I. Risks
+- What could break?
+- How to avoid breaking booking, CRM, API, public pages, city landing pages, sitemap, robots, Google Ads, and domain redirects?
+
+J. Final recommendation
+Say one of:
+- No code changes needed now
+- Ready for small Build after approval
+- Needs more clarification before Build
+
+Hard protections:
+- Do NOT edit files.
+- Do NOT touch CRM.
+- Do NOT touch API/backend.
+- Do NOT touch database/migrations.
+- Do NOT touch booking/pricing/payment/PDF/customer cabinet.
+- Do NOT change Google Ads.
+- Do NOT add aggregateRating schema.
+- Do NOT add review counts.
+- Do NOT remove NotFound noindex.
+- Do NOT put /booking back into sitemap unless clearly justified.
