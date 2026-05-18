@@ -1,0 +1,85 @@
+Revise the Homepage Review Trust Cards placement and design.
+
+The current implementation placed the Trustpilot and Google review cards inside the lower Trust/Stats section under the hero.
+That placement is not approved.
+
+New requirement:
+Move the Trustpilot and Google review cards to the top of the hero content, above the “Discover Georgia With Us” heading.
+
+Desired order in hero:
+1. Review trust cards row:
+   - Trustpilot: Excellent, 4.6 / 5
+   - Google: Excellent, 4.7 / 5
+2. “Discover Georgia With Us”
+3. “Trusted by thousands of travelers worldwide”
+4. Hero benefit line
+5. Booking/search form
+
+Important:
+- Remove the current review card row from the lower Trust/Stats section.
+- Keep the existing lower 3 stat cards unchanged:
+  - 10+ Years Experience
+  - 15,000+ Customers Served
+  - 4.6+ Average Rating
+- Do not duplicate the review cards.
+
+Design requirements:
+- The review cards must look premium and intentional, not like simple stat cards.
+- Place them centered above the hero heading.
+- Desktop: two compact cards side by side.
+- Mobile: responsive and clean, either stacked or two compact cards if it fits without overflow.
+- Use the existing dark/glass website style.
+- Use rounded cards, subtle border, subtle background, and polished spacing.
+- Trustpilot card should clearly show the Trustpilot name and a Trustpilot-style star/brand indicator if safely possible without adding external assets or scripts.
+- Google card should clearly show Google name. Do not use unsafe external logo images.
+- If no official logo assets are available, use clean text/brand-style labels rather than importing or hotlinking logos.
+- Do not add third-party scripts, widgets, iframes, or external image assets.
+
+Exact content:
+Trustpilot card:
+- Excellent
+- Trustpilot
+- 4.6 / 5
+- href: https://www.trustpilot.com/review/tbilisicars.com
+
+Google card:
+- Excellent
+- Google
+- 4.7 / 5
+- href: https://share.google/lbXYIFHqGODm91fdk
+
+Behavior:
+- Cards can be clickable.
+- Open links in a new tab.
+- Use rel="noopener noreferrer".
+- Do not show review counts.
+- Do not show “Based on 71 reviews”.
+- Do not show “316 reviews”.
+- Do not add review excerpts.
+
+SEO / policy protections:
+- Do NOT add aggregateRating schema.
+- Do NOT add fake reviews.
+- Do NOT add fake ratings.
+- Do NOT add broker links or logos.
+- Do NOT change Organization schema or sameAs.
+- Do NOT change Helmet metadata.
+
+Hard protections:
+- Change only artifacts/website/src/pages/Home.tsx.
+- Do NOT touch CRM.
+- Do NOT touch API/backend.
+- Do NOT touch database or migrations.
+- Do NOT touch booking, pricing, availability, payments, email sending, PDF voucher, login, cabinet, or admin routes.
+- Do NOT touch sitemap.xml.
+- Do NOT touch robots.txt.
+- Do NOT touch NotFound noindex/nofollow.
+- Do NOT change /contact.
+- Do NOT change Google Ads.
+
+After implementation:
+- Run the website typecheck/build check appropriate for this workspace.
+- Report exact files changed.
+- Confirm only Home.tsx changed.
+- Confirm the review cards are no longer in the lower Trust/Stats section.
+- Confirm no schema/Helmet/sitemap/robots/routing changes.
