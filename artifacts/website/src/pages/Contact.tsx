@@ -33,6 +33,9 @@ const EMAIL = "reservations@tbilisicars.com";
 const PRIMARY_PHONE = "+995 557 37 63 63";
 const PRIMARY_PHONE_PLAIN = "995557376363";
 
+const BUSINESS_EMAIL = "info@tbilisicars.com";
+const BUSINESS_PHONE = "+995 591 00 26 30";
+
 export default function Contact() {
   return (
     <div className="min-h-screen py-12 px-4">
@@ -166,6 +169,32 @@ export default function Contact() {
             <Mail className="w-4 h-4" />
             {EMAIL}
           </a>
+        </div>
+
+        {/* Business & Partnerships */}
+        <div className="border border-border/50 border-dashed rounded-2xl p-6 mb-10">
+          <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            Business &amp; Partnerships
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            For business inquiries, fleet offers, and partnership matters — not for car rental reservations.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a
+              href={`mailto:${BUSINESS_EMAIL}`}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
+            >
+              <Mail className="w-4 h-4 shrink-0" />
+              {BUSINESS_EMAIL}
+            </a>
+            <a
+              href={`tel:${BUSINESS_PHONE.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
+            >
+              <Phone className="w-4 h-4 shrink-0" />
+              {BUSINESS_PHONE}
+            </a>
+          </div>
         </div>
 
         {/* Booking CTA */}

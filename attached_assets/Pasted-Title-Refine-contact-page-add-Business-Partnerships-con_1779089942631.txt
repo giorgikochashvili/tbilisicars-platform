@@ -1,0 +1,67 @@
+Title: Refine /contact page — add Business & Partnerships contact section
+
+Use PLAN MODE only. Do not edit files yet.
+
+Context:
+The /contact page has already been created and deployed successfully.
+Currently it focuses on reservations/customer car rental contact.
+We need to refine it by adding a clearly separated Business & Partnerships contact section.
+
+Goal:
+Add a second, lower-priority contact section on /contact for non-reservation matters:
+- business inquiries
+- fleet offers
+- partnership matters
+- non-customer-reservation communication
+
+Confirmed contact information:
+
+Reservations / customer bookings:
+- reservations@tbilisicars.com
+- Tbilisi / Batumi phone: +995 557 37 63 63
+- Kutaisi phone: +995 595 28 66 00
+
+Business / partnerships / offers:
+- info@tbilisicars.com
+- +995 591 00 26 30
+
+Files to inspect:
+- artifacts/website/src/pages/Contact.tsx
+
+Allowed file to change later:
+- artifacts/website/src/pages/Contact.tsx only
+
+Requirements:
+- Do not change the existing reservations cards/contact information.
+- Add a visually separate section below the existing reservations/office cards.
+- Section heading: Business & Partnerships
+- Include clear explanatory text:
+  “For business inquiries, fleet offers, and partnership matters — not for car rental reservations.”
+- Show info@tbilisicars.com as a mailto: link.
+- Show +995 591 00 26 30 as a tel: link.
+- Use existing Contact page styling/components.
+- Make the section visually secondary/subdued compared to reservations cards, so booking customers are not confused.
+- Keep mobile and desktop layout clean.
+- Do not add Trustpilot, Google reviews, broker links, review request logic, or review widgets in this task.
+
+Hard protections:
+- Do NOT touch CRM.
+- Do NOT touch API/backend.
+- Do NOT touch database or migrations.
+- Do NOT touch booking, pricing, availability, payments, email sending, PDF voucher, login, cabinet, or admin routes.
+- Do NOT touch sitemap.xml.
+- Do NOT touch robots.txt.
+- Do NOT touch NotFound noindex/nofollow.
+- Do NOT touch Contact page Helmet metadata unless you identify a clear existing issue and explain it first.
+- Do NOT add a contact form.
+- Do NOT add third-party scripts.
+- Do NOT add Google/Trustpilot/review/broker links in this task.
+- Do NOT edit Footer, Home, city pages, or any file other than Contact.tsx.
+
+Plan Mode output required:
+A. Current Contact.tsx structure
+B. Exact proposed placement for the new section
+C. Exact JSX/styling approach
+D. Confirm only Contact.tsx would change
+E. Risk assessment
+F. Say either “Ready for Build” or “Needs clarification before Build”
