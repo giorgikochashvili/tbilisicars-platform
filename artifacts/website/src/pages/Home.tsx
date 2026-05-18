@@ -78,6 +78,21 @@ const TRUST_STATS = [
   { value: "4.6+", label: "Average Rating" },
 ];
 
+const REVIEW_CARDS = [
+  {
+    platform: "Trustpilot",
+    descriptor: "Excellent",
+    rating: "4.6 / 5",
+    href: "https://www.trustpilot.com/review/tbilisicars.com",
+  },
+  {
+    platform: "Google",
+    descriptor: "Excellent",
+    rating: "4.7 / 5",
+    href: "https://share.google/lbXYIFHqGODm91fdk",
+  },
+];
+
 const VEHICLE_CATEGORIES = [
   "Economy",
   "Crossover / Intermediate SUV",
@@ -540,6 +555,23 @@ export default function Home() {
                 </span>
                 <span className="text-xs text-muted-foreground mt-1.5 leading-snug">{s.label}</span>
               </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            {REVIEW_CARDS.map((r) => (
+              <a
+                key={r.platform}
+                href={r.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center text-center px-3 py-4 rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-colors"
+              >
+                <span className="text-xl sm:text-2xl font-bold text-primary leading-none tabular-nums">
+                  {r.rating}
+                </span>
+                <span className="text-xs font-semibold text-white/70 mt-1 leading-snug">{r.descriptor}</span>
+                <span className="text-xs text-muted-foreground mt-0.5 leading-snug">{r.platform}</span>
+              </a>
             ))}
           </div>
         </div>

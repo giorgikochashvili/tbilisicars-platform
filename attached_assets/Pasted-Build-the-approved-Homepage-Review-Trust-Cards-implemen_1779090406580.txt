@@ -1,0 +1,68 @@
+Build the approved Homepage Review Trust Cards implementation.
+
+Use this confirmed Google/Kutaisi public profile/map link for the Google card:
+https://share.google/lbXYIFHqGODm91fdk
+
+Important:
+Do NOT use the Google write-review link on the homepage card.
+The write-review link is reserved for the future CRM Review Request workflow.
+
+Change only:
+artifacts/website/src/pages/Home.tsx
+
+Implement exactly according to the approved plan:
+- Add a REVIEW_CARDS constant near TRUST_STATS.
+- Add a second 2-column review card row inside the existing Trust/Stats section, directly below the existing 3-stat grid.
+- Keep the existing 3 stat cards unchanged.
+- Do not create a new section or new component file.
+- Do not reorganize the hero/search area.
+
+Display exactly:
+
+Trustpilot card:
+- 4.6 / 5
+- Excellent
+- Trustpilot
+- href: https://www.trustpilot.com/review/tbilisicars.com
+
+Google card:
+- 4.7 / 5
+- Excellent
+- Google
+- href: https://share.google/lbXYIFHqGODm91fdk
+
+Design:
+- Match the existing trust/stat card styling.
+- Use compact premium cards.
+- Open links in a new tab with rel="noopener noreferrer".
+- Mobile must stay clean and not overflow.
+- Do not show review counts.
+- Do not show “Based on 71 reviews”.
+- Do not show “316 reviews”.
+- Do not add icons unless already available without imports.
+- Do not add third-party widgets/scripts.
+
+SEO / policy protections:
+- Do NOT add aggregateRating schema.
+- Do NOT add fake reviews or review excerpts.
+- Do NOT add broker links or broker logos.
+- Do NOT change Organization schema or sameAs.
+- Do NOT change Helmet metadata.
+
+Hard protections:
+- Do NOT touch CRM.
+- Do NOT touch API/backend.
+- Do NOT touch database or migrations.
+- Do NOT touch booking, pricing, availability, payments, email sending, PDF voucher, login, cabinet, or admin routes.
+- Do NOT touch sitemap.xml.
+- Do NOT touch robots.txt.
+- Do NOT touch NotFound noindex/nofollow.
+- Do NOT change /contact.
+- Do NOT change Google Ads.
+- Do NOT edit any file other than Home.tsx.
+
+After implementation:
+- Run the website typecheck/build check appropriate for this workspace.
+- Report exact files changed.
+- Confirm only Home.tsx changed.
+- Confirm no schema/Helmet/sitemap/robots/routing changes.
