@@ -1,0 +1,62 @@
+Plan only. Do not change code yet.
+
+Target:
+CRM Dashboard → Operations Center → Pickups/Dropoffs desktop layout.
+
+Current result after previous Build:
+Phone column and Amount column were reduced:
+Phone: 1.1fr → 0.9fr
+Amount: 1fr → 0.8fr
+
+But visually, the gap between Amount and Days is still too large.
+
+Exact desired result:
+Amount and Days should be much closer together — approximately the same compact spacing as Days and Route.
+The row should feel like:
+Phone | Amount | Days | Route
+with Amount → Days and Days → Route visually compact and balanced.
+
+Important:
+Do not change backend/API/OpenAPI/codegen/generated files.
+Do not change data fetching.
+Do not change extras logic.
+Do not change booking/payment/pricing/status/fleet logic.
+Do not change website/SEO/email/PDF.
+Do not change Communication/COM marker yet.
+
+Required diagnosis:
+1. Inspect current OPS_GRID in Dashboard.tsx after the last change.
+2. Inspect the Amount column content alignment/classes.
+3. Inspect the Days column content alignment/classes.
+4. Confirm whether the remaining visual gap is caused by:
+   - Amount column still being too wide,
+   - Amount content aligned too far left,
+   - Days fixed column positioning,
+   - grid fraction distribution,
+   - or a combination.
+5. Do not assume another simple fraction reduction is enough. Explain the exact cause.
+
+Desired visual behavior:
+- Phone number remains readable.
+- Amount + payment status remain readable.
+- Amount should sit closer to Days.
+- Days should sit close to Route.
+- Route remains readable.
+- Time remains prominent.
+- No overlap.
+- No horizontal overflow.
+- Mobile layout should remain unaffected unless it uses the same classes.
+
+Possible safe approaches to evaluate:
+A) Further reduce Amount column width, for example 0.8fr → 0.55fr or 0.6fr.
+B) Change Amount cell alignment so amount/payment content is visually closer to the Days column, for example using justify-self/end or text-right inside its grid cell.
+C) Adjust OPS_GRID so Phone/Amount/Days/Route are more compact as a group.
+D) Any combination that is still styling-only and Dashboard.tsx-only.
+
+Output required:
+1. Exact file and lines/classes responsible.
+2. Root cause of why Amount → Days still has large gap.
+3. The smallest safe styling-only fix.
+4. Confirm whether only Dashboard.tsx changes.
+5. Confirm no backend/API/OpenAPI/codegen/generated files are needed.
+6. Recommend Build only if the change is styling-only.
