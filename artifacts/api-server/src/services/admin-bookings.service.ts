@@ -116,6 +116,7 @@ const bookingDetailSelect = {
   deletedAt: bookingTable.deletedAt,
   externalReservationCode: bookingTable.externalReservationCode,
   voucherImportRef: bookingTable.voucherImportRef,
+  customerContacted: bookingTable.customerContacted,
 } as const;
 
 // ─── Type and mapper ───────────────────────────────────────────────────────────
@@ -1040,4 +1041,17 @@ export async function deleteAdminBooking(id: number) {
     .returning();
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
   return { message: "Booking deleted" };
+}
+
+export async function toggleCustomerContacted(
+  id: number,
+  contacted: boolean,
+): Promise<{ customerContacted: boolean }> {
+  const [row] = await db
+    .update(bookingTable)
+    .set({ customerContacted: contacted, updatedAt: new Date() })
+    .where(and(eq(bookingTable.id, id), isNull(bookingTable.deletedAt)))
+    .returning({ customerContacted: bookingTable.customerContacted });
+  if (!row) throw new NotFoundError(`Booking ${id} not found`);
+  return { customerContacted: row.customerContacted };
 }

@@ -1,0 +1,105 @@
+Plan only. Do not change code.
+
+We need a new CRM operational feature: Customer communication/contact marker.
+
+Target areas:
+1. CRM Dashboard → Operations Center → Pickups/Dropoffs rows
+2. CRM Booking Detail modal/page → customer phone area
+
+Business need:
+Before pickup/dropoff, staff contact the customer by phone/WhatsApp. We need a clear marker showing whether the customer has already been contacted.
+
+Desired behavior:
+1. In Dashboard Operations row, near the customer's phone number, show a small communication marker/control.
+2. In Booking Detail, near the customer phone number, show the same marker/control.
+3. Staff should be able to mark a booking/customer as contacted.
+4. When marked, it should show a green checked/confirmed state.
+5. It should be compact and not disturb the layout.
+6. The marker can be called “COM”, or use a small phone/chat/check icon, but it must be clear to staff.
+7. The state must be persistent, not temporary frontend-only.
+8. Dashboard and Booking Detail must show the same state.
+
+Important design requirements:
+- Dashboard desktop layout must remain compact.
+- Place the marker directly next to or near the phone number.
+- It must not create horizontal overflow.
+- Mobile layout must remain clean.
+- Booking Detail phone area must remain visually stable.
+- Green checked state should mean “customer contacted”.
+- Unchecked/neutral state should mean “not contacted yet”.
+
+Critical safety rules:
+- Do not change code in Plan mode.
+- Do not touch website/SEO/email/PDF.
+- Do not change booking pricing logic.
+- Do not change payment logic.
+- Do not change booking status logic.
+- Do not change fleet availability logic.
+- Do not change pickup/dropoff filtering logic.
+- Do not make broad refactors.
+- Do not touch OpenAPI/codegen/generated files unless you first explain why it is absolutely necessary.
+- Prefer avoiding OpenAPI/codegen for this feature if a safe route-local approach is possible.
+- Do not create a DB migration in this Plan step. Only propose it if required.
+
+Investigation required:
+1. Inspect current booking table/schema:
+   - Is there already any field for contacted / communication / contactedAt / contactedBy / customerContacted?
+2. Inspect existing audit/activity/log system:
+   - Can it safely store or reflect this state?
+   - Is it suitable for a toggle, or only for history?
+3. Inspect current Dashboard Operations data flow:
+   - Which endpoint/service returns phone and booking row data?
+   - Can a customerContacted boolean be added safely?
+4. Inspect Booking Detail data flow:
+   - Which endpoint/service returns customer phone and booking detail data?
+   - Can the same customerContacted boolean be shown there?
+5. Identify whether this requires:
+   - DB migration
+   - backend service change
+   - new micro endpoint
+   - frontend mutation
+   - Dashboard update
+   - BookingDetail update
+
+Preferred safe architecture, if no existing field exists:
+- Add one minimal persistent field to the booking table:
+  customer_contacted boolean NOT NULL DEFAULT false
+- Optional fields such as contactedAt/contactedBy should be discussed, but do not include them unless clearly justified.
+- Use a dedicated small endpoint:
+  PATCH /admin/bookings/:id/contacted
+  body: { contacted: boolean }
+  response: { customerContacted: boolean }
+- Do not route this through the full booking update endpoint if that risks touching pricing/status logic.
+- If possible, record the action in existing audit/activity logs without changing the main booking logic.
+
+Frontend requirements:
+Dashboard Operations:
+- Add a compact marker beside the phone number.
+- Unchecked state: neutral small icon or “COM”.
+- Checked state: green check / green COM.
+- Click toggles state if user has permission and API succeeds.
+- Optimistic update is acceptable only if rollback on failure is handled cleanly.
+
+Booking Detail:
+- Add the same marker near customer phone.
+- State must match Dashboard.
+- Toggle should update the same backend field.
+- Layout must remain stable on desktop and mobile.
+
+Output required:
+1. Exact files inspected.
+2. Whether an existing DB/API field can be reused.
+3. If not, exact minimal DB migration proposed.
+4. Exact backend files that would need changing.
+5. Exact frontend files that would need changing.
+6. Whether OpenAPI/codegen is required or avoidable.
+7. Risk level: Low / Medium / High.
+8. Recommended implementation phases:
+   Phase 1: DB + backend micro endpoint
+   Phase 2: Dashboard marker
+   Phase 3: Booking Detail marker
+   or another safer split if better.
+9. Explicit list of files that must NOT change.
+10. Final recommendation: Build now or split into smaller builds.
+
+Do not implement anything yet.

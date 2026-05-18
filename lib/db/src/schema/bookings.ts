@@ -146,6 +146,8 @@ export const bookingTable = pgTable(
     websiteDiscountAmount: numeric("website_discount_amount", { precision: 10, scale: 2 }),
     originalRentalPrice: numeric("original_rental_price", { precision: 10, scale: 2 }),
     discountedRentalPrice: numeric("discounted_rental_price", { precision: 10, scale: 2 }),
+    // Operational contact marker — staff marks customer as contacted before pickup/dropoff (added migration 0007)
+    customerContacted: boolean("customer_contacted").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

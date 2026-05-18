@@ -53,6 +53,7 @@ const bookingRowSelect = {
   currency: bookingTable.currency,
   source: bookingTable.source,
   broker: bookingTable.broker,
+  customerContacted: bookingTable.customerContacted,
   createdAt: bookingTable.createdAt,
   customerId: userTable.id,
   customerFullName: userTable.fullName,

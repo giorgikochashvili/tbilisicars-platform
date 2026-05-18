@@ -26,6 +26,7 @@ import {
   sendAdminBookingConfirmation,
   deleteAdminBooking,
   appendBookingPhotos,
+  toggleCustomerContacted,
 } from "../services/admin-bookings.service.js";
 import {
   createHandover,
@@ -88,7 +89,7 @@ router.post("/admin/bookings", requireAdmin, async (req, res) => {
 router.get("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = GetAdminBookingParams.parse(req.params);
   const booking = await getAdminBooking(id);
-  res.json(GetAdminBookingResponse.parse(booking));
+  res.json(booking);
 });
 
 router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) => {
@@ -224,6 +225,24 @@ const PatchBookingExtrasBody = z.object({
       quantity: z.number().int().positive(),
     }),
   ),
+});
+
+const PatchBookingContactedBody = z.object({ contacted: z.boolean() });
+
+router.patch("/admin/bookings/:id/contacted", requireAdmin, async (req, res) => {
+  const { id } = GetAdminBookingParams.parse(req.params);
+  const { contacted } = PatchBookingContactedBody.parse(req.body);
+  const result = await toggleCustomerContacted(id, contacted);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "updated",
+    summary: `Admin marked booking ${bookingRef(id)} customer as ${contacted ? "contacted" : "not contacted"}`,
+    afterData: { customerContacted: contacted },
+  });
+  res.json(result);
 });
 
 router.patch("/admin/bookings/:id/extras", requireAdmin, async (req, res) => {
