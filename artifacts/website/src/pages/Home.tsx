@@ -84,7 +84,9 @@ const REVIEW_CARDS = [
     descriptor: "Excellent",
     rating: "4.6 / 5",
     href: "https://www.trustpilot.com/review/tbilisicars.com",
-    labelColor: "text-emerald-400",
+    brandMark: "★",
+    markColor: "text-emerald-400",
+    labelColor: "text-white",
     starColor: "text-emerald-400",
   },
   {
@@ -92,7 +94,9 @@ const REVIEW_CARDS = [
     descriptor: "Excellent",
     rating: "4.7 / 5",
     href: "https://share.google/lbXYIFHqGODm91fdk",
-    labelColor: "text-blue-400",
+    brandMark: "G",
+    markColor: "text-blue-400",
+    labelColor: "text-white",
     starColor: "text-yellow-400",
   },
 ];
@@ -423,16 +427,16 @@ export default function Home() {
                 href={r.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2.5 hover:bg-black/50 hover:border-white/20 transition-colors"
+                className="flex flex-col items-start gap-1 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 hover:bg-black/50 hover:border-white/20 transition-colors min-w-[148px]"
               >
-                <div className="text-left">
-                  <div className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${r.labelColor}`}>{r.platform}</div>
-                  <div className={`text-xs leading-none ${r.starColor}`}>★★★★★</div>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-sm font-bold leading-none ${r.markColor}`}>{r.brandMark}</span>
+                  <span className={`text-xs font-semibold tracking-wide ${r.labelColor}`}>{r.platform}</span>
                 </div>
-                <div className="w-px h-6 bg-white/10 shrink-0" />
-                <div className="text-left">
-                  <div className="text-[10px] text-muted-foreground">{r.descriptor}</div>
-                  <div className="text-sm font-bold text-white tabular-nums">{r.rating}</div>
+                <div className={`text-xs leading-none ${r.starColor}`}>★★★★★</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[10px] text-muted-foreground">{r.descriptor}</span>
+                  <span className="text-xs font-bold text-white tabular-nums">{r.rating}</span>
                 </div>
               </a>
             ))}
