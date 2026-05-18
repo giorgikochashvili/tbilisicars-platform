@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { Shield, Gauge, Plane, Headphones, Car } from "lucide-react";
+import { Shield, Gauge, Plane, Headphones, Car, Phone, MessageCircle, Mail } from "lucide-react";
 
 const FEATURES = [
   { icon: <Shield className="w-5 h-5 text-primary" />, text: "Full insurance options included with every rental" },
@@ -79,6 +79,25 @@ export default function CityRentalBatumi() {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* Contact strip */}
+        <div className="bg-card border border-border rounded-2xl p-6 mb-8">
+          <h2 className="text-base font-semibold text-white mb-4">Questions? We're Here to Help</h2>
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+            <a href="tel:+995557376363" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors">
+              <Phone className="w-4 h-4 text-primary shrink-0" />+995 557 37 63 63
+            </a>
+            <a href="https://wa.me/995557376363" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors">
+              <MessageCircle className="w-4 h-4 text-primary shrink-0" />WhatsApp
+            </a>
+            <a href="mailto:reservations@tbilisicars.com" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors">
+              <Mail className="w-4 h-4 text-primary shrink-0" />reservations@tbilisicars.com
+            </a>
+            <Link href="/contact" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors">
+              More contact options
+            </Link>
+          </div>
         </div>
 
         {/* CTA */}
