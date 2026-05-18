@@ -1,0 +1,76 @@
+Plan only. Do not change code.
+
+We need two CRM improvements, but first inspect and propose the safest implementation.
+
+Target area:
+CRM Dashboard → Operations Center → Pickups/Dropoffs
+CRM Booking Detail modal/page
+
+Issue 1 — License plate visibility in light mode:
+In Dashboard Operations, the vehicle license plate badge is readable in dark/night mode, but almost disappears in light/day mode.
+Likely cause: plate badge uses dark-mode-friendly classes such as light text on a light background.
+Goal:
+- Make the license plate badge readable in both light and dark mode.
+- Light mode should use darker text and visible neutral background/border.
+- Dark mode should keep the current readable look.
+- Apply to desktop and mobile plate badges.
+- This should be styling-only, likely Dashboard.tsx only.
+
+Issue 2 — Communication marker near phone:
+Operational need:
+Staff call/message customers before pickup/dropoff. We need a small visible marker showing whether the customer has already been contacted.
+
+Desired UI:
+A) Dashboard Operations row:
+- Near the customer phone number, show a small communication marker/control.
+- Suggested label/meaning: “COM” or small phone/chat/check icon.
+- When staff marks the customer as contacted, it should show a green check / green “COM” state.
+- It should be compact and not disturb the table layout.
+- It should fit between Phone and Amount area or immediately beside the phone number.
+- Reduce the excessive spacing between Amount and Days columns as much as visually safe.
+- Reduce Phone → Amount empty spacing enough to fit the communication marker cleanly.
+- Desktop and mobile must remain clean with no horizontal overflow.
+
+B) Booking Detail modal/page:
+- Show the same communication marker near the customer phone number.
+- Staff should be able to mark/unmark contacted there too, if safe.
+- Dashboard and Booking Detail should show the same state.
+
+Important questions to answer before implementation:
+1. Is there already any existing field in the database/model/API for customer contacted / communication status / contactedAt / contactedBy / notes / audit activity that can be reused safely?
+2. Is there already a booking activity/log system we can use to record this action?
+3. If no existing field exists, what is the smallest safe data model addition?
+   Possible option:
+   - booking.customerContacted boolean
+   - booking.customerContactedAt timestamp nullable
+   - booking.customerContactedBy userId nullable
+   But do NOT implement this yet; only analyze.
+4. Would this require DB migration?
+5. Would this require API endpoint changes?
+6. Which frontend components would need updating?
+7. Can Issue 1 license plate light-mode fix be done separately as frontend-only before the communication marker?
+
+Strict safety rules:
+- Do not change code in Plan mode.
+- Do not touch website/SEO/email/PDF.
+- Do not change booking pricing/payment/status/fleet availability logic.
+- Do not change pickup/dropoff filtering logic.
+- Do not make broad refactors.
+- Do not run codegen unless you first explain why it is necessary.
+- Do not touch OpenAPI/generated files unless absolutely required and explicitly approved later.
+- Do not create DB migration in this Plan step.
+
+Output required:
+1. Exact files inspected.
+2. Confirm whether Issue 1 is Dashboard.tsx-only styling fix.
+3. For Issue 2, identify whether a suitable existing field/table/API already exists.
+4. If no existing field exists, propose the safest minimal backend/data approach.
+5. List exact files that would need to change for:
+   - Phase A: plate badge light-mode fix + spacing-only layout tweak
+   - Phase B: communication marker with persistent state
+6. Risk level for each phase: Low / Medium / High.
+7. Recommend whether we should:
+   - Build Phase A first only,
+   - Then separately plan/build Phase B,
+   - Or build both together if truly safe.
+8. Do not implement anything yet.
