@@ -2,11 +2,14 @@ import { db } from "@workspace/db";
 import {
   bookingPaymentTable,
   accountingEntriesTable,
+  bookingTable,
 } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { getExchangeRate, convertToGel } from "./admin-accounting.service.js";
 import { NotFoundError } from "../lib/errors.js";
 import { pool } from "@workspace/db";
+
+type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,30 +37,36 @@ const PAYMENT_TYPE_ACCOUNTING: Record<
 
 // ─── Payment Summary ──────────────────────────────────────────────────────────
 
-export async function getBookingPaymentSummary(bookingId: number) {
-  const { rows: bookingRows } = await pool.query(
-    `SELECT currency, total_amount FROM booking WHERE id = $1`,
-    [bookingId],
-  );
-  const bookingCurrency: string = bookingRows[0]?.currency ?? "GEL";
-  const bookingTotalAmount: string | null = bookingRows[0]?.total_amount ?? null;
+export async function getBookingPaymentSummary(bookingId: number, tx?: TxClient) {
+  const client = tx ?? db;
 
-  const { rows } = await pool.query(
-    `SELECT
-      payment_type,
-      SUM(converted_gel::numeric) AS total_gel,
-      SUM(CASE WHEN currency = $2 THEN amount::numeric ELSE 0 END) AS total_original
-    FROM booking_payment
-    WHERE booking_id = $1
-    GROUP BY payment_type`,
-    [bookingId, bookingCurrency],
-  );
+  const bookingRows = await client
+    .select({
+      currency: bookingTable.currency,
+      totalAmount: bookingTable.totalAmount,
+    })
+    .from(bookingTable)
+    .where(eq(bookingTable.id, bookingId))
+    .limit(1);
+
+  const bookingCurrency: string = bookingRows[0]?.currency ?? "GEL";
+  const bookingTotalAmount: string | null = bookingRows[0]?.totalAmount ?? null;
+
+  const paymentRows = await client
+    .select({
+      paymentType: bookingPaymentTable.paymentType,
+      totalGel: sql<string>`SUM(${bookingPaymentTable.convertedGel}::numeric)`,
+      totalOriginal: sql<string>`SUM(CASE WHEN ${bookingPaymentTable.currency} = ${bookingCurrency} THEN ${bookingPaymentTable.amount}::numeric ELSE 0 END)`,
+    })
+    .from(bookingPaymentTable)
+    .where(eq(bookingPaymentTable.bookingId, bookingId))
+    .groupBy(bookingPaymentTable.paymentType);
 
   const totals: Record<string, { gel: number; original: number }> = {};
-  for (const r of rows) {
-    totals[r.payment_type] = {
-      gel: parseFloat(r.total_gel ?? "0"),
-      original: parseFloat(r.total_original ?? "0"),
+  for (const r of paymentRows) {
+    totals[r.paymentType] = {
+      gel: parseFloat(r.totalGel ?? "0"),
+      original: parseFloat(r.totalOriginal ?? "0"),
     };
   }
 
@@ -109,11 +118,19 @@ export async function getBookingPaymentSummary(bookingId: number) {
 async function updateBookingPaymentStatus(
   bookingId: number,
   summary: Awaited<ReturnType<typeof getBookingPaymentSummary>>,
+  tx?: TxClient,
 ) {
-  const { rows: bookingRows } = await pool.query(
-    `SELECT total_amount, currency FROM booking WHERE id = $1`,
-    [bookingId],
-  );
+  const client = tx ?? db;
+
+  const bookingRows = await client
+    .select({
+      totalAmount: bookingTable.totalAmount,
+      currency: bookingTable.currency,
+    })
+    .from(bookingTable)
+    .where(eq(bookingTable.id, bookingId))
+    .limit(1);
+
   const b = bookingRows[0];
   if (!b) return;
 
@@ -123,11 +140,11 @@ async function updateBookingPaymentStatus(
 
   if (totalPaidGel <= 0) {
     newStatus = "UNPAID";
-  } else if (!b.total_amount) {
+  } else if (!b.totalAmount) {
     // No booking price set — cannot confirm fully paid
     newStatus = "HALF";
   } else {
-    const bookingTotal = parseFloat(b.total_amount);
+    const bookingTotal = parseFloat(b.totalAmount);
     let bookingTotalGel: number;
 
     if (!b.currency || b.currency === "GEL") {
@@ -146,10 +163,10 @@ async function updateBookingPaymentStatus(
     newStatus = totalPaidGel >= bookingTotalGel - 0.005 ? "PAID" : "HALF";
   }
 
-  await pool.query(
-    `UPDATE booking SET payment_status = $1, updated_at = NOW() WHERE id = $2`,
-    [newStatus, bookingId],
-  );
+  await client
+    .update(bookingTable)
+    .set({ paymentStatus: newStatus, updatedAt: new Date() })
+    .where(eq(bookingTable.id, bookingId));
 }
 
 // ─── List Payments ────────────────────────────────────────────────────────────
@@ -197,7 +214,10 @@ export async function addBookingPayment(input: AddPaymentInput) {
       ? amount
       : amount;
 
-  const { payment } = await db.transaction(async (tx) => {
+  // Payment insert, accounting entry, summary calculation, and payment_status
+  // update are all inside the same transaction so a crash between operations
+  // cannot leave the booking in a stale payment_status state.
+  const { payment, summary } = await db.transaction(async (tx) => {
     let accountingEntryId: number | null = null;
 
     const acctMapping = PAYMENT_TYPE_ACCOUNTING[paymentType];
@@ -234,12 +254,11 @@ export async function addBookingPayment(input: AddPaymentInput) {
       })
       .returning();
 
-    return { payment };
+    const summary = await getBookingPaymentSummary(bookingId, tx);
+    await updateBookingPaymentStatus(bookingId, summary, tx);
+
+    return { payment, summary };
   });
-
-  const summary = await getBookingPaymentSummary(bookingId);
-
-  await updateBookingPaymentStatus(bookingId, summary);
 
   return { payment, summary };
 }
@@ -256,7 +275,9 @@ export async function deleteBookingPayment(bookingId: number, paymentId: number)
     throw new NotFoundError(`Payment ${paymentId} not found on booking ${bookingId}`);
   }
 
-  await db.transaction(async (tx) => {
+  // Payment delete, accounting entry delete, summary calculation, and
+  // payment_status update are all inside the same transaction.
+  const { summary } = await db.transaction(async (tx) => {
     if (existing.accountingEntryId) {
       await tx
         .delete(accountingEntriesTable)
@@ -266,11 +287,12 @@ export async function deleteBookingPayment(bookingId: number, paymentId: number)
     await tx
       .delete(bookingPaymentTable)
       .where(eq(bookingPaymentTable.id, paymentId));
+
+    const summary = await getBookingPaymentSummary(bookingId, tx);
+    await updateBookingPaymentStatus(bookingId, summary, tx);
+
+    return { summary };
   });
-
-  const summary = await getBookingPaymentSummary(bookingId);
-
-  await updateBookingPaymentStatus(bookingId, summary);
 
   return { summary };
 }

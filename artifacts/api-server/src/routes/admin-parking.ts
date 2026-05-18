@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { requirePermission } from "../middlewares/requirePermission.js";
 import {
   listParkingByZone,
   assignVehicleToZone,
@@ -16,7 +17,7 @@ router.get("/admin/parking", requireAdmin, async (req, res) => {
 });
 
 // POST /api/admin/parking — assign a vehicle to a zone
-router.post("/admin/parking", requireAdmin, async (req, res) => {
+router.post("/admin/parking", requireAdmin, requirePermission("canManageParking"), async (req, res) => {
   const { vehicleId, zone } = req.body as { vehicleId: number; zone: string };
   if (!vehicleId || typeof vehicleId !== "number" || !zone) {
     res.status(400).json({ error: "vehicleId (number) and zone (string) are required" });
@@ -28,7 +29,7 @@ router.post("/admin/parking", requireAdmin, async (req, res) => {
 });
 
 // PATCH /api/admin/parking/:id/zone — move vehicle to a different zone (atomic)
-router.patch("/admin/parking/:id/zone", requireAdmin, async (req, res) => {
+router.patch("/admin/parking/:id/zone", requireAdmin, requirePermission("canManageParking"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (!id || isNaN(id)) {
     res.status(400).json({ error: "Invalid assignment ID" });
@@ -45,7 +46,7 @@ router.patch("/admin/parking/:id/zone", requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/admin/parking/:id — remove (soft-delete) a parking assignment
-router.delete("/admin/parking/:id", requireAdmin, async (req, res) => {
+router.delete("/admin/parking/:id", requireAdmin, requirePermission("canManageParking"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
   if (!id || isNaN(id)) {
     res.status(400).json({ error: "Invalid assignment ID" });

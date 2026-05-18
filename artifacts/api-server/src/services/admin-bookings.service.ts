@@ -229,6 +229,7 @@ async function checkVehicleConflict(
   pickupDatetime: Date,
   dropoffDatetime: Date,
   excludeBookingId?: number,
+  tx?: TxClient,
 ): Promise<{ conflict: boolean; conflictingBookingId?: number }> {
   const conditions = [
     eq(bookingTable.vehicleId, vehicleId),
@@ -248,7 +249,7 @@ async function checkVehicleConflict(
     conditions.push(ne(bookingTable.id, excludeBookingId));
   }
 
-  const rows = await db
+  const rows = await (tx ?? db)
     .select({ id: bookingTable.id })
     .from(bookingTable)
     .where(and(...conditions))
@@ -265,8 +266,9 @@ async function checkVehicleConflict(
 async function validateVehicleBelongsToModel(
   vehicleId: number,
   vehicleModelId: number,
+  tx?: TxClient,
 ): Promise<boolean> {
-  const rows = await db
+  const rows = await (tx ?? db)
     .select({ id: vehicleTable.id })
     .from(vehicleTable)
     .where(
@@ -617,29 +619,6 @@ export async function createAdminBooking(data: {
   const pickupDate = new Date(data.pickupDatetime);
   const dropoffDate = new Date(data.dropoffDatetime);
 
-  // Validate specific vehicle assignment if provided
-  if (data.vehicleId) {
-    // 1. Vehicle must belong to the selected model
-    if (data.vehicleModelId) {
-      const belongs = await validateVehicleBelongsToModel(data.vehicleId, data.vehicleModelId);
-      if (!belongs) {
-        throw new ConflictError("Vehicle does not belong to the selected model");
-      }
-    }
-
-    // 2. No overlapping active bookings for this vehicle
-    const { conflict, conflictingBookingId } = await checkVehicleConflict(
-      data.vehicleId,
-      pickupDate,
-      dropoffDate,
-    );
-    if (conflict) {
-      throw new ConflictError(
-        `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
-      );
-    }
-  }
-
   let userId = data.customerId;
   if (!userId) {
     const customer = await findOrCreateCustomer({
@@ -661,8 +640,41 @@ export async function createAdminBooking(data: {
     }
   }
 
-  // Insert booking row + extras atomically so no partial state is possible
+  // Insert booking row + extras atomically so no partial state is possible.
+  // Vehicle conflict check happens inside the transaction with a FOR UPDATE lock
+  // to prevent double-booking races under concurrent admin requests.
   const row = await db.transaction(async (tx) => {
+    if (data.vehicleId) {
+      // 1. Lock the vehicle row — serialises concurrent creates for the same vehicle
+      await tx
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, data.vehicleId))
+        .for("update");
+
+      // 2. Vehicle must belong to the selected model
+      if (data.vehicleModelId) {
+        const belongs = await validateVehicleBelongsToModel(data.vehicleId, data.vehicleModelId, tx);
+        if (!belongs) {
+          throw new ConflictError("Vehicle does not belong to the selected model");
+        }
+      }
+
+      // 3. No overlapping active bookings for this vehicle
+      const { conflict, conflictingBookingId } = await checkVehicleConflict(
+        data.vehicleId,
+        pickupDate,
+        dropoffDate,
+        undefined,
+        tx,
+      );
+      if (conflict) {
+        throw new ConflictError(
+          `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+        );
+      }
+    }
+
     const [inserted] = await tx
       .insert(bookingTable)
       .values({
@@ -749,58 +761,78 @@ export async function updateAdminBooking(
     paymentStatus: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
   }>,
 ) {
-  // If assigning or changing a specific vehicle, validate ownership + conflicts
-  if (data.vehicleId) {
-    // Load current booking to know dates if not being changed
-    const current = await db
-      .select({
-        vehicleModelId: bookingTable.vehicleModelId,
-        pickupDatetime: bookingTable.pickupDatetime,
-        dropoffDatetime: bookingTable.dropoffDatetime,
-      })
-      .from(bookingTable)
-      .where(eq(bookingTable.id, id))
-      .limit(1);
-
-    const booking = current[0];
-    if (!booking) throw new NotFoundError(`Booking ${id} not found`);
-
-    const pickup = data.pickupDatetime ? new Date(data.pickupDatetime) : booking.pickupDatetime;
-    const dropoff = data.dropoffDatetime ? new Date(data.dropoffDatetime) : booking.dropoffDatetime;
-
-    // Only validate model ownership when the admin is also explicitly changing
-    // the model in the same request. Pure vehicle-only assignments (replacement
-    // vehicles from a different model) are allowed as a manual staff override.
-    if (data.vehicleModelId) {
-      const belongs = await validateVehicleBelongsToModel(data.vehicleId, data.vehicleModelId);
-      if (!belongs) {
-        throw new ConflictError("Vehicle does not belong to the selected model");
-      }
-    }
-
-    const { conflict, conflictingBookingId } = await checkVehicleConflict(
-      data.vehicleId,
-      pickup,
-      dropoff,
-      id, // exclude self
-    );
-    if (conflict) {
-      throw new ConflictError(
-        `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
-      );
-    }
-  }
-
   const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
   if (data.pickupDatetime) updateData.pickupDatetime = new Date(data.pickupDatetime);
   if (data.dropoffDatetime) updateData.dropoffDatetime = new Date(data.dropoffDatetime);
 
-  const [row] = await db
-    .update(bookingTable)
-    .set(updateData as any)
-    .where(eq(bookingTable.id, id))
-    .returning();
-  if (!row) throw new NotFoundError(`Booking ${id} not found`);
+  // Wrap validation + update in a transaction so the FOR UPDATE vehicle lock,
+  // conflict check, and booking update are all atomic.
+  await db.transaction(async (tx) => {
+    // Trigger when vehicle or dates are changing — not only when vehicleId is
+    // explicitly provided, so date-only patches on already-assigned vehicles
+    // are also protected.
+    if (data.vehicleId || data.pickupDatetime || data.dropoffDatetime) {
+      // Load current booking: need vehicleId + dates to compute effective values
+      const current = await tx
+        .select({
+          vehicleId:       bookingTable.vehicleId,
+          vehicleModelId:  bookingTable.vehicleModelId,
+          pickupDatetime:  bookingTable.pickupDatetime,
+          dropoffDatetime: bookingTable.dropoffDatetime,
+        })
+        .from(bookingTable)
+        .where(eq(bookingTable.id, id))
+        .limit(1);
+
+      const booking = current[0];
+      if (!booking) throw new NotFoundError(`Booking ${id} not found`);
+
+      const effectiveVehicleId = data.vehicleId ?? booking.vehicleId ?? null;
+      const pickup  = data.pickupDatetime  ? new Date(data.pickupDatetime)  : booking.pickupDatetime;
+      const dropoff = data.dropoffDatetime ? new Date(data.dropoffDatetime) : booking.dropoffDatetime;
+
+      if (effectiveVehicleId) {
+        // 1. Lock the vehicle row — serialises concurrent updates for the same vehicle
+        await tx
+          .select({ id: vehicleTable.id })
+          .from(vehicleTable)
+          .where(eq(vehicleTable.id, effectiveVehicleId))
+          .for("update");
+
+        // 2. Model ownership check — only when model is also being changed.
+        // Pure vehicle-only assignments (replacement from a different model)
+        // are allowed as a manual staff override.
+        if (data.vehicleId && data.vehicleModelId) {
+          const belongs = await validateVehicleBelongsToModel(effectiveVehicleId, data.vehicleModelId, tx);
+          if (!belongs) {
+            throw new ConflictError("Vehicle does not belong to the selected model");
+          }
+        }
+
+        // 3. Conflict check — exclude self
+        const { conflict, conflictingBookingId } = await checkVehicleConflict(
+          effectiveVehicleId,
+          pickup,
+          dropoff,
+          id,
+          tx,
+        );
+        if (conflict) {
+          throw new ConflictError(
+            `Vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+          );
+        }
+      }
+    }
+
+    const [r] = await tx
+      .update(bookingTable)
+      .set(updateData as any)
+      .where(eq(bookingTable.id, id))
+      .returning();
+    if (!r) throw new NotFoundError(`Booking ${id} not found`);
+  });
+
   return getAdminBooking(id);
 }
 
