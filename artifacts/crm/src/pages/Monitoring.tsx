@@ -429,8 +429,17 @@ function SendMailDialog({
 
 // ─── Expanded row details ─────────────────────────────────────────────────────
 
-function ExpandedRow({ row }: { row: MonitoringRow }) {
+function ExpandedRow({
+  row,
+  emailEnabled,
+  onRequestReview,
+}: {
+  row: MonitoringRow;
+  emailEnabled: boolean;
+  onRequestReview: () => void;
+}) {
   return (
+    <>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/5 border-t border-border/30">
       <div className="space-y-3">
         <div>
@@ -499,6 +508,28 @@ function ExpandedRow({ row }: { row: MonitoringRow }) {
       </div>
       <NotesPanel bookingId={row.bookingId} />
     </div>
+    {row.status === "RETURNED" && (
+      <div className="px-4 pb-3 bg-muted/5 flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1.5"
+          onClick={onRequestReview}
+          disabled={!emailEnabled || !row.contactEmail}
+          title={
+            !emailEnabled
+              ? "Email sending is not configured"
+              : !row.contactEmail
+                ? "No customer email on file"
+                : "Send review request email"
+          }
+        >
+          <Mail className="w-3 h-3" />
+          Review request
+        </Button>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -821,7 +852,13 @@ export default function Monitoring() {
                       </Button>
                     </div>
                   </button>
-                  {isOpen && <ExpandedRow row={row} />}
+                  {isOpen && (
+                    <ExpandedRow
+                      row={row}
+                      emailEnabled={emailEnabled}
+                      onRequestReview={() => setMailRow(row)}
+                    />
+                  )}
                 </li>
               );
             })}
