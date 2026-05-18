@@ -1,0 +1,63 @@
+Continue ONLY to finish the incomplete BookingDetail.tsx part of the Review Request implementation.
+
+Do not make new product decisions.
+Do not expand scope.
+Do not touch website files.
+Do not touch DB/schema/migrations.
+Do not touch sitemap, robots, SEO, public booking flow, pricing, payment logic, PDF, customer cabinet, or Google Ads.
+
+Current status:
+- email.service.ts is already complete
+- admin-monitoring.ts is already complete
+- admin-bookings.ts is already complete
+- Monitoring.tsx is already complete
+- BookingDetail.tsx is partial/incomplete
+
+Finish only BookingDetail.tsx:
+
+Requirements:
+1. Add ReviewRequestDialog component or equivalent local dialog pattern.
+2. Add reviewRequestOpen state.
+3. Add “Send Review Request” button in the appropriate Booking Detail action area.
+4. Button must be available only for RETURNED bookings.
+5. Dialog must show customer name/email if available.
+6. Dialog must include warning text:
+   “Send only to customers who completed the rental and were satisfied. Do not send if there was a complaint, damage claim, or refund.”
+7. Dialog checkboxes:
+   - Trustpilot
+   - Google Tbilisi
+   - Google Kutaisi
+8. At least one destination required before send.
+9. Send request to:
+   POST /api/admin/bookings/:id/send-review-request
+10. Payload:
+   {
+     destinations: ["trustpilot" | "google_tbilisi" | "google_kutaisi"]
+   }
+11. Show success/error toast.
+12. If response includes alreadySentAt, show a warning/note in the toast or dialog that a review request was previously sent.
+13. Do not expose TRUSTPILOT_BCC_EMAIL anywhere in frontend.
+14. Do not include Trustpilot BCC value in frontend, API response display, logs, or comments.
+
+Hard constraints:
+- Change only artifacts/crm/src/pages/BookingDetail.tsx unless a typecheck error proves another one of the already-touched five files needs a small fix.
+- Do not touch website files.
+- Do not touch DB/schema/migrations.
+- Do not add new endpoints beyond what is already added.
+- Do not change existing booking confirmation/voucher/admin emails.
+- Do not add automatic sending.
+- Do not allow non-RETURNED bookings.
+
+After finishing:
+Run:
+- API typecheck/build
+- CRM typecheck/build
+
+Then report:
+1. Exact files changed after this continuation
+2. Confirm no website files changed
+3. Confirm no DB/schema/migration files changed
+4. Confirm BookingDetail is now complete
+5. Confirm RETURNED-only eligibility
+6. Confirm Trustpilot BCC remains server-side only
+7. Confirm typecheck/build results

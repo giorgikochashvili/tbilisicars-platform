@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -1524,6 +1525,156 @@ function HandoverModal({
   );
 }
 
+// ─── ReviewRequestDialog ──────────────────────────────────────────────────────
+
+type ReviewDestination = "trustpilot" | "google_tbilisi" | "google_kutaisi";
+
+const REVIEW_DEST_LABELS: Record<ReviewDestination, string> = {
+  trustpilot: "Trustpilot",
+  google_tbilisi: "Google \u2013 Tbilisi",
+  google_kutaisi: "Google \u2013 Kutaisi",
+};
+
+const ALL_REVIEW_DESTINATIONS: ReviewDestination[] = [
+  "trustpilot",
+  "google_tbilisi",
+  "google_kutaisi",
+];
+
+function ReviewRequestDialog({
+  bookingId,
+  contactEmail,
+  contactFullName,
+  open,
+  onOpenChange,
+}: {
+  bookingId: number | null;
+  contactEmail: string | null | undefined;
+  contactFullName: string | null | undefined;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [selectedDests, setSelectedDests] = useState<ReviewDestination[]>([]);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) setSelectedDests([]);
+  }, [open]);
+
+  const toggleDest = (dest: ReviewDestination) => {
+    setSelectedDests((prev) =>
+      prev.includes(dest) ? prev.filter((d) => d !== dest) : [...prev, dest],
+    );
+  };
+
+  const handleSend = async () => {
+    if (!bookingId || selectedDests.length === 0) return;
+    setSending(true);
+    try {
+      const result: { ok: boolean; alreadySentAt?: string | null } =
+        await apiFetch(`/admin/bookings/${bookingId}/send-review-request`, {
+          method: "POST",
+          body: JSON.stringify({ destinations: selectedDests }),
+        });
+      if (result.alreadySentAt) {
+        toast({
+          title: "Review request sent",
+          description: `Sent to ${contactEmail}. Note: a review request was already sent on ${formatDateTime(result.alreadySentAt)}.`,
+        });
+      } else {
+        toast({
+          title: "Review request sent",
+          description: `Sent to ${contactEmail}.`,
+        });
+      }
+      onOpenChange(false);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to send";
+      toast({ title: "Could not send", description: msg, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-primary" /> Send Review Request
+          </DialogTitle>
+          <DialogDescription>
+            Sends a personalised review request email with only the selected
+            destinations.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="rounded-md border border-border/40 bg-muted/10 p-3 space-y-1">
+            {contactFullName && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground text-xs">Customer</span>
+                <span className="font-medium text-xs">{contactFullName}</span>
+              </div>
+            )}
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground text-xs">To</span>
+              <span className="font-medium text-xs">
+                {contactEmail ?? "\u2014 (no email on file)"}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            Send only to customers who completed the rental and were satisfied.
+            Do not send if there was a complaint, damage claim, or refund.
+          </div>
+          <div className="space-y-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Select destinations
+            </div>
+            {ALL_REVIEW_DESTINATIONS.map((dest) => (
+              <label
+                key={dest}
+                className="flex items-center gap-2.5 cursor-pointer select-none"
+              >
+                <Checkbox
+                  id={`bd-dest-${dest}`}
+                  checked={selectedDests.includes(dest)}
+                  onCheckedChange={() => toggleDest(dest)}
+                />
+                <span className="text-sm">{REVIEW_DEST_LABELS[dest]}</span>
+              </label>
+            ))}
+            {selectedDests.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                At least one destination is required.
+              </p>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={sending}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSend}
+            disabled={sending || selectedDests.length === 0 || !contactEmail}
+          >
+            <Send className="w-3.5 h-3.5 mr-1.5" />
+            {sending ? "Sending\u2026" : "Send review request"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface BookingDetailProps {
@@ -1558,6 +1709,9 @@ export default function BookingDetail({
 
   // Send confirmation email state
   const [sendingConfirmation, setSendingConfirmation] = useState(false);
+
+  // Review request dialog state
+  const [reviewRequestOpen, setReviewRequestOpen] = useState(false);
 
   // Extras edit state
   const [extrasEditMode, setExtrasEditMode] = useState(false);
@@ -2358,6 +2512,23 @@ export default function BookingDetail({
                 <Send className="w-3 h-3" />
                 {sendingConfirmation ? "Sending…" : "Send confirmation"}
               </Button>
+              {booking.status === "RETURNED" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => setReviewRequestOpen(true)}
+                  disabled={!booking.contactEmail && !booking.customer?.email}
+                  title={
+                    !booking.contactEmail && !booking.customer?.email
+                      ? "No customer email on this booking"
+                      : "Send review request email to customer"
+                  }
+                >
+                  <Star className="w-3 h-3" />
+                  Review request
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -3571,6 +3742,15 @@ export default function BookingDetail({
         savingHandover={savingHandover}
         onSubmit={handleHandoverSubmit}
         existingPickupPhotoCount={booking?.pickupPhotoCount ?? 0}
+      />
+
+      {/* Review Request Dialog */}
+      <ReviewRequestDialog
+        bookingId={bookingId}
+        contactEmail={booking?.contactEmail ?? booking?.customer?.email}
+        contactFullName={booking?.contactFullName ?? booking?.customer?.fullName}
+        open={reviewRequestOpen}
+        onOpenChange={setReviewRequestOpen}
       />
 
       {/* Photo Append Dialog (pre-pickup uploads + post-pickup additions) */}
