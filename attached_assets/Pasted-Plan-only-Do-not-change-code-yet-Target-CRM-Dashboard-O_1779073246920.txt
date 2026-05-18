@@ -1,0 +1,72 @@
+Plan only. Do not change code yet.
+
+Target:
+CRM Dashboard → Operations Center → Pickups/Dropoffs desktop layout.
+
+Exact issue:
+In the Operations table, spacing between Days and Route is already small and visually acceptable.
+The problematic excessive gaps are:
+1. Phone → Amount
+2. Amount → Days
+
+Goal:
+Make the middle columns more compact so Phone, Amount, and Days are visually closer together.
+Phone → Amount and Amount → Days spacing should be reduced as much as visually safe, closer to the compact feel of Days → Route.
+
+Do NOT reduce Days → Route further unless needed for overall balance.
+
+Likely file:
+artifacts/crm/src/pages/Dashboard.tsx
+
+Important:
+This should be a frontend-only layout/styling change.
+Do not change data fetching.
+Do not change API/backend/OpenAPI/codegen/generated files.
+Do not change booking/payment/pricing/status/fleet logic.
+Do not change extras logic.
+Do not change website/SEO/email/PDF.
+Do not change Communication/COM marker yet.
+
+Specific things to inspect:
+1. Current OPS_GRID / grid-template columns for desktop Operations rows.
+2. Current fractions/widths for:
+   - Phone column
+   - Amount column
+   - Days column
+   - Route column
+   - Time column
+3. Whether Phone or Amount columns are taking too much unused width.
+4. Whether Amount alignment/padding creates extra visual gap before Days.
+5. Whether Days column width can be slightly tightened without affecting readability.
+6. Whether Time and Route remain readable after the change.
+7. Mobile layout should remain unaffected or clean.
+
+Desired layout behavior:
+- Phone and Amount should be visually closer.
+- Amount and Days should be visually closer.
+- Days and Route should remain compact and readable.
+- Phone number must remain readable.
+- Amount + payment status must remain readable.
+- Time must remain prominent.
+- Route should still be easy to scan, for example KUT AIR → KUT AIR.
+- No overlap.
+- No bad truncation.
+- No horizontal overflow.
+- Preserve existing dark/light CRM design.
+
+Possible approach:
+- Adjust OPS_GRID column fractions only.
+- Reduce excessive width assigned to Phone and/or Amount.
+- Keep the same column order:
+  Ref | Vehicle | Client | Phone | Amount | Days | Route | Time
+- Avoid adding new columns.
+- Avoid broad redesign.
+- Avoid touching mobile unless absolutely needed.
+
+Output required:
+1. Confirm exact file and constants/classes responsible for Phone → Amount and Amount → Days spacing.
+2. Confirm whether this is Dashboard.tsx-only.
+3. Propose the smallest safe grid/class change.
+4. Confirm no backend/API/OpenAPI/codegen/generated files are needed.
+5. Confirm Communication/COM marker is not included in this task.
+6. Recommend Build only if the change is styling-only.

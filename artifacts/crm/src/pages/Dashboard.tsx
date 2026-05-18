@@ -491,7 +491,7 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
 
-const OPS_GRID = "grid-cols-[40px_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.1fr)_minmax(0,1fr)_36px_minmax(0,0.85fr)_52px]";
+const OPS_GRID = "grid-cols-[40px_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_36px_minmax(0,0.85fr)_52px]";
 const OPS_HEADERS = ["Ref", "Vehicle", "Client", "Phone", "Amount", "Days", "Route", "Time"] as const;
 
 function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRowClick, dateStr, onPrevDate, onNextDate, isToday, onTodayDate }: {
