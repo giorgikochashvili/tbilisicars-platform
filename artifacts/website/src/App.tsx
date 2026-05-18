@@ -21,6 +21,7 @@ import ChatbotWidget from "./components/ChatbotWidget";
 import CityRentalTbilisi from "./pages/CityRentalTbilisi";
 import CityRentalKutaisi from "./pages/CityRentalKutaisi";
 import CityRentalBatumi from "./pages/CityRentalBatumi";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,7 @@ function App() {
                 <Route path="/car-rental-tbilisi" component={CityRentalTbilisi} />
                 <Route path="/car-rental-kutaisi" component={CityRentalKutaisi} />
                 <Route path="/car-rental-batumi" component={CityRentalBatumi} />
+                <Route path="/contact" component={Contact} />
                 {/* ── Legacy redirect routes — SEO cleanup ──────────────────── */}
                 <Route path="/tbilisi"><Redirect to="/car-rental-tbilisi" /></Route>
                 <Route path="/batumi"><Redirect to="/car-rental-batumi" /></Route>

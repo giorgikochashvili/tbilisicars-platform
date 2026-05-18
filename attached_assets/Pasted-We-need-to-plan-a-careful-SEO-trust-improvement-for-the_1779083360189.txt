@@ -1,0 +1,160 @@
+We need to plan a careful SEO/trust improvement for the TBILISICARS website.
+
+IMPORTANT:
+Use PLAN MODE only. Do not edit files yet.
+First inspect the current code and return a precise implementation plan.
+Do not make assumptions and do not invent contact details.
+
+Context:
+Google Search Console reported:
+https://tbilisicars.com/contact
+as “Excluded by noindex tag”.
+
+Claude audit confirmed:
+- /contact route does not currently exist.
+- /contact falls through to the NotFound page.
+- NotFound correctly has noindex,nofollow.
+- We must NOT remove noindex from NotFound.
+- The safe solution is to add a real public /contact page.
+
+Goal:
+Create a high-quality, informative, SEO-friendly Contact page for Tbilisicars at /contact.
+
+This page must be useful for:
+- customers
+- Google Search
+- Google Ads trust/quality
+- local SEO
+- external links that already point to /contact
+
+STRICT SCOPE:
+Website only.
+
+Allowed files to inspect:
+- artifacts/website/src/App.tsx
+- artifacts/website/src/pages/*
+- artifacts/website/src/components/*
+- artifacts/website/public/sitemap.xml
+- artifacts/website/public/robots.txt
+- artifacts/website/index.html
+- any website shared constants/contact/footer files if they exist
+
+Expected files likely to change later:
+1. artifacts/website/src/pages/Contact.tsx — create new page
+2. artifacts/website/src/App.tsx — add /contact route before catch-all
+3. artifacts/website/public/sitemap.xml — add /contact URL
+Optional only if clearly safe and already pattern-consistent:
+4. footer/header internal link update — only if existing contact link/navigation pattern supports it
+
+Hard protections:
+- Do NOT touch CRM.
+- Do NOT touch API/backend.
+- Do NOT touch database or migrations.
+- Do NOT touch booking logic.
+- Do NOT touch pricing, availability, payments, email, PDF voucher, customer cabinet, login, or admin routes.
+- Do NOT change NotFound noindex/nofollow.
+- Do NOT add a contact form.
+- Do NOT implement email sending.
+- Do NOT add third-party scripts.
+- Do NOT redesign existing pages.
+- Do NOT change robots.txt unless you find a clear reason and explain it first.
+- Do NOT invent phone numbers, emails, addresses, office names, ratings, or partner claims.
+
+Contact page requirements:
+The page must include all 3 operating regions:
+1. Tbilisi
+2. Kutaisi
+3. Batumi
+
+For each region, show:
+- region/city name
+- relevant airport/downtown/service point information already present in the current project
+- phone number if already present in code/content
+- WhatsApp/phone action link if phone is already known
+- email contact
+
+Global contact information:
+- reservations/support email must come only from existing code/content.
+- If there are multiple emails in the code, list them in the plan and recommend which one is safest to use.
+- Phone numbers must come only from existing code/content.
+- If the code has one Tbilisi/Batumi number and one Kutaisi number, preserve that structure.
+- Do not create new numbers.
+
+Design requirements:
+- Use existing website visual style, spacing, typography, colors, cards, CTA patterns.
+- Page should feel premium, clean, and trustworthy.
+- It should not look like a placeholder.
+- It should work well on mobile and desktop.
+- Include clear sections such as:
+  - Hero: “Contact Tbilisicars”
+  - short trust/help text
+  - contact action cards: Call, WhatsApp, Email
+  - region cards for Tbilisi, Kutaisi, Batumi
+  - service points / airport support information
+  - simple “Need help with a booking?” section
+  - link/CTA to booking page if appropriate
+- Keep content factual and not overhyped.
+
+SEO requirements:
+Add Helmet metadata on Contact.tsx:
+- title: Contact Tbilisicars – Car Rental in Georgia
+- meta description: Contact Tbilisicars for car rental in Tbilisi, Kutaisi and Batumi. Reach our reservations team by phone, WhatsApp or email.
+- canonical: https://tbilisicars.com/contact
+- og:title
+- og:description
+- og:url
+- og:type = website
+- og:image should follow the existing website pattern if already used elsewhere
+- Twitter metadata should follow existing website pattern
+
+Important:
+- Contact page must be indexable.
+- Do NOT add noindex to Contact page.
+- /contact must not render NotFound anymore.
+- /contact should be added to sitemap.xml.
+- Sitemap should increase from 10 URLs to 11 URLs if currently 10.
+- Do not add /contact to sitemap if the page is not created.
+
+Internal linking:
+In Plan Mode, inspect whether Footer already has contact information but no /contact link.
+Recommend whether to add a footer link to /contact.
+Do not automatically change navigation/header unless you explain why it is safe.
+Preferred: footer link is likely safer than header nav if we want minimal UI change.
+
+Plan Mode output required:
+Return a structured plan only, with:
+
+A. Current findings from code
+- Does /contact exist?
+- Where are contact details currently stored?
+- Which phone numbers and emails did you find?
+- Which regions/service points are already mentioned in code?
+- Does sitemap currently include /contact?
+- Does footer/header currently link to /contact?
+
+B. Proposed implementation
+- Exact files to create/change
+- Exact route to add
+- Exact sitemap block to add
+- Whether footer link should be added or not
+- Contact details to use, copied exactly from existing code
+
+C. SEO safety check
+- Confirm Contact page will be indexable
+- Confirm NotFound remains noindex
+- Confirm /booking, /login, /cabinet remain noindex/private as currently intended
+- Confirm sitemap remains only public index-worthy pages
+
+D. Risks / questions
+- List any missing contact details.
+- If exact phone numbers or emails are unclear, stop and ask before Build.
+- Do not proceed to Build if contact details are ambiguous.
+
+E. Out of scope confirmation
+Confirm no CRM/API/DB/booking/pricing/payment/email/PDF changes.
+
+F. Build recommendation
+At the end, clearly say either:
+- “Ready for Build” if contact details are clear and the plan is safe
+or
+- “Needs clarification before Build” if any phone/email/service point details are unclear.
