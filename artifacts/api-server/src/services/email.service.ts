@@ -457,37 +457,65 @@ CONTACT US
   }
 }
 
-// ─── Pickup thank-you / review request ───────────────────────────────────────
-// Sent from the Monitoring page after a successful pickup. Includes Google
-// Review and Trustpilot links and is personalised with the customer's first
-// name. Returns a `{ skipped: true, reason }` result when Resend is unset so
-// the UI can surface a clear reason.
+// ─── Review Request email ─────────────────────────────────────────────────────
+// Sent from CRM (Monitoring or BookingDetail) for RETURNED bookings only.
+// Staff selects one or more destinations; only the selected links appear.
+// Trustpilot BCC is applied server-side via TRUSTPILOT_BCC_EMAIL env var.
+// The env var value is never logged, returned in responses, or exposed.
 
-export interface ThankYouEmailParams {
+export type ReviewDestination = "trustpilot" | "google_tbilisi" | "google_kutaisi";
+
+export interface ReviewRequestEmailParams {
   toEmail: string;
   firstName: string;
   reference: string;
-  vehicle: string;
+  destinations: ReviewDestination[];
 }
 
-export interface ThankYouEmailResult {
+export interface ReviewRequestEmailResult {
   ok: boolean;
   skipped?: boolean;
   reason?: string;
 }
 
-const GOOGLE_REVIEW_URL =
-  "https://search.google.com/local/writereview?placeid=ChIJtbilisicars";
-const TRUSTPILOT_URL = "https://www.trustpilot.com/review/tbilisicars.com";
+const REVIEW_URLS: Record<ReviewDestination, string> = {
+  google_tbilisi: "https://g.page/r/CbUg7g106nJGEBM/review",
+  google_kutaisi: "https://g.page/r/Cc-dBHtnNfYKEBM/review",
+  trustpilot: "https://www.trustpilot.com/review/tbilisicars.com",
+};
 
-export function renderThankYouEmail(params: ThankYouEmailParams): {
+const REVIEW_LABELS: Record<ReviewDestination, string> = {
+  google_tbilisi: "Review us on Google \u2013 Tbilisi",
+  google_kutaisi: "Review us on Google \u2013 Kutaisi",
+  trustpilot: "Review us on Trustpilot",
+};
+
+const REVIEW_BUTTON_STYLE: Record<ReviewDestination, string> = {
+  google_tbilisi: "background:#e05c72;color:#fff;",
+  google_kutaisi: "background:#e05c72;color:#fff;",
+  trustpilot: "background:#1e3a5f;color:#fff;",
+};
+
+export function renderReviewRequestEmail(params: ReviewRequestEmailParams): {
   subject: string;
   html: string;
   text: string;
 } {
-  const { firstName, reference, vehicle } = params;
+  const { firstName, reference, destinations } = params;
   const safeFirst = firstName?.trim() || "there";
   const subject = `Thanks for choosing Tbilisicars, ${safeFirst}!`;
+
+  const buttonCells = destinations
+    .map(
+      (d) =>
+        `<td style="padding:0 6px;"><a href="${REVIEW_URLS[d]}" style="display:inline-block;${REVIEW_BUTTON_STYLE[d]}text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">${esc(REVIEW_LABELS[d])}</a></td>`,
+    )
+    .join("\n");
+
+  const textLinks = destinations
+    .map((d) => `  ${REVIEW_LABELS[d]}: ${REVIEW_URLS[d]}`)
+    .join("\n");
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /></head>
@@ -499,20 +527,15 @@ export function renderThankYouEmail(params: ThankYouEmailParams): {
         <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars \u00B7 Car Rental Georgia</p>
       </div>
       <div style="padding:28px;font-size:14px;line-height:1.6;">
-        <p>It was a pleasure handing over your <strong>${esc(vehicle)}</strong> today (booking <strong>${esc(reference)}</strong>). We hope you're enjoying the road and that everything is running smoothly.</p>
-        <p>If you have a moment, a short public review really helps us reach more travellers in Georgia. Either of these takes about a minute:</p>
+        <p>We\u2019re so glad you chose Tbilisicars for your trip in Georgia (booking <strong>${esc(reference)}</strong>). We hope the experience was smooth from start to finish.</p>
+        <p>If you have a moment, a short public review really helps us reach more travellers:</p>
         <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px auto;">
           <tr>
-            <td style="padding:0 6px;">
-              <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;background:#e05c72;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">Review us on Google</a>
-            </td>
-            <td style="padding:0 6px;">
-              <a href="${TRUSTPILOT_URL}" style="display:inline-block;background:#1e3a5f;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">Review us on Trustpilot</a>
-            </td>
+            ${buttonCells}
           </tr>
         </table>
-        <p>If anything is less than perfect, just reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> \u2014 we'd rather fix it than have you leave anything but a five-star review.</p>
-        <p style="margin-top:24px;">Safe travels,<br/><strong>The Tbilisicars Team</strong></p>
+        <p>If anything could have been better, please reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> \u2014 we\u2019d love to hear from you.</p>
+        <p style="margin-top:24px;">Warm regards,<br/><strong>The Tbilisicars Team</strong></p>
       </div>
       <div style="text-align:center;padding:18px 28px;font-size:12px;color:#475569;">
         \u00A9 2026 Tbilisicars \u00B7 <a href="https://tbilisicars.com" style="color:#64748b;">tbilisicars.com</a>
@@ -521,33 +544,36 @@ export function renderThankYouEmail(params: ThankYouEmailParams): {
   </div>
 </body>
 </html>`;
+
   const text = `Hi ${safeFirst},
 
-Thank you for choosing Tbilisicars and picking up your ${vehicle} today (booking ${reference}). We hope everything is going smoothly so far.
+We\u2019re so glad you chose Tbilisicars for your trip in Georgia (booking ${reference}). We hope the experience was smooth from start to finish.
 
-If you have a moment, a short public review goes a long way:
-  Google:     ${GOOGLE_REVIEW_URL}
-  Trustpilot: ${TRUSTPILOT_URL}
+If you have a moment, a short public review really helps us reach more travellers:
+${textLinks}
 
-If anything is less than perfect, just reply to this email or call +995 557 37 63 63 \u2014 we'd rather fix it.
+If anything could have been better, please reply to this email or call +995 557 37 63 63 \u2014 we\u2019d love to hear from you.
 
-Safe travels,
-The Tbilisicars Team
-`;
+Warm regards,
+The Tbilisicars Team`;
+
   return { subject, html, text };
 }
 
-export async function sendPickupThankYouEmail(
-  params: ThankYouEmailParams,
-): Promise<ThankYouEmailResult> {
+export async function sendReviewRequestEmail(
+  params: ReviewRequestEmailParams,
+): Promise<ReviewRequestEmailResult> {
   const resend = getResend();
   if (!resend) {
-    console.log(`[email] thank_you_skipped_no_api_key ref=${params.reference}`);
+    console.log(`[email] review_request_skipped_no_api_key ref=${params.reference}`);
     return { ok: false, skipped: true, reason: "RESEND_API_KEY is not set" };
   }
   const fromAddress =
     process.env.RESEND_FROM_EMAIL ?? "reservations@tbilisicars.com";
-  const { subject, html, text } = renderThankYouEmail(params);
+  const bccAddress = params.destinations.includes("trustpilot")
+    ? (process.env.TRUSTPILOT_BCC_EMAIL ?? null)
+    : null;
+  const { subject, html, text } = renderReviewRequestEmail(params);
   try {
     await resend.emails.send({
       from: `Tbilisicars Reservations <${fromAddress}>`,
@@ -555,12 +581,13 @@ export async function sendPickupThankYouEmail(
       subject,
       html,
       text,
+      ...(bccAddress ? { bcc: bccAddress } : {}),
     });
-    console.log(`[email] thank_you_sent_ok ref=${params.reference}`);
+    console.log(`[email] review_request_sent_ok ref=${params.reference}`);
     return { ok: true };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[email] thank_you_send_failed ref=${params.reference} ${msg}`);
+    console.error(`[email] review_request_send_failed ref=${params.reference} ${msg}`);
     return { ok: false, reason: msg };
   }
 }

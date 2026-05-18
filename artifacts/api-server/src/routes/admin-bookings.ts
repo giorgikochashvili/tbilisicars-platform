@@ -34,6 +34,10 @@ import {
   schedulePhotoLifecycle,
 } from "../services/admin-handovers.service.js";
 import { logAudit, bookingRef } from "../services/audit.service.js";
+import {
+  sendReviewRequestEmail,
+  type ReviewDestination,
+} from "../services/email.service.js";
 
 const router = Router();
 
@@ -462,5 +466,120 @@ router.post("/admin/bookings/:id/photos", requireAdmin, async (req, res) => {
   });
   res.status(201).json(result);
 });
+
+// ─── Review Request ───────────────────────────────────────────────────────────
+
+const VALID_REVIEW_DESTINATIONS: ReviewDestination[] = [
+  "trustpilot",
+  "google_tbilisi",
+  "google_kutaisi",
+];
+
+router.post(
+  "/admin/bookings/:id/send-review-request",
+  requireAdmin,
+  async (req, res) => {
+    const id = parseInt(String(req.params.id), 10);
+    if (!id || isNaN(id)) {
+      res.status(400).json({ error: "Invalid booking ID" });
+      return;
+    }
+
+    const { destinations } = req.body as { destinations?: unknown };
+
+    if (
+      !Array.isArray(destinations) ||
+      destinations.length === 0 ||
+      !destinations.every((d) =>
+        VALID_REVIEW_DESTINATIONS.includes(d as ReviewDestination),
+      )
+    ) {
+      res.status(400).json({
+        error:
+          "destinations must be a non-empty array of: trustpilot, google_tbilisi, google_kutaisi",
+      });
+      return;
+    }
+
+    const validDests = destinations as ReviewDestination[];
+
+    const { rows } = await pool.query<{
+      id: number;
+      reservation_code: string | null;
+      contact_full_name: string | null;
+      contact_email: string | null;
+      status: string;
+    }>(
+      `SELECT b.id, b.reservation_code, b.contact_full_name, b.contact_email, b.status
+       FROM booking b
+       WHERE b.id = $1 AND b.deleted_at IS NULL`,
+      [id],
+    );
+
+    const bk = rows[0];
+    if (!bk) {
+      res.status(404).json({ error: "Booking not found" });
+      return;
+    }
+    if (bk.status !== "RETURNED") {
+      res
+        .status(400)
+        .json({ error: "Review requests can only be sent for RETURNED bookings" });
+      return;
+    }
+    if (!bk.contact_email) {
+      res.status(400).json({ error: "Booking has no contact email on file" });
+      return;
+    }
+
+    if (
+      validDests.includes("trustpilot") &&
+      !process.env.TRUSTPILOT_BCC_EMAIL
+    ) {
+      res.status(503).json({
+        error:
+          "Trustpilot BCC is not configured on this server. Contact the system administrator.",
+      });
+      return;
+    }
+
+    const { rows: priorRows } = await pool.query<{ created_at: Date }>(
+      `SELECT created_at FROM audit_logs
+       WHERE entity_type = 'booking' AND entity_id = $1 AND action = 'booking.review_request_sent'
+       ORDER BY created_at DESC LIMIT 1`,
+      [id],
+    );
+    const alreadySentAt: Date | null = priorRows[0]?.created_at ?? null;
+
+    const firstName =
+      (bk.contact_full_name ?? "").trim().split(/\s+/)[0] ?? "";
+    const result = await sendReviewRequestEmail({
+      toEmail: bk.contact_email,
+      firstName,
+      reference: bk.reservation_code ?? bookingRef(id),
+      destinations: validDests,
+    });
+
+    if (result.ok) {
+      logAudit({
+        actorId: req.session.adminId ?? null,
+        entityType: "booking",
+        entityId: id,
+        entityRef: bookingRef(id),
+        action: "booking.review_request_sent",
+        summary: `Review request sent to ${bk.contact_email} (destinations: ${validDests.join(", ")})`,
+        afterData: { to: bk.contact_email, destinations: validDests },
+      });
+      res.json({ ok: true, alreadySentAt });
+      return;
+    }
+
+    res.status(result.skipped ? 503 : 502).json({
+      ok: false,
+      skipped: result.skipped ?? false,
+      reason: result.reason ?? "Failed to send email",
+    });
+  },
+);
 
 export default router;

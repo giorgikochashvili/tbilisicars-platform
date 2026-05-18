@@ -1,0 +1,93 @@
+Revise the CRM Manual Send Review Request plan with this clarification.
+
+Important clarification:
+The existing sendPickupThankYouEmail / renderThankYouEmail flow was experimental/orientational and has not been used as a final production workflow.
+It can be changed/refactored into the proper Review Request workflow we want.
+We do NOT need to preserve the old behavior if it conflicts with the new approved logic.
+
+Approved product direction:
+We want one correct manual Review Request system, not an old thank-you flow plus a new duplicate flow.
+
+Final desired staff flow:
+- Staff clicks “Send Review Request”
+- Available from:
+  1. Booking Detail
+  2. Monitoring module
+- Modal opens before sending
+- Staff selects destinations:
+  [ ] Trustpilot
+  [ ] Google Tbilisi
+  [ ] Google Kutaisi
+- At least one destination is required
+- Staff confirms
+- System sends a templated email via existing Resend setup
+- Only selected links/options are included
+- If Trustpilot is selected, backend adds Trustpilot BCC server-side via TRUSTPILOT_BCC_EMAIL
+- If Google Tbilisi is selected, email includes:
+  https://g.page/r/CbUg7g106nJGEBM/review
+- If Google Kutaisi is selected, email includes:
+  https://g.page/r/Cc-dBHtnNfYKEBM/review
+
+Eligibility:
+- RETURNED bookings only.
+- Do not allow for DELIVERED, CONFIRMED, PENDING, CANCELED, or NO_SHOW.
+- DELIVERED is still an active rental, not a completed experience.
+
+Existing wrong Google URL:
+You found an old/test Google URL:
+placeid=ChIJtbilisicars
+Since the old thank-you flow is not final, remove/replace that wrong URL from any review-request-related active path.
+Do not leave any active review request email using that wrong URL.
+
+Naming:
+- User-facing CRM action should be “Send Review Request”
+- Email/template naming should preferably be review-request specific, not pickup thank-you, unless there is a strong technical reason.
+- If old route/function names are reused temporarily, explain why and confirm UI wording is updated.
+
+Trustpilot BCC:
+- Must be server-side only.
+- Use env/config: TRUSTPILOT_BCC_EMAIL
+- Do not expose in frontend, API responses, console logs, or public code.
+- If env var is missing and Trustpilot is selected, recommend whether API should:
+  A) block with clear error, or
+  B) send without BCC and warn.
+My preference is: block with a clear admin-facing error if Trustpilot is selected but TRUSTPILOT_BCC_EMAIL is not configured.
+
+Google review links:
+Use only these:
+Tbilisi:
+https://g.page/r/CbUg7g106nJGEBM/review
+Kutaisi:
+https://g.page/r/Cc-dBHtnNfYKEBM/review
+
+Do not use Google Maps share links in review request emails.
+Do not use fake Place IDs.
+
+Audit / duplicate:
+- Prefer existing audit_logs.
+- No DB migration unless absolutely required.
+- Log who sent, when, booking id/ref, customer email, and selected destinations.
+- If already sent before, show warning.
+- Do not hard-block duplicate resend unless you strongly recommend it.
+
+Email:
+- Use existing Resend.com setup.
+- Sender should remain existing customer-facing sender, likely RESEND_FROM_EMAIL fallback reservations@tbilisicars.com.
+- Do not use info@ for customer review request.
+- Template should be short, polite, no incentives, no pressure, no review gating.
+- If selected Google links exist, show buttons for selected links.
+- If Trustpilot selected, include Trustpilot public link only if you recommend it in addition to BCC; otherwise explain why BCC alone is better.
+- Existing booking confirmation/voucher/admin emails must not be affected.
+
+Please revise the plan and answer:
+
+A. Should we refactor the existing thank-you flow into the new Review Request flow, or create new endpoints/functions and stop using the old UI action?
+B. Exact safest backend architecture
+C. Exact safest Monitoring UI change
+D. Exact safest BookingDetail UI change
+E. How to handle missing TRUSTPILOT_BCC_EMAIL if Trustpilot is selected
+F. Whether any DB migration is needed
+G. Exact files likely to change
+H. Confirm RETURNED-only
+I. Confirm no website changes
+J. Final answer: Ready for Build after TRUSTPILOT_BCC_EMAIL env is configured, or Needs more clarification

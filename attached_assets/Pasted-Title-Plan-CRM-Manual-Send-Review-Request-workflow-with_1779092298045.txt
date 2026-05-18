@@ -1,0 +1,193 @@
+Title: Plan CRM Manual Send Review Request workflow with Resend, Trustpilot BCC, and Google review links
+
+Use PLAN MODE only. Do not edit files yet.
+
+Context:
+We are planning a future CRM review request workflow for Tbilisicars.
+This is not a website SEO display task.
+This must be a careful CRM/API/email planning task only.
+
+Goal:
+Allow staff to manually send a review request email to genuinely satisfied customers after a successful rental.
+
+The action must be available from:
+1. Booking Detail
+2. Monitoring module
+
+Desired staff flow:
+- Staff clicks “Send Review Request”
+- A modal opens before sending
+- Staff chooses which review destinations to include:
+  [ ] Trustpilot
+  [ ] Google Tbilisi
+  [ ] Google Kutaisi
+- Staff confirms
+- System sends a templated thank-you/review email via existing Resend.com email sending setup
+- Only the selected links/options are included
+
+Important Trustpilot requirement:
+If Trustpilot is selected, the backend should add the Trustpilot invitation BCC email server-side only.
+Do NOT expose the Trustpilot BCC email in frontend/CRM React bundle.
+Do NOT hardcode it in frontend.
+Prefer environment/config/server-side constant approach.
+
+Known review links:
+
+Google Tbilisi review link:
+https://g.page/r/CbUg7g106nJGEBM/review
+
+Google Kutaisi review link:
+https://g.page/r/Cc-dBHtnNfYKEBM/review
+
+Trustpilot public profile:
+https://www.trustpilot.com/review/tbilisicars.com
+
+Trustpilot BCC:
+Do not place this in frontend.
+In Plan Mode, inspect where server-side secrets/env config should be used.
+Ask before Build how to provide the exact BCC value securely.
+
+Current known email setup:
+- The project uses Resend.com for email sending.
+- Inspect existing email service implementation before proposing changes.
+- Do not assume current BCC support exists.
+- Do not break any existing booking confirmation, voucher, admin/manual booking, or customer email flows.
+
+Files to inspect:
+Backend/API:
+- artifacts/api-server/src/services/email.service.ts
+- artifacts/api-server/src/routes/admin-bookings.ts
+- artifacts/api-server/src/services/admin-bookings.service.ts
+- any existing email/template/send helpers
+- any existing audit/activity/history logging related to bookings
+- any existing environment/config files used for email secrets
+
+CRM frontend:
+- artifacts/crm/src/pages/BookingDetail.tsx
+- artifacts/crm/src/pages/Monitoring.tsx
+- any shared API client/hooks used by BookingDetail or Monitoring
+- any existing modal/dialog/button patterns
+
+Database/schema:
+- inspect only if needed:
+  - lib/db/src/schema/*
+  - existing booking activity/audit log tables
+Do not propose DB migration unless truly needed and explain why.
+
+Eligibility rules to consider:
+Review request should be manual only, not automatic.
+It should be available only for appropriate bookings, ideally:
+- completed / returned bookings
+- no canceled bookings
+- no no-show bookings
+- no pending/unconfirmed bookings
+- no active/unfinished rentals
+- avoid bookings with damage claim, complaint, dispute, refund, or open problem if such data exists
+If the code does not have enough data for these rules, say what can be safely checked in v1 and what should remain manual staff responsibility.
+
+Modal requirements:
+- Shows customer name/email if available
+- Shows warning text:
+  “Send only if the customer completed the rental and was satisfied.”
+- Checkboxes:
+  Trustpilot
+  Google Tbilisi
+  Google Kutaisi
+- At least one checkbox required before send
+- Send / Cancel buttons
+- Success/error toast
+
+Email requirements:
+- Use existing Resend sending system
+- Create a separate review request email template/function
+- Do not modify existing booking confirmation/voucher email templates
+- Sender should be existing customer-facing sender if available; do not use info@ unless explicitly approved
+- Email body should be polite and short:
+  Thank the customer for choosing Tbilisicars
+  Ask for feedback
+  Include only selected Google review buttons
+  If Trustpilot is selected, either include Trustpilot public profile link if needed, or rely on Trustpilot BCC invitation — recommend safest approach
+- No incentives
+- No pressure language
+- No review gating
+- No fake claims
+
+Audit / duplicate protection:
+Plan whether we need:
+- booking activity log entry
+- review_request_sent_at
+- review_request_sent_by
+- selected destinations stored
+- duplicate-send warning or prevention
+If DB migration is needed, explain clearly.
+If existing audit/history logging can be reused without migration, prefer that for v1.
+
+Hard protections:
+- Do NOT edit files in Plan Mode.
+- Do NOT implement now.
+- Do NOT touch website pages in this task.
+- Do NOT touch pricing, availability, booking creation logic, payment logic, PDF voucher, existing email templates, or customer cabinet.
+- Do NOT change Google Ads.
+- Do NOT add automatic sending.
+- Do NOT expose Trustpilot BCC in frontend.
+- Do NOT send to all customers automatically.
+- Do NOT add aggregateRating schema or website review display changes.
+
+Plan Mode output required:
+
+A. Current email/Resend architecture
+- Where emails are sent from
+- Whether BCC is currently supported
+- Which sender is currently used for customer emails
+- Which function/service should be extended
+
+B. Current Booking Detail structure
+- Where a Send Review Request button could safely be placed
+- What data is available in BookingDetail for customer email/name/status/location
+
+C. Current Monitoring structure
+- Where the action could be placed
+- What booking/customer data is available there
+
+D. Backend/API plan
+- Proposed endpoint path
+- Request payload shape
+- Validation rules
+- How selected destinations map to email content/BCC
+- How Trustpilot BCC stays server-side only
+
+E. Email template plan
+- Subject
+- Body structure
+- How selected Google links appear
+- How Trustpilot selected option works
+- Sender recommendation
+
+F. Audit / duplicate-send plan
+- Existing logging options
+- Whether DB migration is needed or avoidable in v1
+- Recommended v1 approach
+
+G. Eligibility rules
+- Which can be enforced from existing data
+- Which should be staff responsibility in v1
+
+H. Exact files likely to change later
+Group by:
+- API/backend
+- CRM frontend
+- DB/migration if needed
+- config/env if needed
+
+I. Risk assessment
+- What could break
+- How to keep this safe
+- How to protect existing emails
+
+J. Build recommendation
+Say one of:
+- “Ready for Build after confirmation of Trustpilot BCC env value and sender”
+or
+- “Needs clarification before Build”
+
+Do not write code yet.

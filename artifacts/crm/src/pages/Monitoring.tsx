@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,8 +34,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/utils";
+
+type ReviewDestination = "trustpilot" | "google_tbilisi" | "google_kutaisi";
+
+const REVIEW_DEST_LABELS: Record<ReviewDestination, string> = {
+  trustpilot: "Trustpilot",
+  google_tbilisi: "Google \u2013 Tbilisi",
+  google_kutaisi: "Google \u2013 Kutaisi",
+};
+
+const ALL_DESTINATIONS: ReviewDestination[] = [
+  "trustpilot",
+  "google_tbilisi",
+  "google_kutaisi",
+];
 
 // ─── API helper ────────────────────────────────────────────────────────────────
 
@@ -280,7 +295,7 @@ function NotesPanel({ bookingId }: { bookingId: number }) {
   );
 }
 
-// ─── Send-mail dialog ─────────────────────────────────────────────────────────
+// ─── Send Review Request dialog ───────────────────────────────────────────────
 
 function SendMailDialog({
   row,
@@ -292,19 +307,40 @@ function SendMailDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const { toast } = useToast();
+  const [selectedDests, setSelectedDests] = useState<ReviewDestination[]>([]);
+
+  useEffect(() => {
+    if (open) setSelectedDests([]);
+  }, [open, row?.bookingId]);
+
   if (!row) return null;
-  const firstName = (row.contactFullName ?? "").trim().split(/\s+/)[0] || "there";
-  const vehicle = [row.vehicleBrand, row.vehicleModel].filter(Boolean).join(" ") || "your vehicle";
+
   const reference = row.reservationCode ?? `#${row.bookingId}`;
+
+  const toggleDest = (dest: ReviewDestination) => {
+    setSelectedDests((prev) =>
+      prev.includes(dest) ? prev.filter((d) => d !== dest) : [...prev, dest],
+    );
+  };
 
   const send = useMutation({
     mutationFn: () =>
-      apiFetch(`/admin/monitoring/${row.bookingId}/send-thank-you`, {
+      apiFetch(`/admin/monitoring/${row.bookingId}/send-review-request`, {
         method: "POST",
-        body: JSON.stringify({ vehicle }),
+        body: JSON.stringify({ destinations: selectedDests }),
       }),
-    onSuccess: () => {
-      toast({ title: "Thank-you email sent", description: `Sent to ${row.contactEmail}.` });
+    onSuccess: (data: { ok: boolean; alreadySentAt?: string | null }) => {
+      if (data.alreadySentAt) {
+        toast({
+          title: "Review request sent",
+          description: `Sent to ${row.contactEmail}. Note: a review request was already sent on ${formatDateTime(data.alreadySentAt)}.`,
+        });
+      } else {
+        toast({
+          title: "Review request sent",
+          description: `Sent to ${row.contactEmail}.`,
+        });
+      }
       onOpenChange(false);
     },
     onError: (e: Error) =>
@@ -312,16 +348,17 @@ function SendMailDialog({
   });
 
   const noEmail = !row.contactEmail;
+  const canSend = selectedDests.length > 0 && !noEmail && !send.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-primary" /> Send thank-you email
+            <Mail className="w-4 h-4 text-primary" /> Send Review Request
           </DialogTitle>
           <DialogDescription>
-            Sends a personalised thank-you with Google Review and Trustpilot links.
+            Sends a personalised review request email with only the selected destinations.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
@@ -338,48 +375,32 @@ function SendMailDialog({
               <span className="text-muted-foreground text-xs">Booking</span>
               <span className="font-medium text-xs">{reference}</span>
             </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground text-xs">Vehicle</span>
-              <span className="font-medium text-xs">{vehicle}</span>
-            </div>
           </div>
-          <div className="rounded-md border border-border/40 bg-background/50 p-3 text-xs leading-relaxed">
-            <p className="mb-2">
-              <strong>Subject:</strong> Thanks for choosing Tbilisicars, {firstName}!
-            </p>
-            <p>Hi {firstName},</p>
-            <p className="mt-2">
-              Thank you for choosing Tbilisicars and picking up your <strong>{vehicle}</strong>{" "}
-              today (booking <strong>{reference}</strong>). We hope everything is going smoothly.
-            </p>
-            <p className="mt-2">If you have a moment, a short public review really helps:</p>
-            <ul className="mt-1 ml-4 list-disc space-y-0.5">
-              <li>
-                <a
-                  href="https://search.google.com/local/writereview?placeid=tbilisicars"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  Leave a Google review
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.trustpilot.com/evaluate/tbilisicars.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  Review us on Trustpilot
-                </a>
-              </li>
-            </ul>
-            <p className="mt-2 text-muted-foreground">
-              If anything is less than perfect, just reply to this email or call
-              +995 557 37 63 63.
-            </p>
-            <p className="mt-2">Safe travels,<br />The Tbilisicars Team</p>
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            Send only if the customer completed the rental and was satisfied. Do not send if there was a complaint, damage claim, or refund.
+          </div>
+          <div className="space-y-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Select destinations
+            </div>
+            {ALL_DESTINATIONS.map((dest) => (
+              <label
+                key={dest}
+                className="flex items-center gap-2.5 cursor-pointer select-none"
+              >
+                <Checkbox
+                  id={`monitoring-dest-${dest}`}
+                  checked={selectedDests.includes(dest)}
+                  onCheckedChange={() => toggleDest(dest)}
+                />
+                <span className="text-sm">{REVIEW_DEST_LABELS[dest]}</span>
+              </label>
+            ))}
+            {selectedDests.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                At least one destination is required.
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
@@ -394,11 +415,11 @@ function SendMailDialog({
           <Button
             size="sm"
             onClick={() => send.mutate()}
-            disabled={send.isPending || noEmail}
-            data-testid="button-send-thank-you-confirm"
+            disabled={!canSend}
+            data-testid="button-send-review-request-confirm"
           >
             <Send className="w-3.5 h-3.5 mr-1.5" />
-            {send.isPending ? "Sending…" : "Send email"}
+            {send.isPending ? "Sending…" : "Send review request"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -779,18 +800,24 @@ export default function Monitoring() {
                         variant="outline"
                         className="h-7 text-xs gap-1.5"
                         onClick={(e) => { e.stopPropagation(); setMailRow(row); }}
-                        disabled={!emailEnabled || !row.contactEmail}
+                        disabled={
+                          !emailEnabled ||
+                          !row.contactEmail ||
+                          row.status !== "RETURNED"
+                        }
                         title={
                           !emailEnabled
                             ? "Email sending is not configured (RESEND_API_KEY missing)"
                             : !row.contactEmail
                               ? "No customer email on file"
-                              : "Send thank-you email"
+                              : row.status !== "RETURNED"
+                                ? "Only available for RETURNED bookings"
+                                : "Send review request email"
                         }
                         data-testid={`button-send-mail-${row.bookingId}`}
                       >
                         <Mail className="w-3 h-3" />
-                        <span className="hidden sm:inline">Send mail</span>
+                        <span className="hidden sm:inline">Review request</span>
                       </Button>
                     </div>
                   </button>

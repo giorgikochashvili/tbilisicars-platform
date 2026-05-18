@@ -69,7 +69,9 @@ import {
   Paperclip,
   Send,
   PhoneCall,
+  Star,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
   DropdownMenu,
