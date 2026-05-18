@@ -55,6 +55,7 @@ const GEORGIAN_CATEGORIES = [
   "სავალი ნაწილები",
   "გასატესტი",
   "საბურავები",
+  "სხვა",
 ];
 
 interface ServiceItem {
