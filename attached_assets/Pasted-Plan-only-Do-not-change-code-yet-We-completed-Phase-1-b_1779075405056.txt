@@ -1,0 +1,83 @@
+Plan only. Do not change code yet.
+
+We completed Phase 1 backend for customer communication/contact marker.
+
+Already implemented:
+- booking.customer_contacted boolean NOT NULL DEFAULT false
+- Drizzle schema field customerContacted
+- PATCH /admin/bookings/:id/contacted
+  body: { contacted: boolean }
+  response: { customerContacted: boolean }
+- Dashboard today response includes customerContacted
+- Booking Detail GET response includes customerContacted
+- No OpenAPI/codegen/generated files were touched
+
+Now we need frontend Phase 2 + Phase 3.
+
+Target frontend:
+1. CRM Dashboard → Operations Center → Pickups/Dropoffs rows
+2. CRM Booking Detail modal/page → customer phone area
+
+Desired behavior:
+Dashboard Operations:
+- Show a compact COM/contact marker directly next to or near the phone number.
+- If customerContacted is false: neutral state, e.g. small “COM” or phone/check icon in neutral grey.
+- If customerContacted is true: green checked state, e.g. “COM ✓” or small green check.
+- Clicking the marker toggles contacted/uncontacted using PATCH /admin/bookings/:id/contacted.
+- It should optimistically update, but rollback or refetch cleanly on failure.
+- It must not disturb the compact Operations layout.
+- Desktop and mobile must remain clean with no horizontal overflow.
+
+Booking Detail:
+- Show the same COM/contact marker near the customer phone number.
+- Same state and same endpoint.
+- After toggle, Booking Detail state should update/refetch cleanly.
+- Layout must remain stable on desktop and mobile.
+
+Important UI requirements:
+- Green checked state means “customer contacted”.
+- Neutral state means “not contacted yet”.
+- Marker should be small and operationally clear.
+- It should not look like payment/status or extras.
+- It should not be red.
+- It should be easy for staff to click.
+- If possible, add tooltip/title:
+  - unchecked: “Mark customer as contacted”
+  - checked: “Customer contacted”
+
+Important safety rules:
+- Do not touch backend/API/DB/migrations in this phase.
+- Do not touch OpenAPI/codegen/generated files.
+- Do not touch website/SEO/email/PDF.
+- Do not change booking/pricing/payment/status/fleet logic.
+- Do not change pickup/dropoff filtering logic.
+- Do not change extras logic.
+- Do not make broad refactors.
+- Only frontend changes unless you find a hard blocker.
+
+Investigation required:
+1. Inspect Dashboard.tsx:
+   - current BookingRow type
+   - Dashboard operations row rendering
+   - how refetch/mutations are handled
+   - where phone number is rendered on desktop and mobile
+2. Inspect BookingDetail.tsx:
+   - current booking state shape
+   - phone block
+   - existing apiFetch/update patterns
+   - whether local booking type already includes customerContacted
+3. Confirm that frontend can access customerContacted from current backend responses without generated types.
+4. Confirm exact endpoint call shape:
+   PATCH /admin/bookings/:id/contacted
+   body { contacted: boolean }
+
+Output required:
+1. Exact files inspected.
+2. Exact files that would change.
+3. Proposed component/helper approach for COM marker.
+4. Dashboard placement for desktop and mobile.
+5. BookingDetail placement.
+6. Optimistic update/refetch strategy.
+7. Confirm no backend/API/DB/OpenAPI/codegen/generated changes needed.
+8. Risk level.
+9. Recommend Build only if frontend-only.

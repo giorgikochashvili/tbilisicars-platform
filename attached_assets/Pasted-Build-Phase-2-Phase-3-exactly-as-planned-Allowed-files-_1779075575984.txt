@@ -1,0 +1,62 @@
+Build Phase 2 + Phase 3 exactly as planned.
+
+Allowed files only:
+1. artifacts/crm/src/pages/Dashboard.tsx
+2. artifacts/crm/src/pages/BookingDetail.tsx
+
+Goal:
+Add customer communication/contact marker in:
+- CRM Dashboard → Operations → phone area
+- CRM Booking Detail → customer phone area
+
+Use existing backend from Phase 1:
+PATCH /admin/bookings/:id/contacted
+body: { contacted: boolean }
+response: { customerContacted: boolean }
+
+Dashboard requirements:
+1. Add customerContacted?: boolean to the local BookingRow type.
+2. Add compact COM/contact marker beside the phone number in desktop Operations rows.
+3. Add compact COM/contact marker beside/under phone number in mobile Operations rows.
+4. Marker must not disturb compact layout.
+5. Marker must not create horizontal overflow.
+6. Checked/contacted state must be green.
+7. Unchecked state must be neutral/grey.
+8. Use clear title/tooltip:
+   - unchecked: “Mark customer as contacted”
+   - checked: “Customer contacted”
+9. Clicking marker must stop event propagation so the row does not open Booking Detail unintentionally.
+10. Use optimistic update with rollback on failure.
+11. Invalidate/refetch dashboard query if needed after successful toggle.
+
+BookingDetail requirements:
+1. Add same COM/contact marker near customer phone number, beside the existing WhatsApp icon.
+2. Initialize state from booking.customerContacted.
+3. Toggle using PATCH /admin/bookings/:id/contacted.
+4. Use optimistic update with rollback on failure.
+5. Keep phone block visually stable on desktop and mobile.
+6. Checked state green, unchecked state neutral.
+7. Do not remove or break WhatsApp link.
+
+Strict guardrails:
+- Do not touch backend.
+- Do not touch API routes/services.
+- Do not touch DB/schema/migrations.
+- Do not touch OpenAPI.
+- Do not run codegen.
+- Do not touch generated files.
+- Do not touch website/SEO/email/PDF.
+- Do not change pricing/payment/status/fleet logic.
+- Do not change pickup/dropoff filtering.
+- Do not change extras logic.
+- Do not make broad refactors.
+
+After build:
+- Report exact files changed.
+- Confirm no backend/API/DB/OpenAPI/codegen/generated files were touched.
+- Confirm Dashboard marker toggles customerContacted.
+- Confirm BookingDetail marker toggles customerContacted.
+- Confirm row click behavior is preserved.
+- Run CRM check/typecheck if available.
+- Separate pre-existing errors from new errors.
+- Goal: 0 new errors.

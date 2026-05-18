@@ -68,6 +68,7 @@ import {
   Smile,
   Paperclip,
   Send,
+  PhoneCall,
 } from "lucide-react";
 import { RecentActivity } from "@/components/RecentActivity";
 import {
@@ -1646,6 +1647,23 @@ export default function BookingDetail({
     }
   };
 
+  const handleToggleContacted = async () => {
+    if (!bookingId || !booking) return;
+    const prev = booking.customerContacted ?? false;
+    const next = !prev;
+    setBooking((b: any) => ({ ...b, customerContacted: next }));
+    try {
+      const result = await apiFetch(`/admin/bookings/${bookingId}/contacted`, {
+        method: "PATCH",
+        body: JSON.stringify({ contacted: next }),
+      });
+      setBooking((b: any) => ({ ...b, customerContacted: result.customerContacted }));
+    } catch (e: any) {
+      setBooking((b: any) => ({ ...b, customerContacted: prev }));
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleSendConfirmation = async () => {
     if (!bookingId) return;
     setSendingConfirmation(true);
@@ -2459,6 +2477,14 @@ export default function BookingDetail({
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                           </a>
+                          <button
+                            type="button"
+                            className={`flex-shrink-0 transition-colors ${booking.customerContacted ? "text-green-500 hover:text-green-400" : "text-muted-foreground/40 hover:text-muted-foreground/70"}`}
+                            onClick={handleToggleContacted}
+                            title={booking.customerContacted ? "Customer contacted" : "Mark customer as contacted"}
+                          >
+                            <PhoneCall className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : null}
                     </div>

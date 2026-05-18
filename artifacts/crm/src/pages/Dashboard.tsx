@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatMoney, formatBookingAmount, cn, formatTime } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,7 @@ import {
   XCircle, UserX, AlertCircle, MapPin, Calendar,
   Bell, AlertTriangle, GitFork, Wrench, ArrowUpFromLine, ArrowDownToLine,
   Settings2, Info, RotateCw, ParkingSquare, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  ClipboardList, Clock, Globe,
+  ClipboardList, Clock, Globe, PhoneCall,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import BookingDetail from "./BookingDetail";
@@ -55,6 +55,7 @@ interface BookingRow {
   pickupLocation: { id: number; name: string };
   dropoffLocation: { id: number; name: string };
   partner: { id: number; name: string } | null;
+  customerContacted?: boolean;
 }
 
 interface WebsiteBookingsSummary {
@@ -507,6 +508,29 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
   isToday?: boolean;
   onTodayDate?: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const [optimisticContacted, setOptimisticContacted] = useState<Record<number, boolean>>({});
+
+  async function handleToggleContacted(bookingId: number, current: boolean) {
+    const next = !current;
+    setOptimisticContacted(prev => ({ ...prev, [bookingId]: next }));
+    try {
+      const res = await fetch(`${BASE}/admin/bookings/${bookingId}/contacted`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contacted: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json();
+      setOptimisticContacted(prev => ({ ...prev, [bookingId]: result.customerContacted }));
+      queryClient.invalidateQueries({ queryKey: ["dashboard-today-pickups"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-today-dropoffs"] });
+    } catch {
+      setOptimisticContacted(prev => ({ ...prev, [bookingId]: current }));
+    }
+  }
+
   return (
     <Card className="flex flex-col border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden" style={{ maxHeight: "380px" }}>
       <CardHeader className="border-b border-border/40 py-3 bg-background/50">
@@ -621,6 +645,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
         {!isLoading && bookings && bookings.length > 0 && bookings.map((b) => {
           const dt = timeKey === "pickup" ? b.pickupDatetime : b.dropoffDatetime;
           const phone = b.customer?.phone ?? b.contactPhone ?? null;
+          const isContacted = optimisticContacted[b.id] ?? b.customerContacted ?? false;
           const timeStr = formatTime(dt);
           const clientName = b.customer?.fullName || b.customer?.email || b.contactFullName;
           const vehicleName = b.vehicle
@@ -687,13 +712,23 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                 </div>
                 {/* Col 3: Client */}
                 <span className="font-semibold text-sm text-foreground truncate min-w-0">{clientName}</span>
-                {/* Col 4: Phone */}
-                <span className="text-xs text-muted-foreground truncate min-w-0">
-                  {phone
-                    ? <a href={`tel:${phone}`} className="hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>{phone}</a>
-                    : <span className="italic opacity-50">—</span>
-                  }
-                </span>
+                {/* Col 4: Phone + COM marker */}
+                <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                  <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
+                    {phone
+                      ? <a href={`tel:${phone}`} className="hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                      : <span className="italic opacity-50">—</span>
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    className={cn("flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors", isContacted ? "text-green-500 hover:text-green-400" : "text-muted-foreground/30 hover:text-muted-foreground/70")}
+                    onClick={(e) => { e.stopPropagation(); handleToggleContacted(b.id, isContacted); }}
+                    title={isContacted ? "Customer contacted" : "Mark customer as contacted"}
+                  >
+                    <PhoneCall className="w-3 h-3" />
+                  </button>
+                </div>
                 {/* Col 5: Amount + payment status */}
                 <div className="flex flex-col gap-0.5 min-w-0 items-end">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
@@ -718,7 +753,17 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   <div className="flex flex-col min-w-0 overflow-hidden">
                     <span className="font-semibold text-xs text-foreground truncate">{clientName}</span>
                     {phone && (
-                      <a href={`tel:${phone}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors truncate" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <a href={`tel:${phone}`} className="text-[10px] text-muted-foreground hover:text-primary transition-colors truncate" onClick={(e) => e.stopPropagation()}>{phone}</a>
+                        <button
+                          type="button"
+                          className={cn("flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors", isContacted ? "text-green-500" : "text-muted-foreground/30 hover:text-muted-foreground/60")}
+                          onClick={(e) => { e.stopPropagation(); handleToggleContacted(b.id, isContacted); }}
+                          title={isContacted ? "Customer contacted" : "Mark customer as contacted"}
+                        >
+                          <PhoneCall className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
                   <span className="text-xs font-bold text-primary flex-shrink-0">{timeStr}</span>
