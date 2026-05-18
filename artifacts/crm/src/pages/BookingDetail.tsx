@@ -2563,6 +2563,16 @@ export default function BookingDetail({
                           : "—"}
                       </div>
                     </div>
+                    {booking.pickupDatetime && booking.dropoffDatetime && (
+                      <div>
+                        <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
+                          Rental Days
+                        </div>
+                        <div className="font-mono font-semibold">
+                          {Math.ceil((new Date(booking.dropoffDatetime).getTime() - new Date(booking.pickupDatetime).getTime()) / (1000 * 60 * 60 * 24))}d
+                        </div>
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Pickup

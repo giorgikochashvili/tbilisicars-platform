@@ -730,7 +730,7 @@ function ActivityTable({ title, bookings, isLoading, emptyMessage, timeKey, onRo
                   </button>
                 </div>
                 {/* Col 5: Amount + payment status */}
-                <div className="flex flex-col gap-0.5 min-w-0 items-end">
+                <div className="flex flex-col gap-0.5 min-w-0 items-start">
                   <span className="text-xs font-mono font-semibold text-foreground">{amountEl}</span>
                   <PaymentStatusBadge status={b.paymentStatus} />
                 </div>
