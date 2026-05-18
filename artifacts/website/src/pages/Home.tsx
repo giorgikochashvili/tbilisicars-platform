@@ -433,7 +433,13 @@ export default function Home() {
                   <span className={`text-sm font-bold leading-none ${r.markColor}`}>{r.brandMark}</span>
                   <span className={`text-xs font-semibold tracking-wide ${r.labelColor}`}>{r.platform}</span>
                 </div>
-                <div className={`text-xs leading-none ${r.starColor}`}>★★★★★</div>
+                <div className={`text-xs leading-none flex items-center ${r.starColor}`}>
+                  <span>★★★★</span>
+                  <span className="relative inline-block">
+                    <span className="opacity-20">★</span>
+                    <span className="absolute inset-0" style={{ clipPath: "inset(0 30% 0 0)" }}>★</span>
+                  </span>
+                </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-[10px] text-muted-foreground">{r.descriptor}</span>
                   <span className="text-xs font-bold text-white tabular-nums">{r.rating}</span>
