@@ -7,6 +7,7 @@
  * - Premium DateTimePicker replaces native datetime-local inputs
  * - WhatsApp as opt-in checkbox; separate Terms and Privacy checkboxes in Step 4
  */
+import { trackBookingConversion } from "@/lib/google-ads";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
@@ -2395,6 +2396,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           discountedRentalPrice: resolvedQuote?.discountedRentalPrice ?? undefined,
         }),
       });
+      trackBookingConversion(data.bookingId, data.reference);
       setResult(data);
       window.scrollTo({ top: 0, behavior: "smooth" });
       try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch { /* ignore */ }
