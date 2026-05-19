@@ -1,0 +1,77 @@
+Build the approved Review Request email template refinement.
+
+Change only:
+artifacts/api-server/src/services/email.service.ts
+
+Approved behavior:
+1. Google-only selected:
+   - Send Tbilisicars branded Google review email.
+   - Show only Google paragraph and Google button.
+   - Do not mention Trustpilot.
+   - Do not BCC Trustpilot.
+
+2. Trustpilot + Google selected:
+   - Send Tbilisicars branded Google review email.
+   - Trustpilot BCC behavior remains unchanged so Trustpilot sends its official invitation.
+   - In the Tbilisicars email, include this approved Trustpilot note:
+     “You may also receive a separate official review invitation from Trustpilot. Thank you for taking the time to support us.”
+   - Do not show a Trustpilot button/link in the Tbilisicars email.
+
+3. Trustpilot-only selected:
+   - Keep current BCC/AFS mechanism working.
+   - Send a short Tbilisicars courtesy email with no CTA button, plus Trustpilot BCC so the official Trustpilot invitation is triggered.
+   - Do not skip the branded email in this phase.
+   - Do not add direct Trustpilot API integration.
+
+Required template changes:
+- Make the branded email Google-focused.
+- Use this approved Google copy when a Google destination is selected:
+  “If you have a moment, we would be grateful if you could share your experience with Tbilisicars on Google. Your review helps other travelers choose us with confidence.”
+- Show the Trustpilot note only when Trustpilot is selected:
+  “You may also receive a separate official review invitation from Trustpilot. Thank you for taking the time to support us.”
+- Remove booking/reservation reference from the review email entirely.
+  Do not show TC-000828.
+  Do not show #828.
+  Do not show any booking reference.
+- Replace:
+  “The Tbilisicars Team”
+  with:
+  “Tbilisicars Team”
+- Add the Tbilisicars logo to the email header using:
+  https://tbilisicars.com/tbilisicars-logo.png
+- Do not place the logo inside a heavy red header.
+- Use a clean premium centered logo/header layout.
+- Use red only as a small accent if needed.
+- Improve Google button styling:
+  - Make it clear it is a Google action.
+  - Prefer CSS-only safe styling: white button, Google-blue border/text.
+  - Do not use external Google image assets.
+  - Do not add image dependencies.
+  - Do not add QR code in this phase.
+- Keep plain-text version consistent with HTML:
+  - no booking reference
+  - Google link only if Google selected
+  - Trustpilot note only if Trustpilot selected
+  - no Trustpilot direct link/button if Trustpilot official invitation is selected separately
+
+Hard protections:
+- Do NOT edit CRM files.
+- Do NOT edit route files.
+- Do NOT touch website SEO/schema/sitemap/robots.
+- Do NOT touch booking creation, pricing, payments, availability, PDF voucher, customer cabinet, DB schema, migrations, or Google Ads.
+- Do NOT change RETURNED-only eligibility.
+- Do NOT change Trustpilot BCC security.
+- Do NOT expose TRUSTPILOT_BCC_EMAIL.
+- Do NOT add automatic sending.
+- Do NOT add review counts, incentives, aggregateRating, widgets, scripts, external assets, or QR code.
+- Do NOT add new dependencies.
+
+After implementation:
+- Run API build/typecheck appropriate for this workspace.
+- Report exact file changed.
+- Confirm only email.service.ts changed.
+- Confirm Trustpilot BCC logic was not modified.
+- Confirm no CRM/frontend files changed.
+- Confirm no route files changed.
+- Confirm no DB/schema/migration changes.
+- Confirm no QR/dependency added.

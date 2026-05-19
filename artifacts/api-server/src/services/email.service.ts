@@ -490,72 +490,97 @@ const REVIEW_LABELS: Record<ReviewDestination, string> = {
   trustpilot: "Review us on Trustpilot",
 };
 
-const REVIEW_BUTTON_STYLE: Record<ReviewDestination, string> = {
-  google_tbilisi: "background:#e05c72;color:#fff;",
-  google_kutaisi: "background:#e05c72;color:#fff;",
-  trustpilot: "background:#1e3a5f;color:#fff;",
-};
-
 export function renderReviewRequestEmail(params: ReviewRequestEmailParams): {
   subject: string;
   html: string;
   text: string;
 } {
-  const { firstName, reference, destinations } = params;
+  const { firstName, destinations } = params;
   const safeFirst = firstName?.trim() || "there";
   const subject = `Thanks for choosing Tbilisicars, ${safeFirst}!`;
 
-  const buttonCells = destinations
+  const googleDests = (["google_tbilisi", "google_kutaisi"] as const).filter(
+    (d) => destinations.includes(d),
+  );
+  const hasGoogle = googleDests.length > 0;
+  const hasTrustpilot = destinations.includes("trustpilot");
+
+  // ── Google button cells (CSS-only, Google-blue border/text, no external assets)
+  const googleButtonCells = googleDests
     .map(
       (d) =>
-        `<td style="padding:0 6px;"><a href="${REVIEW_URLS[d]}" style="display:inline-block;${REVIEW_BUTTON_STYLE[d]}text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:600;font-size:13px;">${esc(REVIEW_LABELS[d])}</a></td>`,
+        `<td style="padding:0 6px 10px;">` +
+        `<a href="${REVIEW_URLS[d]}" style="display:inline-block;background:#ffffff;color:#1a73e8;border:2px solid #1a73e8;text-decoration:none;padding:11px 24px;border-radius:8px;font-weight:600;font-size:14px;">` +
+        `G \u00B7 ${esc(REVIEW_LABELS[d])}` +
+        `</a></td>`,
     )
     .join("\n");
 
-  const textLinks = destinations
-    .map((d) => `  ${REVIEW_LABELS[d]}: ${REVIEW_URLS[d]}`)
-    .join("\n");
+  // ── Google paragraph + button block (only when a Google destination is selected)
+  const googleBlock = hasGoogle
+    ? `<p style="margin:0 0 16px;">If you have a moment, we would be grateful if you could share your experience with Tbilisicars on Google. Your review helps other travelers choose us with confidence.</p>
+        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:4px auto 8px;">
+          <tr>
+            ${googleButtonCells}
+          </tr>
+        </table>`
+    : "";
+
+  // ── Trustpilot courtesy note (no link, no button — official invite sent separately via BCC)
+  const trustpilotNote = hasTrustpilot
+    ? `<p style="margin:20px 0 0;font-size:14px;color:#4a5568;">You may also receive a separate official review invitation from Trustpilot. Thank you for taking the time to support us.</p>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /></head>
-<body style="margin:0;padding:0;background:#0d1b2a;font-family:'Segoe UI',Arial,sans-serif;color:#e2e8f0;">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;color:#1a202c;">
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-    <div style="background:#132033;border:1px solid #1e3a5f;border-radius:16px;overflow:hidden;">
-      <div style="background:linear-gradient(135deg,#7f1d2e 0%,#9f2535 100%);padding:28px;text-align:center;">
-        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Thank you, ${esc(safeFirst)}!</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Tbilisicars \u00B7 Car Rental Georgia</p>
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <div style="padding:28px 24px 20px;text-align:center;border-bottom:3px solid #c8102e;">
+        <a href="https://tbilisicars.com" style="display:inline-block;text-decoration:none;">
+          <img src="https://tbilisicars.com/tbilisicars-logo.png" alt="Tbilisicars" width="120" style="display:block;max-width:120px;height:auto;margin:0 auto;" />
+        </a>
       </div>
-      <div style="padding:28px;font-size:14px;line-height:1.6;">
-        <p>We\u2019re so glad you chose Tbilisicars for your trip in Georgia (booking <strong>${esc(reference)}</strong>). We hope the experience was smooth from start to finish.</p>
-        <p>If you have a moment, a short public review really helps us reach more travellers:</p>
-        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px auto;">
-          <tr>
-            ${buttonCells}
-          </tr>
-        </table>
-        <p>If anything could have been better, please reply to this email or call <a href="tel:+995557376363" style="color:#e05c72;">+995 557 37 63 63</a> \u2014 we\u2019d love to hear from you.</p>
-        <p style="margin-top:24px;">Warm regards,<br/><strong>The Tbilisicars Team</strong></p>
+      <div style="padding:28px;font-size:15px;line-height:1.65;color:#1a202c;">
+        <p style="margin:0 0 16px;">Hi ${esc(safeFirst)},</p>
+        ${googleBlock}
+        ${trustpilotNote}
+        <p style="margin:24px 0 0;font-size:14px;color:#4a5568;">If anything could have been better, please reply to this email or call <a href="tel:+995557376363" style="color:#c8102e;">+995 557 37 63 63</a> \u2014 we\u2019d love to hear from you.</p>
+        <p style="margin:20px 0 0;">Warm regards,<br/><strong>Tbilisicars Team</strong></p>
       </div>
-      <div style="text-align:center;padding:18px 28px;font-size:12px;color:#475569;">
-        \u00A9 2026 Tbilisicars \u00B7 <a href="https://tbilisicars.com" style="color:#64748b;">tbilisicars.com</a>
+      <div style="text-align:center;padding:16px 24px;font-size:12px;color:#718096;border-top:1px solid #e2e8f0;">
+        \u00A9 2026 Tbilisicars \u00B7 <a href="https://tbilisicars.com" style="color:#718096;">tbilisicars.com</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
 
-  const text = `Hi ${safeFirst},
+  // ── Plain-text version (mirrors HTML logic exactly)
+  const textParts: string[] = [`Hi ${safeFirst},`, ""];
+  if (hasGoogle) {
+    textParts.push(
+      `If you have a moment, we would be grateful if you could share your experience with Tbilisicars on Google. Your review helps other travelers choose us with confidence.`,
+      "",
+      ...googleDests.map((d) => `  ${REVIEW_LABELS[d]}: ${REVIEW_URLS[d]}`),
+      "",
+    );
+  }
+  if (hasTrustpilot) {
+    textParts.push(
+      `You may also receive a separate official review invitation from Trustpilot. Thank you for taking the time to support us.`,
+      "",
+    );
+  }
+  textParts.push(
+    `If anything could have been better, please reply to this email or call +995 557 37 63 63 \u2014 we\u2019d love to hear from you.`,
+    "",
+    `Warm regards,`,
+    `Tbilisicars Team`,
+  );
 
-We\u2019re so glad you chose Tbilisicars for your trip in Georgia (booking ${reference}). We hope the experience was smooth from start to finish.
-
-If you have a moment, a short public review really helps us reach more travellers:
-${textLinks}
-
-If anything could have been better, please reply to this email or call +995 557 37 63 63 \u2014 we\u2019d love to hear from you.
-
-Warm regards,
-The Tbilisicars Team`;
+  const text = textParts.join("\n");
 
   return { subject, html, text };
 }
