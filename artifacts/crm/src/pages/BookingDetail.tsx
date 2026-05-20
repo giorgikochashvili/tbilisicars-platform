@@ -1751,6 +1751,8 @@ export default function BookingDetail({
     dropoffTime: "09:00",
     contactPhone: "",
     contactEmail: "",
+    deposit: "",
+    depositCurrency: "NONE",
   });
   const [changingStatus, setChangingStatus] = useState(false);
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
@@ -2269,6 +2271,8 @@ export default function BookingDetail({
       dropoffTime: dr.time,
       contactPhone: booking?.contactPhone ?? booking?.customer?.phone ?? "",
       contactEmail: booking?.contactEmail ?? booking?.customer?.email ?? "",
+      deposit: booking?.deposit ?? "",
+      depositCurrency: booking?.depositCurrency ?? "NONE",
     });
     setIsOverviewEditing(true);
   };
@@ -2328,6 +2332,8 @@ export default function BookingDetail({
             : {}),
           contactPhone: overviewDraft.contactPhone || null,
           contactEmail: overviewDraft.contactEmail || null,
+          ...(overviewDraft.deposit !== "" ? { deposit: overviewDraft.deposit } : {}),
+          depositCurrency: overviewDraft.depositCurrency === "NONE" ? null : overviewDraft.depositCurrency,
         }),
       });
       setIsOverviewEditing(false);
@@ -3008,6 +3014,55 @@ export default function BookingDetail({
                           </SelectContent>
                         </Select>
                       </div>
+                      {/* Deposit Amount */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Deposit Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 500.00"
+                          value={overviewDraft.deposit}
+                          onChange={(e) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              deposit: e.target.value,
+                            }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {/* Deposit Currency */}
+                      <div className="grid gap-1.5">
+                        <Label className="text-xs">Deposit Currency</Label>
+                        <Select
+                          value={overviewDraft.depositCurrency}
+                          onValueChange={(v) =>
+                            setOverviewDraft((p) => ({
+                              ...p,
+                              depositCurrency: v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NONE" className="text-xs">
+                              — Not set —
+                            </SelectItem>
+                            <SelectItem value="GEL" className="text-xs">
+                              GEL (₾)
+                            </SelectItem>
+                            <SelectItem value="USD" className="text-xs">
+                              USD ($)
+                            </SelectItem>
+                            <SelectItem value="EUR" className="text-xs">
+                              EUR (€)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       {/* Pickup Location */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Pickup Location</Label>
@@ -3194,68 +3249,21 @@ export default function BookingDetail({
                     }
                   />
                   <SummaryCard
-                    label="Deposit Received"
+                    label="Deposit Amount"
                     value={
-                      summary
-                        ? fmtOrig(
-                            summary.depositReceivedOriginal ??
-                              summary.depositReceived,
-                          )
-                        : fmtOrig(0)
+                      booking?.deposit && parseFloat(booking.deposit) > 0
+                        ? booking.depositCurrency
+                          ? `${currencySymbol(booking.depositCurrency)}${parseFloat(booking.deposit).toFixed(2)}`
+                          : parseFloat(booking.deposit).toFixed(2)
+                        : "—"
                     }
-                    gelSub={
-                      isNonGel && summary
-                        ? fmtGel(summary.depositReceived)
+                    sub={
+                      booking?.deposit &&
+                      parseFloat(booking.deposit) > 0 &&
+                      !booking.depositCurrency
+                        ? "Currency not set"
                         : undefined
                     }
-                  />
-                  <SummaryCard
-                    label="Deposit Returned"
-                    value={
-                      summary
-                        ? fmtOrig(
-                            summary.depositReturnedOriginal ??
-                              summary.depositReturned,
-                          )
-                        : fmtOrig(0)
-                    }
-                    gelSub={
-                      isNonGel && summary
-                        ? fmtGel(summary.depositReturned)
-                        : undefined
-                    }
-                  />
-                  <SummaryCard
-                    label="Total Refunded"
-                    value={
-                      summary
-                        ? fmtOrig(
-                            summary.totalRefundedOriginal ??
-                              summary.totalRefunded,
-                          )
-                        : fmtOrig(0)
-                    }
-                    gelSub={
-                      isNonGel && summary
-                        ? fmtGel(summary.totalRefunded)
-                        : undefined
-                    }
-                  />
-                  <SummaryCard
-                    label="Net Deposit"
-                    value={
-                      summary
-                        ? fmtOrig(
-                            summary.netDepositOriginal ?? summary.netDeposit,
-                          )
-                        : fmtOrig(0)
-                    }
-                    gelSub={
-                      isNonGel && summary
-                        ? fmtGel(summary.netDeposit)
-                        : undefined
-                    }
-                    sub="Received minus returned"
                   />
                 </div>
               </CollapsibleSection>

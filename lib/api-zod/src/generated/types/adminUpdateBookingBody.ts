@@ -38,5 +38,7 @@ export interface AdminUpdateBookingBody {
   documentNumber?: string;
   deposit?: string;
   /** @nullable */
+  depositCurrency?: string | null;
+  /** @nullable */
   externalReservationCode?: string | null;
 }

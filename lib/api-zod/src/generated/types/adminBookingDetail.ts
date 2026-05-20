@@ -38,6 +38,8 @@ export type AdminBookingDetail = AdminBookingRow & {
   /** @nullable */
   deposit?: string | null;
   /** @nullable */
+  depositCurrency?: string | null;
+  /** @nullable */
   notes?: string | null;
   /** @nullable */
   documentType?: string | null;

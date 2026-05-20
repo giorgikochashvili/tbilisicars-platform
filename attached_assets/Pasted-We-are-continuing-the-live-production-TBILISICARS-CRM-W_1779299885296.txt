@@ -1,0 +1,181 @@
+We are continuing the live production TBILISICARS CRM&WEB project.
+
+Important context:
+- This is a live CRM used by staff with real bookings and real payments.
+- Be conservative and surgical.
+- PLAN MODE ONLY. Do not modify files yet.
+- Do not deploy.
+- Do not perform Git Sync or Droplet build.
+- Production migration/deployment will happen only at the end after all Accounting phases are approved.
+- Do not touch public website.
+- Do not touch pricing engine or public booking flow.
+- Do not touch Georgia Bank / online payment.
+- Do not change permissions/role guards in this phase.
+- Do not change already completed Accounting Phase 1 or Phase 2A unless required and explicitly stated.
+
+Completed so far in Replit, not deployed:
+Phase 1:
+- Accounting create/update/delete audit logging
+- Accounting category cleanup
+- No DB migration
+- No payment logic changes
+
+Phase 2A:
+- Added booking payment types ADDITIONAL_PAYMENT and EXTRA_DAYS_PAYMENT
+- Migration file 0008_booking_payment_types.sql created
+- Both new payment types create accounting income and count toward Total Paid/paymentStatus
+- Old payment types remain historical/readable but are removed from new payment creation
+- No production migration/deploy yet
+
+Now plan Phase 3.
+
+Business goal:
+Add booking-level manual Deposit Amount + separate Deposit Currency to Booking Detail, and simplify Payment Summary.
+
+Important business rules:
+- Deposit is metadata only.
+- Deposit is NOT a payment.
+- Deposit must NOT create booking_payment rows.
+- Deposit must NOT create accounting_entries rows.
+- Deposit must NOT increase Total Paid.
+- Deposit must NOT reduce Remaining Balance.
+- Deposit must NOT affect paymentStatus.
+- Deposit must NOT be treated as income or expense.
+- Deposit should simply store and display the agreed/recorded deposit amount and deposit currency for the booking.
+
+Desired UI behavior:
+Booking Detail should allow staff to enter/edit:
+- Deposit Amount
+- Deposit Currency
+
+Deposit Currency must be separate from booking currency.
+Allowed currencies:
+- GEL
+- USD
+- EUR
+
+Payment Summary cleanup:
+Remove/hide from the CRM Payment Summary card:
+- Deposit Returned
+- Total Refunded
+- Net Deposit
+
+Show clean summary:
+- Total Paid
+- Remaining Balance
+- Deposit Amount + Deposit Currency
+
+If Deposit Amount is empty/0, display something clean such as “—” or “Not set”, depending on current UI style.
+
+Planning questions to answer:
+
+A. Current schema/API/UI inspection
+1. Where is booking.deposit defined in DB schema?
+2. What type is it?
+3. Is booking.deposit currently returned in Booking Detail GET response?
+4. Is booking.deposit currently accepted in Booking PATCH/update?
+5. Is booking.deposit currently shown anywhere in CRM BookingDetail?
+6. Where exactly is Payment Summary rendered?
+7. Where do Deposit Returned / Total Refunded / Net Deposit fields currently come from?
+
+B. Deposit Currency design
+We need separate deposit currency.
+Answer:
+1. Is there already any depositCurrency/deposit_currency column?
+2. If not, propose the smallest safe DB migration.
+3. Recommended column name should follow project naming style:
+   - DB column likely deposit_currency
+   - TS field likely depositCurrency
+4. Should it use an existing enum or varchar?
+5. Recommend the safest design for this repo.
+
+Expected likely migration:
+New file after 0008, likely:
+lib/db/migrations/0009_booking_deposit_currency.sql
+
+Add column to booking table:
+deposit_currency varchar(3) DEFAULT 'USD' or nullable/default strategy to be decided.
+
+Important:
+Because existing bookings already have booking.deposit numeric values, choose a backward-compatible default/nullable strategy.
+Explain whether default should be:
+- NULL when no deposit currency is set
+- or booking currency fallback in UI
+- or fixed default like USD
+Recommend the safest option.
+
+C. Backend plan
+Identify exact files/functions needed to:
+1. Add depositCurrency to DB schema.
+2. Return deposit and depositCurrency in booking detail response.
+3. Accept deposit and depositCurrency in booking update/PATCH.
+4. Validate deposit currency as GEL/USD/EUR.
+5. Ensure deposit/depositCurrency update does not touch payment calculations.
+6. Ensure deposit/depositCurrency update does not create accounting/payment entries.
+
+Likely inspect:
+- lib/db/src/schema/bookings.ts
+- artifacts/api-server/src/routes/admin-bookings.ts
+- artifacts/api-server/src/services/admin-bookings.service.ts
+- any shared booking types if relevant
+
+D. CRM plan
+Identify exact changes in:
+- artifacts/crm/src/pages/BookingDetail.tsx
+
+Need:
+1. Add Deposit Amount input in Booking Overview edit form or another appropriate Booking Detail location.
+2. Add Deposit Currency select with GEL/USD/EUR.
+3. Show Deposit in Payment Summary card as Deposit Amount + Deposit Currency.
+4. Remove/hide Deposit Returned, Total Refunded, Net Deposit from Payment Summary UI.
+5. No redesign.
+
+E. Risk check
+Evaluate:
+1. Could adding depositCurrency break existing bookings?
+2. Could deposit update accidentally affect booking payment status?
+3. Could PATCH update overwrite deposit incorrectly if field is omitted?
+4. Could UI default cause wrong deposit currency on old bookings?
+5. Could Payment Summary cleanup hide useful historical refund info? For now business rule says yes, hide those fields.
+
+F. Test checklist
+Provide exact tests:
+1. Existing booking with no deposit: detail page loads, deposit shows cleanly.
+2. Set deposit amount and currency: saves correctly.
+3. Refresh booking detail: deposit persists.
+4. Change deposit only: Total Paid unchanged.
+5. Change deposit only: Remaining Balance unchanged.
+6. Change deposit only: paymentStatus unchanged.
+7. No booking_payment row created.
+8. No accounting_entries row created.
+9. Payment Summary no longer shows Deposit Returned / Total Refunded / Net Deposit.
+10. Historical old payment rows still display in Payment History.
+11. Phase 2A new payment types still work.
+12. No website/public booking files touched.
+
+G. Scope constraints
+Out of scope:
+- Do not implement Deposit Received/Returned payment logic.
+- Do not implement refund workflow.
+- Do not implement Advance Payment / Pending Receivables.
+- Do not implement Fixed Monthly Expenses.
+- Do not implement Phase 2B Extension / Extra Charge flow.
+- Do not change booking pricing recalculation.
+- Do not change public booking flow.
+- Do not change permissions.
+- Do not deploy.
+- Do not run production DB migration.
+
+Plan response required:
+1. Exact files to edit.
+2. Exact DB migration needed.
+3. Exact schema change.
+4. Exact backend GET/PATCH changes.
+5. Exact CRM UI changes.
+6. Exact Payment Summary cleanup.
+7. Default/null strategy for depositCurrency.
+8. Risk assessment.
+9. Test checklist.
+10. Confirmation that no files will be modified until Build is approved.
+
+PLAN MODE ONLY. Do not modify files.

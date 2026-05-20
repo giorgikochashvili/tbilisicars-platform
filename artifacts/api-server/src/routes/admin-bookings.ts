@@ -107,7 +107,7 @@ router.get("/admin/bookings/:id/document-data", requireAdmin, async (req, res) =
       b.id, b.status, b.payment_status,
       b.contact_full_name, b.contact_email, b.contact_phone,
       b.pickup_datetime, b.dropoff_datetime,
-      b.total_amount, b.currency, b.deposit,
+      b.total_amount, b.currency, b.deposit, b.deposit_currency,
       b.notes, b.source, b.document_type, b.document_number,
       u.full_name AS customer_name,
       u.email AS customer_email,

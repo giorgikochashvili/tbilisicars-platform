@@ -103,6 +103,7 @@ const bookingDetailSelect = {
   oneWayFee: bookingTable.oneWayFee,
   deliveryFee: bookingTable.deliveryFee,
   deposit: bookingTable.deposit,
+  depositCurrency: (bookingTable as any).depositCurrency,
   notes: bookingTable.notes,
   pickupType: bookingTable.pickupType,
   pickupAddress: bookingTable.pickupAddress,
@@ -546,6 +547,7 @@ export async function getAdminBooking(id: number) {
     oneWayFee: row.oneWayFee,
     deliveryFee: row.deliveryFee,
     deposit: row.deposit,
+    depositCurrency: row.depositCurrency,
     notes: row.notes,
     pickupType: row.pickupType,
     pickupAddress: row.pickupAddress,
@@ -749,6 +751,7 @@ export async function updateAdminBooking(
     oneWayFee: string | null;
     deliveryFee: string | null;
     deposit: string | null;
+    depositCurrency?: string | null;
     totalAmount: string | null;
     currency: string | null;
     contactFullName: string;

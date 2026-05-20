@@ -1,0 +1,63 @@
+Stop. Do not switch to SEO/noindex/booking sitemap tasks.
+
+We are working only on Accounting Phase 3:
+Deposit Amount + separate Deposit Currency + Payment Summary cleanup.
+
+You started the Phase 3 inspection correctly, but then switched to an unrelated SEO task about Booking.tsx noindex and sitemap. That task is out of scope.
+
+Please continue and complete the Phase 3 PLAN MODE response only.
+
+Do not modify files.
+Do not build.
+Do not mark any unrelated task complete.
+Do not inspect website SEO files.
+Do not touch Booking.tsx website page or sitemap.
+
+Return the full Phase 3 plan answering exactly:
+
+1. Exact current schema/API/UI findings:
+   - Where booking.deposit is defined
+   - Whether deposit is returned in Booking Detail GET
+   - Whether deposit is accepted in Booking PATCH
+   - Whether deposit is shown in CRM BookingDetail
+   - Where Payment Summary is rendered
+   - Where Deposit Returned / Total Refunded / Net Deposit fields come from
+
+2. Deposit Currency design:
+   - Whether deposit_currency exists
+   - If not, exact migration needed
+   - Recommended nullable/default strategy
+   - DB column name and TS field name
+   - Whether to use varchar(3) or enum
+
+3. Exact files to edit for Phase 3:
+   - DB schema
+   - migration file
+   - backend route/service
+   - CRM BookingDetail
+
+4. Backend GET/PATCH plan:
+   - how deposit and depositCurrency will be returned
+   - how deposit and depositCurrency will be saved
+   - validation for GEL/USD/EUR
+   - confirmation this does not touch payment calculations/accounting entries
+
+5. CRM UI plan:
+   - where Deposit Amount input goes
+   - where Deposit Currency select goes
+   - how Payment Summary should show Deposit
+   - how Deposit Returned / Total Refunded / Net Deposit should be hidden
+
+6. Risk assessment
+
+7. Test checklist
+
+8. Confirmation:
+   - no public website changes
+   - no pricing changes
+   - no booking payment calculation changes
+   - no accounting entry creation from deposit
+   - no production migration/deploy
+   - no files modified until Build is explicitly approved
+
+PLAN MODE ONLY.

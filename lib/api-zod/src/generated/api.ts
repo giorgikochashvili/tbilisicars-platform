@@ -1949,6 +1949,7 @@ export const GetAdminBookingResponse = zod
       oneWayFee: zod.string().nullish(),
       deliveryFee: zod.string().nullish(),
       deposit: zod.string().nullish(),
+      depositCurrency: zod.string().nullish(),
       notes: zod.string().nullish(),
       pickupType: zod.string().nullish(),
       pickupAddress: zod.string().nullish(),
@@ -2026,6 +2027,7 @@ export const UpdateAdminBookingBody = zod.object({
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
+  depositCurrency: zod.enum(["GEL", "USD", "EUR"]).nullish(),
   externalReservationCode: zod.string().nullish(),
 });
 
@@ -2094,6 +2096,7 @@ export const UpdateAdminBookingResponse = zod
       oneWayFee: zod.string().nullish(),
       deliveryFee: zod.string().nullish(),
       deposit: zod.string().nullish(),
+      depositCurrency: zod.string().nullish(),
       notes: zod.string().nullish(),
       documentType: zod.string().nullish(),
       documentNumber: zod.string().nullish(),
@@ -2574,6 +2577,7 @@ export const UpdateAdminBookingStatusResponse = zod
       oneWayFee: zod.string().nullish(),
       deliveryFee: zod.string().nullish(),
       deposit: zod.string().nullish(),
+      depositCurrency: zod.string().nullish(),
       notes: zod.string().nullish(),
       documentType: zod.string().nullish(),
       documentNumber: zod.string().nullish(),

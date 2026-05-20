@@ -1,0 +1,114 @@
+Approved for Build — Phase 3 only.
+
+Proceed exactly with the approved Phase 3 plan.
+
+Strict scope:
+- Implement Deposit Amount + separate Deposit Currency in Booking Detail.
+- Clean up Payment Summary.
+- Deposit is metadata only.
+- Do NOT create booking_payment rows from deposit.
+- Do NOT create accounting_entries rows from deposit.
+- Do NOT affect Total Paid.
+- Do NOT affect Remaining Balance.
+- Do NOT affect paymentStatus.
+- Do NOT touch payment calculations.
+- Do NOT touch pricing engine.
+- Do NOT touch public website.
+- Do NOT implement Phase 2B extension/extra-charge flow.
+- Do NOT implement Advance Payment / Pending Receivables.
+- Do NOT implement Fixed Monthly Expenses.
+- Do NOT change permissions or role guards.
+- Do NOT deploy.
+- Do NOT run production DB migrations.
+- Do NOT perform Git Sync or Droplet build.
+
+Allowed files:
+1. lib/db/migrations/0009_booking_deposit_currency.sql
+2. lib/db/src/schema/bookings.ts
+3. lib/api-zod/src/generated/api.ts
+4. lib/api-zod/src/generated/types/adminBookingDetail.ts
+5. lib/api-zod/src/generated/types/adminUpdateBookingBody.ts
+6. artifacts/api-server/src/routes/admin-bookings.ts
+7. artifacts/api-server/src/services/admin-bookings.service.ts
+8. artifacts/crm/src/pages/BookingDetail.tsx
+
+Implementation details:
+
+1. DB migration:
+Create:
+lib/db/migrations/0009_booking_deposit_currency.sql
+
+Use nullable/default-null strategy:
+ALTER TABLE booking ADD COLUMN deposit_currency varchar(3) DEFAULT NULL;
+
+Do not backfill old bookings.
+Do not set GEL/USD/EUR automatically for old bookings.
+
+2. DB schema:
+Add depositCurrency to booking schema:
+DB column: deposit_currency
+TS field: depositCurrency
+
+3. API/Zod/types:
+Add depositCurrency to admin booking detail/update schemas.
+Allowed values:
+- GEL
+- USD
+- EUR
+- null/undefined
+
+Invalid values must be rejected.
+
+4. Backend:
+Return depositCurrency in Booking Detail GET.
+Accept depositCurrency in Booking PATCH/update.
+Do not call payment summary recalculation from deposit update.
+Do not create payment/accounting entries.
+Do not change paymentStatus.
+
+5. CRM BookingDetail:
+Add editable fields:
+- Deposit Amount
+- Deposit Currency
+
+Deposit Currency must allow:
+- Not set / null
+- GEL
+- USD
+- EUR
+
+Important UI note:
+If the Select component cannot safely use an empty string value, use a sentinel value like "NONE" in the UI and convert it to null before PATCH. Do not save "NONE" to the database.
+
+6. Payment Summary:
+Remove/hide these cards:
+- Deposit Received
+- Deposit Returned
+- Total Refunded
+- Net Deposit
+
+Show only:
+- Total Paid
+- Remaining Balance
+- Deposit Amount
+
+Deposit Amount display:
+- If deposit is 0/null/empty: show “—” or current clean empty style.
+- If deposit > 0 and depositCurrency is set: show amount with correct currency.
+- If deposit > 0 but depositCurrency is null: show amount and sublabel “Currency not set”.
+
+7. Keep historical payment rows visible:
+Old DEPOSIT_RECEIVED / DEPOSIT_RETURNED / REFUND payment rows must still display in Payment History.
+
+After implementation:
+1. Show exact changed files.
+2. Show migration file content.
+3. Run relevant API and CRM typechecks/build checks if available.
+4. Confirm no public website files changed.
+5. Confirm no pricing/public booking flow changed.
+6. Confirm no payment calculation changes.
+7. Confirm no booking_payment/accounting_entries creation from deposit.
+8. Confirm no Phase 2B extension/extra-charge UI was implemented.
+9. Confirm Phase 2A Additional Payment / Extra Days Payment still untouched.
+10. Commit with message:
+Add booking deposit currency metadata
