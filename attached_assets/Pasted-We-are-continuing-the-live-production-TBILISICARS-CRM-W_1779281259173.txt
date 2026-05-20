@@ -1,0 +1,176 @@
+We are continuing the live production TBILISICARS CRM&WEB project.
+
+Important context:
+- This is a live CRM used by staff with real bookings and real payments.
+- Be conservative and surgical.
+- Do not build or modify files yet. PLAN MODE ONLY.
+- Do not deploy.
+- Do not touch public website.
+- Do not touch pricing engine or public booking flow.
+- Do not touch Georgia Bank / online payment.
+- Do not change permissions/role guards in this phase.
+- Do not change the already completed Accounting Phase 1 unless absolutely required and explicitly stated.
+- Droplet build / Git Sync / production deployment will happen only at the end after all Accounting phases are approved.
+
+We completed Accounting Phase 1:
+- audit logging for accounting create/update/delete
+- accounting category cleanup
+- no DB migration
+- no payment logic changes
+
+Now we need to plan Phase 2.
+
+Business goal:
+Redesign Booking Detail → Payment History → New Payment Entry so the payment types match our real operation.
+
+Final desired Payment Type dropdown for NEW payments:
+1. Booking Payment
+2. Additional Payment
+3. Extra Days Payment
+
+Remove from NEW payment dropdown:
+- Deposit Received
+- Deposit Returned
+- Refund
+- Adjustment
+
+Important:
+- Do NOT delete old DB enum values.
+- Do NOT break historical records.
+- Old payment records with Deposit Received / Deposit Returned / Refund / Adjustment must still render correctly in Payment History using existing labels.
+- Only hide/remove them from the new-entry form and backend validation for new payment creation if safe.
+
+Desired payment behavior:
+- Every manually added payment means real money was received.
+- Booking Payment must count toward Total Paid.
+- Additional Payment must count toward Total Paid.
+- Extra Days Payment must count toward Total Paid.
+- All three should create accounting income entries.
+- All three should affect booking payment status calculation because they are real collected money.
+
+Business rule for extra days / extensions:
+- If a customer extends the rental during an active booking/pickup/delivered state, staff may edit the dropoff date/time.
+- Changing date/time must NOT automatically recalculate price.
+- We eventually want the system to ask staff for an optional extra charge amount when date/time is changed.
+- Example:
+  - Booking total: EUR 300
+  - Paid: EUR 300
+  - Remaining: EUR 0
+  - Staff extends dropoff by one day and enters extra charge EUR 30
+  - Booking total becomes EUR 330
+  - Paid remains EUR 300
+  - Remaining becomes EUR 30
+  - No payment row is created yet.
+  - No accounting income row is created yet.
+  - Later, when the customer pays EUR 30, staff adds Payment Type = Extra Days Payment, amount EUR 30.
+  - Then Total Paid becomes EUR 330 and Remaining becomes EUR 0.
+- This extension/extra-charge flow may be a separate Phase 2B. For now, inspect feasibility only. Do not implement it yet unless explicitly approved later.
+
+Phase 2A planning target:
+Add new booking payment types safely:
+- ADDITIONAL_PAYMENT
+- EXTRA_DAYS_PAYMENT
+
+Expected:
+- DB enum migration likely required.
+- Schema update likely required.
+- Backend route whitelist update likely required.
+- Payment accounting mapping update likely required.
+- Payment summary calculation likely required so both new types count as paid.
+- CRM dropdown update required.
+- Historical labels must stay.
+
+Questions to answer in the plan:
+
+A. Current code locations
+Identify exact files/functions for:
+1. booking_payment_type_enum definition
+2. backend payment type validation whitelist
+3. payment type → accounting entry mapping
+4. getBookingPaymentSummary calculation
+5. updateBookingPaymentStatus calculation
+6. CRM Payment Type dropdown
+7. Payment History labels
+
+B. DB migration plan
+- Is adding ADDITIONAL_PAYMENT and EXTRA_DAYS_PAYMENT to booking_payment_type_enum enough?
+- What migration file will be needed?
+- What exact SQL or Drizzle migration style should be used in this repo?
+- Is PostgreSQL ALTER TYPE ADD VALUE safe for this environment?
+- Should this migration be separate and minimal?
+
+C. Backend logic plan
+- How to map:
+  - BOOKING_PAYMENT → accounting INCOME category “Booking Payment”
+  - ADDITIONAL_PAYMENT → accounting INCOME category “Extra Payment”
+  - EXTRA_DAYS_PAYMENT → accounting INCOME category “Extra Days Payment” or another category
+- If “Extra Days Payment” category is needed, identify whether it must be added to Accounting category arrays.
+- How to make totalPaid include:
+  - BOOKING_PAYMENT
+  - ADDITIONAL_PAYMENT
+  - EXTRA_DAYS_PAYMENT
+- Confirm old types can remain readable but not allowed for new entries.
+
+D. CRM UI plan
+- Payment Type dropdown should show only:
+  - Booking Payment
+  - Additional Payment
+  - Extra Days Payment
+- Historical payment rows should still display old labels if they exist.
+- No redesign.
+
+E. Extra charge / extension feasibility only
+Inspect current Booking Detail edit flow and answer:
+- Where is dropoff date/time edited?
+- Does editing date/time currently recalculate total amount automatically or not?
+- Is totalAmount editable manually today?
+- What would be the safest future Phase 2B design for optional extra charge when dropoff date/time changes?
+- Which files would be involved?
+- Do not implement Phase 2B now.
+
+F. Risks
+Specifically evaluate:
+- Could new payment types affect paymentStatus incorrectly?
+- Could accounting income double-count?
+- Could old historical payment types break?
+- Could migration fail in production?
+- Could API/CRM type mismatches cause runtime errors?
+
+G. Test checklist
+Provide exact tests for:
+- Add Booking Payment
+- Add Additional Payment
+- Add Extra Days Payment
+- Verify all count in Total Paid
+- Verify Remaining Balance changes correctly
+- Verify paymentStatus changes correctly
+- Verify accounting entry is created correctly
+- Verify old Deposit/Refund/Adjustment rows still display
+- Verify old types are not selectable for new payments
+- Verify no website/public booking flow changed
+
+Out of scope for Phase 2A:
+- Do not implement Advance Payment / Pending Receivables.
+- Do not implement Deposit field.
+- Do not implement Fixed Monthly Expenses.
+- Do not implement Extension / Extra Charge UI yet.
+- Do not change booking date/pricing recalculation.
+- Do not change public booking pricing.
+- Do not change permissions.
+- Do not deploy.
+- Do not build yet.
+
+Plan response required:
+1. Exact files to edit.
+2. Exact DB migration needed.
+3. Exact enum/schema changes.
+4. Exact backend validation/mapping changes.
+5. Exact payment summary/status logic changes.
+6. Exact CRM UI changes.
+7. Whether Accounting categories need one more category: “Extra Days Payment”.
+8. Phase 2B feasibility notes for extension extra charge, inspection only.
+9. Risk assessment.
+10. Test checklist.
+11. Confirmation that no files will be edited until Build is approved.
+
+PLAN MODE ONLY. Do not modify files.

@@ -23,6 +23,8 @@ export const bookingPaymentTypeEnum = pgEnum("booking_payment_type_enum", [
   "DEPOSIT_RETURNED",
   "REFUND",
   "ADJUSTMENT",
+  "ADDITIONAL_PAYMENT",
+  "EXTRA_DAYS_PAYMENT",
 ]);
 
 export const bookingPaymentMethodEnum = pgEnum("booking_payment_method_enum", [

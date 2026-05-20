@@ -277,11 +277,13 @@ async function runConcurrentQueue<T>(
 // ─── Labels ──────────────────────────────────────────────────────────────────
 
 const PAYMENT_TYPE_LABELS: Record<string, string> = {
-  BOOKING_PAYMENT: "Booking Payment",
-  DEPOSIT_RECEIVED: "Deposit Received",
-  DEPOSIT_RETURNED: "Deposit Returned",
-  REFUND: "Refund",
-  ADJUSTMENT: "Adjustment",
+  BOOKING_PAYMENT:    "Booking Payment",
+  DEPOSIT_RECEIVED:   "Deposit Received",
+  DEPOSIT_RETURNED:   "Deposit Returned",
+  REFUND:             "Refund",
+  ADJUSTMENT:         "Adjustment",
+  ADDITIONAL_PAYMENT: "Additional Payment",
+  EXTRA_DAYS_PAYMENT: "Extra Days Payment",
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -306,11 +308,13 @@ function toStorageSrc(path: string | null | undefined): string | undefined {
 
 function typeColor(type: string) {
   const map: Record<string, string> = {
-    BOOKING_PAYMENT: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    DEPOSIT_RECEIVED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    DEPOSIT_RETURNED: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    REFUND: "bg-red-500/10 text-red-400 border-red-500/20",
-    ADJUSTMENT: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    BOOKING_PAYMENT:    "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    DEPOSIT_RECEIVED:   "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    DEPOSIT_RETURNED:   "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    REFUND:             "bg-red-500/10 text-red-400 border-red-500/20",
+    ADJUSTMENT:         "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    ADDITIONAL_PAYMENT: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    EXTRA_DAYS_PAYMENT: "bg-teal-500/10 text-teal-400 border-teal-500/20",
   };
   return map[type] ?? "bg-muted text-muted-foreground";
 }
@@ -3314,15 +3318,11 @@ export default function BookingDetail({
                               <SelectItem value="BOOKING_PAYMENT">
                                 Booking Payment
                               </SelectItem>
-                              <SelectItem value="DEPOSIT_RECEIVED">
-                                Deposit Received
+                              <SelectItem value="ADDITIONAL_PAYMENT">
+                                Additional Payment
                               </SelectItem>
-                              <SelectItem value="DEPOSIT_RETURNED">
-                                Deposit Returned
-                              </SelectItem>
-                              <SelectItem value="REFUND">Refund</SelectItem>
-                              <SelectItem value="ADJUSTMENT">
-                                Adjustment
+                              <SelectItem value="EXTRA_DAYS_PAYMENT">
+                                Extra Days Payment
                               </SelectItem>
                             </SelectContent>
                           </Select>

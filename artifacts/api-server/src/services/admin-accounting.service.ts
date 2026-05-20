@@ -8,6 +8,7 @@ import { NotFoundError } from "../lib/errors.js";
 export const INCOME_CATEGORIES = [
   "Booking Payment",
   "Extra Payment",
+  "Extra Days Payment",
   "Other Income",
 ] as const;
 

@@ -18,7 +18,9 @@ export type PaymentType =
   | "DEPOSIT_RECEIVED"
   | "DEPOSIT_RETURNED"
   | "REFUND"
-  | "ADJUSTMENT";
+  | "ADJUSTMENT"
+  | "ADDITIONAL_PAYMENT"
+  | "EXTRA_DAYS_PAYMENT";
 
 export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "OTHER";
 export type PaymentCurrency = "GEL" | "USD" | "EUR";
@@ -28,11 +30,13 @@ const PAYMENT_TYPE_ACCOUNTING: Record<
   PaymentType,
   { type: "INCOME" | "EXPENSE"; category: string } | null
 > = {
-  BOOKING_PAYMENT: { type: "INCOME", category: "Booking Payment" },
-  DEPOSIT_RECEIVED: { type: "INCOME", category: "Deposit Received" },
-  DEPOSIT_RETURNED: { type: "EXPENSE", category: "Deposit Returned" },
-  REFUND: { type: "EXPENSE", category: "Refund" },
-  ADJUSTMENT: null,
+  BOOKING_PAYMENT:    { type: "INCOME",  category: "Booking Payment"    },
+  DEPOSIT_RECEIVED:   { type: "INCOME",  category: "Deposit Received"   },
+  DEPOSIT_RETURNED:   { type: "EXPENSE", category: "Deposit Returned"   },
+  REFUND:             { type: "EXPENSE", category: "Refund"             },
+  ADJUSTMENT:         null,
+  ADDITIONAL_PAYMENT: { type: "INCOME",  category: "Extra Payment"      },
+  EXTRA_DAYS_PAYMENT: { type: "INCOME",  category: "Extra Days Payment" },
 };
 
 // ─── Payment Summary ──────────────────────────────────────────────────────────
@@ -70,8 +74,16 @@ export async function getBookingPaymentSummary(bookingId: number, tx?: TxClient)
     };
   }
 
-  const totalPaid = (totals["BOOKING_PAYMENT"]?.gel ?? 0) + (totals["ADJUSTMENT"]?.gel ?? 0);
-  const totalPaidOriginal = (totals["BOOKING_PAYMENT"]?.original ?? 0) + (totals["ADJUSTMENT"]?.original ?? 0);
+  const totalPaid =
+    (totals["BOOKING_PAYMENT"]?.gel    ?? 0) +
+    (totals["ADJUSTMENT"]?.gel         ?? 0) +
+    (totals["ADDITIONAL_PAYMENT"]?.gel ?? 0) +
+    (totals["EXTRA_DAYS_PAYMENT"]?.gel ?? 0);
+  const totalPaidOriginal =
+    (totals["BOOKING_PAYMENT"]?.original    ?? 0) +
+    (totals["ADJUSTMENT"]?.original         ?? 0) +
+    (totals["ADDITIONAL_PAYMENT"]?.original ?? 0) +
+    (totals["EXTRA_DAYS_PAYMENT"]?.original ?? 0);
   const depositReceived = totals["DEPOSIT_RECEIVED"]?.gel ?? 0;
   const depositReceivedOriginal = totals["DEPOSIT_RECEIVED"]?.original ?? 0;
   const depositReturned = totals["DEPOSIT_RETURNED"]?.gel ?? 0;
@@ -243,7 +255,7 @@ export async function addBookingPayment(input: AddPaymentInput) {
       .insert(bookingPaymentTable)
       .values({
         bookingId,
-        paymentType,
+        paymentType: paymentType as any,
         amount: String(amount),
         currency: currency as "GEL" | "USD" | "EUR",
         convertedGel: String(convertedGel),

@@ -47,7 +47,7 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
   if (!currency || !["GEL", "USD", "EUR"].includes(currency)) errors.push("Valid currency (GEL/USD/EUR) is required");
   if (!paymentDate) errors.push("Payment date is required");
   if (!method) errors.push("Payment method is required");
-  const validTypes = ["BOOKING_PAYMENT", "DEPOSIT_RECEIVED", "DEPOSIT_RETURNED", "REFUND", "ADJUSTMENT"];
+  const validTypes = ["BOOKING_PAYMENT", "ADDITIONAL_PAYMENT", "EXTRA_DAYS_PAYMENT"];
   if (paymentType && !validTypes.includes(paymentType)) errors.push("Invalid payment type");
   const validMethods = ["CASH", "CARD", "BANK_TRANSFER", "OTHER"];
   if (method && !validMethods.includes(method)) errors.push("Invalid payment method");
@@ -71,18 +71,22 @@ router.post("/admin/bookings/:id/payments", requireAdmin, async (req, res) => {
     });
 
     const actionMap: Record<string, string> = {
-      DEPOSIT_RECEIVED: "deposit_received",
-      DEPOSIT_RETURNED: "deposit_returned",
-      REFUND: "refund_added",
+      DEPOSIT_RECEIVED:   "deposit_received",
+      DEPOSIT_RETURNED:   "deposit_returned",
+      REFUND:             "refund_added",
+      ADDITIONAL_PAYMENT: "additional_payment_added",
+      EXTRA_DAYS_PAYMENT: "extra_days_payment_added",
     };
     const action = actionMap[paymentType!] ?? "payment_added";
     const amtStr = `${currency} ${Number(amount).toFixed(2)}`;
     const typeLabel: Record<string, string> = {
-      BOOKING_PAYMENT: "booking payment",
-      DEPOSIT_RECEIVED: "deposit received",
-      DEPOSIT_RETURNED: "deposit returned",
-      REFUND: "refund",
-      ADJUSTMENT: "adjustment",
+      BOOKING_PAYMENT:    "booking payment",
+      DEPOSIT_RECEIVED:   "deposit received",
+      DEPOSIT_RETURNED:   "deposit returned",
+      REFUND:             "refund",
+      ADJUSTMENT:         "adjustment",
+      ADDITIONAL_PAYMENT: "additional payment",
+      EXTRA_DAYS_PAYMENT: "extra days payment",
     };
 
     logAudit({

@@ -47,6 +47,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
 const INCOME_CATEGORIES = [
   "Booking Payment",
   "Extra Payment",
+  "Extra Days Payment",
   "Other Income",
 ];
 
