@@ -127,7 +127,7 @@ export async function getBookingPaymentSummary(bookingId: number, tx?: TxClient)
 // Compares the GEL-equivalent total paid against the booking's total amount
 // (converted to GEL) and writes the resulting paymentStatus to the booking row.
 
-async function updateBookingPaymentStatus(
+export async function updateBookingPaymentStatus(
   bookingId: number,
   summary: Awaited<ReturnType<typeof getBookingPaymentSummary>>,
   tx?: TxClient,

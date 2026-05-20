@@ -2,6 +2,7 @@ import {
   db,
   pool,
   bookingTable,
+  bookingHistoryTable,
   userTable,
   vehicleTable,
   vehicleModelTable,
@@ -35,6 +36,10 @@ import { AppError, ConflictError, NotFoundError } from "../lib/errors.js";
 import { findOrCreateCustomer } from "./admin-customers.service.js";
 import { removeFromParkingByVehicle } from "./admin-parking.service.js";
 import { sendBookingConfirmationEmail } from "./email.service.js";
+import {
+  getBookingPaymentSummary,
+  updateBookingPaymentStatus,
+} from "./admin-booking-payments.service.js";
 
 type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -762,9 +767,13 @@ export async function updateAdminBooking(
     broker: string | null;
     externalReservationCode: string | null;
     paymentStatus: "UNPAID" | "HALF" | "PAID" | "PREPAID" | "REFUNDED";
+    extensionChargeAmount: number;
   }>,
+  changedById?: number | null,
 ) {
+  const extensionChargeAmount = data.extensionChargeAmount;
   const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  delete updateData.extensionChargeAmount;
   if (data.pickupDatetime) updateData.pickupDatetime = new Date(data.pickupDatetime);
   if (data.dropoffDatetime) updateData.dropoffDatetime = new Date(data.dropoffDatetime);
 
@@ -834,6 +843,36 @@ export async function updateAdminBooking(
       .where(eq(bookingTable.id, id))
       .returning();
     if (!r) throw new NotFoundError(`Booking ${id} not found`);
+
+    if (extensionChargeAmount && extensionChargeAmount > 0) {
+      const oldTotal = r.totalAmount ?? "0";
+      const currency = r.currency ?? "GEL";
+      const newTotal = (parseFloat(oldTotal) + extensionChargeAmount).toFixed(2);
+
+      await tx
+        .update(bookingTable)
+        .set({ totalAmount: newTotal, updatedAt: new Date() })
+        .where(eq(bookingTable.id, id));
+
+      const summary = await getBookingPaymentSummary(id, tx);
+      await updateBookingPaymentStatus(id, summary, tx);
+
+      const dropoffStr = data.dropoffDatetime
+        ? new Date(data.dropoffDatetime).toISOString()
+        : "(unchanged)";
+
+      await tx.insert(bookingHistoryTable).values({
+        bookingId: id,
+        changedById: changedById ?? null,
+        actionType: "EXTENSION_CHARGE",
+        fieldName: "total_amount",
+        oldValue: oldTotal,
+        newValue: newTotal,
+        description:
+          `Extension charge of ${currency} ${extensionChargeAmount.toFixed(2)} applied` +
+          ` — dropoff set to ${dropoffStr}`,
+      });
+    }
   });
 
   return getAdminBooking(id);

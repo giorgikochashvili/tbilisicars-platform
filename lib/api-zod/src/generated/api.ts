@@ -2029,6 +2029,7 @@ export const UpdateAdminBookingBody = zod.object({
   deposit: zod.string().optional(),
   depositCurrency: zod.enum(["GEL", "USD", "EUR"]).nullish(),
   externalReservationCode: zod.string().nullish(),
+  extensionChargeAmount: zod.number().positive().optional(),
 });
 
 export const UpdateAdminBookingResponse = zod

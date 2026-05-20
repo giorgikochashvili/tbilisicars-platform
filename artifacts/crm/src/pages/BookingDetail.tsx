@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactElement } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactElement } from "react";
 import { useLocation } from "wouter";
 import {
   Dialog,
@@ -1753,7 +1753,9 @@ export default function BookingDetail({
     contactEmail: "",
     deposit: "",
     depositCurrency: "NONE",
+    extensionCharge: "",
   });
+  const originalDropoffRef = useRef({ date: "", time: "09:00" });
   const [changingStatus, setChangingStatus] = useState(false);
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
@@ -2259,6 +2261,7 @@ export default function BookingDetail({
   const enterOverviewEdit = () => {
     const pu = splitDT(booking?.pickupDatetime);
     const dr = splitDT(booking?.dropoffDatetime);
+    originalDropoffRef.current = { date: dr.date, time: dr.time };
     setOverviewDraft({
       totalAmount: booking?.totalAmount ?? "",
       currency: booking?.currency ?? "GEL",
@@ -2273,6 +2276,7 @@ export default function BookingDetail({
       contactEmail: booking?.contactEmail ?? booking?.customer?.email ?? "",
       deposit: booking?.deposit ?? "",
       depositCurrency: booking?.depositCurrency ?? "NONE",
+      extensionCharge: "",
     });
     setIsOverviewEditing(true);
   };
@@ -2295,13 +2299,16 @@ export default function BookingDetail({
 
   const saveOverview = async () => {
     setSavingOverview(true);
+    const extCharge = parseFloat(overviewDraft.extensionCharge);
+    const hasExtCharge = !isNaN(extCharge) && extCharge > 0;
     try {
       await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          ...(overviewDraft.totalAmount !== ""
+          ...(!hasExtCharge && overviewDraft.totalAmount !== ""
             ? { totalAmount: overviewDraft.totalAmount }
             : {}),
+          ...(hasExtCharge ? { extensionChargeAmount: extCharge } : {}),
           currency: overviewDraft.currency,
           ...((() => {
             const staffText = overviewDraft.notes.trim();
@@ -3143,6 +3150,35 @@ export default function BookingDetail({
                           setOverviewDraft((p) => ({ ...p, dropoffTime: t }))
                         }
                       />
+                      {/* Extension Charge — shown only when dropoff date/time changed */}
+                      {(overviewDraft.dropoffDate !== originalDropoffRef.current.date ||
+                        overviewDraft.dropoffTime !== originalDropoffRef.current.time) && (
+                        <div className="col-span-full grid gap-1.5">
+                          <Label className="text-xs">
+                            Extension Charge (Additional Amount Due)
+                            <span className="ml-1 text-muted-foreground font-normal">
+                              — {booking?.currency ?? "GEL"}
+                            </span>
+                          </Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={overviewDraft.extensionCharge}
+                            onChange={(e) =>
+                              setOverviewDraft((p) => ({
+                                ...p,
+                                extensionCharge: e.target.value,
+                              }))
+                            }
+                            className="h-8 text-xs"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Increases the booking total only — this is not a payment. Record the customer's payment separately using Extra Days Payment.
+                          </p>
+                        </div>
+                      )}
                       {/* Contact Phone */}
                       <div className="grid gap-1.5">
                         <Label className="text-xs">Contact Phone</Label>

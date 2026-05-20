@@ -209,7 +209,7 @@ router.get("/admin/bookings/:bookingId/payments/:paymentId/document-data", requi
 router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {
   const { id } = UpdateAdminBookingParams.parse(req.params);
   const body = UpdateAdminBookingBody.parse(req.body);
-  const booking = await updateAdminBooking(id, body as any);
+  const booking = await updateAdminBooking(id, body as any, req.session.adminId ?? null);
   logAudit({
     actorId: req.session.adminId ?? null,
     entityType: "booking",
@@ -217,7 +217,15 @@ router.patch("/admin/bookings/:id", requireAdmin, async (req, res) => {
     entityRef: bookingRef(id),
     action: "updated",
     summary: `Admin updated booking ${bookingRef(id)}`,
-    afterData: { status: (booking as any).status },
+    afterData: {
+      status: (booking as any).status,
+      ...(body.extensionChargeAmount
+        ? {
+            extensionChargeAmount: body.extensionChargeAmount,
+            newTotalAmount: (booking as any).totalAmount,
+          }
+        : {}),
+    },
   });
   res.json(UpdateAdminBookingResponse.parse(booking));
 });

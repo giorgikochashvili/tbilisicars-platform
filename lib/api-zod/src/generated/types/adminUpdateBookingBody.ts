@@ -41,4 +41,5 @@ export interface AdminUpdateBookingBody {
   depositCurrency?: string | null;
   /** @nullable */
   externalReservationCode?: string | null;
+  extensionChargeAmount?: number;
 }
