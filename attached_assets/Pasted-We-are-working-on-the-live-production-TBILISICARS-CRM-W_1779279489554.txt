@@ -1,0 +1,97 @@
+We are working on the live production TBILISICARS CRM&WEB project.
+
+Important context:
+- This is a live CRM used by staff with real bookings and real payments.
+- Be surgical and conservative.
+- Do not make broad refactors.
+- Do not change booking pricing logic.
+- Do not change booking payment calculations.
+- Do not change public website.
+- Do not change permissions/role guards in this phase.
+- Do not add DB migrations in this phase.
+- Do not implement Advance Payment / Pending Receivables yet.
+- Do not implement Deposit field yet.
+- Do not implement Fixed Monthly Expenses yet.
+
+Task:
+Phase 1 — Accounting Safety + Category Cleanup.
+
+Please inspect the current code and prepare a plan only. Do not modify files yet.
+
+Goals:
+
+1. Add audit logging to Accounting module mutations:
+   - create accounting entry
+   - update accounting entry
+   - delete accounting entry
+
+Reason:
+Booking payment add/delete already uses audit logging, but general Accounting ledger mutations currently do not leave an audit trail. This is a financial safety gap.
+
+Expected:
+- Use the existing project audit logging helper/pattern, likely similar to how booking payment routes use logAudit().
+- Record actorId/admin id.
+- Entity type should clearly identify accounting entry.
+- Action should distinguish create/update/delete.
+- Summary should include enough useful details, such as entry type, category, amount, currency, and maybe entry id.
+- Do not change accounting business logic.
+
+Likely file:
+- artifacts/api-server/src/routes/admin-accounting.ts
+
+Also inspect related patterns:
+- artifacts/api-server/src/routes/admin-booking-payments.ts
+- any existing audit helper/service used there
+
+2. Accounting category cleanup:
+Update Accounting income/expense category options in both backend and CRM frontend, keeping them in sync.
+
+Required category behavior:
+- Remove Transport / Delivery Transport category from new-entry dropdowns.
+- Remove Deposit Received from new manual income-entry dropdowns.
+- Keep Refund as expense category.
+- Add Airport Office Fee as expense category.
+- Add Parking Fee as expense category.
+- Keep useful existing categories like Booking Payment, Extra Payment, Other Income, Service / Maintenance, Fuel, Office Expense, Salary, Marketing, Other Expense.
+
+Important:
+- Accounting categories are stored as free-text/varchar historical values, so do not attempt to rewrite old records.
+- Do not rename existing historical records.
+- Removed categories should simply disappear from new-entry dropdowns/filters where appropriate, but old records should still display normally if they exist.
+
+Likely files:
+- artifacts/api-server/src/services/admin-accounting.service.ts
+- artifacts/crm/src/pages/Accounting.tsx
+- inspect whether Reports.tsx uses backend categories from /api/admin/accounting/categories or has duplicated categories.
+
+3. Optional safe UI helper text:
+If there is a clear place in Accounting manual entry form, add a small helper/warning text:
+“Booking-related payments should normally be added from Booking Detail to avoid duplicate accounting entries.”
+Only add this if it is simple and does not require UI redesign.
+
+Out of scope:
+- Do not add canManageAccounting guard to booking payment routes in this phase.
+- Do not change /api/admin/bookings/:id/payments permissions.
+- Do not change /api/admin/reports/financial permissions.
+- Do not add soft delete.
+- Do not add or remove DB enum values.
+- Do not change booking_payment_type_enum or booking_payment_method_enum.
+- Do not add ADDITIONAL_PAYMENT, EXTRA_DAYS_PAYMENT, or ADVANCE_PAYMENT yet.
+- Do not hide Booking Detail payment types yet.
+- Do not change getBookingPaymentSummary().
+- Do not change updateBookingPaymentStatus().
+- Do not change accounting entry creation from booking payments.
+- Do not touch public booking flow, website, pricing, Google Ads, emails, PDFs, Georgia Bank, or deployment scripts.
+
+Plan response required:
+Before making changes, give me:
+1. Exact files you will edit.
+2. Exact functions/routes/components you will touch.
+3. Exact audit log fields you will record.
+4. Exact category arrays before/after.
+5. Confirmation that no DB migration is needed.
+6. Confirmation that booking payments, payment status, pricing, website, and permissions are untouched.
+7. Test checklist.
+8. Risk assessment.
+
+Do not build yet. Do not edit files yet. Plan only.

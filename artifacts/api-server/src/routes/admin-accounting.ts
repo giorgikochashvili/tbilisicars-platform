@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import { requirePermission } from "../middlewares/requirePermission.js";
+import { logAudit } from "../services/audit.service.js";
 import {
   listAccountingEntries,
   getAccountingEntry,
@@ -90,6 +91,22 @@ router.post("/admin/accounting", requireAdmin, requirePermission("canManageAccou
     ...body,
     adminId: (req as any).admin?.id ?? null,
   });
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "accounting_entry",
+    entityId: entry.id,
+    entityRef: `ACC-${String(entry.id).padStart(6, "0")}`,
+    action: "accounting_entry.created",
+    summary: `Admin created ${body.type} accounting entry: ${body.category} — ${body.currency} ${Number(body.amount).toFixed(2)}`,
+    afterData: {
+      type: body.type,
+      category: body.category,
+      amount: body.amount,
+      currency: body.currency,
+      entryDate: body.entryDate,
+      ...(body.relatedBookingId ? { relatedBookingId: body.relatedBookingId } : {}),
+    },
+  });
   res.json(entry);
 });
 
@@ -105,7 +122,20 @@ router.get("/admin/accounting/:id", requireAdmin, requirePermission("canViewAcco
 
 router.patch("/admin/accounting/:id", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  const existing = await getAccountingEntry(id);
   const entry = await updateAccountingEntry(id, req.body);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "accounting_entry",
+    entityId: id,
+    entityRef: `ACC-${String(id).padStart(6, "0")}`,
+    action: "accounting_entry.updated",
+    summary: `Admin updated accounting entry ACC-${String(id).padStart(6, "0")} (${existing?.category ?? "?"})`,
+    beforeData: existing
+      ? { type: existing.type, category: existing.category, amount: existing.amount, currency: existing.currency }
+      : null,
+    afterData: req.body,
+  });
   res.json(entry);
 });
 
@@ -113,7 +143,19 @@ router.patch("/admin/accounting/:id", requireAdmin, requirePermission("canManage
 
 router.delete("/admin/accounting/:id", requireAdmin, requirePermission("canManageAccounting"), async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
+  const existing = await getAccountingEntry(id);
   const result = await deleteAccountingEntry(id);
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "accounting_entry",
+    entityId: id,
+    entityRef: `ACC-${String(id).padStart(6, "0")}`,
+    action: "accounting_entry.deleted",
+    summary: `Admin deleted ${existing?.type ?? "?"} accounting entry ACC-${String(id).padStart(6, "0")}: ${existing?.category ?? "?"} — ${existing?.currency ?? "?"} ${Number(existing?.amount ?? 0).toFixed(2)}`,
+    beforeData: existing
+      ? { type: existing.type, category: existing.category, amount: existing.amount, currency: existing.currency, entryDate: existing.entryDate }
+      : null,
+  });
   res.json(result);
 });
 
