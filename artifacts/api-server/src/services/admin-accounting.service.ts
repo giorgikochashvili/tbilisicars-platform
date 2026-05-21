@@ -9,6 +9,7 @@ export const INCOME_CATEGORIES = [
   "Booking Payment",
   "Extra Payment",
   "Extra Days Payment",
+  "Advance Payment",
   "Other Income",
 ] as const;
 

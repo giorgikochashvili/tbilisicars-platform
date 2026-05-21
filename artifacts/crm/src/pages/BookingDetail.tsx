@@ -71,6 +71,7 @@ import {
   Send,
   PhoneCall,
   Star,
+  CheckCircle,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RecentActivity } from "@/components/RecentActivity";
@@ -284,6 +285,7 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
   ADJUSTMENT:         "Adjustment",
   ADDITIONAL_PAYMENT: "Additional Payment",
   EXTRA_DAYS_PAYMENT: "Extra Days Payment",
+  ADVANCE_PAYMENT:    "Advance Payment",
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -315,6 +317,7 @@ function typeColor(type: string) {
     ADJUSTMENT:         "bg-purple-500/10 text-purple-400 border-purple-500/20",
     ADDITIONAL_PAYMENT: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     EXTRA_DAYS_PAYMENT: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+    ADVANCE_PAYMENT:    "bg-amber-500/10 text-amber-500 border-amber-500/20",
   };
   return map[type] ?? "bg-muted text-muted-foreground";
 }
@@ -2080,6 +2083,7 @@ export default function BookingDetail({
           paymentDate: form.paymentDate,
           method: form.method,
           notes: form.notes || null,
+          ...(form.paymentType === "ADVANCE_PAYMENT" ? { advanceStatus: "PENDING" } : {}),
         }),
       });
       toast({
@@ -2102,6 +2106,30 @@ export default function BookingDetail({
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMarkReceived = async (paymentId: number, currency: string, amount: string) => {
+    if (!bookingId) return;
+    if (
+      !window.confirm(
+        `Mark this advance payment as received?\n\nThis will create an accounting income entry for ${currency} ${parseFloat(amount).toFixed(2)} and update the booking's Total Paid and payment status.`,
+      )
+    )
+      return;
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/payments/${paymentId}/receive`, {
+        method: "POST",
+      });
+      toast({
+        title: "Advance Payment Received",
+        description: "Accounting income entry created. Total Paid updated.",
+      });
+      fetchPayments();
+      fetchBooking();
+      onPaymentChanged?.();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
@@ -3368,9 +3396,20 @@ export default function BookingDetail({
                               <SelectItem value="EXTRA_DAYS_PAYMENT">
                                 Extra Days Payment
                               </SelectItem>
+                              <SelectItem value="ADVANCE_PAYMENT">
+                                Advance Payment / Pending Receivable
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
+                        {form.paymentType === "ADVANCE_PAYMENT" && (
+                          <div className="col-span-full flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                            <span className="mt-0.5 shrink-0">⚠</span>
+                            <span>
+                              This records a <strong>pending receivable</strong> — not received income yet. It will not count toward Total Paid or create an accounting entry until you click <strong>Mark as Received</strong>.
+                            </span>
+                          </div>
+                        )}
                         <div className="grid gap-1.5">
                           <Label className="text-xs">
                             Method <span className="text-destructive">*</span>
@@ -3498,6 +3537,7 @@ export default function BookingDetail({
                             <TableHead className="text-xs">Method</TableHead>
                             <TableHead className="text-xs hidden sm:table-cell">GEL Equiv</TableHead>
                             <TableHead className="text-xs hidden sm:table-cell">Notes</TableHead>
+                            <TableHead className="text-xs hidden sm:table-cell">Status</TableHead>
                             <TableHead className="w-8" />
                           </TableRow>
                         </TableHeader>
@@ -3542,8 +3582,31 @@ export default function BookingDetail({
                               <TableCell className="text-xs text-muted-foreground max-w-[140px] truncate hidden sm:table-cell">
                                 {p.notes || "—"}
                               </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {p.paymentType === "ADVANCE_PAYMENT" && p.advanceStatus === "PENDING" && (
+                                  <Badge variant="outline" className="text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                    Pending
+                                  </Badge>
+                                )}
+                                {p.paymentType === "ADVANCE_PAYMENT" && p.advanceStatus === "RECEIVED" && (
+                                  <Badge variant="outline" className="text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                    Received
+                                  </Badge>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1">
+                                  {p.paymentType === "ADVANCE_PAYMENT" && p.advanceStatus === "PENDING" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 text-amber-500 hover:text-emerald-500"
+                                      title="Mark as Received"
+                                      onClick={() => handleMarkReceived(p.id, p.currency, p.amount)}
+                                    >
+                                      <CheckCircle className="w-3 h-3" />
+                                    </Button>
+                                  )}
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button

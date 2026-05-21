@@ -3,8 +3,9 @@ import {
   bookingPaymentTable,
   accountingEntriesTable,
   bookingTable,
+  bookingHistoryTable,
 } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, or, isNull } from "drizzle-orm";
 import { getExchangeRate, convertToGel } from "./admin-accounting.service.js";
 import { NotFoundError } from "../lib/errors.js";
 import { pool } from "@workspace/db";
@@ -20,7 +21,8 @@ export type PaymentType =
   | "REFUND"
   | "ADJUSTMENT"
   | "ADDITIONAL_PAYMENT"
-  | "EXTRA_DAYS_PAYMENT";
+  | "EXTRA_DAYS_PAYMENT"
+  | "ADVANCE_PAYMENT";
 
 export type PaymentMethod = "CASH" | "CARD" | "BANK_TRANSFER" | "OTHER";
 export type PaymentCurrency = "GEL" | "USD" | "EUR";
@@ -37,6 +39,7 @@ const PAYMENT_TYPE_ACCOUNTING: Record<
   ADJUSTMENT:         null,
   ADDITIONAL_PAYMENT: { type: "INCOME",  category: "Extra Payment"      },
   EXTRA_DAYS_PAYMENT: { type: "INCOME",  category: "Extra Days Payment" },
+  ADVANCE_PAYMENT:    null, // No accounting entry at creation — created on Mark as Received
 };
 
 // ─── Payment Summary ──────────────────────────────────────────────────────────
@@ -63,7 +66,17 @@ export async function getBookingPaymentSummary(bookingId: number, tx?: TxClient)
       totalOriginal: sql<string>`SUM(CASE WHEN ${bookingPaymentTable.currency} = ${bookingCurrency} THEN ${bookingPaymentTable.amount}::numeric ELSE 0 END)`,
     })
     .from(bookingPaymentTable)
-    .where(eq(bookingPaymentTable.bookingId, bookingId))
+    .where(
+      and(
+        eq(bookingPaymentTable.bookingId, bookingId),
+        // Exclude PENDING advance payments — they are not real income yet.
+        // RECEIVED advance payments (advanceStatus = 'RECEIVED') are included.
+        or(
+          isNull(bookingPaymentTable.advanceStatus),
+          eq(bookingPaymentTable.advanceStatus, "RECEIVED"),
+        ),
+      ),
+    )
     .groupBy(bookingPaymentTable.paymentType);
 
   const totals: Record<string, { gel: number; original: number }> = {};
@@ -78,12 +91,14 @@ export async function getBookingPaymentSummary(bookingId: number, tx?: TxClient)
     (totals["BOOKING_PAYMENT"]?.gel    ?? 0) +
     (totals["ADJUSTMENT"]?.gel         ?? 0) +
     (totals["ADDITIONAL_PAYMENT"]?.gel ?? 0) +
-    (totals["EXTRA_DAYS_PAYMENT"]?.gel ?? 0);
+    (totals["EXTRA_DAYS_PAYMENT"]?.gel ?? 0) +
+    (totals["ADVANCE_PAYMENT"]?.gel    ?? 0); // only RECEIVED rows reach here
   const totalPaidOriginal =
     (totals["BOOKING_PAYMENT"]?.original    ?? 0) +
     (totals["ADJUSTMENT"]?.original         ?? 0) +
     (totals["ADDITIONAL_PAYMENT"]?.original ?? 0) +
-    (totals["EXTRA_DAYS_PAYMENT"]?.original ?? 0);
+    (totals["EXTRA_DAYS_PAYMENT"]?.original ?? 0) +
+    (totals["ADVANCE_PAYMENT"]?.original    ?? 0);
   const depositReceived = totals["DEPOSIT_RECEIVED"]?.gel ?? 0;
   const depositReceivedOriginal = totals["DEPOSIT_RECEIVED"]?.original ?? 0;
   const depositReturned = totals["DEPOSIT_RETURNED"]?.gel ?? 0;
@@ -206,10 +221,13 @@ export interface AddPaymentInput {
   method: PaymentMethod;
   notes?: string | null;
   adminId?: number;
+  advanceStatus?: "PENDING" | null;
 }
 
 export async function addBookingPayment(input: AddPaymentInput) {
   const { bookingId, paymentType, amount, currency, paymentDate, method, notes, adminId } = input;
+  // ADVANCE_PAYMENT always uses PENDING status; null means normal payment
+  const advanceStatus = paymentType === "ADVANCE_PAYMENT" ? "PENDING" : null;
 
   if (amount <= 0) throw new Error("Amount must be greater than zero");
 
@@ -232,6 +250,8 @@ export async function addBookingPayment(input: AddPaymentInput) {
   const { payment, summary } = await db.transaction(async (tx) => {
     let accountingEntryId: number | null = null;
 
+    // ADVANCE_PAYMENT maps to null in PAYMENT_TYPE_ACCOUNTING, so no accounting
+    // entry is created here. Entry is created only on Mark as Received.
     const acctMapping = PAYMENT_TYPE_ACCOUNTING[paymentType];
     if (acctMapping) {
       const [entry] = await tx
@@ -263,11 +283,113 @@ export async function addBookingPayment(input: AddPaymentInput) {
         method,
         notes: notes ?? null,
         accountingEntryId,
+        advanceStatus,
       })
       .returning();
 
+    if (advanceStatus === "PENDING") {
+      await tx.insert(bookingHistoryTable).values({
+        bookingId,
+        changedById: adminId ?? null,
+        actionType: "ADVANCE_PENDING",
+        fieldName: "advance_status",
+        oldValue: null,
+        newValue: "PENDING",
+        description: `Advance payment of ${currency} ${amount.toFixed(2)} recorded as pending receivable`,
+      });
+    }
+
     const summary = await getBookingPaymentSummary(bookingId, tx);
     await updateBookingPaymentStatus(bookingId, summary, tx);
+
+    return { payment, summary };
+  });
+
+  return { payment, summary };
+}
+
+// ─── Receive Advance Payment ──────────────────────────────────────────────────
+//
+// Atomically marks a PENDING advance payment as RECEIVED, creates the
+// accounting income entry, and recalculates paymentStatus. Idempotent guard:
+// if the row is not PENDING the operation is rejected before any writes.
+
+export async function receiveAdvancePayment(
+  paymentId: number,
+  bookingId: number,
+  adminId?: number,
+) {
+  const [existing] = await db
+    .select()
+    .from(bookingPaymentTable)
+    .where(eq(bookingPaymentTable.id, paymentId));
+
+  if (!existing || existing.bookingId !== bookingId) {
+    throw new NotFoundError(`Payment ${paymentId} not found on booking ${bookingId}`);
+  }
+  if (existing.paymentType !== "ADVANCE_PAYMENT") {
+    throw new Error("Payment is not an advance payment");
+  }
+  if (existing.advanceStatus !== "PENDING") {
+    throw new Error("Advance payment has already been received");
+  }
+
+  const amount = parseFloat(String(existing.amount));
+  const currency = existing.currency as PaymentCurrency;
+
+  const rate = await getExchangeRate();
+  const convertedGel = rate
+    ? convertToGel(amount, currency, rate)
+    : currency === "GEL"
+      ? amount
+      : parseFloat(String(existing.convertedGel));
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { payment, summary } = await db.transaction(async (tx) => {
+    // 1. Create accounting income entry
+    const [entry] = await tx
+      .insert(accountingEntriesTable)
+      .values({
+        type: "INCOME",
+        category: "Advance Payment",
+        amount: String(amount),
+        currency: currency as "GEL" | "USD" | "EUR",
+        convertedGel: String(convertedGel),
+        entryDate: today,
+        notes: existing.notes ?? null,
+        relatedBookingId: bookingId,
+        adminId: adminId ?? null,
+      })
+      .returning({ id: accountingEntriesTable.id });
+
+    // 2. Mark booking_payment as RECEIVED and link accounting entry
+    const [payment] = await tx
+      .update(bookingPaymentTable)
+      .set({
+        advanceStatus: "RECEIVED",
+        accountingEntryId: entry.id,
+        receivedAt: new Date(),
+        receivedById: adminId ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(bookingPaymentTable.id, paymentId))
+      .returning();
+
+    // 3. Recalculate summary (RECEIVED row now included) and paymentStatus
+    const summary = await getBookingPaymentSummary(bookingId, tx);
+    await updateBookingPaymentStatus(bookingId, summary, tx);
+
+    // 4. Audit history
+    await tx.insert(bookingHistoryTable).values({
+      bookingId,
+      changedById: adminId ?? null,
+      actionType: "ADVANCE_RECEIVED",
+      fieldName: "advance_status",
+      oldValue: "PENDING",
+      newValue: "RECEIVED",
+      description: `Advance payment of ${currency} ${amount.toFixed(2)} marked as received`,
+    });
 
     return { payment, summary };
   });

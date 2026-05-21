@@ -25,6 +25,7 @@ export const bookingPaymentTypeEnum = pgEnum("booking_payment_type_enum", [
   "ADJUSTMENT",
   "ADDITIONAL_PAYMENT",
   "EXTRA_DAYS_PAYMENT",
+  "ADVANCE_PAYMENT",
 ]);
 
 export const bookingPaymentMethodEnum = pgEnum("booking_payment_method_enum", [
@@ -172,6 +173,9 @@ export const bookingPaymentTable = pgTable(
     method: bookingPaymentMethodEnum("method").notNull(),
     notes: text("notes"),
     accountingEntryId: integer("accounting_entry_id"),
+    advanceStatus: varchar("advance_status", { length: 10 }),
+    receivedAt: timestamp("received_at"),
+    receivedById: integer("received_by_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
