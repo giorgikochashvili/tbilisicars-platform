@@ -1,0 +1,231 @@
+We are continuing the live production TBILISICARS CRM&WEB project.
+
+Important context:
+- This is a live CRM used by staff with real bookings and real payments.
+- Be conservative and surgical.
+- PLAN MODE ONLY. Do not modify files yet.
+- Do not deploy.
+- Do not perform Git Sync or Droplet build.
+- Production migration/deployment will happen only at the end after all Accounting phases are approved.
+- Do not touch public website.
+- Do not touch public booking flow.
+- Do not touch pricing engine.
+- Do not touch Georgia Bank / online payment.
+- Do not change permissions/role guards.
+- Do not touch unrelated SEO/noindex/sitemap tasks.
+
+Completed so far in Replit, not deployed:
+Phase 1:
+- Accounting create/update/delete audit logging
+- Accounting category cleanup
+
+Phase 2A:
+- Added booking payment types ADDITIONAL_PAYMENT and EXTRA_DAYS_PAYMENT
+
+Phase 3:
+- Added booking-level Deposit Amount + separate Deposit Currency
+- Deposit is metadata only
+
+Phase 2B:
+- Added Extension Charge / Additional Amount Due flow
+
+Phase 4A:
+- Added Advance Payment / Pending Receivables
+
+Phase 5A:
+- Added Fixed Expense Templates backend + migration
+- Migration 0011_fixed_expense_templates.sql created
+- fixed_expense_templates table added
+- fixed_expense_template_id and fixed_expense_month added to accounting_entries only
+- New backend routes added:
+  GET    /admin/accounting/fixed-expenses
+  POST   /admin/accounting/fixed-expenses
+  PATCH  /admin/accounting/fixed-expenses/:id
+  DELETE /admin/accounting/fixed-expenses/:id
+  POST   /admin/accounting/fixed-expenses/:id/post
+  GET    /admin/accounting/fixed-expenses/:id/posted-months
+- Template create/update/delete does not create accounting_entries
+- Only post action creates one accounting_entries EXPENSE row
+- Duplicate month posting is blocked
+- No CRM UI implemented yet
+
+Now plan Phase 5B:
+Fixed Monthly Expenses CRM UI.
+
+Business goal:
+Finance/staff should be able to manage fixed monthly expense templates from the Accounting module UI and manually post them for a selected month.
+
+Important business rules:
+1. Fixed Expense Template itself is NOT an accounting expense.
+2. Expense is created only when staff clicks “Post for month”.
+3. Posting creates one accounting_entries EXPENSE row.
+4. No automatic cron/monthly posting.
+5. Duplicate post for same template/month must be clearly blocked.
+6. Deactivating template must not remove posted accounting entries.
+7. Existing Accounting ledger and manual entry CRUD must remain unchanged.
+8. No booking/payment logic should change.
+9. No public website changes.
+
+Current backend available from Phase 5A:
+Use existing routes:
+- GET /admin/accounting/fixed-expenses
+- POST /admin/accounting/fixed-expenses
+- PATCH /admin/accounting/fixed-expenses/:id
+- DELETE /admin/accounting/fixed-expenses/:id
+- POST /admin/accounting/fixed-expenses/:id/post
+- GET /admin/accounting/fixed-expenses/:id/posted-months
+
+Planning questions to answer:
+
+A. Current Accounting UI inspection
+1. How is Accounting.tsx structured today?
+2. Does it already have tabs/sections suitable for adding Fixed Expenses?
+3. Where are categories/currencies defined in the CRM?
+4. What existing UI components/patterns should be reused?
+5. How are API calls currently made in Accounting.tsx?
+6. Is Accounting.tsx too large to add the full UI inline?
+
+B. Recommended UI structure
+Recommend safest UI structure:
+Option 1:
+Add everything inline to Accounting.tsx.
+
+Option 2:
+Create a new component file:
+artifacts/crm/src/pages/FixedExpenses.tsx
+and import/render it inside Accounting.tsx.
+
+Preferred:
+Use separate FixedExpenses.tsx if Accounting.tsx is already large/risky.
+
+Answer:
+1. Exact files to edit/create.
+2. Where to render Fixed Expenses inside Accounting page.
+3. Whether to use tab, card section, or collapsible section.
+4. How to keep the diff minimal.
+
+C. Fixed Expenses UI features
+Plan minimal useful UI:
+
+1. List templates:
+- name
+- category
+- amount/currency
+- due day
+- notes
+- active/inactive
+- posted status for selected month
+- actions
+
+2. Create template:
+Fields:
+- name
+- category
+- amount
+- currency
+- dueDay 1–28
+- notes
+- active
+
+3. Edit template:
+Same fields.
+
+4. Deactivate/reactivate:
+- Prefer PATCH isActive false/true.
+- Do not delete if posts exist unless backend allows.
+- UI should use deactivate as safe default.
+
+5. Post for month:
+- month selector, default current YYYY-MM
+- button “Post for month”
+- confirmation dialog:
+  “Post this fixed expense for YYYY-MM? This will create an accounting expense entry.”
+- after successful post:
+  - show success toast
+  - refresh templates/posted months
+  - Accounting ledger may refresh if needed
+- if duplicate:
+  - show clear error “Already posted for this month”
+  - do not crash
+
+D. Data fetching plan
+Answer:
+1. How to fetch templates.
+2. How to fetch posted months.
+3. Whether posted months should be fetched per-template or in a batched/simple way.
+4. How to avoid too many requests if there are many templates.
+5. Whether Phase 5B should use a simple per-template fetch first, or whether backend should be extended for batch posted months.
+6. If backend extension is needed, identify it — but prefer no backend changes unless necessary.
+
+E. API interaction plan
+Map UI actions to existing backend routes:
+- list
+- create
+- update
+- deactivate/reactivate
+- delete if used
+- post for month
+- posted months
+
+Answer:
+1. Request body examples.
+2. Expected response handling.
+3. Error handling for duplicate post / inactive template / validation errors.
+4. Whether any API/Zod type additions are needed for frontend.
+
+F. UI safety and clarity
+Ensure staff understands:
+- Template is not an expense yet.
+- Posted item becomes a real accounting expense.
+- Posting is manual.
+- Duplicate posting is blocked.
+- Deactivate does not delete previous expenses.
+
+Propose concise helper texts/labels.
+
+G. Scope constraints
+Out of scope:
+- No new DB migration in Phase 5B unless absolutely necessary.
+- No backend changes unless absolutely necessary.
+- No automatic cron.
+- No charts/reports redesign.
+- No payroll module.
+- No supplier/vendor module.
+- No receipt uploads.
+- No public website.
+- No booking/payment changes.
+- No permissions changes.
+- No deployment.
+
+H. Test checklist
+Provide exact tests:
+1. Open Accounting page.
+2. Fixed Expenses section/tab loads.
+3. Create template.
+4. Template appears in list.
+5. Edit template.
+6. Deactivate template.
+7. Reactivate template.
+8. Select month and post template.
+9. Accounting expense entry created.
+10. Posted badge/status appears.
+11. Duplicate post for same month blocked and shows error.
+12. Posted expense appears in Accounting ledger.
+13. Existing Accounting manual entry CRUD still works.
+14. Booking payments unaffected.
+15. Advance Payment unaffected.
+16. Deposit metadata unaffected.
+17. Extension Charge unaffected.
+18. Public website unaffected.
+
+Plan response required:
+1. Exact files to edit/create.
+2. Recommended UI structure.
+3. Exact API calls to use.
+4. Whether backend changes are needed or not.
+5. UX copy/helper text.
+6. Risk assessment.
+7. Test checklist.
+8. Confirmation no files will be modified until Build is approved.
+
+PLAN MODE ONLY. Do not modify files.

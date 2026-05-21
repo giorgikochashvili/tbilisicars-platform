@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
+import FixedExpenses from "./FixedExpenses";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -884,6 +885,9 @@ export default function AccountingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Fixed Monthly Expenses */}
+      <FixedExpenses />
     </div>
   );
 }
