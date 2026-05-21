@@ -28,6 +28,8 @@ const QUICK_ACTIONS = [
   "Contact support",
 ];
 
+const ENABLE_PUBLIC_CHATBOT = false;
+
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
@@ -90,6 +92,8 @@ export default function ChatbotWidget() {
   }
 
   const showQuickActions = messages.length === 1;
+
+  if (!ENABLE_PUBLIC_CHATBOT) return null;
 
   return (
     <>

@@ -1,0 +1,111 @@
+We need a small website-only UX cleanup for TBILISICARS CRM&WEB.
+
+This is a live production system. Work surgically and do not refactor broadly.
+
+Goal:
+1) Temporarily move Trustpilot and Google rating cards from the homepage hero area down into the Footer.
+2) Temporarily disable/hide the public website chatbot ("Need help?" / Tbilisicars Assistant) until we strengthen it later.
+
+Strict scope:
+- Website only.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / metadata unless absolutely necessary.
+- Do NOT delete chatbot code; only disable/hide rendering so it can be re-enabled later.
+- Do NOT remove Trustpilot/Google data; just move visual cards from hero to footer.
+
+Relevant files likely:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/Footer.tsx or equivalent footer component
+- artifacts/website/src/components/Chatbot.tsx or wherever public chatbot is rendered
+- artifacts/website/src/App.tsx or layout file if chatbot is globally mounted
+
+Task 1 — Move rating cards from Home hero to Footer
+
+Current:
+Homepage hero displays two cards above "Discover Georgia With Us":
+- Trustpilot
+- Google
+
+Desired:
+- Remove/hide these cards from the hero area.
+- Add them to the Footer in a clean premium layout.
+- Footer should show them without overcrowding the footer.
+- Keep the existing dark website style.
+- Cards should look trustworthy and polished, not too large.
+
+Content:
+Trustpilot card:
+- Label: Trustpilot
+- Text: Excellent
+- Rating: 4.6 / 5
+
+Google card:
+- Label: Google
+- Text: Excellent
+- Rating: 4.7 / 5
+
+Important:
+- Keep existing links if they already exist.
+- Keep existing star visual style if reusable.
+- Do not add review counts.
+- Do not add aggregateRating schema.
+- Do not add new scripts/widgets.
+- Do not change real review/rating values.
+
+Suggested approach:
+- Extract the repeated rating card UI into a small reusable component if it is currently embedded in Home.tsx and if doing so is simple.
+- Or move the existing JSX carefully into Footer if extraction is not needed.
+- Footer placement can be near brand/company info or above the bottom legal row.
+- Make it responsive:
+  - desktop: two small cards side-by-side
+  - mobile: stacked or compact row if it fits cleanly
+
+Task 2 — Temporarily disable chatbot
+
+Current:
+Public website shows floating "Need help?" button and opens Tbilisicars Assistant chat.
+
+Desired:
+- Hide/disable it from the public website for now.
+- Do not delete the chatbot component/code.
+- Prefer a simple feature flag / constant, for example:
+  const ENABLE_PUBLIC_CHATBOT = false;
+- The chatbot should be easy to re-enable later by switching the flag to true.
+- No visual "Need help?" floating button should appear while disabled.
+- No chatbot popup should render while disabled.
+
+Important:
+- Do not touch CRM assistant/future AI plans.
+- Do not add AI/backend/chat API.
+- Do not remove chatbot files.
+- Do not break page layout.
+
+Checks to run:
+- pnpm --filter @workspace/website check or the repo’s actual website typecheck command
+- If this repo uses build as the practical check, run:
+  PORT=3000 pnpm --filter @workspace/website build
+- Confirm no CRM/API files changed.
+- Confirm no DB migrations added.
+- Confirm no booking/pricing/payment/accounting files changed.
+
+Manual verification:
+1. Homepage hero no longer shows Trustpilot/Google cards above "Discover Georgia With Us".
+2. Footer now shows Trustpilot and Google rating cards cleanly.
+3. Footer looks good on desktop and mobile widths.
+4. "Need help?" floating chatbot button is gone.
+5. Chatbot code remains in repo and can be re-enabled later.
+6. Booking search form still works visually.
+7. Header/nav/footer links still work.
+
+Return:
+- exact files planned to change
+- exact implementation approach
+- whether chatbot is globally mounted or page-mounted
+- typecheck/build command you will run
+- risks or limitations
+- do not edit files until Build approval

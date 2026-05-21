@@ -78,28 +78,6 @@ const TRUST_STATS = [
   { value: "4.6+", label: "Average Rating" },
 ];
 
-const REVIEW_CARDS = [
-  {
-    platform: "Trustpilot",
-    descriptor: "Excellent",
-    rating: "4.6 / 5",
-    href: "https://www.trustpilot.com/review/tbilisicars.com",
-    brandMark: "★",
-    markColor: "text-emerald-400",
-    labelColor: "text-white",
-    starColor: "text-emerald-400",
-  },
-  {
-    platform: "Google",
-    descriptor: "Excellent",
-    rating: "4.7 / 5",
-    href: "https://share.google/lbXYIFHqGODm91fdk",
-    brandMark: "G",
-    markColor: "text-blue-400",
-    labelColor: "text-white",
-    starColor: "text-yellow-400",
-  },
-];
 
 const VEHICLE_CATEGORIES = [
   "Economy",
@@ -419,34 +397,6 @@ export default function Home() {
         />
 
         <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
-          {/* Review trust cards — above hero heading */}
-          <div className="flex justify-center gap-3 mb-6 flex-wrap">
-            {REVIEW_CARDS.map((r) => (
-              <a
-                key={r.platform}
-                href={r.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-start gap-1 bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 hover:bg-black/50 hover:border-white/20 transition-colors min-w-[148px]"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-sm font-bold leading-none ${r.markColor}`}>{r.brandMark}</span>
-                  <span className={`text-xs font-semibold tracking-wide ${r.labelColor}`}>{r.platform}</span>
-                </div>
-                <div className={`text-xs leading-none flex items-center ${r.starColor}`}>
-                  <span>★★★★</span>
-                  <span className="relative inline-block">
-                    <span className="opacity-20">★</span>
-                    <span className="absolute inset-0" style={{ clipPath: "inset(0 30% 0 0)" }}>★</span>
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[10px] text-muted-foreground">{r.descriptor}</span>
-                  <span className="text-xs font-bold text-white tabular-nums">{r.rating}</span>
-                </div>
-              </a>
-            ))}
-          </div>
           <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
             <span className="text-white">Discover Georgia With Us</span>
           </h1>

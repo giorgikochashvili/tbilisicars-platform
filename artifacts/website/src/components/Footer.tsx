@@ -1,6 +1,27 @@
 import { Link } from "wouter";
 import { Phone, Mail, MapPin } from "lucide-react";
 
+const RATING_CARDS = [
+  {
+    platform: "Trustpilot",
+    descriptor: "Excellent",
+    rating: "4.6 / 5",
+    href: "https://www.trustpilot.com/review/tbilisicars.com",
+    brandMark: "★",
+    markColor: "text-emerald-400",
+    starColor: "text-emerald-400",
+  },
+  {
+    platform: "Google",
+    descriptor: "Excellent",
+    rating: "4.7 / 5",
+    href: "https://share.google/lbXYIFHqGODm91fdk",
+    brandMark: "G",
+    markColor: "text-blue-400",
+    starColor: "text-yellow-400",
+  },
+];
+
 const OFFICES = [
   { city: "Tbilisi Airport", phone: "+995 557 37 63 63" },
   { city: "Kutaisi Airport", phone: "+995 595 28 66 00" },
@@ -109,6 +130,35 @@ export default function Footer() {
                 </a>
               </li>
             </ul>
+          </div>
+        </div>
+
+        {/* Rating trust cards — Trustpilot & Google */}
+        <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-border/50 flex justify-center">
+          <div className="flex flex-wrap justify-center gap-3">
+            {RATING_CARDS.map((r) => (
+              <a
+                key={r.platform}
+                href={r.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 hover:bg-white/10 hover:border-white/20 transition-colors"
+              >
+                <span className={`text-base font-bold leading-none select-none ${r.markColor}`}>
+                  {r.brandMark}
+                </span>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-white">{r.platform}</span>
+                    <span className={`text-[10px] leading-none ${r.starColor}`}>★★★★★</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    <span className="font-semibold text-white/80">{r.rating}</span>
+                    {" · "}{r.descriptor}
+                  </div>
+                </div>
+              </a>
+            ))}
           </div>
         </div>
 
