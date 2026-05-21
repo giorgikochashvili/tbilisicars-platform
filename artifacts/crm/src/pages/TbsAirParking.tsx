@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +43,7 @@ interface ParkingEntry {
   licensePlate: string | null;
   brandName: string | null;
   modelName: string | null;
+  activeServiceStatus?: string | null;
 }
 
 interface ZoneData {
@@ -312,6 +313,22 @@ export default function TbsAirParking() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        {entry.activeServiceStatus && (
+                          <button
+                            className="h-7 w-7 flex items-center justify-center rounded text-amber-400 hover:bg-amber-500/10 transition-colors"
+                            title={
+                              entry.activeServiceStatus === "IN_PROGRESS"
+                                ? "Service in progress"
+                                : "Scheduled service"
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/crm/service?vehicleSearch=${encodeURIComponent(entry.licensePlate ?? "")}`;
+                            }}
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button

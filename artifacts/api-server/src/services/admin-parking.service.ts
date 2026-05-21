@@ -4,8 +4,9 @@ import {
   vehicleTable,
   vehicleModelTable,
   brandTable,
+  maintenanceServicesTable,
 } from "@workspace/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, inArray } from "drizzle-orm";
 import { ConflictError, NotFoundError } from "../lib/errors.js";
 
 type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -49,8 +50,33 @@ export async function listParkingByZone() {
     .where(isNull(parkingAssignmentTable.removedAt))
     .orderBy(parkingAssignmentTable.assignedAt);
 
+  // Build active-service map: vehicleId → strongest active status (IN_PROGRESS > SCHEDULED)
+  const vehicleIds = [...new Set(rows.map((r) => r.vehicleId))];
+  const serviceMap = new Map<number, string>();
+  if (vehicleIds.length > 0) {
+    const activeServices = await db
+      .select({
+        vehicleId: maintenanceServicesTable.vehicleId,
+        status: maintenanceServicesTable.status,
+      })
+      .from(maintenanceServicesTable)
+      .where(
+        and(
+          inArray(maintenanceServicesTable.vehicleId, vehicleIds),
+          inArray(maintenanceServicesTable.status, ["SCHEDULED", "IN_PROGRESS"] as any),
+        ),
+      );
+    for (const s of activeServices) {
+      const existing = serviceMap.get(s.vehicleId);
+      if (!existing || s.status === "IN_PROGRESS") {
+        serviceMap.set(s.vehicleId, s.status);
+      }
+    }
+  }
+
   // Group by zone and compute occupancy
-  const grouped: Record<string, { capacity: number | null; assignments: typeof rows }> = {};
+  type AssignmentWithService = (typeof rows)[number] & { activeServiceStatus: string | null };
+  const grouped: Record<string, { capacity: number | null; assignments: AssignmentWithService[] }> = {};
 
   for (const zone of VALID_ZONES) {
     grouped[zone] = {
@@ -64,7 +90,10 @@ export async function listParkingByZone() {
     if (!grouped[displayZone]) {
       grouped[displayZone] = { capacity: ZONE_CAPACITIES[displayZone] ?? null, assignments: [] };
     }
-    grouped[displayZone].assignments.push(row);
+    grouped[displayZone].assignments.push({
+      ...row,
+      activeServiceStatus: serviceMap.get(row.vehicleId) ?? null,
+    });
   }
 
   return grouped;

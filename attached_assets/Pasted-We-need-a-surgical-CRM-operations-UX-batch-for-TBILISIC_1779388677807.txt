@@ -1,0 +1,243 @@
+We need a surgical CRM operations UX batch for TBILISICARS CRM&WEB.
+
+This is a live production system. Do not refactor broadly.
+
+Scope:
+1) Show Service/Maintenance indicator on TBS AIR PARKING cards.
+2) Sort Service records by operational status priority.
+3) Add next/previous/download viewer for Booking Detail handover photos, including individual download and download-all for Pickup/Dropoff photo sets.
+4) Hide Dashboard Booking Overview by default.
+
+Strict exclusions:
+- Do NOT change booking pricing.
+- Do NOT change booking status lifecycle.
+- Do NOT change payment/accounting logic.
+- Do NOT change public website.
+- Do NOT change Google Ads / SEO.
+- Do NOT add DB migrations.
+- Do NOT change upload/storage logic.
+- Do NOT implement parking auto-remove or vehicle reassignment fixes in this batch.
+- Do NOT delete existing Dashboard Booking Overview component; only make it default hidden/configurable.
+- Do NOT change PDF/email generation.
+- Do NOT change handover upload behavior.
+
+Relevant files likely involved:
+- artifacts/api-server/src/services/admin-parking.service.ts
+- artifacts/api-server/src/services/admin-service.service.ts
+- artifacts/crm/src/pages/TbsAirParking.tsx
+- artifacts/crm/src/pages/Service.tsx
+- artifacts/crm/src/pages/BookingDetail.tsx
+- artifacts/crm/src/pages/Dashboard.tsx
+- package files only if a small ZIP dependency is truly needed for download-all
+
+Task 1 — TBS AIR PARKING service wrench indicator
+
+Goal:
+In TBS AIR PARKING vehicle cards, if the vehicle currently has an active service record with status SCHEDULED or IN_PROGRESS, show a small wrench/tool icon integrated into the card design.
+
+Requirements:
+- Completed service records must not show the icon.
+- Cancelled service records must not show the icon.
+- Only active statuses count:
+  - SCHEDULED
+  - IN_PROGRESS
+- The icon should be small, visually clean, and fit the existing dark card design.
+- It should not make the parking card taller unless necessary.
+- Show tooltip/title:
+  - "Scheduled service" for SCHEDULED
+  - "Service in progress" for IN_PROGRESS
+- If both statuses exist for the same vehicle, prefer showing IN_PROGRESS as the stronger operational state.
+
+Backend approach:
+In listParkingByZone() in admin-parking.service.ts:
+- Keep existing response structure.
+- Add optional service status metadata to each assignment, for example:
+  - activeServiceStatus: "SCHEDULED" | "IN_PROGRESS" | null
+  - activeServiceId?: number | null if easy and safe
+- Avoid duplicate parking rows if a vehicle has multiple service records.
+- Do not use a direct join that duplicates parking assignments.
+- Preferred safe approach:
+  1. Fetch active parking rows as currently.
+  2. Collect vehicleIds.
+  3. Query maintenance/service records for those vehicleIds where status IN ("SCHEDULED", "IN_PROGRESS").
+  4. Build a map by vehicleId using priority IN_PROGRESS > SCHEDULED.
+  5. Merge activeServiceStatus into each parking row.
+
+CRM approach:
+In TbsAirParking.tsx:
+- Extend ParkingEntry type with activeServiceStatus?: string | null.
+- Import Wrench icon if needed.
+- Render a small wrench button/icon next to plate/model or near the action icons.
+- On click, navigate to Service page filtered by plate:
+  /crm/service?vehicleSearch=<licensePlate>
+- Stop event propagation if needed.
+- Do not alter move/delete actions.
+
+Task 2 — Service page URL filter support + sorting
+
+In Service.tsx:
+- Read vehicleSearch from URL query param on page load:
+  ?vehicleSearch=DG545OG
+- Initialize the existing vehicleSearch/search state from that query param.
+- When TBS AIR PARKING wrench is clicked, Service page should open already filtered by the plate.
+- Keep existing manual filter input working.
+- Optional: when user edits/clears filter, update URL only if this is simple and safe; otherwise just initialize from URL.
+
+Service sorting:
+In admin-service.service.ts listServiceRecords():
+- Change default ordering so statuses appear in this priority:
+  1. SCHEDULED
+  2. IN_PROGRESS
+  3. COMPLETED
+  4. CANCELLED
+  5. anything else
+- Within each status group, keep newest serviceDate / createdAt first.
+- Use Drizzle SQL CASE ordering if appropriate.
+- Do not change service creation/update/delete behavior.
+- Do not change service category data.
+- Do not change service costs/accounting behavior.
+
+Task 3 — Booking Detail pickup/dropoff photo viewer with download current + download all
+
+Current problem:
+In BookingDetail, clicking a pickup/dropoff photo opens the image without gallery navigation. Staff must close/back and click another thumbnail to inspect photos.
+
+Goal:
+Add an in-CRM photo viewer/lightbox for handover photos, including:
+- next/previous navigation
+- individual current photo download
+- download all photos for the current handover photo group
+
+Requirements:
+- Applies to both Pick Up and Drop Off photo galleries.
+- Clicking a thumbnail opens a viewer dialog/modal.
+- Viewer shows:
+  - large image
+  - photo counter, e.g. "3 / 16"
+  - previous button
+  - next button
+  - close button
+  - download current photo button
+  - download all photos button for that handover set
+- Next/previous should move through the photos in the same handover only.
+- Pickup viewer should navigate/download only Pickup photos.
+- Dropoff viewer should navigate/download only Dropoff photos.
+- Individual download should download the currently opened image using the existing image URL.
+- Download all should download all photos from the current handover group together.
+
+Preferred download-all implementation:
+- Use frontend-side ZIP generation.
+- Check if an existing ZIP/file-save dependency already exists in the repo.
+- If not, adding a small safe dependency such as jszip is acceptable only if it does not create dependency conflicts.
+- Do not add heavy or unnecessary libraries.
+- If adding dependency is risky, stop and report before implementing a weaker fallback.
+
+ZIP behavior:
+- Fetch each image URL as blob.
+- Add each image to ZIP with clear filenames:
+  - booking-875-pickup-01.jpg
+  - booking-875-pickup-02.jpg
+  - booking-875-dropoff-01.jpg
+  - booking-875-dropoff-02.jpg
+- Save ZIP as:
+  - booking-875-pickup-photos.zip
+  - booking-875-dropoff-photos.zip
+- Use booking id/reference if easily available.
+- Show a loading state while preparing ZIP.
+- Disable Download All button while ZIP is being prepared.
+- If one image fails during ZIP creation:
+  - do not crash the page
+  - skip the failed image if possible
+  - show a clear toast/message that some images could not be included
+- If all images fail, do not create an empty ZIP; show an error toast/message.
+
+Important restrictions:
+- Do not change upload logic.
+- Do not change stored photo URLs.
+- Do not change backend handover/photos API.
+- Do not change storage/local-uploads resolver.
+- Do not implement bulk delete.
+- Do not implement photo reordering.
+- Do not implement image compression/conversion.
+- Do not implement "download all booking files"; only current Pickup or Dropoff photo group.
+
+Suggested implementation:
+- In BookingDetail.tsx, add state such as:
+  selectedPhotoViewer: { photos: string[]; index: number; type: "pickup" | "dropoff" } | null
+- Use existing toStorageSrc(url) helper for image src.
+- Add a Dialog for the viewer near the bottom of BookingDetail render.
+- Add helper:
+  downloadPhoto(url, filename)
+- Add helper:
+  downloadAllPhotos(photos, type, bookingId)
+- Keep thumbnails visually unchanged.
+- Optional but good if simple:
+  - left/right keyboard arrows for previous/next
+  - Escape key closes viewer
+- Ensure modal works well on desktop and mobile CRM layout.
+
+Task 4 — Dashboard Booking Overview hidden by default
+
+Current:
+Dashboard DEFAULT_WIDGET_CONFIG has bookingOverview enabled.
+
+Goal:
+Booking Overview should be hidden by default for all users/staff because it is not currently used and overloads the dashboard.
+
+Requirements:
+- Do NOT delete Booking Overview component.
+- Do NOT delete booking overview cards.
+- Keep it available in Customize so it can be re-enabled later.
+- Change default config so bookingOverview is false.
+- Existing users may already have localStorage widget config with bookingOverview true. Add a safe one-time migration if simple:
+  - If stored widget config does not have a marker/version for this new default, set sections.bookingOverview = false once.
+  - Preserve other section/card preferences.
+  - Do not repeatedly force it off after the user manually re-enables it in Customize.
+- If migration is too risky, at minimum set DEFAULT_WIDGET_CONFIG.sections.bookingOverview = false and report limitation.
+
+Checks to run:
+- pnpm --filter @workspace/api-server check or the repo’s actual API typecheck command
+- pnpm --filter @workspace/crm check or the repo’s actual CRM typecheck command
+- Confirm no DB migrations were added.
+- Confirm no website files changed.
+- Confirm no booking pricing/payment/accounting logic changed.
+- Confirm upload/storage logic was not changed.
+- Confirm public booking flow was not changed.
+
+Manual test checklist:
+
+Service/Parking:
+1. Create or confirm a service record for a vehicle in parking with status SCHEDULED.
+   - Parking card shows wrench.
+   - Clicking wrench opens Service page filtered by plate.
+2. Change the service record to IN_PROGRESS.
+   - Parking still shows wrench.
+3. Change service record to COMPLETED.
+   - Parking wrench disappears after refresh/refetch.
+4. Service page default list shows SCHEDULED first, then IN_PROGRESS, then COMPLETED/CANCELLED after.
+
+Booking Detail photo viewer:
+5. Open Booking Detail with Pickup photos.
+6. Click first Pickup photo.
+   - Viewer opens inside CRM.
+   - Next/previous works.
+   - Counter displays correctly.
+   - Download current photo works.
+   - Download all Pickup photos downloads a ZIP with all Pickup photos.
+7. Repeat same test for Dropoff photos.
+   - Download all Dropoff photos downloads only Dropoff photos, not Pickup photos.
+8. Failed image download does not crash Booking Detail.
+9. Closing viewer returns to Booking Detail without page navigation.
+
+Dashboard:
+10. Dashboard loads with Booking Overview hidden by default.
+11. Customize can re-enable Booking Overview.
+12. Existing dashboard sections such as Operational Alerts, My Tasks, TBS AIR PARKING, Today’s Operations still render normally.
+
+Return:
+- Exact files changed.
+- Summary of each change.
+- Whether a ZIP dependency was added and why.
+- Typecheck/build results.
+- Whether existing localStorage dashboard configs are migrated or only new defaults are changed.
+- Any limitation discovered.

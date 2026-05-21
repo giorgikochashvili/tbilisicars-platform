@@ -48,6 +48,9 @@ import {
   Ticket,
   Receipt,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
   ClipboardList,
   ClipboardCheck,
   Activity,
@@ -575,19 +578,16 @@ function SatisfactionBadge({ value }: { value: "HAPPY" | "NEUTRAL" | "SAD" | "PR
 function HandoverPhotoThumb({
   url,
   label,
+  onClick,
 }: {
   url: string;
   label: string;
+  onClick?: () => void;
 }) {
   const [failed, setFailed] = useState(false);
   const src = toStorageSrc(url);
-  return (
-    <a
-      href={src}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20"
-    >
+  const inner = (
+    <>
       {failed || !src ? (
         <div
           className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground/50"
@@ -606,6 +606,28 @@ function HandoverPhotoThumb({
           onError={() => setFailed(true)}
         />
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20 cursor-pointer"
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-20 h-20 rounded-lg overflow-hidden border border-border/40 hover:border-primary/50 transition-colors bg-muted/20"
+    >
+      {inner}
     </a>
   );
 }
@@ -613,9 +635,11 @@ function HandoverPhotoThumb({
 function HandoverDisplay({
   handover,
   type,
+  onPhotoClick,
 }: {
   handover: any;
   type: "pickup" | "dropoff";
+  onPhotoClick?: (index: number) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -687,6 +711,7 @@ function HandoverDisplay({
                 key={i}
                 url={url}
                 label={`${type} photo ${i + 1}`}
+                onClick={onPhotoClick ? () => onPhotoClick(i) : undefined}
               />
             ))}
           </div>
@@ -694,6 +719,75 @@ function HandoverDisplay({
       )}
     </div>
   );
+}
+
+// ─── Photo Viewer Helpers ─────────────────────────────────────────────────────
+
+function downloadSinglePhoto(src: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = src;
+  a.download = filename;
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function downloadAllPhotos(
+  photos: string[],
+  type: "pickup" | "dropoff",
+  bookingId: number | null,
+  resolveUrl: (url: string) => string | undefined,
+  setLoading: (v: boolean) => void,
+  toast: (opts: { title: string; description?: string; variant?: "destructive" | "default" }) => void,
+) {
+  setLoading(true);
+  try {
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    let added = 0;
+    let failed = 0;
+    for (let i = 0; i < photos.length; i++) {
+      const src = resolveUrl(photos[i]);
+      if (!src) { failed++; continue; }
+      try {
+        const res = await fetch(src, { credentials: "include" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const rawExt = src.split(".").pop()?.split("?")[0] ?? "jpg";
+        const ext = rawExt.length <= 5 ? rawExt : "jpg";
+        zip.file(
+          `booking-${bookingId ?? "unknown"}-${type}-${String(i + 1).padStart(2, "0")}.${ext}`,
+          blob,
+        );
+        added++;
+      } catch {
+        failed++;
+      }
+    }
+    if (added === 0) {
+      toast({ title: "Download failed", description: "None of the photos could be downloaded.", variant: "destructive" });
+      return;
+    }
+    if (failed > 0) {
+      toast({ title: "Partial download", description: `${failed} photo(s) could not be included in the ZIP.`, variant: "destructive" });
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `booking-${bookingId ?? "unknown"}-${type}-photos.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    toast({ title: "ZIP error", description: msg, variant: "destructive" });
+  } finally {
+    setLoading(false);
+  }
 }
 
 // ─── Photo Append Dialog ──────────────────────────────────────────────────────
@@ -1733,6 +1827,32 @@ export default function BookingDetail({
   const [showDropoffModal, setShowDropoffModal] = useState(false);
   const [handoverForm, setHandoverForm] = useState(EMPTY_HANDOVER);
   const [savingHandover, setSavingHandover] = useState(false);
+
+  // Photo viewer state
+  const [photoViewer, setPhotoViewer] = useState<{
+    photos: string[];
+    index: number;
+    type: "pickup" | "dropoff";
+  } | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  // Keyboard navigation for photo viewer
+  useEffect(() => {
+    if (!photoViewer) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight")
+        setPhotoViewer((v) =>
+          v && v.index < v.photos.length - 1 ? { ...v, index: v.index + 1 } : v,
+        );
+      else if (e.key === "ArrowLeft")
+        setPhotoViewer((v) =>
+          v && v.index > 0 ? { ...v, index: v.index - 1 } : v,
+        );
+      else if (e.key === "Escape") setPhotoViewer(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [photoViewer]);
 
   // Photo append dialog: pre-pickup uploads (CONFIRMED, no pickup yet) and
   // post-pickup additions ("forgot to upload" flow).
@@ -3775,6 +3895,13 @@ export default function BookingDetail({
                       <HandoverDisplay
                         handover={handovers.pickup}
                         type="pickup"
+                        onPhotoClick={(idx) =>
+                          setPhotoViewer({
+                            photos: handovers.pickup!.photos,
+                            index: idx,
+                            type: "pickup",
+                          })
+                        }
                       />
                       <div className="pt-1 flex justify-end">
                         <Button
@@ -3860,6 +3987,13 @@ export default function BookingDetail({
                     <HandoverDisplay
                       handover={handovers.dropoff}
                       type="dropoff"
+                      onPhotoClick={(idx) =>
+                        setPhotoViewer({
+                          photos: handovers.dropoff!.photos,
+                          index: idx,
+                          type: "dropoff",
+                        })
+                      }
                     />
                   ) : (
                     <div className="text-center py-6 text-sm text-muted-foreground">
@@ -3945,6 +4079,107 @@ export default function BookingDetail({
           if (onPaymentChanged) onPaymentChanged();
         }}
       />
+
+      {/* Photo Viewer */}
+      <Dialog
+        open={photoViewer !== null}
+        onOpenChange={(open) => { if (!open) setPhotoViewer(null); }}
+      >
+        <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl p-0 overflow-hidden bg-black/95 border-border/20">
+          {photoViewer && (() => {
+            const src = toStorageSrc(photoViewer.photos[photoViewer.index]);
+            const total = photoViewer.photos.length;
+            const idx = photoViewer.index;
+            const label = `booking-${bookingId}-${photoViewer.type}-${String(idx + 1).padStart(2, "0")}`;
+            return (
+              <>
+                {/* Header bar */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                  <span className="text-sm text-white/70 capitalize">
+                    {photoViewer.type} photos &mdash; {idx + 1} / {total}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {src && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[11px] gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
+                        onClick={() => downloadSinglePhoto(src, label)}
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-[11px] gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
+                      disabled={downloadingAll}
+                      onClick={() =>
+                        downloadAllPhotos(
+                          photoViewer.photos,
+                          photoViewer.type,
+                          bookingId,
+                          toStorageSrc,
+                          setDownloadingAll,
+                          toast,
+                        )
+                      }
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {downloadingAll ? "Zipping…" : `Download all (${total})`}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
+                      onClick={() => setPhotoViewer(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Image area */}
+                <div className="relative flex items-center justify-center min-h-[300px] max-h-[70vh]">
+                  {src ? (
+                    <img
+                      key={src}
+                      src={src}
+                      alt={label}
+                      className="max-h-[70vh] max-w-full object-contain"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-white/40 py-16">
+                      <ImageIcon className="w-10 h-10" />
+                      <span className="text-sm">Photo unavailable</span>
+                    </div>
+                  )}
+
+                  {/* Prev / Next */}
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                      onClick={() => setPhotoViewer((v) => v ? { ...v, index: v.index - 1 } : v)}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  {idx < total - 1 && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                      onClick={() => setPhotoViewer((v) => v ? { ...v, index: v.index + 1 } : v)}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Drop Off Modal */}
       <HandoverModal

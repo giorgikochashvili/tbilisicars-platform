@@ -155,7 +155,7 @@ interface WidgetConfig {
 const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
   sections: {
     myTasks: true,
-    bookingOverview: true,
+    bookingOverview: false,
     onlineBookings: true,
     fleetLiveStatus: true,
     parkingOverview: true,
@@ -177,6 +177,7 @@ const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
 };
 
 const WIDGET_STORAGE_KEY = "crm_dashboard_widgets";
+const WIDGET_V2_MIGRATED_KEY = "crm_dashboard_widgets_v2";
 
 function loadWidgetConfig(): WidgetConfig {
   try {
@@ -187,6 +188,13 @@ function loadWidgetConfig(): WidgetConfig {
       ...DEFAULT_WIDGET_CONFIG.sections,
       ...((parsed.sections ?? {}) as Partial<Record<SectionKey, boolean>>),
     };
+    // One-time migration: force bookingOverview off for users who had it on by default.
+    // Runs exactly once per browser; after the user re-enables it via Customize it
+    // will NOT be forced off again because the migrated key persists.
+    if (localStorage.getItem(WIDGET_V2_MIGRATED_KEY) !== "1") {
+      mergedSections.bookingOverview = false;
+      try { localStorage.setItem(WIDGET_V2_MIGRATED_KEY, "1"); } catch {}
+    }
     // Restore stored order; append any newly added keys not yet in stored order
     const rawOrder = ((parsed.sectionOrder ?? []) as SectionKey[])
       .filter((k): k is SectionKey => DEFAULT_SECTION_ORDER.includes(k));

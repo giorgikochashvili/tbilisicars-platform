@@ -211,7 +211,9 @@ export default function ServicePage() {
       return next;
     });
 
-  const [vehicleSearch, setVehicleSearch] = useState("");
+  const [vehicleSearch, setVehicleSearch] = useState(
+    () => new URLSearchParams(window.location.search).get("vehicleSearch") ?? "",
+  );
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");

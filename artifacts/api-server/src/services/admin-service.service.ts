@@ -8,7 +8,7 @@ import {
   brandTable,
   adminsTable,
 } from "@workspace/db";
-import { asc, desc, eq, and, gte, lte, count } from "drizzle-orm";
+import { asc, desc, eq, and, gte, lte, count, sql } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 // ─── Service Categories ───────────────────────────────────────────────────────
@@ -129,7 +129,17 @@ export async function listServiceRecords(filters: {
     .innerJoin(brandTable, eq(vehicleModelTable.brandId, brandTable.id))
     .leftJoin(maintenanceServiceTypesTable, eq(maintenanceServicesTable.serviceTypeId, maintenanceServiceTypesTable.id))
     .where(where)
-    .orderBy(desc(maintenanceServicesTable.serviceDate), desc(maintenanceServicesTable.createdAt))
+    .orderBy(
+      sql`CASE ${maintenanceServicesTable.status}
+            WHEN 'SCHEDULED'   THEN 1
+            WHEN 'IN_PROGRESS' THEN 2
+            WHEN 'COMPLETED'   THEN 3
+            WHEN 'CANCELLED'   THEN 4
+            ELSE 5
+          END`,
+      desc(maintenanceServicesTable.serviceDate),
+      desc(maintenanceServicesTable.createdAt),
+    )
     .limit(limit)
     .offset((page - 1) * limit);
 
