@@ -1,6 +1,10 @@
 import { db, pool } from "@workspace/db";
-import { accountingEntriesTable, exchangeRatesTable } from "@workspace/db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import {
+  accountingEntriesTable,
+  exchangeRatesTable,
+  fixedExpenseTemplatesTable,
+} from "@workspace/db";
+import { eq, desc, and, gte, lte, sql, asc } from "drizzle-orm";
 import { NotFoundError } from "../lib/errors.js";
 
 // ─── Categories ────────────────────────────────────────────────────────────────
@@ -320,4 +324,211 @@ export async function deleteAccountingEntry(id: number) {
     .returning();
   if (!row) throw new NotFoundError(`Accounting entry ${id} not found`);
   return { message: "Accounting entry deleted" };
+}
+
+// ─── Fixed Expense Templates ──────────────────────────────────────────────────
+//
+// Templates are NOT accounting entries. They are definitions of recurring
+// expenses. An accounting_entries EXPENSE row is created only when staff
+// manually calls postFixedExpenseForMonth().
+
+export async function listFixedExpenseTemplates(activeOnly = false) {
+  const rows = await db
+    .select()
+    .from(fixedExpenseTemplatesTable)
+    .where(activeOnly ? eq(fixedExpenseTemplatesTable.isActive, true) : undefined)
+    .orderBy(asc(fixedExpenseTemplatesTable.name));
+  return rows;
+}
+
+export interface CreateFixedExpenseTemplateInput {
+  name: string;
+  category: string;
+  amount: number;
+  currency: "GEL" | "USD" | "EUR";
+  dueDay: number;
+  notes?: string | null;
+  createdById?: number | null;
+}
+
+export async function createFixedExpenseTemplate(
+  input: CreateFixedExpenseTemplateInput,
+) {
+  const [row] = await db
+    .insert(fixedExpenseTemplatesTable)
+    .values({
+      name: input.name.trim(),
+      category: input.category,
+      amount: String(input.amount),
+      currency: input.currency,
+      dueDay: input.dueDay,
+      notes: input.notes ?? null,
+      createdById: input.createdById ?? null,
+      isActive: true,
+    })
+    .returning();
+  return row;
+}
+
+export interface UpdateFixedExpenseTemplateInput {
+  name?: string;
+  category?: string;
+  amount?: number;
+  currency?: "GEL" | "USD" | "EUR";
+  dueDay?: number;
+  notes?: string | null;
+  isActive?: boolean;
+}
+
+export async function updateFixedExpenseTemplate(
+  id: number,
+  input: UpdateFixedExpenseTemplateInput,
+) {
+  const [existing] = await db
+    .select()
+    .from(fixedExpenseTemplatesTable)
+    .where(eq(fixedExpenseTemplatesTable.id, id))
+    .limit(1);
+  if (!existing) throw new NotFoundError(`Fixed expense template ${id} not found`);
+
+  const [row] = await db
+    .update(fixedExpenseTemplatesTable)
+    .set({
+      ...(input.name !== undefined && { name: input.name.trim() }),
+      ...(input.category !== undefined && { category: input.category }),
+      ...(input.amount !== undefined && { amount: String(input.amount) }),
+      ...(input.currency !== undefined && { currency: input.currency }),
+      ...(input.dueDay !== undefined && { dueDay: input.dueDay }),
+      ...(input.notes !== undefined && { notes: input.notes }),
+      ...(input.isActive !== undefined && { isActive: input.isActive }),
+      updatedAt: new Date(),
+    })
+    .where(eq(fixedExpenseTemplatesTable.id, id))
+    .returning();
+  return row;
+}
+
+export async function deleteFixedExpenseTemplate(id: number) {
+  const [existing] = await db
+    .select()
+    .from(fixedExpenseTemplatesTable)
+    .where(eq(fixedExpenseTemplatesTable.id, id))
+    .limit(1);
+  if (!existing) throw new NotFoundError(`Fixed expense template ${id} not found`);
+
+  // Block hard-delete if this template has already been posted to accounting.
+  // Staff should deactivate instead to preserve historical entries.
+  const [{ postCount }] = await db
+    .select({ postCount: sql<number>`count(*)::int` })
+    .from(accountingEntriesTable)
+    .where(eq(accountingEntriesTable.fixedExpenseTemplateId, id));
+
+  if (postCount > 0) {
+    throw Object.assign(
+      new Error(
+        `Template has ${postCount} posted accounting ${postCount === 1 ? "entry" : "entries"} and cannot be deleted. Deactivate it instead.`,
+      ),
+      { code: "HAS_POSTS", postCount },
+    );
+  }
+
+  await db
+    .delete(fixedExpenseTemplatesTable)
+    .where(eq(fixedExpenseTemplatesTable.id, id));
+  return { message: "Fixed expense template deleted" };
+}
+
+// ─── Post Fixed Expense For Month ─────────────────────────────────────────────
+//
+// Creates exactly one accounting_entries EXPENSE row for the given template
+// and month (YYYY-MM). Duplicate posts are blocked at both application and
+// DB level (unique partial index uq_fixed_expense_post).
+
+export async function postFixedExpenseForMonth(
+  templateId: number,
+  month: string,
+  adminId?: number,
+) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw new Error("month must be in YYYY-MM format");
+  }
+
+  const [template] = await db
+    .select()
+    .from(fixedExpenseTemplatesTable)
+    .where(eq(fixedExpenseTemplatesTable.id, templateId))
+    .limit(1);
+  if (!template) throw new NotFoundError(`Fixed expense template ${templateId} not found`);
+  if (!template.isActive) {
+    throw new Error("Cannot post an inactive fixed expense template");
+  }
+
+  // Application-layer duplicate guard (readable error before hitting the DB constraint)
+  const [{ existing }] = await db
+    .select({ existing: sql<number>`count(*)::int` })
+    .from(accountingEntriesTable)
+    .where(
+      and(
+        eq(accountingEntriesTable.fixedExpenseTemplateId, templateId),
+        eq(accountingEntriesTable.fixedExpenseMonth, month),
+      ),
+    );
+  if (existing > 0) {
+    throw Object.assign(
+      new Error(`Fixed expense "${template.name}" has already been posted for ${month}`),
+      { code: "DUPLICATE_POST" },
+    );
+  }
+
+  // Compute entryDate: use template's due_day clamped to the last day of the month
+  const [year, mon] = month.split("-").map(Number);
+  const lastDayOfMonth = new Date(year, mon, 0).getDate();
+  const day = Math.min(template.dueDay, lastDayOfMonth);
+  const entryDate = `${month}-${String(day).padStart(2, "0")}`;
+
+  const currency = template.currency as "GEL" | "USD" | "EUR";
+  const amount = parseFloat(String(template.amount));
+
+  const rate = await getExchangeRate();
+  const convertedGel = rate
+    ? convertToGel(amount, currency, rate)
+    : currency === "GEL"
+      ? amount
+      : amount;
+
+  const baseNotes = `Fixed expense: ${template.name} (${month})`;
+  const notes = template.notes
+    ? `${baseNotes} — ${template.notes}`
+    : baseNotes;
+
+  const [entry] = await db
+    .insert(accountingEntriesTable)
+    .values({
+      type: "EXPENSE",
+      category: template.category,
+      amount: String(amount),
+      currency,
+      convertedGel: convertedGel.toFixed(2),
+      entryDate,
+      notes,
+      adminId: adminId ?? null,
+      fixedExpenseTemplateId: templateId,
+      fixedExpenseMonth: month,
+    })
+    .returning();
+
+  return { entry, template };
+}
+
+// ─── Check Posted Months ──────────────────────────────────────────────────────
+//
+// Returns the set of YYYY-MM months for which a template has already been posted.
+// Used by the CRM to show "Already Posted" badges next to template rows.
+
+export async function getPostedMonthsForTemplate(templateId: number) {
+  const rows = await db
+    .select({ month: accountingEntriesTable.fixedExpenseMonth })
+    .from(accountingEntriesTable)
+    .where(eq(accountingEntriesTable.fixedExpenseTemplateId, templateId));
+  return rows.map((r) => r.month).filter(Boolean) as string[];
 }

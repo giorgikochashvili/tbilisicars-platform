@@ -8,6 +8,8 @@ import {
   timestamp,
   text,
   date,
+  boolean,
+  smallint,
   index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -58,7 +60,6 @@ export const paymentTable = pgTable(
       .notNull()
       .references(() => userTable.id, { onDelete: "restrict" }),
     method: paymentMethodEnum("method").notNull(),
-    // Payment status mirrors booking-level paymentStatus but is specific to this payment record
     status: paymentStatusEnum("status").notNull().default("UNPAID"),
     amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 3 }).notNull().default("USD"),
@@ -111,6 +112,41 @@ export const exchangeRatesTable = pgTable("exchange_rates", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ─── Fixed Expense Templates ──────────────────────────────────────────────────
+//
+// Templates represent recurring planned expenses (rent, salary, subscriptions…).
+// A template itself is NOT an accounting entry. An accounting_entries EXPENSE row
+// is created only when staff manually posts the template for a specific month.
+
+export const fixedExpenseTemplatesTable = pgTable(
+  "fixed_expense_templates",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 150 }).notNull(),
+    category: varchar("category", { length: 100 }).notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: accountingCurrencyEnum("currency").notNull().default("GEL"),
+    dueDay: smallint("due_day").notNull().default(1),
+    isActive: boolean("is_active").notNull().default(true),
+    notes: text("notes"),
+    createdById: integer("created_by_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_fixed_expense_templates_is_active").on(t.isActive),
+  ],
+);
+
+export const insertFixedExpenseTemplateSchema = createInsertSchema(fixedExpenseTemplatesTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type FixedExpenseTemplate = typeof fixedExpenseTemplatesTable.$inferSelect;
+export type InsertFixedExpenseTemplate = z.infer<typeof insertFixedExpenseTemplateSchema>;
+
 // Operational accounting entries (income / expense ledger)
 export const accountingEntriesTable = pgTable(
   "accounting_entries",
@@ -127,6 +163,13 @@ export const accountingEntriesTable = pgTable(
     relatedVehicleId: integer("related_vehicle_id"),
     relatedServiceId: integer("related_service_id"),
     adminId: integer("admin_id"),
+    // Fixed expense template back-links — null for all non-template-sourced entries.
+    // The DB-level unique partial index (uq_fixed_expense_post) preventing duplicate
+    // monthly posts is defined in migration 0011 (Drizzle partial unique indexes
+    // are not representable in all schema versions, so the constraint lives in SQL).
+    fixedExpenseTemplateId: integer("fixed_expense_template_id")
+      .references(() => fixedExpenseTemplatesTable.id, { onDelete: "set null" }),
+    fixedExpenseMonth: varchar("fixed_expense_month", { length: 7 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -135,6 +178,7 @@ export const accountingEntriesTable = pgTable(
     index("idx_accounting_entries_currency").on(t.currency),
     index("idx_accounting_entries_entry_date").on(t.entryDate),
     index("idx_accounting_entries_category").on(t.category),
+    index("idx_accounting_entries_template_id").on(t.fixedExpenseTemplateId),
   ],
 );
 

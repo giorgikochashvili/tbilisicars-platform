@@ -14,7 +14,14 @@ import {
   seedDefaultExchangeRate,
   INCOME_CATEGORIES,
   EXPENSE_CATEGORIES,
+  listFixedExpenseTemplates,
+  createFixedExpenseTemplate,
+  updateFixedExpenseTemplate,
+  deleteFixedExpenseTemplate,
+  postFixedExpenseForMonth,
+  getPostedMonthsForTemplate,
 } from "../services/admin-accounting.service";
+import { NotFoundError } from "../lib/errors.js";
 
 const router = Router();
 
@@ -53,6 +60,271 @@ router.get("/admin/accounting/summary", requireAdmin, requirePermission("canView
   const summary = await getAccountingSummary();
   res.json(summary);
 });
+
+// ─── Fixed Expense Templates ──────────────────────────────────────────────────
+//
+// Routes are defined BEFORE /admin/accounting/:id to prevent Express matching
+// "fixed-expenses" as an id parameter.
+
+// GET /admin/accounting/fixed-expenses — list templates
+router.get(
+  "/admin/accounting/fixed-expenses",
+  requireAdmin,
+  requirePermission("canViewAccounting"),
+  async (req, res) => {
+    const activeOnly = req.query.activeOnly === "true";
+    const templates = await listFixedExpenseTemplates(activeOnly);
+    res.json(templates);
+  },
+);
+
+// POST /admin/accounting/fixed-expenses — create template
+router.post(
+  "/admin/accounting/fixed-expenses",
+  requireAdmin,
+  requirePermission("canManageAccounting"),
+  async (req, res) => {
+    const body = req.body as {
+      name?: string;
+      category?: string;
+      amount?: number;
+      currency?: string;
+      dueDay?: number;
+      notes?: string;
+    };
+
+    const errors: string[] = [];
+    if (!body.name?.trim()) errors.push("name is required");
+    if (!body.category) errors.push("category is required");
+    if (body.category && !(EXPENSE_CATEGORIES as readonly string[]).includes(body.category)) {
+      errors.push(`category must be one of: ${EXPENSE_CATEGORIES.join(", ")}`);
+    }
+    if (!body.amount || isNaN(Number(body.amount)) || Number(body.amount) <= 0) {
+      errors.push("amount must be a positive number");
+    }
+    if (!body.currency || !["GEL", "USD", "EUR"].includes(body.currency)) {
+      errors.push("currency must be GEL, USD, or EUR");
+    }
+    if (body.dueDay !== undefined) {
+      const d = Number(body.dueDay);
+      if (!Number.isInteger(d) || d < 1 || d > 28) errors.push("dueDay must be an integer between 1 and 28");
+    }
+    if (errors.length > 0) {
+      res.status(422).json({ errors });
+      return;
+    }
+
+    const adminId = req.session.adminId ?? undefined;
+    const template = await createFixedExpenseTemplate({
+      name: body.name!.trim(),
+      category: body.category!,
+      amount: Number(body.amount),
+      currency: body.currency as "GEL" | "USD" | "EUR",
+      dueDay: body.dueDay ?? 1,
+      notes: body.notes ?? null,
+      createdById: adminId ?? null,
+    });
+
+    logAudit({
+      actorId: adminId ?? null,
+      entityType: "fixed_expense_template",
+      entityId: template.id,
+      entityRef: `FET-${String(template.id).padStart(5, "0")}`,
+      action: "fixed_expense_template.created",
+      summary: `Admin created fixed expense template: ${template.name} — ${template.currency} ${Number(template.amount).toFixed(2)}`,
+      afterData: {
+        name: template.name,
+        category: template.category,
+        amount: template.amount,
+        currency: template.currency,
+        dueDay: template.dueDay,
+      },
+    });
+
+    res.status(201).json(template);
+  },
+);
+
+// PATCH /admin/accounting/fixed-expenses/:id — update template
+router.patch(
+  "/admin/accounting/fixed-expenses/:id",
+  requireAdmin,
+  requirePermission("canManageAccounting"),
+  async (req, res) => {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid template ID" }); return; }
+
+    const body = req.body as {
+      name?: string;
+      category?: string;
+      amount?: number;
+      currency?: string;
+      dueDay?: number;
+      notes?: string | null;
+      isActive?: boolean;
+    };
+
+    const errors: string[] = [];
+    if (body.category !== undefined && !(EXPENSE_CATEGORIES as readonly string[]).includes(body.category)) {
+      errors.push(`category must be one of: ${EXPENSE_CATEGORIES.join(", ")}`);
+    }
+    if (body.amount !== undefined && (isNaN(Number(body.amount)) || Number(body.amount) <= 0)) {
+      errors.push("amount must be a positive number");
+    }
+    if (body.currency !== undefined && !["GEL", "USD", "EUR"].includes(body.currency)) {
+      errors.push("currency must be GEL, USD, or EUR");
+    }
+    if (body.dueDay !== undefined) {
+      const d = Number(body.dueDay);
+      if (!Number.isInteger(d) || d < 1 || d > 28) errors.push("dueDay must be between 1 and 28");
+    }
+    if (errors.length > 0) { res.status(422).json({ errors }); return; }
+
+    try {
+      const adminId = req.session.adminId ?? undefined;
+      const template = await updateFixedExpenseTemplate(id, {
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.category !== undefined && { category: body.category }),
+        ...(body.amount !== undefined && { amount: Number(body.amount) }),
+        ...(body.currency !== undefined && { currency: body.currency as "GEL" | "USD" | "EUR" }),
+        ...(body.dueDay !== undefined && { dueDay: Number(body.dueDay) }),
+        ...(body.notes !== undefined && { notes: body.notes }),
+        ...(body.isActive !== undefined && { isActive: body.isActive }),
+      });
+
+      const action =
+        body.isActive === false ? "fixed_expense_template.deactivated"
+        : body.isActive === true ? "fixed_expense_template.reactivated"
+        : "fixed_expense_template.updated";
+
+      logAudit({
+        actorId: adminId ?? null,
+        entityType: "fixed_expense_template",
+        entityId: id,
+        entityRef: `FET-${String(id).padStart(5, "0")}`,
+        action,
+        summary: `Admin ${action.split(".")[1]} fixed expense template FET-${String(id).padStart(5, "0")}: ${template.name}`,
+        afterData: body,
+      });
+
+      res.json(template);
+    } catch (err: any) {
+      if (err instanceof NotFoundError) { res.status(404).json({ error: err.message }); return; }
+      throw err;
+    }
+  },
+);
+
+// DELETE /admin/accounting/fixed-expenses/:id — delete template (blocked if has posts)
+router.delete(
+  "/admin/accounting/fixed-expenses/:id",
+  requireAdmin,
+  requirePermission("canManageAccounting"),
+  async (req, res) => {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid template ID" }); return; }
+
+    try {
+      const adminId = req.session.adminId ?? undefined;
+      const result = await deleteFixedExpenseTemplate(id);
+
+      logAudit({
+        actorId: adminId ?? null,
+        entityType: "fixed_expense_template",
+        entityId: id,
+        entityRef: `FET-${String(id).padStart(5, "0")}`,
+        action: "fixed_expense_template.deleted",
+        summary: `Admin deleted fixed expense template FET-${String(id).padStart(5, "0")}`,
+        beforeData: { id },
+      });
+
+      res.json(result);
+    } catch (err: any) {
+      if (err instanceof NotFoundError) { res.status(404).json({ error: err.message }); return; }
+      if (err.code === "HAS_POSTS") { res.status(422).json({ error: err.message }); return; }
+      throw err;
+    }
+  },
+);
+
+// POST /admin/accounting/fixed-expenses/:id/post — post template for a month
+router.post(
+  "/admin/accounting/fixed-expenses/:id/post",
+  requireAdmin,
+  requirePermission("canManageAccounting"),
+  async (req, res) => {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid template ID" }); return; }
+
+    const { month } = req.body as { month?: string };
+    if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      res.status(422).json({ error: "month is required and must be in YYYY-MM format" });
+      return;
+    }
+
+    try {
+      const adminId = req.session.adminId ?? undefined;
+      const { entry, template } = await postFixedExpenseForMonth(id, month, adminId);
+
+      // Log the template post action
+      logAudit({
+        actorId: adminId ?? null,
+        entityType: "fixed_expense_template",
+        entityId: id,
+        entityRef: `FET-${String(id).padStart(5, "0")}`,
+        action: "fixed_expense_template.posted",
+        summary: `Admin posted fixed expense "${template.name}" for ${month} — ${template.currency} ${Number(template.amount).toFixed(2)} → ACC-${String(entry.id).padStart(6, "0")}`,
+        afterData: { month, entryId: entry.id, amount: template.amount, currency: template.currency },
+      });
+
+      // Log the resulting accounting entry creation
+      logAudit({
+        actorId: adminId ?? null,
+        entityType: "accounting_entry",
+        entityId: entry.id,
+        entityRef: `ACC-${String(entry.id).padStart(6, "0")}`,
+        action: "accounting_entry.created",
+        summary: `Admin created EXPENSE accounting entry via fixed expense template "${template.name}" for ${month}: ${entry.currency} ${Number(entry.amount).toFixed(2)}`,
+        afterData: {
+          type: entry.type,
+          category: entry.category,
+          amount: entry.amount,
+          currency: entry.currency,
+          entryDate: entry.entryDate,
+          fixedExpenseTemplateId: id,
+          fixedExpenseMonth: month,
+        },
+      });
+
+      res.status(201).json({ entry, template });
+    } catch (err: any) {
+      if (err instanceof NotFoundError) { res.status(404).json({ error: err.message }); return; }
+      if (err.code === "DUPLICATE_POST" || err.message?.includes("already been posted") || err.message?.includes("inactive")) {
+        res.status(422).json({ error: err.message });
+        return;
+      }
+      throw err;
+    }
+  },
+);
+
+// GET /admin/accounting/fixed-expenses/:id/posted-months — months already posted
+router.get(
+  "/admin/accounting/fixed-expenses/:id/posted-months",
+  requireAdmin,
+  requirePermission("canViewAccounting"),
+  async (req, res) => {
+    const id = parseInt(String(req.params.id), 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid template ID" }); return; }
+    try {
+      const months = await getPostedMonthsForTemplate(id);
+      res.json({ templateId: id, postedMonths: months });
+    } catch (err: any) {
+      if (err instanceof NotFoundError) { res.status(404).json({ error: err.message }); return; }
+      throw err;
+    }
+  },
+);
 
 // ─── List ──────────────────────────────────────────────────────────────────────
 
