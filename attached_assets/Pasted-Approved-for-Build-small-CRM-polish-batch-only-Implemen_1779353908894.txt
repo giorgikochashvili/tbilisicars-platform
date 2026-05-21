@@ -1,0 +1,137 @@
+Approved for Build — small CRM polish batch only.
+
+Implement only the approved two items from the plan:
+
+1. Booking Detail → Add Payment form deposit fields
+2. Accounting → Move/surface Fixed Monthly Expenses higher in the page and compact its display
+
+Strict scope:
+- Do NOT change public website.
+- Do NOT change public booking flow.
+- Do NOT change pricing logic.
+- Do NOT change SEO/noindex/sitemap.
+- Do NOT create DB migrations.
+- Do NOT run migrations.
+- Do NOT deploy.
+- Do NOT perform Git Sync.
+- Do NOT change payment/accounting calculation logic.
+- Do NOT change Accounting Add Entry categories in this batch.
+- Do NOT implement receipt/check/image upload in this batch.
+- Do NOT implement Debtors in this batch.
+- Do NOT redesign the whole Accounting page.
+
+Allowed files:
+1. artifacts/crm/src/pages/BookingDetail.tsx
+2. artifacts/crm/src/pages/Accounting.tsx
+3. artifacts/crm/src/pages/FixedExpenses.tsx
+
+No backend files unless you discover a tiny type/import issue that is absolutely required. Prefer no backend changes.
+
+Item 1 — Deposit fields in Add Payment form
+
+Goal:
+Inside Booking Detail → Payment History → Add Payment form, add simple deposit metadata fields:
+- Deposit Amount
+- Deposit Currency
+
+Do not add:
+- “Deposit Information” header
+- explanatory/helper text
+- any warning text
+
+Keep Notes exactly as it is.
+
+Business rules:
+- Deposit is NOT a payment.
+- Deposit must NOT create booking_payment rows.
+- Deposit must NOT create accounting_entries rows.
+- Deposit must NOT count toward Total Paid.
+- Deposit must NOT reduce Remaining Balance.
+- Deposit must NOT affect paymentStatus.
+- Deposit source of truth is only booking.deposit + booking.depositCurrency.
+
+Implementation:
+- Extend the Add Payment form state with depositAmount and depositCurrency.
+- When Add Payment opens, initialize depositAmount/depositCurrency from the current booking:
+  - depositAmount = booking.deposit ?? ""
+  - depositCurrency = booking.depositCurrency ?? "NONE"
+- Show Deposit Amount and Deposit Currency as a normal row in the existing form grid, preferably near Notes / bottom of form before Save/Cancel.
+- Deposit Currency options should match existing Booking Overview behavior:
+  - NONE
+  - GEL
+  - USD
+  - EUR
+
+Save behavior:
+When staff clicks Save Payment:
+1. Save the payment exactly as before using the existing payment POST.
+2. If depositAmount/depositCurrency changed compared to current booking values, then call PATCH /admin/bookings/:id with only:
+   - deposit
+   - depositCurrency
+3. Then refresh payments and booking as already done.
+4. If payment POST succeeds but deposit PATCH fails, do not rollback the payment. Show a separate destructive toast for deposit update failure.
+5. If deposit fields are unchanged, do not send the second PATCH.
+
+Important:
+- Do not include deposit fields in the payment POST body.
+- Do not modify payment summary calculation logic.
+- Do not modify getBookingPaymentSummary or backend payment services.
+- Do not create any accounting entry from deposit.
+- Payment Summary must show the updated Deposit Amount + currency after save.
+- Booking Overview must show the same saved deposit values.
+
+Item 2 — Fixed Monthly Expenses placement/design
+
+Goal:
+Fixed Monthly Expenses is currently too low below the ledger. Surface it higher in Accounting.
+
+Implementation:
+- Move <FixedExpenses /> from the bottom of Accounting.tsx to between the Summary Cards and Filters section.
+- Do not wrap the page in tabs.
+- Do not move or rewrite existing Accounting summary/filter/ledger/add-entry/rates code.
+- Keep existing Add Entry and Rates buttons unchanged.
+- Keep existing manual Accounting Add Entry categories unchanged.
+
+FixedExpenses.tsx polish:
+- Make the card/list compact enough to work near the top of the Accounting page.
+- Show:
+  - name
+  - original amount + currency
+  - GEL equivalent if it can be safely calculated using existing exchange-rate data/API already available
+  - due day/date
+  - active/inactive status
+  - edit action
+  - post for month action
+- If GEL equivalent cannot be safely calculated without backend changes, do not add backend changes. Keep original amount/currency visible and do not invent fake conversion.
+- Keep all existing backend routes and mutation logic unchanged.
+- Keep duplicate-post protection unchanged.
+- Posting fixed expense must still refresh ledger/summary as before.
+
+Out of scope:
+- Receipt/check/image upload
+- Debtors module
+- Reports/Analytics
+- Permissions redesign
+- Accounting Add Entry category changes
+- Any DB migration
+- Any backend calculation changes
+
+Terminology reminder:
+Future debtors module should be called “Debtors”.
+Do not use “Partner Receivables” as the feature name.
+
+After implementation:
+1. Show exact changed files.
+2. Confirm only the allowed CRM files changed.
+3. Confirm no backend files changed.
+4. Confirm no DB migration was created.
+5. Confirm no website files changed.
+6. Confirm no public booking/pricing files changed.
+7. Confirm deposit is saved only to booking.deposit / booking.depositCurrency.
+8. Confirm deposit is not sent to payment POST.
+9. Confirm deposit does not affect Total Paid / Remaining / paymentStatus.
+10. Confirm Payment Summary and Booking Overview refresh after Save Payment.
+11. Confirm Fixed Monthly Expenses moved above Filters/Ledger.
+12. Run CRM typecheck/build check if available.
+13. Commit with message:
+Polish deposit fields and fixed expenses placement

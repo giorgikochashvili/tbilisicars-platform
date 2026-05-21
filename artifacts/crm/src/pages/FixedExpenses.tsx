@@ -76,6 +76,15 @@ function formatAmount(amount: string | number, currency: string) {
 
 type Currency = "GEL" | "USD" | "EUR";
 
+interface RateData {
+  usdToGel: string;
+  eurToGel: string;
+}
+
+interface Props {
+  rates?: RateData | null;
+}
+
 interface TemplateForm {
   name: string;
   category: string;
@@ -98,7 +107,7 @@ const EMPTY_FORM: TemplateForm = {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function FixedExpenses() {
+export default function FixedExpenses({ rates }: Props) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [formData, setFormData] = useState<TemplateForm>(EMPTY_FORM);
@@ -316,6 +325,23 @@ export default function FixedExpenses() {
     postMutation.mutate({ id: postTarget.id, month: postMonth });
   };
 
+  // ── GEL equivalent helper ─────────────────────────────────────────────────
+
+  function gelEquiv(amount: string | number, currency: string): string | null {
+    if (currency === "GEL") return null;
+    if (!rates) return null;
+    const amt = parseFloat(String(amount));
+    if (isNaN(amt)) return null;
+    const rate =
+      currency === "USD"
+        ? parseFloat(rates.usdToGel)
+        : currency === "EUR"
+        ? parseFloat(rates.eurToGel)
+        : NaN;
+    if (isNaN(rate)) return null;
+    return `₾${(amt * rate).toFixed(2)}`;
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const rows: any[] = templates ?? [];
@@ -323,19 +349,13 @@ export default function FixedExpenses() {
   return (
     <>
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
-        <CardHeader className="py-4 border-b border-border/40 bg-background/50">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <CalendarClock className="w-4 h-4 text-primary" /> Fixed Monthly Expenses
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                Define recurring expenses once. Post them manually each month to record them in
-                the accounting ledger.
-              </p>
-            </div>
-            <Button size="sm" onClick={openCreate} className="shadow-sm shrink-0">
-              <Plus className="w-4 h-4 mr-2" /> Add Template
+        <CardHeader className="py-3 px-4 border-b border-border/40 bg-background/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <CardTitle className="text-sm font-display flex items-center gap-2">
+              <CalendarClock className="w-4 h-4 text-primary" /> Fixed Monthly Expenses
+            </CardTitle>
+            <Button size="sm" onClick={openCreate} className="shadow-sm shrink-0 h-7 text-xs">
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Template
             </Button>
           </div>
         </CardHeader>
@@ -344,22 +364,20 @@ export default function FixedExpenses() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow className="border-border/40 hover:bg-transparent">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Due Day</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-xs py-2">Name</TableHead>
+                  <TableHead className="text-xs py-2 text-right">Amount</TableHead>
+                  <TableHead className="text-xs py-2 text-center">Due Day</TableHead>
+                  <TableHead className="text-xs py-2 text-center">Status</TableHead>
+                  <TableHead className="text-xs py-2 text-right w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <TableCell key={j} className="py-2">
+                          <Skeleton className="h-3.5 w-full" />
                         </TableCell>
                       ))}
                     </TableRow>
@@ -367,90 +385,95 @@ export default function FixedExpenses() {
                 ) : rows.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
-                      className="h-24 text-center text-sm text-muted-foreground"
+                      colSpan={5}
+                      className="h-16 text-center text-xs text-muted-foreground"
                     >
                       No fixed expense templates yet. Click &ldquo;Add Template&rdquo; to create one.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((t: any) => (
-                    <TableRow
-                      key={t.id}
-                      className="border-border/20 hover:bg-muted/30 transition-colors"
-                    >
-                      <TableCell className="text-sm font-medium">{t.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {t.category}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm text-red-500">
-                        &minus;{formatAmount(t.amount, t.currency)}
-                        {t.currency !== "GEL" && (
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            ({t.currency})
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center text-sm text-muted-foreground">
-                        {t.dueDay ?? 1}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
-                        {t.notes || "—"}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {t.isActive ? (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                          >
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem
-                              onClick={() => openPostModal(t)}
-                              disabled={!t.isActive}
+                  rows.map((t: any) => {
+                    const gel = gelEquiv(t.amount, t.currency);
+                    return (
+                      <TableRow
+                        key={t.id}
+                        className="border-border/20 hover:bg-muted/30 transition-colors"
+                      >
+                        <TableCell className="py-2">
+                          <p className="text-xs font-medium leading-none">{t.name}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{t.category}</p>
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          <p className="text-xs font-mono text-red-500 leading-none">
+                            &minus;{formatAmount(t.amount, t.currency)}
+                          </p>
+                          {gel && (
+                            <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                              {gel}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2 text-center text-xs text-muted-foreground">
+                          {t.dueDay ?? 1}
+                        </TableCell>
+                        <TableCell className="py-2 text-center">
+                          {t.isActive ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                             >
-                              <CalendarClock className="w-4 h-4 mr-2" /> Post for month
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openEdit(t)}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleActive(t)}>
-                              {t.isActive ? (
-                                <>
-                                  <PowerOff className="w-4 h-4 mr-2" /> Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <Power className="w-4 h-4 mr-2" /> Reactivate
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(t)}
-                              className="text-destructive focus:text-destructive"
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 text-muted-foreground"
                             >
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                              Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem
+                                onClick={() => openPostModal(t)}
+                                disabled={!t.isActive}
+                              >
+                                <CalendarClock className="w-4 h-4 mr-2" /> Post for month
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEdit(t)}>
+                                <Edit className="w-4 h-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleToggleActive(t)}>
+                                {t.isActive ? (
+                                  <>
+                                    <PowerOff className="w-4 h-4 mr-2" /> Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <Power className="w-4 h-4 mr-2" /> Reactivate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(t)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

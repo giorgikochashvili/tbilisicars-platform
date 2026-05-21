@@ -1,0 +1,122 @@
+We are continuing the live production TBILISICARS CRM&WEB project after the Accounting upgrade deployment.
+
+Important:
+- PLAN MODE ONLY.
+- Do not modify files.
+- Do not build.
+- Do not run migrations.
+- Do not deploy.
+- Do not touch public website.
+- Do not touch pricing/public booking flow.
+- Do not touch SEO/noindex/sitemap tasks.
+- Be surgical and conservative.
+
+Current production status:
+- Accounting upgrade phases 1, 2A, 3, 2B, 4A, 5A, 5B were deployed.
+- Production migrations 0008, 0009, 0010, 0011 were run successfully.
+- API and CRM builds completed.
+- PM2 and nginx are running.
+- We are now collecting small UX polish/fix items after live visual inspection.
+
+Plan this small CRM polish batch only:
+
+Item 1 — Booking Detail Add Payment modal deposit fields
+
+Current issue:
+In Booking Detail → Payment History → Add Payment form, staff can register a payment, but deposit amount/currency is not conveniently editable in the same form. Deposit is booking metadata and should be shown/saved consistently.
+
+Business rule:
+Deposit is NOT a payment.
+Deposit must NOT create booking_payment rows.
+Deposit must NOT create accounting_entries rows.
+Deposit must NOT count toward Total Paid.
+Deposit must NOT reduce Remaining Balance.
+Deposit must NOT affect paymentStatus.
+
+Required UX:
+Inside the existing Add Payment form/modal, add simple fields:
+- Deposit Amount
+- Deposit Currency
+
+Do NOT add extra explanatory text.
+Do NOT add a separate “Deposit Information” header.
+Do NOT remove or change Notes.
+Keep the form visually clean and consistent with the existing design.
+
+Expected behavior:
+When staff clicks Save Payment:
+1. The payment should save exactly as before.
+2. The booking.deposit and booking.depositCurrency metadata should also be updated if the deposit fields changed.
+3. Payment Summary should immediately show the correct Deposit Amount + currency.
+4. Booking Overview deposit fields should show the same saved value.
+5. Booking Overview should still allow editing deposit amount/currency.
+6. Deposit remains metadata-only and does not affect calculations.
+
+Important sync rule:
+There must be only one deposit source of truth:
+- booking.deposit
+- booking.depositCurrency
+
+Add Payment form and Booking Overview must read/write the same booking-level fields.
+
+Design preference:
+Fields should look natural in the current form, for example near Amount/Currency or near Notes.
+No extra warning/helper text.
+No big section header.
+Just simple Deposit Amount and Deposit Currency fields.
+
+Item 2 — Accounting Fixed Monthly Expenses placement/design
+
+Current issue:
+Fixed Monthly Expenses exists but is too low / hidden below the ledger. It should feel like a core Accounting panel, visible near the top.
+
+Required UX:
+Move or surface Fixed Monthly Expenses higher in the Accounting module, near the top action/summary area, close to Add Entry / summary cards.
+
+It should be a compact, clear card/panel showing fixed monthly expenses with:
+- name
+- original amount + currency, e.g. DigitalOcean $120
+- GEL equivalent
+- due day/date
+- active/inactive status
+- edit action
+- post for month action
+
+Keep existing backend logic unchanged.
+Do not change fixed expense posting calculations.
+Do not change duplicate-post backend logic.
+Do not redesign the whole Accounting page.
+Do not modify manual Accounting Add Entry categories in this batch.
+
+Out of scope for this batch:
+- Receipt/check/image upload for accounting entries
+- Debtors module
+- Reports/Analytics
+- Permissions redesign
+- Accounting Add Entry category restructuring
+- Any DB migration unless absolutely required
+- Any public website change
+- Any booking/payment calculation change
+
+Future planned modules, not for this batch:
+1. Accounting entry receipt/check/image upload
+2. Debtors module
+
+Terminology:
+Use “Debtors” for the future debtors module.
+Do not use “Partner Receivables” as the feature name.
+
+Plan response required:
+1. Exact files likely to edit.
+2. Whether backend changes are needed for deposit save from Add Payment modal.
+3. Whether any DB migration is needed.
+4. Exact UI placement recommendation for Deposit fields.
+5. Exact UI placement recommendation for Fixed Monthly Expenses.
+6. How Payment Summary refresh will work after Save Payment.
+7. How Booking Overview deposit sync will work.
+8. Confirmation that payment/accounting totals remain unchanged.
+9. Risk assessment.
+10. Test checklist.
+11. Confirmation no files will be modified until Build is approved.
+
+PLAN MODE ONLY.

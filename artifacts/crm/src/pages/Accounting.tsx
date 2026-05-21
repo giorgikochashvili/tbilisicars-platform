@@ -410,6 +410,9 @@ export default function AccountingPage() {
         </Card>
       </div>
 
+      {/* Fixed Monthly Expenses */}
+      <FixedExpenses rates={rateData} />
+
       {/* Filters */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm p-4">
         <div className="flex flex-col gap-3">
@@ -886,8 +889,6 @@ export default function AccountingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Fixed Monthly Expenses */}
-      <FixedExpenses />
     </div>
   );
 }

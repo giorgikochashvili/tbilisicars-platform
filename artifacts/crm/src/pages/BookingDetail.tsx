@@ -413,6 +413,8 @@ const EMPTY_FORM = {
   paymentDate: new Date().toISOString().slice(0, 10),
   method: "",
   notes: "",
+  depositAmount: "",
+  depositCurrency: "NONE",
 };
 
 // ─── Handover Form ────────────────────────────────────────────────────────────
@@ -2090,6 +2092,27 @@ export default function BookingDetail({
         title: "Payment Added",
         description: `${PAYMENT_TYPE_LABELS[form.paymentType] ?? form.paymentType} of ${currencySymbol(form.currency)}${form.amount} recorded.`,
       });
+      const depositChanged =
+        (form.depositAmount || "") !== (booking?.deposit ?? "") ||
+        form.depositCurrency !== (booking?.depositCurrency ?? "NONE");
+      if (depositChanged) {
+        try {
+          await apiFetch(`/admin/bookings/${bookingId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              deposit: form.depositAmount || null,
+              depositCurrency:
+                form.depositCurrency === "NONE" ? null : form.depositCurrency,
+            }),
+          });
+        } catch (depositErr: any) {
+          toast({
+            title: "Deposit update failed",
+            description: depositErr.message,
+            variant: "destructive",
+          });
+        }
+      }
       setForm({ ...EMPTY_FORM, currency: booking?.currency ?? "GEL" });
       setShowAddForm(false);
       fetchPayments();
@@ -3357,7 +3380,19 @@ export default function BookingDetail({
                 action={
                   <Button
                     size="sm"
-                    onClick={() => setShowAddForm((v) => !v)}
+                    onClick={() => {
+                      if (!showAddForm) {
+                        setForm({
+                          ...EMPTY_FORM,
+                          currency: booking?.currency ?? "GEL",
+                          depositAmount: booking?.deposit ?? "",
+                          depositCurrency: booking?.depositCurrency ?? "NONE",
+                        });
+                        setShowAddForm(true);
+                      } else {
+                        setShowAddForm(false);
+                      }
+                    }}
                     className="h-6 text-xs gap-1"
                   >
                     <Plus className="w-3 h-3" /> Add
@@ -3491,6 +3526,39 @@ export default function BookingDetail({
                             }
                             className="h-8 text-xs"
                           />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs">Deposit Amount</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={form.depositAmount}
+                            onChange={(e) =>
+                              setForm({ ...form, depositAmount: e.target.value })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs">Deposit Currency</Label>
+                          <Select
+                            value={form.depositCurrency}
+                            onValueChange={(v) =>
+                              setForm({ ...form, depositCurrency: v })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="NONE">None</SelectItem>
+                              <SelectItem value="GEL">GEL (₾)</SelectItem>
+                              <SelectItem value="USD">USD ($)</SelectItem>
+                              <SelectItem value="EUR">EUR (€)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end pt-1">
