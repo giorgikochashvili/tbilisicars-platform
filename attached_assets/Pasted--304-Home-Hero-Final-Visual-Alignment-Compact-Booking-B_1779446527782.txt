@@ -1,0 +1,323 @@
+#304 - Home Hero Final Visual Alignment + Compact Booking Bar Revision
+
+Use the attached screenshots strictly as visual reference for layout, spacing, hierarchy, and styling.
+Use the already-approved hero background asset currently in the project.
+Do NOT replace the hero image asset.
+Do NOT use any attached screenshot as a website asset.
+
+Goal
+Refine the Home page hero so it matches the approved premium direction more closely.
+The current version is close, but still needs better visual alignment, more natural hero proportions, a more compact booking bar, and more accurate placement of the benefits strip, booking bar, trust cards, and Explore Georgia section.
+
+Critical visual goals
+1. The hero image must feel natural and cinematic — not vertically stretched.
+2. The top of the church must NOT visually enter or collide with the Header area.
+3. Reduce the visible hero image vertical depth by approximately another 5% so the composition sits more naturally.
+4. The booking form must sit lower and wider, and must not awkwardly cut into / overlap the SUV image.
+5. The booking bar must become shorter in height while keeping its current good width.
+6. The benefits row must sit directly above the booking form, close to it, visually connected to it.
+7. “Return to same location” checkbox must remain inside the Pickup Location section.
+8. Change only the visible checkbox text from “Return to same location” to “Drop off different location”.
+9. Do NOT change the checkbox logic, state, behavior, meaning, handler, or booking flow.
+10. Trustpilot / Google cards must be centered below the booking form, with similar glass/depth treatment as the booking bar.
+11. “Explore Georgia with Tbilisicars” must be centered below the trust cards.
+12. A short red divider line must appear below the “Explore Georgia with Tbilisicars” heading.
+13. The 4 location cards must appear directly below that divider, using the attached screenshot as the style reference and keeping the exact text.
+
+Out of scope
+- No booking logic changes
+- No validation changes
+- No routing/navigation changes
+- No checkbox logic changes
+- No state/handler/ref changes unless strictly required for visual layout only
+- No CRM / API / DB / migration changes
+- No pricing / availability / payment / accounting changes
+- No Google Ads changes
+- No SEO schema / JSON-LD / Helmet metadata changes
+- Do NOT re-enable chatbot
+- Do NOT replace the hero image asset
+- Do NOT use attached screenshots as web assets
+- Do NOT add fake review counts
+- Do NOT add aggregate rating schema
+- Prefer changing only artifacts/website/src/pages/Home.tsx
+- Only touch another website file if absolutely necessary for a tiny responsive fix
+
+Detailed required changes
+
+1) Hero image proportions / depth
+The hero background still feels too stretched vertically / too deep from top to bottom.
+Reduce the visible top-to-bottom depth of the hero by approximately another 5%.
+
+Important:
+- Do not replace the asset
+- Do not distort the image
+- Do not stretch the image
+- Do not zoom in awkwardly
+- Adjust only crop / object-position / container proportions / hero height / spacing
+- Preserve natural aspect ratio with object-cover
+- The final result should make the scenery feel less vertically stretched and more realistic
+- The final hero should feel wide, cinematic, and premium
+
+2) Church / Header visual collision
+The top of the church currently visually enters or collides with the Header area.
+Fix the hero composition so the church sits fully below the Header and does not push into the header zone.
+
+Requirements:
+- The church must remain clearly visible
+- The top of the church must not visually enter the Header zone
+- The SUV must remain clearly visible on the right
+- The road must remain visible
+- Mountains/scenery must remain visible
+- The final composition must still feel cinematic and premium
+
+Possible safe adjustments:
+- object-position
+- hero top spacing
+- image vertical positioning
+- overlay / crop
+- min-height / max-height
+- content spacing
+
+Do NOT change the Header itself unless absolutely necessary for a tiny visual fix.
+Do NOT change the image asset.
+
+3) Hero content hierarchy
+The hero area should contain:
+- Headline
+- Subheadline
+- “10+ years of car rental experience”
+- Benefits row
+- Booking form
+
+The benefits row should NOT sit too high near the text block.
+It should sit directly above the booking form with a small gap only, so it feels attached to the booking area.
+
+4) Benefits row placement
+Move/position the benefits row directly above the booking form.
+
+Benefits row exact order:
+- Full Insurance
+- Unlimited Mileage
+- Free Additional Drivers
+- Roadside Assistance
+- 24/7 Customer Support
+
+Requirements:
+- Keep small icons
+- On desktop, keep them in one clean horizontal line if space allows
+- Align them visually with the booking form width/content area
+- Keep them close to the top edge of the booking bar
+- It should feel like a support/benefit strip attached to the booking bar
+- It should not feel like a separate hero paragraph
+- On mobile it may wrap cleanly above the stacked booking form
+- Keep spacing premium and compact
+
+5) Booking form layout and compact height
+The booking bar needs to be wider, lower, cleaner, and shorter in height.
+The current width is good; keep the width.
+Reduce the height by removing the separate label row above each input.
+
+Current style:
+- Separate label above field, for example: PICKUP LOCATION
+- Then input underneath: Select location...
+
+Desired style:
+- No separate label above the field
+- The field meaning should be inside the clickable/select input itself
+- This should reduce the vertical height of the whole booking bar
+
+Exact visible field text:
+- Pickup location field should show: Pickup Location
+- Pickup date/time field should show: Pickup Date & Time
+- Return date/time field should show: Return Date & Time
+
+Requirements:
+- Keep the booking bar visually full-width within the content container
+- Keep the current good width
+- Reduce only the height/depth
+- It must sit lower than now
+- It must not feel cramped
+- It must not overlap/cut into the car awkwardly
+- All field text must fit cleanly
+- Search Vehicles button must remain on one line
+- The booking bar should feel premium, glassy, and integrated with the hero
+- Keep subtle dividers between sections if they look premium
+- Keep icons inside fields
+- Do NOT change field logic, only visible text/layout/classes
+
+Desktop structure:
+- Pickup Location
+- Pickup Date & Time
+- Return Date & Time
+- Search Vehicles button
+
+6) Checkbox placement and text
+The checkbox must remain inside the Pickup Location section.
+
+Very important:
+Change only the visible checkbox text from:
+Return to same location
+
+To exactly:
+Drop off different location
+
+Do NOT change:
+- checkbox boolean logic
+- sameLocation state meaning
+- setSameLocation behavior
+- checked/unchecked behavior
+- booking behavior
+- route/search behavior
+- dropoff location business logic
+
+This is ONLY a visible label text change.
+Do not invert logic.
+Do not rename state.
+Do not change the handler.
+Do not change the booking flow.
+
+If “Return to same location” / sameLocation logic currently works, leave it working exactly the same.
+Only the displayed text should become:
+Drop off different location
+
+If same location is unchecked and Return Location appears:
+- Return Location should still appear as an additional row below the main bar
+- That extra row must remain clean and aligned
+- Logic must remain unchanged
+
+7) Dropdown behavior
+When the Pickup Location dropdown opens, the list must appear properly outside the field/container and must not be clipped.
+
+Requirements:
+- Keep portal-based behavior if already implemented
+- Dropdown should appear as a proper floating panel
+- It must not look trapped inside the field
+- It must not be clipped by the booking bar
+- z-index/layering must work correctly
+- It must be usable on desktop and mobile
+- Do not change location selection logic, groups, values, or onChange behavior
+
+8) Trustpilot / Google cards
+Trustpilot and Google cards should sit directly below the booking form, centered horizontally.
+
+Requirements:
+- Center them under the booking bar
+- Keep them compact but premium
+- Use slight transparency / glass depth similar to the booking form
+- They should not feel heavy or fully opaque
+- They should not sit too far from the booking area
+- Real values only:
+  - Trustpilot: 4.6 / 5 · Excellent
+  - Google: 4.7 / 5 · Excellent
+- No fake review counts
+- No aggregate rating schema
+- No widgets/scripts
+- Make them visually balanced and elegant
+
+9) Explore Georgia section placement
+Below the trust cards, place the heading:
+Explore Georgia with Tbilisicars
+
+Requirements:
+- Center the heading horizontally
+- It must sit between the trust cards and the location cards
+- It must be clearly separated from the hero area but still feel visually connected
+- The heading should not be left-aligned
+- The heading should not feel too large or too far from the cards
+
+Directly under the heading:
+Add a short red divider line, centered, matching the attached reference style.
+This divider should sit between the heading and the location cards.
+
+Divider requirements:
+- short horizontal red line
+- centered
+- subtle/premium, not too thick
+- visually similar to the attached reference
+- small spacing above and below
+
+10) Location cards
+Below the red divider, render the 4 location cards in one row on desktop, using the attached screenshots as style reference.
+
+Keep these exact titles and subtitles:
+
+1. Tbilisi Airport
+   Easy pickup & fast start
+
+2. Kutaisi Airport
+   Your gateway to the west
+
+3. Batumi Airport
+   Explore the Black Sea coast
+
+4. City Delivery
+   We deliver to your location
+
+Routes:
+- Tbilisi Airport → /car-rental-tbilisi
+- Kutaisi Airport → /car-rental-kutaisi
+- Batumi Airport → /car-rental-batumi
+- City Delivery → /locations
+
+Design requirements:
+- Use premium dark-glass card styling
+- Keep icon container on the left
+- Use red accent icon
+- Match the attached reference as closely as possible
+- Cards should feel elegant and balanced
+- Proper spacing between cards
+- Compact height
+- Clean white title
+- Muted subtitle
+- Strong but subtle hover state
+- On mobile they should wrap/stack cleanly without overflow
+- Do not use fake images
+- Do not use the reference screenshot as an asset
+- Do not invent new location claims
+
+11) Mobile responsiveness is mandatory
+This is a mandatory acceptance criterion for Android and iOS.
+Check and fix for:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- No horizontal overflow
+- No clipped dropdowns
+- Header/menu fits cleanly
+- Hero text readable
+- Hero image crop natural, not awkward
+- Church does not collide visually with header
+- Booking form stacks cleanly
+- Pickup checkbox readable and correctly positioned inside Pickup Location section
+- Date/time fields readable and tappable
+- Search button fully visible and tappable
+- Trust cards wrap cleanly
+- Explore Georgia heading centered
+- Red divider visible and centered
+- Location cards wrap/stack cleanly
+- No overlapping sections
+- Android and iOS friendly spacing and tap targets
+
+12) Build verification
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+1. Exact files changed
+2. What changed in hero proportions / image depth / church-header alignment
+3. What changed in booking bar placement, width, and height
+4. Confirmation that separate top labels were removed and field meaning is now inside the fields
+5. Confirmation that checkbox remains inside Pickup Location
+6. Confirmation that checkbox visible text changed exactly to “Drop off different location”
+7. Confirmation that checkbox logic/state/behavior was NOT changed
+8. Confirmation dropdown is not clipped
+9. What changed in the benefits row placement
+10. What changed in the trust cards
+11. What changed in Explore Georgia heading + divider + location cards
+12. Mobile widths checked
+13. Build result
+14. Confirmation that no booking logic / CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state was changed

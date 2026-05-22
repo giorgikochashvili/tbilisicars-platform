@@ -1,0 +1,160 @@
+Approved for Build, but update the checkbox UX correctly before implementation.
+
+Important correction:
+Do NOT only change the visible checkbox text.
+
+The old UI was:
+- Checkbox label: Return to same location
+- checked = sameLocation true
+- unchecked = sameLocation false
+- when unchecked, Return Location field appears
+
+The new UI must be:
+- Checkbox label: Drop-off in different location
+- default unchecked
+- unchecked means sameLocation true
+- checked means sameLocation false
+- when checked, Return Location field appears
+
+In other words:
+- The visible checkbox should represent “different drop-off location”
+- The internal existing sameLocation state may remain, but the UI checked value must be mapped safely:
+  checked={!sameLocation}
+  onChange={(e) => setSameLocation(!e.target.checked)}
+
+Do NOT change booking/search/business behavior beyond this UI mapping.
+Do NOT rename backend fields.
+Do NOT change API payload structure.
+Do NOT change route/search logic.
+Do NOT change validation except what is already naturally required when return location becomes visible.
+Keep the same behavior as before:
+- Previously, when user unchecked “Return to same location”, the Return Location field appeared.
+- Now, when user checks “Drop-off in different location”, the Return Location field must appear.
+
+Label text must be exactly:
+Drop-off in different location
+
+Also continue with the rest of v4 plan:
+
+1. Scope
+- Change only artifacts/website/src/pages/Home.tsx if possible.
+- Do NOT change Header/Footer unless absolutely necessary for a tiny responsive visual fix.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking validation/business logic beyond the safe UI checkbox mapping described above.
+- Do NOT change routing/search behavior.
+- Do NOT change pickup/dropoff/date/time/location payload semantics.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT replace the hero image asset.
+- Do NOT use screenshots as website assets.
+- Do NOT add fake review counts or fake claims.
+
+2. Hero
+- Reduce hero height as planned:
+  min-h-[480px] sm:min-h-[560px] → min-h-[460px] sm:min-h-[530px]
+- Keep objectPosition at 68% center unless a tiny adjustment is required.
+- Preserve natural aspect ratio.
+- No image distortion.
+- Add the top fade gradient so the church does not visually enter/collide with the Header area.
+- Do not change Header itself unless absolutely necessary.
+
+3. Benefits row
+- Move benefits row directly above the booking form.
+- It should feel attached to the booking bar, not separated near the hero text.
+- Keep exact order:
+  Full Insurance
+  Unlimited Mileage
+  Free Additional Drivers
+  Roadside Assistance
+  24/7 Customer Support
+
+4. Booking bar compact height
+- Remove separate top labels above each field.
+- Put the field meaning inside the clickable/select fields.
+- Exact visible field text:
+  Pickup Location
+  Pickup Date & Time
+  Return Date & Time
+  Return Location, when visible
+- Keep the current good width.
+- Reduce height/depth only.
+- Keep Search Vehicles on one line.
+- Keep premium dark-glass style.
+- Do NOT change field logic.
+
+5. Checkbox placement and behavior
+- Keep checkbox inside Pickup Location section.
+- Label text exactly:
+  Drop-off in different location
+- Default visual state must be unchecked.
+- When checked, Return Location field appears.
+- When unchecked, return/drop-off location remains same as pickup.
+- Existing sameLocation internal state can remain, but UI mapping must be:
+  checked={!sameLocation}
+  onChange={(e) => setSameLocation(!e.target.checked)}
+- Confirm that behavior matches the old flow:
+  old unchecked “Return to same location” = new checked “Drop-off in different location”.
+
+6. Dropdown
+- Keep portal-based dropdown behavior.
+- Ensure dropdown is not clipped.
+- Do not change location selection logic/groups/values/onChange.
+
+7. Explore Georgia section
+- Center heading:
+  Explore Georgia with Tbilisicars
+- Add centered short red divider below heading.
+- Keep exact card text:
+  Tbilisi Airport — Easy pickup & fast start
+  Kutaisi Airport — Your gateway to the west
+  Batumi Airport — Explore the Black Sea coast
+  City Delivery — We deliver to your location
+- Keep routes unchanged.
+- No fake images.
+
+8. Mobile responsiveness is mandatory
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Acceptance:
+- no horizontal overflow
+- no clipped dropdowns
+- hero text readable
+- church does not collide with header
+- booking form stacks cleanly
+- checkbox readable inside Pickup Location
+- default checkbox unchecked
+- checking “Drop-off in different location” shows Return Location field
+- date/time fields readable and tappable
+- Search Vehicles visible/tappable
+- Trust cards wrap cleanly
+- Explore Georgia heading centered
+- red divider centered
+- location cards wrap/stack cleanly
+- no overlapping sections
+
+9. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- hero height/fade changes
+- booking bar compact height changes
+- confirmation labels moved inside fields
+- confirmation checkbox label is exactly “Drop-off in different location”
+- confirmation checkbox default visual state is unchecked
+- confirmation checking it shows Return Location field
+- confirmation existing booking payload/search semantics are preserved
+- dropdown clipping confirmation
+- benefits row placement confirmation
+- Explore Georgia heading/divider/cards confirmation
+- mobile widths checked
+- build result
+- confirmation no CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state changed

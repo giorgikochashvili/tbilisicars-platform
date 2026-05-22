@@ -411,7 +411,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden min-h-[480px] sm:min-h-[560px]"
+        className="relative overflow-hidden min-h-[460px] sm:min-h-[530px]"
         style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
@@ -437,6 +437,14 @@ export default function Home() {
           className="absolute inset-0 pointer-events-none sm:hidden"
           style={{ background: "rgba(5,16,30,0.72)" }}
         />
+        {/* Top fade — prevents church from visually colliding with the header */}
+        <div
+          className="absolute top-0 left-0 right-0 pointer-events-none z-[1]"
+          style={{
+            height: "90px",
+            background: "linear-gradient(to bottom, hsl(211,55%,8%) 0%, transparent 100%)",
+          }}
+        />
         {/* Bottom fade into continuation section */}
         <div
           className="absolute bottom-0 left-0 right-0 pointer-events-none"
@@ -446,11 +454,11 @@ export default function Home() {
           }}
         />
 
-        {/* Content — flex column so form pins to bottom via mt-auto */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[480px] sm:min-h-[560px]">
+        {/* Content — flex column; benefits + form pin to bottom */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[460px] sm:min-h-[530px]">
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
-          <div className="max-w-xl mb-4">
+          <div className="max-w-xl mb-0">
             <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 leading-[1.1] text-white">
               Rent a Car in Georgia
             </h1>
@@ -463,8 +471,11 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Benefits strip — visually aligned with top of booking bar */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-4">
+          {/* Spacer — pushes benefits + form to bottom, lets hero scenery show */}
+          <div className="flex-1" />
+
+          {/* Benefits strip — directly above the booking bar */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-2">
             {[
               { label: "Full Insurance", Icon: Shield },
               { label: "Unlimited Mileage", Icon: Infinity },
@@ -482,9 +493,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Spacer — pushes booking form to bottom, lets hero image show through */}
-          <div className="flex-1" />
-
           {/* Booking Widget — full width of max-w-5xl content area */}
           <div className="pb-6 sm:pb-8">
             <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left">
@@ -493,25 +501,22 @@ export default function Home() {
               <div className="flex flex-col lg:flex-row lg:items-stretch divide-y lg:divide-y-0 lg:divide-x divide-white/10">
 
                 {/* Pickup Location */}
-                <div className="flex-1 min-w-0 p-4 lg:p-3">
-                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Pickup Location
-                  </label>
+                <div className="flex-1 min-w-0 p-3 lg:p-2.5">
                   <LocationSelect
                     value={pickupLocationId}
                     onChange={handlePickupChange}
                     options={visibleLocations}
-                    placeholder="Select location…"
+                    placeholder="Pickup Location"
                   />
-                  {/* "Return to same location" lives here — moved from action column */}
+                  {/* "Drop-off in different location" — unchecked=same, checked=different */}
                   <label className="flex items-center gap-1.5 mt-2 cursor-pointer w-fit">
                     <input
                       type="checkbox"
-                      checked={sameLocation}
-                      onChange={(e) => setSameLocation(e.target.checked)}
+                      checked={!sameLocation}
+                      onChange={(e) => setSameLocation(!e.target.checked)}
                       className="w-4 h-4 rounded border-border accent-primary shrink-0"
                     />
-                    <span className="text-xs text-muted-foreground leading-tight">Return to same location</span>
+                    <span className="text-xs text-muted-foreground leading-tight">Drop-off in different location</span>
                   </label>
                   {pickupIsDowntown && (
                     <label className="flex items-center gap-2 mt-1.5 cursor-pointer w-fit">
@@ -527,35 +532,29 @@ export default function Home() {
                 </div>
 
                 {/* Pickup Date & Time */}
-                <div className="flex-1 min-w-0 p-4 lg:p-3">
-                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Pickup Date &amp; Time
-                  </label>
+                <div className="flex-1 min-w-0 p-3 lg:p-2.5">
                   <DateTimePicker
                     value={pickupDatetime}
                     min={minDt}
                     onChange={setPickupDatetime}
-                    placeholder="Select date & time"
+                    placeholder="Pickup Date & Time"
                     onDone={() => dropoffPickerRef.current?.openPicker()}
                   />
                 </div>
 
                 {/* Return Date & Time */}
-                <div className="flex-1 min-w-0 p-4 lg:p-3">
-                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Return Date &amp; Time
-                  </label>
+                <div className="flex-1 min-w-0 p-3 lg:p-2.5">
                   <DateTimePicker
                     ref={dropoffPickerRef}
                     value={dropoffDatetime}
                     min={pickupDatetime || minDt}
                     onChange={setDropoffDatetime}
-                    placeholder="Select date & time"
+                    placeholder="Return Date & Time"
                   />
                 </div>
 
                 {/* Action column: Search Vehicles only */}
-                <div className="shrink-0 lg:w-52 p-4 lg:p-3 flex flex-col justify-center">
+                <div className="shrink-0 lg:w-52 p-3 lg:p-2.5 flex flex-col justify-center">
                   <SearchButton
                     onValidate={validateSearch}
                     onSearch={navigateToBooking}
@@ -566,15 +565,12 @@ export default function Home() {
 
               {/* Return Location — expanded row when sameLocation=false */}
               {!sameLocation && (
-                <div className="p-4 lg:px-3 lg:py-3 border-t border-white/10">
-                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Return Location
-                  </label>
+                <div className="p-3 lg:px-2.5 lg:py-2.5 border-t border-white/10">
                   <LocationSelect
                     value={dropoffLocationId}
                     onChange={handleDropoffChange}
                     options={visibleLocations}
-                    placeholder="Select location…"
+                    placeholder="Return Location"
                   />
                   {dropoffIsDowntown && (
                     <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
@@ -591,7 +587,7 @@ export default function Home() {
               )}
 
               {error && (
-                <p className="px-4 pb-3 text-sm text-destructive">{error}</p>
+                <p className="px-3 pb-3 text-sm text-destructive">{error}</p>
               )}
             </div>
           </div>
@@ -626,10 +622,13 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Explore Georgia heading */}
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">
+          {/* Explore Georgia heading — centred */}
+          <h2 className="text-xl sm:text-2xl font-bold text-white text-center mb-3">
             Explore Georgia with Tbilisicars
           </h2>
+
+          {/* Short red divider */}
+          <div className="w-14 h-[2px] bg-primary rounded-full mx-auto mb-5" />
 
           {/* Location / service cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -637,7 +636,7 @@ export default function Home() {
               <Link
                 key={card.href + card.label}
                 href={card.href}
-                className="group flex items-start gap-3 bg-white/[0.07] border border-white/10 rounded-xl px-4 py-3.5 hover:bg-white/[0.10] hover:border-primary/25 transition-colors backdrop-blur-sm"
+                className="group flex items-start gap-3 bg-white/[0.06] border border-white/[0.08] rounded-xl px-4 py-4 hover:bg-white/[0.11] hover:border-primary/40 hover:shadow-[0_0_20px_rgba(0,0,0,0.4)] transition-all duration-200 backdrop-blur-sm"
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
                   <MapPin className="w-4 h-4 text-primary group-hover:text-primary/80 transition-colors" />
