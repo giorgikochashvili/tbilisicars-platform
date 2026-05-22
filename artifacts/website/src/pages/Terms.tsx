@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 
 export const TERMS_SECTIONS = [
   {
@@ -123,15 +123,67 @@ export const TERMS_SECTIONS = [
   },
 ];
 
-function TermsSection({ title, content }: { title: string; content: string[] }) {
-  const [open, setOpen] = useState(true);
+// Anchor IDs — separate from TERMS_SECTIONS to keep its shape unchanged (Booking.tsx compatibility)
+const SECTION_IDS: Record<string, string> = {
+  "1. Service Coverage": "service-coverage",
+  "2. What's Included in the Price": "whats-included",
+  "3. Driver Age & License Requirements": "driver-requirements",
+  "4. Reservation Options": "reservation-options",
+  "5. Emergencies & Technical Issues": "emergencies",
+  "6. Booking Changes or Cancellations": "cancellation",
+  "7. Payment Policy": "payment-policy",
+  "8. Vehicle Pick-Up Process": "pickup-return",
+  "9. Restricted Regions": "restricted-areas",
+  "10. Fuel Policy": "fuel-policy",
+  "11. Traffic Fines": "traffic-fines",
+  "12. Vehicle Condition & Damage": "vehicle-damage",
+  "13. Smoking & Vehicle Cleanliness": "smoking",
+  "14. Loss of Keys or Documents": "loss-of-keys",
+  "15. Company Rights": "company-rights",
+};
+
+const SUMMARY_ITEMS = [
+  { text: "No prepayment — payment is made at vehicle pickup" },
+  { text: "Unlimited mileage within Georgia" },
+  { text: "Additional drivers included — no extra charge" },
+  { text: "Driver age requirement: 21–70, valid licence for min. 2 years" },
+  { text: "24/7 customer support and roadside assistance" },
+  { text: "Free modification or cancellation with 24h notice" },
+];
+
+const TOC_LINKS = [
+  { label: "What's Included", id: "whats-included" },
+  { label: "Driver Requirements", id: "driver-requirements" },
+  { label: "Reservation Options", id: "reservation-options" },
+  { label: "Payment Policy", id: "payment-policy" },
+  { label: "Pickup & Return", id: "pickup-return" },
+  { label: "Restricted Areas", id: "restricted-areas" },
+  { label: "Fuel Policy", id: "fuel-policy" },
+  { label: "Traffic Fines", id: "traffic-fines" },
+  { label: "Vehicle Damage", id: "vehicle-damage" },
+  { label: "Cancellation", id: "cancellation" },
+];
+
+function TermsSection({
+  title,
+  content,
+  id,
+  defaultOpen,
+}: {
+  title: string;
+  content: string[];
+  id?: string;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div id={id} className="border border-border rounded-xl overflow-hidden scroll-mt-20">
       <button
         className="w-full flex items-center justify-between px-6 py-4 text-left bg-card hover:bg-secondary/20 transition-colors"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
       >
-        <h2 className="text-base font-semibold text-white">{title}</h2>
+        <h2 className="text-base font-semibold text-white pr-4">{title}</h2>
         {open
           ? <ChevronUp className="w-4 h-4 text-primary shrink-0" />
           : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -172,13 +224,28 @@ export default function Terms() {
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
+
+        {/* Header */}
+        <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-primary/15 border border-primary/25 rounded-full px-4 py-1.5 text-sm text-primary mb-4">
             Legal
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Rental Terms &amp; Conditions</h1>
           <p className="text-sm text-muted-foreground mb-1">Tbilisicars</p>
           <p className="text-sm text-muted-foreground">Last Updated: 08.03.2026</p>
+        </div>
+
+        {/* Key Rental Conditions summary */}
+        <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-6">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wide mb-4">Key Rental Conditions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {SUMMARY_ITEMS.map((item) => (
+              <div key={item.text} className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm text-white/90 leading-snug">{item.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Intro */}
@@ -188,10 +255,32 @@ export default function Terms() {
           </p>
         </div>
 
+        {/* Table of Contents */}
+        <div className="bg-card border border-border rounded-xl p-5 mb-8">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Navigation</p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {TOC_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className="text-sm text-primary hover:text-white hover:underline transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
         {/* Sections */}
         <div className="space-y-3 mb-8">
           {TERMS_SECTIONS.map((s) => (
-            <TermsSection key={s.title} title={s.title} content={s.content} />
+            <TermsSection
+              key={s.title}
+              title={s.title}
+              content={s.content}
+              id={SECTION_IDS[s.title]}
+              defaultOpen={s.title === "2. What's Included in the Price"}
+            />
           ))}
         </div>
 

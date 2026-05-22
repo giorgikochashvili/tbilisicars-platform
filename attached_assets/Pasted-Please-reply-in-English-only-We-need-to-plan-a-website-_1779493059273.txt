@@ -1,0 +1,153 @@
+Please reply in English only.
+
+We need to plan a website-only Terms page UX improvement for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current Terms page code and return a safe implementation plan in English.
+
+Goal:
+Improve the public /terms page so rental conditions are easier to read, navigate and understand, especially on mobile, while preserving the legal/business meaning of the existing terms.
+
+Business goal:
+The Terms page should increase customer trust and reduce uncertainty before booking. It should help customers quickly find key rental conditions such as insurance, deposit, mileage, driver requirements, additional drivers, pickup/return, fines, damage, restricted areas and cancellation/no-show rules.
+
+Strict scope:
+- Website only.
+- Terms page only unless a tiny shared component/style update is absolutely necessary.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT change Fleet page.
+- Do NOT change Locations page.
+- Do NOT change Header/Footer.
+- Do NOT re-enable chatbot.
+- Do NOT add new routes.
+- Do NOT add new packages.
+- Do NOT add unsupported claims.
+- Do NOT rewrite legal meaning without explicit approval.
+
+Likely file:
+- artifacts/website/src/pages/Terms.tsx
+
+Main direction:
+This should be primarily a UX/readability improvement, not a legal rewrite.
+
+Please inspect the current Terms content and structure first.
+
+Planned improvements to consider:
+
+1. Quick summary block near the top
+Add a short “Key Rental Conditions” summary block if safe.
+
+Possible summary items:
+- No prepayment required for standard online reservations
+- Insurance package included in displayed website prices
+- Low deposit, usually from 100 EUR
+- Unlimited mileage
+- Free additional drivers if rental requirements are met
+- Driver age requirement: 21–70
+- 24/7 working hours for pickup, return and assistance
+- Restricted areas and road conditions may apply
+
+Important:
+Only include summary items that are consistent with existing Terms or clearly aligned with current approved website copy.
+If any item is not currently reflected in Terms, mention it as a risk in the plan before changing.
+
+2. Table of contents / quick navigation
+Add a clean top navigation section if appropriate.
+
+Possible anchors:
+- Driver Requirements
+- Insurance & Deposit
+- Payment Conditions
+- Pickup & Return
+- Fuel Policy
+- Unlimited Mileage
+- Additional Drivers
+- Fines & Damage
+- Restricted Areas
+- Cancellation / No Show
+
+Use existing section names where possible.
+Do not invent sections if they are not present, unless clearly safe as a presentation grouping.
+
+3. Accordion / collapsible sections
+Convert long Terms sections into collapsible accordion-style sections if safe.
+
+Requirements:
+- First section may be open by default.
+- Other sections collapsed by default.
+- User can expand/collapse easily.
+- Mobile friendly.
+- Good tap targets.
+- Keep semantic/readable HTML.
+- Do not hide content in a way that breaks accessibility.
+- Do not remove existing content.
+
+4. Content consistency check
+Do NOT rewrite legal content broadly.
+However, inspect whether current Terms conflict with recently approved website copy:
+- Free Additional Drivers: age 21–70
+- Insurance package wording
+- deposit usually/from 100 EUR
+- Unlimited mileage
+- 24/7 Working Hours
+- Hotel/address handover by arrangement
+
+If inconsistency exists:
+- Report it in the plan.
+- Recommend a safe wording adjustment.
+- Do NOT change legal meaning automatically until Build approval.
+
+5. Design requirements:
+- Keep dark premium Tbilisicars website style.
+- Summary block should look clean and trustworthy.
+- Accordion sections should be polished, readable and not bulky.
+- Avoid heavy animations.
+- Keep page fast.
+- Mobile responsiveness is mandatory for Android and iOS.
+
+6. SEO / conversion alignment:
+- This is mainly a trust/conversion page, not a keyword-stuffed SEO page.
+- Keep text natural and useful.
+- Make important terms easy to find before booking.
+- Do not add spammy keywords.
+
+7. Mobile requirements:
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- summary readable
+- table of contents usable by touch
+- accordion buttons tappable
+- sections expand/collapse cleanly
+- no overlapping text
+- CTA/links, if any, remain tappable
+
+8. Build check to include later:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan, in English:
+1. Exact files you plan to change.
+2. Current Terms page structure summary.
+3. Whether a quick summary block is safe and what it would contain.
+4. Proposed table of contents / anchors.
+5. Proposed accordion/collapsible structure.
+6. Any content inconsistencies found with current approved website copy.
+7. Whether legal wording needs any safe adjustment or should be left unchanged.
+8. Mobile responsiveness plan.
+9. Risks or limitations.
+10. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Locations/Header/Footer changes.
+11. Do NOT edit files until Build approval.

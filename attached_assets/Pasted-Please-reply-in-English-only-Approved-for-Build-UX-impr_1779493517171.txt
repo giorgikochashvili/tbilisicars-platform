@@ -1,0 +1,110 @@
+Please reply in English only.
+
+Approved for Build — UX improvement only.
+
+Implement #307 Terms Page UX Improvement according to the plan, with these final clarifications:
+
+1. Scope
+- Change only:
+  artifacts/website/src/pages/Terms.tsx
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT change Fleet page.
+- Do NOT change Locations page.
+- Do NOT change Header/Footer.
+- Do NOT re-enable chatbot.
+- Do NOT add new routes.
+- Do NOT add new packages.
+- Do NOT change legal meaning.
+
+2. Accordion behavior
+- Fix TermsSection so sections are not all open by default.
+- Only “What’s Included in the Price” should be open by default.
+- Other sections should be collapsed by default.
+- User can expand/collapse sections cleanly.
+
+3. Section IDs / anchors
+- Add stable ids for sections so Table of Contents links work.
+- Anchor navigation should use native href="#id" behavior.
+- Do not add JS scroll logic unless already necessary.
+
+4. Key Rental Conditions summary
+Add the summary block using only items verified in current Terms:
+- No prepayment — payment is made at vehicle pickup
+- Unlimited mileage within Georgia
+- Additional drivers included — no extra charge
+- Driver age requirement: 21–70, valid licence for min. 2 years
+- 24/7 customer support and roadside assistance
+- Free modification or cancellation with 24h notice
+
+Do NOT include deposit amount in the summary.
+Do NOT include insurance package wording in the summary.
+Reason: deposit and insurance are not clearly confirmed in current Terms text yet.
+
+5. Table of Contents
+Add compact ToC links:
+- What’s Included
+- Driver Requirements
+- Reservation Options
+- Payment Policy
+- Pickup & Return
+- Restricted Areas
+- Fuel Policy
+- Traffic Fines
+- Vehicle Damage
+- Cancellation
+
+6. Legal content
+Do NOT rewrite Section 8 or any other Terms legal content in this build.
+Do NOT remove or soften the “inside arrivals hall / 5 minutes / 2 km / 30 meters” claims yet.
+Just flag them again in the final report as a recommended follow-up task.
+We will handle Terms Section 8 wording safety cleanup separately after approval.
+
+7. Type safety
+TERMS_SECTIONS is also imported in Booking.tsx.
+If adding id fields requires a type/interface adjustment, do it safely without changing Booking page behavior.
+Do not change Booking page UI or legal flow.
+
+8. Design
+- Keep dark premium style.
+- Summary block should be compact and trustworthy.
+- ToC should be clean and mobile friendly.
+- Accordion buttons should be full-width and comfortable to tap.
+- No heavy animations.
+
+9. Mobile responsiveness
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- no horizontal overflow
+- summary readable
+- ToC usable
+- accordion buttons tappable
+- sections expand/collapse cleanly
+- no overlapping text
+
+10. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in English:
+- exact files changed
+- accordion default behavior confirmation
+- summary block items confirmation
+- ToC anchors confirmation
+- confirmation legal wording was NOT changed
+- follow-up warning about Section 8 operational claims
+- mobile widths checked
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Locations/Header/Footer changes
