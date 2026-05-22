@@ -1,0 +1,134 @@
+Home hero image replacement — final image fit only
+
+I am attaching/uploading the new final Home hero background image.
+
+Use this new image as the Home hero background and fit it perfectly into the existing approved Home layout.
+
+Important:
+This is image replacement + fit adjustment only.
+Do NOT redesign the Home page again.
+Do NOT change booking form structure.
+Do NOT change booking logic.
+Do NOT change Header/Footer.
+Do NOT change Trustpilot/Google cards.
+Do NOT change Explore Georgia cards.
+Do NOT change chatbot state.
+
+Image usage:
+- Replace the current hero background image with the new uploaded image.
+- Prefer replacing the existing file at:
+  artifacts/website/public/images/home-hero-georgia-road.png
+  so Home.tsx needs minimal/no path changes.
+- If the new uploaded file has a different extension, use the safest clear path and update Home.tsx reference accordingly.
+- Do NOT use any screenshot/reference image as a web asset.
+- Use only the new final hero background image.
+
+Critical fit requirements:
+- Do NOT stretch the image.
+- Do NOT distort the image.
+- Do NOT squeeze it vertically or horizontally.
+- Preserve the natural aspect ratio.
+- Use object-cover / background-cover correctly.
+- Adjust only:
+  - object-position
+  - hero min-height/max-height
+  - overlay strength
+  - crop/position classes
+  - spacing around the hero
+  if needed to fit the new image naturally.
+
+Visual acceptance:
+- The image must look natural and realistic.
+- The car must not be awkwardly covered by the booking form.
+- The booking form should sit cleanly over a safe lower area of the image.
+- The church/monastery must not collide with the Header.
+- The road, car, mountains and scenery should remain visible.
+- The left side must remain readable for the headline text.
+- The overlay should protect readability but must not make the left side overly dead/black.
+- The final hero should feel cinematic, premium and car-rental focused.
+
+Keep existing approved Home content:
+- Headline:
+  Rent a Car in Georgia
+- Subheadline:
+  Tbilisi, Kutaisi & Batumi airports · No prepayment · Transparent prices
+- Keep:
+  10+ years of car rental experience
+- Keep benefits row directly above booking form:
+  Full Insurance
+  Unlimited Mileage
+  Free Additional Drivers
+  Roadside Assistance
+  24/7 Customer Support
+- Keep compact booking bar.
+- Keep Drop-off in different location checkbox behavior exactly as currently implemented:
+  default unchecked; checking it shows Return Location.
+- Keep Trustpilot/Google cards below booking form.
+- Keep Explore Georgia heading, red divider and location cards.
+
+Strict scope:
+- Prefer changing only:
+  artifacts/website/public/images/home-hero-georgia-road.png
+  artifacts/website/src/pages/Home.tsx only if fit/path/classes need adjustment
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking/search/business logic.
+- Do NOT change validation.
+- Do NOT change routing.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT add fake review counts or fake claims.
+
+Desktop checks:
+Check at:
+- 1280px
+- 1440px
+- 1536px
+
+Desktop acceptance:
+- no stretching/distortion
+- car naturally positioned
+- booking form does not cover the car badly
+- church does not enter Header area
+- headline readable
+- image still visually rich, not overly dark on the left
+- booking form and benefits remain aligned
+
+Mobile responsiveness is mandatory:
+Check:
+- 360px Android
+- 390px iPhone
+- 412px Android
+- 430px iPhone Pro Max
+- 768px tablet
+
+Mobile acceptance:
+- no horizontal overflow
+- hero image crop natural
+- main subject not awkwardly cut
+- headline/subheadline readable
+- booking form stacks cleanly
+- Drop-off checkbox readable and tappable
+- dropdown not clipped
+- Search Vehicles button visible and tappable
+- Trustpilot/Google cards clean
+- Explore Georgia section clean
+- location cards wrap/stack cleanly
+- no overlapping elements
+
+Build:
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+1. Exact files changed
+2. New image file path used
+3. Whether Home.tsx path/classes were changed
+4. What object-position / hero height / overlay adjustments were made
+5. Desktop preview summary
+6. Mobile widths checked
+7. Build result
+8. Confirmation no booking logic / CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state changed
