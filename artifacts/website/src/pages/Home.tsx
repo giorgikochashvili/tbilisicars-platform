@@ -392,7 +392,7 @@ export default function Home() {
         {/* Mobile: uniform dark overlay */}
         <div
           className="absolute inset-0 pointer-events-none sm:hidden"
-          style={{ background: "rgba(5,16,30,0.82)" }}
+          style={{ background: "rgba(5,16,30,0.72)" }}
         />
         {/* Bottom fade into page */}
         <div

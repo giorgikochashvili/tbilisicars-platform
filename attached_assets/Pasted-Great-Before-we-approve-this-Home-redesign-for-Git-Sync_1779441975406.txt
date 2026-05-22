@@ -1,0 +1,66 @@
+Great. Before we approve this Home redesign for Git Sync / production deployment, we need one mandatory final verification and correction pass for mobile responsiveness.
+
+This is still part of the same Home page build.
+
+Important:
+Mobile responsiveness on both Android and iOS is mandatory, not optional polish.
+
+Please inspect the new Home page layout at mobile widths and fix only visual/responsive issues if found.
+
+Test widths:
+- 360px Android small
+- 390px iPhone
+- 412px Android common
+- 430px iPhone Pro Max style
+- also check tablet around 768px
+
+Check specifically:
+1. No horizontal overflow / no sideways scroll.
+2. Header fits cleanly on mobile.
+3. Mobile menu still works.
+4. Hero image crop looks good:
+   - text readable
+   - car/background not awkwardly cropped
+   - dark overlay protects readability
+5. “Rent a Car in Georgia” headline fits without ugly wrapping.
+6. Subheadline remains readable.
+7. “10+ years of car rental experience” line fits well.
+8. Benefits row wraps cleanly and does not overcrowd.
+9. Booking form is fully usable:
+   - pickup/dropoff/location fields readable
+   - date/time controls usable
+   - checkboxes readable
+   - Search Vehicles button visible and tappable
+10. Trustpilot/Google cards fit cleanly below booking form.
+11. Location cards stack/wrap cleanly.
+12. Footer remains readable and not visually broken.
+13. No text overlaps the hero image or other sections.
+14. Tap targets are comfortable for mobile users.
+15. Android and iOS-style viewport sizes both look clean.
+
+Strict scope:
+- Website only.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT redesign desktop again unless a small responsive class also improves mobile safely.
+- Only adjust responsive Tailwind/CSS/classes/layout spacing if needed.
+
+If mobile already looks good:
+- Report that no changes were needed.
+- Mention tested widths.
+
+If changes are needed:
+- Make only minimal responsive visual fixes.
+- Then run:
+  BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- which mobile widths were checked
+- whether any responsive issues were found
+- exact files changed if you made fixes
+- build result
+- confirmation no business logic or non-website files changed
