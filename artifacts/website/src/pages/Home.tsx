@@ -459,14 +459,30 @@ export default function Home() {
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
           <div className="max-w-xl mb-0">
-            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 leading-[1.1] text-white">
+            <h1 className="text-3xl sm:text-[2.7rem] font-bold tracking-tight mb-2 leading-[1.1] text-white">
               Rent a Car in Georgia
             </h1>
-            <p className="text-base sm:text-lg text-slate-200 mb-3 leading-snug">
-              Tbilisi, Kutaisi &amp; Batumi airports · No prepayment · Transparent prices
+            <p className="text-sm sm:text-base text-slate-300 mb-2 leading-snug">
+              Tbilisi · Kutaisi · Batumi Airport &amp; City Services
             </p>
-            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <Award className="w-4 h-4 shrink-0" />
+            {/* Top trust cluster — Full Insurance / 24h / No Prepayment with pulsing dots */}
+            <div className="flex flex-wrap items-center gap-y-1.5 mb-1.5">
+              {[
+                { label: "Full Insurance", Icon: Shield },
+                { label: "24/7 Working Hours", Icon: Clock },
+                { label: "No Prepayment", Icon: CheckCircle },
+              ].map(({ label, Icon }, idx, arr) => (
+                <span key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-200">
+                  <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span>{label}</span>
+                  {idx < arr.length - 1 && (
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary mx-2 animate-pulse [animation-duration:2.5s]" />
+                  )}
+                </span>
+              ))}
+            </div>
+            <p className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-primary">
+              <Award className="w-3.5 h-3.5 shrink-0 animate-pulse [animation-duration:3s]" />
               10+ years of car rental experience
             </p>
           </div>
@@ -477,14 +493,13 @@ export default function Home() {
           {/* Benefits + Booking constrained to left — car stays visible on the right */}
           <div className="max-w-[960px]">
 
-          {/* Benefits strip — directly above the booking bar */}
+          {/* Benefits strip — directly above the booking bar (no duplicates from top row) */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-2">
             {[
-              { label: "Full Insurance", Icon: Shield },
               { label: "Unlimited Mileage", Icon: Infinity },
-              { label: "Free Additional Drivers", Icon: Users },
+              { label: "Additional Drivers", Icon: Users },
+              { label: "Transparent Prices", Icon: CheckCircle },
               { label: "Roadside Assistance", Icon: HeartHandshake },
-              { label: "24/7 Customer Support", Icon: Clock },
             ].map(({ label, Icon }, idx, arr) => (
               <span key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">
                 <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -512,14 +527,14 @@ export default function Home() {
                     placeholder="Pickup Location"
                   />
                   {/* "Drop-off in different location" — unchecked=same, checked=different */}
-                  <label className="flex items-center gap-1.5 mt-2 cursor-pointer w-fit">
+                  <label className="flex items-center gap-2 mt-2.5 cursor-pointer w-fit group">
                     <input
                       type="checkbox"
                       checked={!sameLocation}
                       onChange={(e) => setSameLocation(!e.target.checked)}
-                      className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                      className="w-3.5 h-3.5 rounded border-white/20 accent-primary shrink-0 cursor-pointer"
                     />
-                    <span className="text-xs text-muted-foreground leading-tight">Drop-off in different location</span>
+                    <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors leading-tight select-none">Drop-off in different location</span>
                   </label>
                   {pickupIsDowntown && (
                     <label className="flex items-center gap-2 mt-1.5 cursor-pointer w-fit">

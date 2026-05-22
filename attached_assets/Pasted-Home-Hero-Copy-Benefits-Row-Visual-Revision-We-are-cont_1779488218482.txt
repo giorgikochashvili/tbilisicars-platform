@@ -1,0 +1,190 @@
+Home Hero Copy + Benefits Row Visual Revision
+
+We are continuing Home page Preview refinement only.
+Do NOT Git Sync.
+Do NOT deploy.
+Do NOT change business logic.
+
+Goal:
+Refine the Home hero text hierarchy and benefits rows according to the latest owner feedback.
+
+Current Home direction is approved:
+- hero image stays
+- header stays
+- compact booking bar stays
+- trust cards stay
+- Explore Georgia section stays
+- dropdown portal stays
+- Drop-off in different location checkbox behavior stays
+
+This revision is only for:
+1. hero headline size/position
+2. hero subheadline text
+3. top benefits row under subheadline
+4. 10+ years line placement/style
+5. booking-form-adjacent benefits row
+6. Drop-off checkbox visual fit inside Pickup Location
+
+Strict scope:
+- Prefer changing only artifacts/website/src/pages/Home.tsx
+- Do NOT change CRM/API/DB/migrations
+- Do NOT change booking logic
+- Do NOT change validation
+- Do NOT change routing/search behavior
+- Do NOT change pickup/dropoff/date/time/location business logic
+- Do NOT change pricing/availability/payment/accounting
+- Do NOT change Google Ads tracking
+- Do NOT change SEO schema / JSON-LD / Helmet metadata
+- Do NOT re-enable chatbot
+- Do NOT replace hero image asset
+- Do NOT change Header/Footer
+- Do NOT add fake claims
+- Do NOT add new packages
+
+1. Hero headline
+Current:
+Rent a Car in Georgia
+
+Keep text:
+Rent a Car in Georgia
+
+Visual changes:
+- Reduce headline size by approximately 10%.
+- Move it slightly to the left if possible within the existing content container/alignment.
+- Keep it bold, premium, readable.
+- Do not make it too small on desktop.
+- Mobile must still look clean and readable.
+
+2. Hero subheadline
+Replace current subheadline with exactly:
+
+Tbilisi - Kutaisi - Batumi Airport & City Services
+
+Visual requirements:
+- Clean white/light text.
+- Should sit below headline.
+- Should be readable but not too large.
+- Keep spacing premium and compact.
+- Do not include the previous “No prepayment · Transparent prices” text here, because those benefits move into the icon row below.
+
+3. Top benefits row under subheadline
+Directly under the new subheadline, add a compact premium benefits row with small high-quality icons.
+
+Exact items and order:
+- Full Insurance
+- 24/7 Working Hours
+- No Prepayment
+
+Design requirements:
+- Small elegant icons before each label.
+- Icons should match the site style: thin, clean, premium.
+- Use existing lucide-react icons if already available/imported.
+- Use brand red only as accent, not too heavy.
+- Between the items, use small red separator dots.
+- The separator dots should have a subtle elegant blinking/pulse effect.
+- The blinking must be tasteful and not distracting.
+- Keep animation lightweight with CSS/Tailwind only; no new libraries.
+- On mobile, the row can wrap cleanly.
+- No horizontal overflow.
+
+4. 10+ years line
+Keep:
+10+ years of car rental experience
+
+Placement/style:
+- It should sit visually near/with the top red-accent benefit row.
+- Since it is red, make it visually part of the same hero trust cluster.
+- Add a subtle elegant pulse/blink only to the red accent element/icon/dot, not the whole text aggressively.
+- Keep it premium and readable.
+- Do not make it look like a warning/error.
+- Do not over-animate.
+
+5. Remove duplicate lower benefits
+The old benefits row above the booking form currently includes:
+Full Insurance
+Unlimited Mileage
+Free Additional Drivers
+Roadside Assistance
+24/7 Customer Support
+
+This should no longer duplicate Full Insurance or 24/7 support/working hours.
+
+Replace the booking-form-adjacent benefits row with exactly:
+
+- Unlimited Mileage
+- Additional Drivers
+- Transparent Prices
+- Roadside Assistance
+
+Design requirements:
+- This row should remain directly above the booking form.
+- Small premium icons before each label.
+- Clean spacing.
+- It should align visually with the booking form width/content area.
+- Keep it compact and elegant.
+- Do not make it too tall.
+- On mobile it may wrap cleanly.
+- No duplicated items from the top row.
+
+6. Drop-off checkbox visual polish
+Inside the Pickup Location section, the checkbox and text:
+Drop-off in different location
+
+must look more integrated and premium.
+
+Requirements:
+- Keep checkbox inside Pickup Location section.
+- Keep behavior exactly as currently implemented:
+  default unchecked; checking it reveals Return Location.
+- Do NOT change logic/state/handler.
+- Only improve visual fit:
+  - better spacing under Pickup Location field
+  - checkbox aligned cleanly
+  - label text readable
+  - checkbox not too large/ugly
+  - no cramped appearance
+- It should feel like part of the booking field design.
+
+7. Booking bar
+Keep current compact booking bar structure.
+Do not redesign it again.
+Do not change field behavior.
+Only adjust minimal spacing if required by the changed lower benefits row.
+
+8. Mobile responsiveness is mandatory
+Check:
+- 360px Android
+- 390px iPhone
+- 412px Android
+- 430px iPhone Pro Max
+- 768px tablet
+
+Mobile acceptance:
+- no horizontal overflow
+- headline readable after size reduction
+- subheadline readable
+- top benefits row wraps cleanly
+- red pulsing dots do not look messy
+- 10+ years line readable
+- lower benefits row wraps cleanly above booking form
+- booking form stacks cleanly
+- Drop-off checkbox readable and tappable
+- Search Vehicles button visible/tappable
+- dropdown not clipped
+- trust cards and Explore Georgia section remain clean
+
+9. Build verification
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- headline size/position changes
+- new subheadline confirmation
+- top benefits row items/icons/animation confirmation
+- 10+ years styling confirmation
+- lower benefits row replacement confirmation
+- Drop-off checkbox visual polish confirmation
+- mobile widths checked
+- build result
+- confirmation no booking logic / CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state changed
