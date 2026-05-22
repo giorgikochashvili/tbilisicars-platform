@@ -1,0 +1,99 @@
+Home hero image replacement and perfect fit revision.
+
+We are replacing the current Home hero background image because it does not fit the layout naturally.
+
+I am attaching/uploading a new hero background image.
+Use this new image as the Home hero background asset.
+
+Goal:
+Replace the current hero background with the new uploaded image and fit it perfectly into the existing Home hero layout without stretching or distortion.
+
+Strict requirements:
+- Do NOT stretch the image.
+- Do NOT distort the image.
+- Do NOT force width/height in a way that changes aspect ratio.
+- Preserve the natural aspect ratio.
+- Use object-cover / background-cover correctly.
+- Adjust object-position, hero height, crop, overlay, and spacing only as needed.
+- The image must look natural on desktop and mobile.
+- The hero must remain premium, cinematic, and car-rental focused.
+- Text must remain readable.
+- Booking form must not awkwardly cover the important part of the image.
+- Church/car/road/scenery or the main visual subject of the new image must not collide with the Header.
+
+Image asset:
+- Place the new uploaded image under:
+  artifacts/website/public/images/home-hero-georgia-road.png
+  or another clear path if needed, but keep the existing Home.tsx reference updated accordingly.
+- If replacing the existing file at the same path is safest, do that.
+- Do NOT use any reference screenshot as an asset.
+- Only use the actual new hero image.
+
+Keep existing approved Home layout:
+- Header remains unchanged.
+- Hero copy remains:
+  Rent a Car in Georgia
+- Subheadline remains:
+  Tbilisi, Kutaisi & Batumi airports · No prepayment · Transparent prices
+- Keep:
+  10+ years of car rental experience
+- Benefits row stays directly above booking form.
+- Booking form compact layout stays.
+- “Drop-off in different location” checkbox behavior stays exactly as currently implemented:
+  default unchecked; checking it shows Return Location.
+- Trustpilot/Google cards stay below booking form.
+- Explore Georgia heading, red divider, and location cards stay.
+- Chatbot remains disabled.
+
+Important:
+Do NOT redesign the page again.
+Do NOT change booking form logic.
+Do NOT change validation.
+Do NOT change pickup/dropoff/date/time/location/search behavior.
+Do NOT change pricing/availability/payment/accounting.
+Do NOT change CRM/API/DB/migrations.
+Do NOT change Google Ads tracking.
+Do NOT change SEO schema / JSON-LD / Helmet metadata.
+Do NOT re-enable chatbot.
+
+Main task:
+Only replace the hero image and adjust CSS/classes required to make the new image fit perfectly.
+
+Desktop fitting:
+- Check desktop preview around 1280px, 1440px, and 1536px.
+- The image should look natural.
+- No vertical stretching.
+- No awkward crop.
+- Booking form should not cover the main subject.
+- Header should not visually collide with image elements.
+
+Mobile responsiveness is mandatory:
+Check:
+- 360px Android
+- 390px iPhone
+- 412px Android
+- 430px iPhone Pro Max
+- 768px tablet
+
+Mobile acceptance:
+- no horizontal overflow
+- hero text readable
+- image crop natural
+- main visual subject not awkwardly cut
+- booking form usable
+- dropdown not clipped
+- Search Vehicles tappable
+- trust cards and location cards still clean
+- no overlapping sections
+
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- new image path used
+- what object-fit/object-position/height changes were made
+- desktop preview summary
+- mobile widths checked
+- build result
+- confirmation no booking logic / CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state changed
