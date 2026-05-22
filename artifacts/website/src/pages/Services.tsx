@@ -1,49 +1,49 @@
 import { Helmet } from "react-helmet-async";
-import { Car, MapPin, Phone, Shield, Users, Infinity, HeartHandshake } from "lucide-react";
+import { Car, MapPin, Clock, Shield, Users, Infinity, HeartHandshake } from "lucide-react";
 import { Link } from "wouter";
 
 const SERVICES = [
   {
     icon: <Car className="w-6 h-6 text-primary" />,
-    title: "Standard Car Rental",
-    desc: "Daily, weekly, and monthly rental options across all vehicle classes. Transparent CRM-driven pricing with no surprise fees at the counter.",
-    features: ["Flexible duration", "Multiple vehicle classes", "Online booking available"],
+    title: "Car Rental Services",
+    desc: "We offer daily, weekly, monthly and corporate car rental services across Georgia. Whether you need a car for a short city trip, an airport arrival, a long journey around the country, or regular business use, our team helps you choose the right vehicle and rental plan.",
+    features: ["Daily, weekly & monthly rentals", "Corporate rentals", "Economy, sedan, SUV, 7-seater & van"],
   },
   {
     icon: <MapPin className="w-6 h-6 text-primary" />,
-    title: "Airport Delivery",
-    desc: "Seamless vehicle pickup and return at Georgia's major international airports. Our team is on-site to meet you the moment you land.",
-    features: ["Tbilisi International Airport", "Kutaisi International Airport", "Batumi International Airport"],
+    title: "Airport & City Service",
+    desc: "Tbilisicars provides car rental service at Georgia's three main airports — Tbilisi, Kutaisi and Batumi — as well as city, downtown, hotel and address-based handover where available. Our goal is to make vehicle pickup and return simple, timely and convenient for your travel schedule.",
+    features: ["Tbilisi International Airport", "Kutaisi International Airport", "Batumi International Airport", "Downtown & hotel handover"],
   },
   {
     icon: <Shield className="w-6 h-6 text-primary" />,
-    title: "Full Insurance Options",
-    desc: "Choose from our three coverage tiers — Basic, Full, or Premium — with transparent deposits and excess amounts. No hidden clauses.",
-    features: ["Basic coverage", "Full coverage", "Premium coverage"],
+    title: "Full Insurance & Low Deposit",
+    desc: "All vehicles include an insurance package in the price shown on our website. Customers can also choose an additional comprehensive insurance option for extra protection. A low deposit, usually from 100 EUR, is left when picking up the vehicle and returned after the car is brought back, subject to rental conditions.",
+    features: ["Insurance package included in price", "Optional comprehensive upgrade", "Deposit from 100 EUR, returned on return"],
   },
   {
     icon: <Infinity className="w-6 h-6 text-primary" />,
     title: "Unlimited Mileage",
-    desc: "Drive anywhere within Georgia without distance limitations. Explore Kazbegi, Svaneti, or the Black Sea coast — all included in your rate.",
-    features: ["No distance cap", "No overage charges", "Full Georgia coverage"],
+    desc: "During the rental period, you can drive across Georgia without worrying about distance limits. Mileage is unlimited, so there are no extra charges based on how many kilometres you drive.",
+    features: ["No distance cap", "No overage charges", "Suitable for long trips across Georgia"],
   },
   {
     icon: <Users className="w-6 h-6 text-primary" />,
-    title: "Unlimited Additional Drivers",
-    desc: "Add as many drivers as you need to share the driving experience — at no extra charge on any rental.",
-    features: ["No per-driver fee", "All drivers covered by insurance", "Listed on the rental agreement"],
+    title: "Free Additional Drivers",
+    desc: "Additional drivers are included free of charge. Any person travelling with the main renter may drive the vehicle if they meet the rental requirements, are between 21 and 70 years old, and hold a valid driving licence. This is especially useful for long trips and shared driving across Georgia.",
+    features: ["No per-driver fee", "Age requirement: 21–70 years", "Valid driving licence required"],
   },
   {
-    icon: <Phone className="w-6 h-6 text-primary" />,
-    title: "24/7 Customer Support",
-    desc: "Our support team is available around the clock via phone, WhatsApp, Telegram, and other messaging platforms. We're always reachable.",
-    features: ["Phone & messaging", "Airport assistance", "Emergency escalation"],
+    icon: <Clock className="w-6 h-6 text-primary" />,
+    title: "24/7 Working Hours & Roadside Assistance",
+    desc: "We work 24/7 to support pickups, returns and customer assistance according to your flight or travel schedule. If you have a road incident, technical issue, or urgent question during your rental, our team is ready to provide timely information, coordination and assistance.",
+    features: ["24/7 service adapted to your flights", "Assistance during rental", "Coordination for road incidents"],
   },
   {
     icon: <HeartHandshake className="w-6 h-6 text-primary" />,
-    title: "Roadside Assistance",
-    desc: "In case of breakdown, flat tyre, or any mechanical issue during your rental, our team provides immediate assistance anywhere in Georgia.",
-    features: ["24/7 coverage", "Vehicle swap if needed", "Pan-Georgia reach"],
+    title: "Chauffeur Service",
+    desc: "For customers who prefer to travel with a driver or guide, we can arrange a chauffeur service by request. This service is often in high demand, so we recommend contacting us in advance with your travel dates, route, number of days and preferences. Our team will prepare an individual offer based on your itinerary.",
+    features: ["Driver or guide by request", "Individual pricing prepared", "Contact: reservations@tbilisicars.com"],
   },
 ];
 
@@ -52,28 +52,29 @@ export default function Services() {
     <div className="min-h-screen py-12 px-4">
       <Helmet>
         <title>Car Rental Services in Georgia | Tbilisicars</title>
-        <meta name="description" content="Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia." />
+        <meta name="description" content="Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, city locations and hotels, with insurance package options, unlimited mileage, free additional drivers and 24/7 working hours." />
         <link rel="canonical" href="https://tbilisicars.com/services" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Tbilisicars" />
         <meta property="og:url" content="https://tbilisicars.com/services" />
         <meta property="og:title" content="Car Rental Services in Georgia | Tbilisicars" />
-        <meta property="og:description" content="Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia." />
+        <meta property="og:description" content="Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, city locations and hotels, with insurance package options, unlimited mileage, free additional drivers and 24/7 working hours." />
         <meta property="og:image" content="https://tbilisicars.com/opengraph.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Car Rental Services in Georgia | Tbilisicars" />
-        <meta name="twitter:description" content="Explore our car rental services including airport delivery, full insurance, unlimited drivers and 24/7 support in Georgia." />
+        <meta name="twitter:description" content="Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, city locations and hotels, with insurance package options, unlimited mileage, free additional drivers and 24/7 working hours." />
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-5xl mx-auto">
+
         {/* Header */}
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 bg-primary/15 border border-primary/25 rounded-full px-4 py-1.5 text-sm text-primary mb-4">
-            What We Offer
+            Our Services
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Our Services</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Car Rental Services in Georgia</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            From short city trips to extended cross-country journeys, we offer a full range of car rental services built around your needs.
+            Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, downtown city locations, hotels and addresses by arrangement. Online booking, transparent prices and 24/7 working hours.
           </p>
         </div>
 
@@ -98,23 +99,19 @@ export default function Services() {
           ))}
         </div>
 
-        {/* Extras note */}
-        <div className="bg-primary/10 border border-primary/25 rounded-xl p-6 mb-10">
-          <h2 className="text-white font-semibold mb-2">Add-Ons Available at Booking</h2>
-          <p className="text-sm text-muted-foreground">
-            When booking online, you'll see a full selection of available add-ons pulled directly from our system — GPS, child seats, additional drivers, and more. Pricing is transparent and shown upfront.
-          </p>
-        </div>
-
         {/* CTA */}
-        <div className="text-center">
+        <div className="text-center pb-4">
+          <p className="text-muted-foreground text-sm mb-5">
+            Select your dates and pickup location to see available vehicles and prices.
+          </p>
           <Link
             href="/booking"
             className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-8 py-3 rounded-xl transition-colors text-base"
           >
-            Book a Car Now
+            Choose Your Car
           </Link>
         </div>
+
       </div>
     </div>
   );

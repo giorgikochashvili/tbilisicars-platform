@@ -1,0 +1,209 @@
+We need to plan a website-only Services page rewrite/cleanup for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current Services page code and return a safe implementation plan.
+
+Goal:
+Rewrite and polish the public /services page so it becomes more specific, trustworthy, SEO-aligned, and conversion-focused for Tbilisicars car rental services in Georgia.
+
+Important business goal:
+This is not only text cleanup. The Services page should help increase website bookings by clearly explaining real Tbilisicars services, reducing customer uncertainty, and supporting SEO/internal content consistency.
+
+Strict scope:
+- Website only.
+- Services page only unless a tiny shared component/style update is absolutely necessary.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata unless absolutely necessary.
+- Do NOT re-enable chatbot.
+- Do NOT change Home page.
+- Do NOT add unsupported claims.
+- Do NOT invent contact info.
+- Do NOT add new packages.
+
+Likely file:
+- artifacts/website/src/pages/Services.tsx
+
+General content direction:
+The current Services page feels too generic/AI-written. Replace it with real Tbilisicars service explanations that match the company’s actual operations.
+
+Use clean, professional English copy.
+Avoid exaggerated claims.
+Keep the dark premium website style.
+Keep sections/cards readable and conversion-focused.
+Use concise but informative text.
+
+Main page title:
+Car Rental Services in Georgia
+
+Intro direction:
+Explain that Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, city/downtown locations, hotels and addresses by arrangement, with online booking, transparent prices and 24/7 working hours.
+
+Service cards / sections to include:
+
+1) Car Rental Services
+Explain:
+- daily rentals
+- weekly rentals
+- monthly rentals
+- corporate rentals
+- economy cars, sedans, SUVs, 7-seaters and vans
+- suitable for city trips, airport arrivals, long trips across Georgia, and business use
+
+Suggested copy direction:
+“We offer daily, weekly, monthly and corporate car rental services across Georgia. Whether you need a car for a short city trip, an airport arrival, a long journey around the country, or regular business use, our team helps you choose the right vehicle and rental plan.”
+
+2) Airport & City Service
+Replace/remove “Airport Delivery” wording.
+Use:
+Airport & City Service
+
+Explain:
+- car rental service at Georgia’s three main airports:
+  Tbilisi International Airport
+  Kutaisi International Airport
+  Batumi International Airport
+- downtown/city pickup and return
+- hotel/address handover by arrangement
+- simple, timely and convenient pickup/return process
+- 24/7 service adapted to flights and travel plans
+
+Suggested copy direction:
+“Tbilisicars provides car rental service at Georgia’s three main airports — Tbilisi, Kutaisi and Batumi — as well as city, downtown, hotel and address-based handover where available. Our goal is to make vehicle pickup and return simple, timely and convenient for your travel schedule.”
+
+3) Full Insurance & Low Deposit
+Explain carefully:
+- all vehicles include an insurance package in the displayed website price
+- customers can choose an additional comprehensive insurance option for extra protection
+- low deposit, usually from 100 EUR
+- deposit is left at pickup and returned after vehicle return according to rental conditions
+
+Important:
+Avoid wording that sounds like every possible risk is covered in every situation.
+Use “subject to rental conditions” where needed.
+
+Suggested copy direction:
+“All vehicles include an insurance package in the price shown on our website. Customers can also choose an additional comprehensive insurance option for extra protection. A low deposit, usually from 100 EUR, is left when picking up the vehicle and returned after the car is brought back according to the rental conditions.”
+
+4) Unlimited Mileage
+Explain:
+- unlimited distance during rental period
+- no extra charges based on kilometres driven
+- good for long trips around Georgia
+
+Suggested copy direction:
+“During the rental period, you can drive across Georgia without worrying about distance limits. Mileage is unlimited, so there are no extra charges based on how many kilometres you drive.”
+
+5) Free Additional Drivers
+Explain:
+- additional drivers are free
+- any accompanying person may drive if they meet rental requirements
+- driver age requirement: from 21 to 70 years old
+- valid driving licence required
+- useful for long trips and shared driving
+
+Suggested copy direction:
+“Additional drivers are included free of charge. Any person travelling with the main renter may drive the vehicle if they meet the rental requirements, is between 21 and 70 years old, and holds a valid driving licence. This is especially useful for long trips and shared driving across Georgia.”
+
+6) 24/7 Working Hours & Roadside Assistance
+Use this title instead of generic “24/7 Support”.
+
+Explain:
+- Tbilisicars works 24/7
+- pickup and return can be arranged according to flights/travel plans
+- support is available during the rental
+- assistance in case of road incident, technical issue, or urgent question
+- timely communication and coordination
+
+Suggested copy direction:
+“We work 24/7 to support pickups, returns and customer assistance according to your flight or travel schedule. If you have a road incident, technical issue, or urgent question during your rental, our team is ready to provide timely information, coordination and assistance.”
+
+7) Chauffeur Service
+Explain:
+- car rental with driver/guide by request
+- advance contact required
+- customer should provide dates, route, number of days, and preferences
+- team prepares individual pricing/tariff
+- contact reservations@tbilisicars.com
+
+Suggested copy direction:
+“For customers who prefer to travel with a driver or guide, we can arrange a chauffeur service by request. This service is often in high demand, so we recommend contacting us in advance with your travel dates, route, number of days and preferences. Our team will prepare an individual offer based on your itinerary.”
+
+Remove / avoid:
+- Remove “Add-Ons Available at Booking” section if it exists and feels unnecessary.
+- Remove generic “premium experience” style claims if they overstate reality.
+- Remove/replace “Airport Delivery” wording with “Airport & City Service”.
+- Do not use unsupported stats or fake claims.
+
+CTA:
+Change bottom CTA from:
+Book a Car Now
+
+To:
+Choose Your Car
+
+CTA subtitle:
+Select your dates and pickup location to see available vehicles and prices.
+
+Button text:
+Choose Your Car
+
+CTA should link to the booking flow/page as currently appropriate.
+Do not change booking route logic.
+
+SEO / content consistency:
+- Keep wording naturally aligned with target search intent:
+  car rental services in Georgia
+  Tbilisi airport car rental
+  Kutaisi airport car rental
+  Batumi airport car rental
+  airport and city car rental service
+  unlimited mileage car rental Georgia
+  car rental with driver Georgia
+- Do not keyword-stuff.
+- Keep copy natural, useful and customer-friendly.
+- Do not change Helmet/metadata in this step unless current Services metadata is obviously inconsistent; if metadata change is recommended, report it in the plan first instead of editing.
+
+Design requirements:
+- Keep existing dark premium style.
+- Cards should be clean, readable and not too text-heavy.
+- Use appropriate small service icons if already available through existing icon library.
+- Keep spacing balanced and compact.
+- Avoid heavy animations.
+- Mobile responsiveness is mandatory for Android and iOS.
+
+Mobile requirements:
+Check at:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- text readable
+- cards stack cleanly
+- CTA visible and tappable
+- buttons/tap targets comfortable
+- no overlapping elements
+
+Checks to plan:
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan:
+1. Exact files you plan to change.
+2. Current Services page structure summary.
+3. Proposed new sections/cards.
+4. Whether any existing sections will be removed.
+5. Exact CTA change plan.
+6. Whether metadata/Helmet should remain unchanged or needs a separate future SEO task.
+7. Mobile responsiveness plan.
+8. Risks or limitations.
+9. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot changes.
+10. Do NOT edit files until Build approval.

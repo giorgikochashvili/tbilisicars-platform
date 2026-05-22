@@ -1,0 +1,103 @@
+Approved for Build.
+
+Implement #304 Services Page Rewrite exactly according to the plan, with these final clarifications:
+
+1. Scope
+- Change only:
+  artifacts/website/src/pages/Services.tsx
+- Do NOT change Home page.
+- Do NOT change Header/Footer.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT add JSON-LD / structured data.
+- Do NOT re-enable chatbot.
+- Do NOT add new packages.
+
+2. Services content
+Use the 7 approved service cards:
+- Car Rental Services
+- Airport & City Service
+- Full Insurance & Low Deposit
+- Unlimited Mileage
+- Free Additional Drivers
+- 24/7 Working Hours & Roadside Assistance
+- Chauffeur Service
+
+3. Wording safety
+Use careful insurance wording:
+- “insurance package included in the displayed website price”
+- “optional comprehensive insurance option”
+- “subject to rental conditions”
+Avoid wording that sounds like every possible risk is covered in every situation.
+
+4. Free Additional Drivers
+Must include:
+- additional drivers are free
+- age requirement: 21–70 years
+- valid driving licence required
+
+5. 24/7 wording
+Use:
+- “24/7 Working Hours & Roadside Assistance”
+- explain that we work 24/7 for pickups, returns and customer assistance according to flights/travel plans
+Do not make it only generic “24/7 Support”.
+
+6. Remove/replace
+- Remove “Add-Ons Available at Booking”.
+- Replace “Airport Delivery” wording with “Airport & City Service”.
+- Remove generic/fake insurance tiers if present.
+- Avoid exaggerated “premium” claims.
+
+7. CTA
+Change bottom CTA to:
+- Title/button: Choose Your Car
+- Subtitle: Select your dates and pickup location to see available vehicles and prices.
+- Keep route /booking.
+
+8. Metadata
+You may update only the Services Helmet meta description to remove inaccurate “airport delivery” wording.
+Use careful copy such as:
+“Tbilisicars provides car rental services at Tbilisi, Kutaisi and Batumi airports, city locations and hotels, with insurance package options, unlimited mileage, free additional drivers and 24/7 working hours.”
+Do NOT change JSON-LD/schema.
+
+9. SEO/conversion alignment
+Keep text natural and customer-friendly.
+Support SEO intent without keyword stuffing:
+- car rental services in Georgia
+- Tbilisi airport car rental
+- Kutaisi airport car rental
+- Batumi airport car rental
+- airport and city car rental service
+- unlimited mileage
+- chauffeur service
+
+10. Mobile responsiveness
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- no horizontal overflow
+- cards stack cleanly
+- text readable
+- CTA visible/tappable
+- no overlapping elements
+
+11. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- summary of service card changes
+- confirmation Add-ons section removed
+- confirmation CTA changed
+- confirmation only Services Helmet description changed, if metadata was edited
+- mobile widths checked
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Header/Footer changes
