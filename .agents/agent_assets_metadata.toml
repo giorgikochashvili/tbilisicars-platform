@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "huCr3p0P2a6vVgHOL5b27"
+uri = "file://artifacts/website/public/images/home-hero-georgia-road.png"
+type = "image"
+title = "georgia-sunset-rav4-hero"
