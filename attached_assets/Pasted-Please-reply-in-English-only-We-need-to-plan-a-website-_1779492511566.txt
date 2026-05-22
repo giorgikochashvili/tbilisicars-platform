@@ -1,0 +1,204 @@
+Please reply in English only.
+
+We need to plan a website-only Locations page upgrade for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current Locations page code and return a safe implementation plan in English.
+
+Goal:
+Improve the public /locations page so it becomes a clear main location hub for Tbilisicars car rental services in Georgia.
+
+Important:
+This step is only for the main Locations hub page.
+Do NOT create new sublocation pages.
+Do NOT create new routes.
+Do NOT create Regions / Travel Guide pages in this step.
+
+Business goal:
+The Locations page should help customers quickly understand that Tbilisicars serves the main Georgian travel hubs — Tbilisi, Kutaisi and Batumi — and should link clearly to the already existing city landing pages. This should support SEO, internal linking, user trust and more website bookings.
+
+Existing city landing pages that must be used:
+- /car-rental-tbilisi
+- /car-rental-kutaisi
+- /car-rental-batumi
+
+Before using these links, confirm they exist in the current app routing.
+
+Strict scope:
+- Website only.
+- Locations page only unless a tiny shared component/style update is absolutely necessary.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata unless you only recommend it as a later separate task.
+- Do NOT re-enable chatbot.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT change Fleet page.
+- Do NOT add new pages.
+- Do NOT add new routes.
+- Do NOT create Tbilisi Airport / Downtown / Hotel Delivery subpages yet.
+- Do NOT create Regions / Travel Guide sections yet.
+- Do NOT invent location facts.
+- Do NOT add unsupported claims.
+- Do NOT add fake images.
+- Do NOT add new packages.
+
+Likely file:
+- artifacts/website/src/pages/Locations.tsx
+
+Current target structure:
+
+1. Page hero / intro
+Use a clear heading such as:
+Car Rental Locations in Georgia
+
+or:
+Car Rental in Tbilisi, Kutaisi & Batumi
+
+Intro should explain:
+Tbilisicars provides airport and city car rental services in Georgia’s main travel hubs — Tbilisi, Kutaisi and Batumi — with pickup, return, and hotel/address handover options by arrangement.
+
+Keep copy natural, useful and SEO-aligned.
+Do not keyword-stuff.
+
+2. Three main city cards
+Create or refine three main city cards:
+- Tbilisi
+- Kutaisi
+- Batumi
+
+Each card should link to the existing city landing page:
+- Tbilisi → /car-rental-tbilisi
+- Kutaisi → /car-rental-kutaisi
+- Batumi → /car-rental-batumi
+
+Each card should briefly explain the service in that city.
+
+Tbilisi card direction:
+- Tbilisi International Airport
+- Tbilisi city / downtown service
+- hotel/address handover by arrangement
+- good starting point for trips in eastern Georgia and mountain routes
+
+Kutaisi card direction:
+- Kutaisi International Airport
+- Kutaisi city service
+- gateway for western Georgia, Imereti, Svaneti, Samegrelo and Batumi direction
+- hotel/address handover by arrangement where available
+
+Batumi card direction:
+- Batumi Airport and city service
+- Black Sea coast / Adjara travel
+- hotel/address handover by arrangement where available
+
+Important:
+Do not state “office” or exact service details unless they already exist in current content/code or are clearly safe.
+Do not invent exact meeting points or procedures in this step.
+
+3. High-level handover explanation section
+Add or refine a short section explaining:
+- Airport pickup and return
+- City / downtown pickup and return
+- Hotel and address handover by arrangement
+- 24/7 working hours adapted to flights/travel plans
+
+Wording should be careful:
+Use:
+“by arrangement”
+“where available”
+“depending on location and schedule”
+
+Avoid:
+“delivery everywhere”
+“guaranteed everywhere”
+unsupported operational claims
+
+4. CTA
+Use only realistic CTA wording.
+
+Allowed CTAs:
+- Choose Your Car
+- Search Cars
+
+Do NOT use:
+- View Cars by Location
+
+because there is no separate real location-specific inventory display.
+
+CTA should link to the existing booking/search flow, likely /booking, without changing booking route logic.
+
+5. Visual/design requirements:
+- Keep current dark premium Tbilisicars style.
+- City cards should look premium, clear and clickable.
+- If safe real images already exist in the repo, Replit can mention them in the plan.
+- If no safe location images exist, use premium dark-glass cards, gradients and icons instead.
+- Do NOT invent fake city photos.
+- Do NOT use external images.
+- Do NOT add stock/fake images.
+- Keep spacing balanced and compact.
+- Mobile responsiveness is mandatory for Android and iOS.
+
+6. SEO / internal linking:
+The Locations page should act as a hub linking to the existing city pages.
+Natural wording to support:
+- car rental locations in Georgia
+- car rental in Tbilisi
+- car rental in Kutaisi
+- car rental in Batumi
+- Tbilisi airport car rental
+- Kutaisi airport car rental
+- Batumi airport car rental
+- airport and city car rental service in Georgia
+
+Do not keyword-stuff.
+Do not create duplicate content from the city pages.
+Do not change existing city landing page content in this step.
+
+7. Future backlog, not this step:
+Mention these as future possible tasks only if relevant:
+- detailed Tbilisi Airport page
+- detailed Kutaisi Airport page
+- detailed Batumi Airport page
+- Tbilisi Downtown / hotel-address handover pages
+- Regions / Travel Guide content hub
+
+Do NOT implement them now.
+
+8. Mobile requirements:
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- city cards stack cleanly
+- text readable
+- buttons/tap targets comfortable
+- links visible and tappable
+- no overlapping elements
+- CTA visible and tappable
+
+9. Build check to include in final implementation later:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan, in English:
+1. Exact files you plan to change.
+2. Current Locations page structure summary.
+3. Confirmation that existing routes /car-rental-tbilisi, /car-rental-kutaisi, /car-rental-batumi exist.
+4. Proposed new page structure.
+5. Proposed city card content and links.
+6. Proposed handover explanation section.
+7. CTA plan.
+8. Whether any existing safe images/assets are available, or whether you will use icon/gradient cards.
+9. Mobile responsiveness plan.
+10. Risks or limitations.
+11. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet changes.
+12. Do NOT edit files until Build approval.

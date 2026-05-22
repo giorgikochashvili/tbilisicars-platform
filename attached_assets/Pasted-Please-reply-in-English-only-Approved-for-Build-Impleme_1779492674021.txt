@@ -1,0 +1,151 @@
+Please reply in English only.
+
+Approved for Build.
+
+Implement #306 Locations Page Upgrade according to the plan, with these final clarifications:
+
+1. Scope
+- Change only:
+  artifacts/website/src/pages/Locations.tsx
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT change Fleet page.
+- Do NOT change Header/Footer.
+- Do NOT change city landing pages.
+- Do NOT add new routes.
+- Do NOT add new pages.
+- Do NOT add airport/downtown/hotel sublocation pages.
+- Do NOT add Regions / Travel Guide sections.
+- Do NOT add JSON-LD / structured data.
+- Do NOT re-enable chatbot.
+- Do NOT add new packages.
+- Do NOT add fake images or external images.
+
+2. Existing city links
+Use the confirmed existing routes:
+- Tbilisi → /car-rental-tbilisi
+- Kutaisi → /car-rental-kutaisi
+- Batumi → /car-rental-batumi
+
+3. Page header
+- H1:
+  Car Rental Locations in Georgia
+- Subtitle:
+  Tbilisicars provides airport and city car rental services in Georgia's main travel hubs — Tbilisi, Kutaisi and Batumi — with pickup, return, and hotel or address handover options available by arrangement.
+
+4. City hub cards
+Replace the current small airport highlight strip with three larger linked city hub cards:
+- Tbilisi
+- Kutaisi
+- Batumi
+
+Use safe wording only:
+- airport service
+- city/downtown service
+- hotel/address handover by arrangement
+- where available / depending on availability where needed
+
+Do NOT use unsupported operational claims such as:
+- office inside arrivals hall
+- within 5 minutes
+- 2 km from airport
+- 30 meters from terminal
+unless those are already officially verified and explicitly approved later.
+
+Card links may say:
+- Learn More
+or
+- View Details
+
+Do NOT use:
+- View Cars by Location
+
+5. CITY_INFO descriptions
+Replace overly specific operational descriptions with safe summaries:
+- Tbilisi: Tbilisicars provides car rental service at Tbilisi International Airport and in the city. Hotel and address handover is available by arrangement.
+- Kutaisi: Tbilisicars provides car rental service at Kutaisi International Airport and in the city. Hotel and address handover is available by arrangement where possible.
+- Batumi: Tbilisicars provides car rental service at Batumi Airport and in the city. Hotel and address handover is available by arrangement where possible.
+
+Remove or neutralize misleading highlights like “Inside arrivals hall” if they could imply unverified specifics.
+
+6. Handover explanation section
+Add/refine a four-item section:
+- Airport pickup and return
+- City and downtown service
+- Hotel and address handover
+- 24/7 working hours
+
+Use careful wording:
+- by arrangement
+- where available
+- depending on availability
+- adapted to flights/travel plans
+
+Avoid:
+- delivery everywhere
+- guaranteed everywhere
+- unsupported operational promises
+
+7. CTA
+Bottom CTA:
+- Keep heading “Ready to book?” if it already fits.
+- Button text:
+  Choose Your Car
+- Link stays:
+  /booking
+
+Allowed CTA wording:
+- Choose Your Car
+- Search Cars
+
+Do NOT use:
+- View Cars by Location
+
+8. Dynamic location list
+Keep the API-driven dynamic location list intact.
+Do not change fetching, grouping, loading, error, or empty-state logic.
+Only safe copy/CITY_INFO descriptions may be updated.
+
+9. Design
+- Keep dark premium Tbilisicars style.
+- Use icon/gradient/dark-glass cards because no safe real location images exist.
+- Do not invent photos.
+- City hub cards should be clickable, clean and premium.
+- Mobile responsiveness is mandatory.
+
+10. Mobile responsiveness
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- no horizontal overflow
+- city cards stack cleanly
+- handover section readable
+- CTA visible/tappable
+- links tappable
+- no overlapping elements
+
+11. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in English:
+- exact files changed
+- city route/link confirmation
+- city card summary
+- handover section summary
+- CTA confirmation
+- confirmation dynamic API location list was preserved
+- mobile widths checked
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Header/Footer/city-page changes
