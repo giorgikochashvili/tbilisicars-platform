@@ -474,6 +474,9 @@ export default function Home() {
           {/* Spacer — pushes benefits + form to bottom, lets hero scenery show */}
           <div className="flex-1" />
 
+          {/* Benefits + Booking constrained to left — car stays visible on the right */}
+          <div className="max-w-[960px]">
+
           {/* Benefits strip — directly above the booking bar */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-2">
             {[
@@ -493,7 +496,7 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Booking Widget — full width of max-w-5xl content area */}
+          {/* Booking Widget */}
           <div className="pb-6 sm:pb-8">
             <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left">
 
@@ -591,6 +594,7 @@ export default function Home() {
               )}
             </div>
           </div>
+          </div>{/* end max-w-[860px] form constraint */}
         </div>
       </section>
 

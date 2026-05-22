@@ -1,0 +1,76 @@
+Home hero final composition fix — booking form must not cover the car
+
+The new hero image is better, but the booking form still covers the car because the vehicle is positioned in the lower-right area of the image.
+
+We need to fix the composition without replacing the image again.
+
+Main goal:
+Keep the new hero image, but reposition/resize the booking form so it does NOT cover the car awkwardly.
+
+Important:
+This is visual/layout only.
+Do NOT change booking logic.
+Do NOT change validation.
+Do NOT change route/search behavior.
+Do NOT change pickup/dropoff/date/time/location logic.
+Do NOT change CRM/API/DB/migrations.
+Do NOT change pricing/payment/accounting.
+Do NOT change Google Ads tracking.
+Do NOT change SEO schema / JSON-LD / Helmet metadata.
+Do NOT re-enable chatbot.
+Do NOT replace the hero image.
+
+Required visual change:
+- On desktop, the booking form should no longer span into the car area.
+- Keep the booking form elegant and premium, but constrain it more to the left/center-left area.
+- The right side of the hero should remain open enough for the car to be visible.
+- The form should still be wide enough to feel usable and premium, but not full content width if that causes overlap.
+- Benefits row should align with the booking form width and sit directly above it.
+- Trustpilot/Google cards should remain centered or visually aligned below the form in a clean way.
+- The car must be clearly visible on the right.
+- The church and sunset must remain visible.
+- Left text readability must remain good.
+
+Suggested implementation:
+- Change the desktop booking form wrapper from full max-w-5xl width to a narrower responsive width, for example max-w-3xl or max-w-[860px].
+- Keep it left-aligned with the hero text/content instead of centered across the car.
+- Keep Search Vehicles on one line.
+- Keep Drop-off in different location checkbox inside Pickup Location.
+- Keep compact height and glass styling.
+- On large desktop, the form should end before the car’s main body.
+- On mobile/tablet, keep the form full-width and stacked as currently implemented.
+
+Hero image:
+- Keep current image asset.
+- Do not stretch or distort.
+- Preserve object-cover.
+- If needed, make only tiny object-position adjustment, but do not create new crop problems.
+- Do not make the left side too dark/dead.
+
+Mobile responsiveness is mandatory:
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- form stacks cleanly
+- checkbox readable and tappable
+- dropdown not clipped
+- Search Vehicles visible/tappable
+- image crop natural
+- no overlap issues
+
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- what form width/position changes were made
+- whether the car is no longer covered on desktop
+- mobile widths checked
+- build result
+- confirmation no booking logic / CRM / API / DB / pricing / SEO schema / Google Ads / chatbot state changed
