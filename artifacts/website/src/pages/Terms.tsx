@@ -63,10 +63,8 @@ export const TERMS_SECTIONS = [
   {
     title: "8. Vehicle Pick-Up Process",
     content: [
-      "Tbilisi International Airport: Our office is located inside the arrivals hall. Rental agreement completed within 5 minutes. Agent escorts customer to airport parking (50 meters from terminal).",
-      "Kutaisi International Airport: Our representative will meet customers in front of the arrivals hall. Customers will be transferred to our office approximately 2 km from the airport, where the vehicle will be delivered.",
-      "Batumi International Airport: Our representative will meet customers inside the arrivals hall. The vehicle will be delivered in the airport parking area approximately 30 meters from the terminal.",
-      "City Delivery or Custom Locations: Vehicles may be delivered to hotels, apartments, city addresses, or other agreed locations. At delivery: rental agreement signing, vehicle inspection, payment processing, and driving instructions.",
+      "Tbilisicars provides vehicle pickup and return service at Tbilisi, Kutaisi and Batumi airports, as well as selected city locations where available. Exact meeting points, handover details and return instructions are confirmed with the customer before pickup, based on the selected location, arrival time and operational schedule.",
+      "Customers should have their valid driving licence, passport or ID, and rental confirmation ready at pickup. Our team will complete the rental agreement, explain the vehicle condition, fuel level, return process and any important driving or safety information before the vehicle is handed over.",
     ],
   },
   {

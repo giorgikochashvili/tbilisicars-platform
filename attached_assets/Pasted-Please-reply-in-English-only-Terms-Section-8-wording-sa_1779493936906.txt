@@ -1,0 +1,69 @@
+Please reply in English only.
+
+Terms Section 8 wording safety cleanup.
+
+We need a small website-only cleanup for the Terms page.
+
+Goal:
+Soften and correct only Section 8 “Vehicle Pick-Up Process” in Terms, because it still contains overly specific operational claims that are no longer aligned with the safer approved Locations page wording.
+
+Strict scope:
+- Change only artifacts/website/src/pages/Terms.tsx
+- Change only Section 8 “Vehicle Pick-Up Process” content
+- Do NOT change accordion behavior
+- Do NOT change Key Rental Conditions summary
+- Do NOT change Table of Contents
+- Do NOT change other Terms sections
+- Do NOT change Booking.tsx
+- Do NOT change CRM/API/DB/migrations
+- Do NOT change booking logic
+- Do NOT change pricing/availability/payment/accounting
+- Do NOT change Google Ads tracking
+- Do NOT change Home/Services/Fleet/Locations/Header/Footer
+- Do NOT re-enable chatbot
+- Do NOT add new packages
+- Do NOT change metadata/schema
+
+Problem:
+Section 8 currently contains overly specific operational claims such as:
+- office inside arrivals hall
+- rental agreement completed within 5 minutes
+- 50 meters from terminal
+- 2 km from airport
+- 30 meters from terminal
+
+These should be removed/softened because pickup details can depend on airport, city, schedule and operational circumstances.
+
+New Section 8 direction:
+Keep the section title:
+8. Vehicle Pick-Up Process
+
+Replace only the content of this section with safer, customer-friendly wording:
+
+“Tbilisicars provides vehicle pickup and return service at Tbilisi, Kutaisi and Batumi airports, as well as selected city locations where available. Exact meeting points, handover details and return instructions are confirmed with the customer before pickup, based on the selected location, arrival time and operational schedule.
+
+Customers should have their valid driving licence, passport or ID, and rental confirmation ready at pickup. Our team will complete the rental agreement, explain the vehicle condition, fuel level, return process and any important driving or safety information before the vehicle is handed over.”
+
+Important wording requirements:
+- Do not mention exact distances.
+- Do not mention exact minutes.
+- Do not say “inside arrivals hall”.
+- Do not guarantee a specific meeting point.
+- Use careful wording:
+  “confirmed with the customer”
+  “based on selected location”
+  “where available”
+  “operational schedule”
+- Keep the copy clear and professional.
+- Do not make it too long.
+
+Build:
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in English:
+- exact files changed
+- confirmation only Section 8 content changed
+- confirmation no other Terms sections changed
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Locations/Header/Footer changes
