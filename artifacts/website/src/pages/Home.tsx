@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Calendar, Shield, ChevronRight, ChevronDown,
+  Award, MapPin, Shield, ChevronRight, ChevronDown,
   Clock, CheckCircle, Infinity, Car, HeartHandshake, ChevronLeft, Users,
 } from "lucide-react";
 import { DateTimePicker, DateTimePickerHandle } from "@/components/DateTimePicker";
@@ -72,12 +72,33 @@ function getMinDatetime() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
-const TRUST_STATS = [
-  { value: "10+", label: "Years Experience" },
-  { value: "15,000+", label: "Customers Served" },
-  { value: "4.6+", label: "Average Rating" },
+const HERO_RATING_CARDS = [
+  {
+    platform: "Trustpilot",
+    descriptor: "Excellent",
+    rating: "4.6 / 5",
+    href: "https://www.trustpilot.com/review/tbilisicars.com",
+    brandMark: "★",
+    markColor: "text-emerald-400",
+    starColor: "text-emerald-400",
+  },
+  {
+    platform: "Google",
+    descriptor: "Excellent",
+    rating: "4.7 / 5",
+    href: "https://share.google/lbXYIFHqGODm91fdk",
+    brandMark: "G",
+    markColor: "text-blue-400",
+    starColor: "text-yellow-400",
+  },
 ];
 
+const LOCATION_CARDS = [
+  { label: "Tbilisi Airport", sub: "Easy airport pickup", href: "/car-rental-tbilisi" },
+  { label: "Kutaisi Airport", sub: "Airport and city service", href: "/car-rental-kutaisi" },
+  { label: "Batumi Airport", sub: "Airport and city service", href: "/car-rental-batumi" },
+  { label: "City Delivery", sub: "Hotel and address delivery by arrangement", href: "/locations" },
+];
 
 const VEHICLE_CATEGORIES = [
   "Economy",
@@ -232,34 +253,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
 
-  const [stat0, setStat0] = useState("0");
-  const [stat1, setStat1] = useState("0");
-  const [stat2, setStat2] = useState("0.0");
-
-  useEffect(() => {
-    const duration = 2350;
-    function animate(
-      target: number,
-      setter: (v: string) => void,
-      format: (n: number) => string,
-    ) {
-      const start = performance.now();
-      let raf: number;
-      function step(now: number) {
-        const elapsed = Math.min(now - start, duration);
-        const value = target * (elapsed / duration);
-        setter(format(value));
-        if (elapsed < duration) raf = requestAnimationFrame(step);
-      }
-      raf = requestAnimationFrame(step);
-      return () => cancelAnimationFrame(raf);
-    }
-    const c0 = animate(10, setStat0, (n) => String(Math.round(n)));
-    const c1 = animate(15000, setStat1, (n) => Math.round(n).toLocaleString());
-    const c2 = animate(4.6, setStat2, (n) => n.toFixed(1));
-    return () => { c0(); c1(); c2(); };
-  }, []);
-
   const { data: config } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
     queryFn: () => apiFetch("/api/public/booking-config"),
@@ -372,63 +365,83 @@ export default function Home() {
 }
 `}</script>
       </Helmet>
+
       {/* ── Hero ── */}
       <section
-        className="relative flex flex-col items-center px-4 pt-14 pb-12 sm:pt-20 sm:pb-16"
-        style={{ background: "linear-gradient(135deg, hsl(211,55%,8%) 0%, hsl(211,53%,14%) 50%, hsl(211,50%,9%) 100%)" }}
+        className="relative overflow-hidden"
+        style={{ background: "hsl(211,55%,8%)", minHeight: "600px" }}
       >
-        {/* Subtle background radial accents */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-          backgroundImage: "radial-gradient(circle at 20% 50%, hsl(350,68%,38%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(214,45%,25%) 0%, transparent 50%)"
-        }} />
-        {/* Tbilisi skyline — full hero background layer, screen blend dissolves the dark base away */}
+        {/* Hero background image */}
         <img
-          src="/tbilisi-skyline.png"
+          src="/images/home-hero-georgia-road.png"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full pointer-events-none select-none"
-          style={{ objectFit: "cover", objectPosition: "center 60%", opacity: 0.75, mixBlendMode: "screen" }}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{ objectPosition: "65% center" }}
           draggable={false}
         />
-        {/* Readability vignette — dark edges keep text and booking card crisp */}
+
+        {/* Gradient overlay — left dark for readability, right transparent to show car */}
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, hsl(211,55%,8%) 0%, transparent 25%, transparent 65%, hsl(211,55%,8%) 100%)" }}
+          className="absolute inset-0 pointer-events-none hidden sm:block"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(5,16,30,0.94) 0%, rgba(5,16,30,0.85) 30%, rgba(5,16,30,0.40) 58%, rgba(5,16,30,0.08) 80%, transparent 100%)",
+          }}
+        />
+        {/* Mobile: uniform dark overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none sm:hidden"
+          style={{ background: "rgba(5,16,30,0.82)" }}
+        />
+        {/* Bottom fade into page */}
+        <div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none"
+          style={{
+            height: "120px",
+            background: "linear-gradient(to top, hsl(211,55%,8%) 0%, transparent 100%)",
+          }}
         />
 
-        <div className="relative z-10 w-full max-w-5xl mx-auto text-center">
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-3 leading-[1.15]">
-            <span className="text-white">Discover Georgia With Us</span>
-          </h1>
-          <p className="text-base sm:text-lg font-medium text-primary mb-2">
-            Trusted by thousands of travelers worldwide
-          </p>
-          <p className="text-xs sm:text-sm text-slate-300 mb-5 lg:mb-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-            {[
-              "Full Insurance",
-              "Unlimited Mileage",
-              "Free Additional Drivers",
-              "Roadside Assistance",
-              "24/7 Customer Support",
-            ].map((item, idx, arr) => (
-              <span key={item} className="flex items-center gap-x-2">
-                <span>{item}</span>
-                {idx < arr.length - 1 && (
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-500 opacity-70 animate-pulse" />
-                )}
-              </span>
-            ))}
-          </p>
+        {/* Content */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-10">
+
+          {/* Hero copy — left-aligned, constrained width so car stays visible */}
+          <div className="max-w-xl mb-6">
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 leading-[1.1] text-white">
+              Rent a Car in Georgia
+            </h1>
+            <p className="text-base sm:text-lg text-slate-200 mb-3 leading-snug">
+              Tbilisi, Kutaisi &amp; Batumi airports · No prepayment · Transparent prices
+            </p>
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary mb-4">
+              <Award className="w-4 h-4 shrink-0" />
+              10+ years of car rental experience
+            </p>
+            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
+              {[
+                "Full Insurance",
+                "Unlimited Mileage",
+                "Free Additional Drivers",
+                "Roadside Assistance",
+                "24/7 Customer Support",
+              ].map((item, idx, arr) => (
+                <span key={item} className="flex items-center gap-x-2">
+                  <span>{item}</span>
+                  {idx < arr.length - 1 && (
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-500 opacity-70 animate-pulse" />
+                  )}
+                </span>
+              ))}
+            </p>
+          </div>
 
           {/* Booking Widget */}
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-5 lg:p-4 shadow-2xl text-left max-w-3xl mx-auto">
-            <h2 className="text-lg font-semibold text-white mb-5 lg:mb-3 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              Choose Your Trip Details
-            </h2>
-
+          <div
+            className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl text-left max-w-3xl"
+          >
             {/* Location row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 lg:mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Location
@@ -479,7 +492,7 @@ export default function Home() {
             </div>
 
             {/* Same location checkbox */}
-            <label className="flex items-center gap-2 mb-4 lg:mb-3 cursor-pointer w-fit">
+            <label className="flex items-center gap-2 mb-3 cursor-pointer w-fit">
               <input
                 type="checkbox"
                 checked={sameLocation}
@@ -490,7 +503,7 @@ export default function Home() {
             </label>
 
             {/* Date row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 lg:mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Date &amp; Time
@@ -518,31 +531,56 @@ export default function Home() {
             </div>
 
             {error && (
-              <p className="text-sm text-destructive mb-4">{error}</p>
+              <p className="text-sm text-destructive mb-3">{error}</p>
             )}
 
             <SearchButton onValidate={validateSearch} onSearch={navigateToBooking} />
           </div>
 
-        </div>
-      </section>
-
-      {/* ── Trust / Stats Strip ── */}
-      <section className="py-8 px-4" style={{ background: "hsl(211,55%,7%)" }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TRUST_STATS.map((s, i) => (
-              <div
-                key={s.label}
-                className="flex flex-col items-center text-center px-3 py-4 rounded-xl border border-white/8 bg-white/3"
+          {/* Trust cards — Trustpilot & Google */}
+          <div className="flex flex-wrap gap-3 mt-4 max-w-3xl">
+            {HERO_RATING_CARDS.map((r) => (
+              <a
+                key={r.platform}
+                href={r.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-3 hover:bg-black/60 hover:border-white/20 transition-colors backdrop-blur-sm"
               >
-                <span className="text-xl sm:text-2xl font-bold text-primary leading-none tabular-nums">
-                  {i === 0 ? stat0 + "+" : i === 1 ? stat1 + "+" : i === 2 ? stat2 + "+" : s.value}
+                <span className={`text-base font-bold leading-none select-none ${r.markColor}`}>
+                  {r.brandMark}
                 </span>
-                <span className="text-xs text-muted-foreground mt-1.5 leading-snug">{s.label}</span>
-              </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-white">{r.platform}</span>
+                    <span className={`text-[10px] leading-none ${r.starColor}`}>★★★★★</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    <span className="font-semibold text-white/80">{r.rating}</span>
+                    {" · "}{r.descriptor}
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
+
+          {/* Location / service cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 max-w-5xl">
+            {LOCATION_CARDS.map((card) => (
+              <Link
+                key={card.href + card.label}
+                href={card.href}
+                className="group flex items-start gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 hover:bg-black/55 hover:border-white/22 transition-colors backdrop-blur-sm"
+              >
+                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5 group-hover:text-primary/80 transition-colors" />
+                <div>
+                  <div className="text-sm font-semibold text-white leading-tight">{card.label}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{card.sub}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
         </div>
       </section>
 
@@ -709,7 +747,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
 
     </div>
   );

@@ -1,0 +1,119 @@
+Approved for Build.
+
+Implement the updated Home page redesign plan exactly, with these final constraints:
+
+1. Scope
+- Website only.
+- Change only the planned files:
+  - artifacts/website/public/images/home-hero-georgia-road.png
+  - artifacts/website/src/components/Header.tsx
+  - artifacts/website/src/pages/Home.tsx
+  - artifacts/website/src/components/Footer.tsx
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable the chatbot.
+- Do NOT edit unrelated website pages.
+
+2. Hero image
+- Use the final uploaded hero image as:
+  artifacts/website/public/images/home-hero-georgia-road.png
+- Use it only as the Home hero background.
+- Do NOT use the reference screenshot as a website asset.
+- Build all UI as real React/HTML/CSS components.
+
+3. Header
+- Remove Home and About Us from visible header navigation.
+- Logo must continue linking to homepage.
+- Header visible nav order:
+  Fleet → Locations → Services → Terms & Conditions
+- Keep Login and Book Now on the right.
+
+4. Home hero
+- Use the new hero image with dark gradient overlays.
+- Headline:
+  Rent a Car in Georgia
+- Subheadline:
+  Tbilisi, Kutaisi & Batumi airports · No prepayment · Transparent prices
+- Add:
+  10+ years of car rental experience
+- Keep benefits:
+  Full Insurance
+  Unlimited Mileage
+  Free Additional Drivers
+  Roadside Assistance
+  24/7 Customer Support
+
+5. Booking form
+- Restyle the Home booking form to be compact and premium.
+- Do NOT change validation, navigation, pickup/dropoff, date/time, location, or search behavior.
+- Search button text remains:
+  Search Vehicles
+
+6. Trust cards
+- Add Trustpilot and Google cards below the booking form.
+- Use only:
+  Trustpilot: Excellent, 4.6 / 5
+  Google: Excellent, 4.7 / 5
+- No review counts.
+- No widgets/scripts.
+- No aggregateRating schema.
+
+7. Location/service cards
+- Add compact premium cards below trust cards:
+  - Tbilisi Airport → /car-rental-tbilisi
+  - Kutaisi Airport → /car-rental-kutaisi
+  - Batumi Airport → /car-rental-batumi
+  - City Delivery → /locations
+- Use dark-glass/icon cards, no invented photos.
+- Keep them visually close to the reference screenshot.
+
+8. Unsupported stats
+- Remove unsupported stats:
+  - 15,000+ customers
+  - 250+ vehicles
+  - any similar unsupported large claims
+- Keep only:
+  10+ years of car rental experience
+
+9. Footer
+- Remove Footer Trustpilot/Google rating row because trust cards are now below the booking form.
+- Restructure Footer into compact useful columns.
+- About Us must remain available in Footer.
+- Use only existing real routes and existing real contact info.
+- Do not invent phone numbers, emails, social links, or fake anchors.
+- If 6 columns feel visually cramped, you may adjust to a more balanced compact grid, but keep the footer horizontally balanced and not vertically stretched.
+
+10. Chatbot
+- Keep public chatbot disabled.
+- Do not delete chatbot code.
+- Do not change ENABLE_PUBLIC_CHATBOT to true.
+
+11. Design quality
+- Follow the reference screenshot closely.
+- Keep dark premium Tbilisicars style.
+- Use brand red only as accent.
+- Do not overuse red backgrounds.
+- Keep hero image visible and impressive.
+- Maintain strong text contrast.
+- Use premium dark-glass cards with subtle borders.
+- Keep spacing compact and balanced.
+- Mobile must remain clean and readable.
+
+12. Build/checks
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- build result
+- confirmation no CRM/API/DB/migrations changed
+- confirmation no booking/pricing/availability/payment/accounting/Google Ads/SEO schema changed
+- confirmation chatbot remains disabled
+- any visual or technical limitation discovered

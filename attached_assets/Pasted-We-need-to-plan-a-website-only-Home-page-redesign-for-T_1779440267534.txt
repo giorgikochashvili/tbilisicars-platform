@@ -1,0 +1,153 @@
+We need to plan a website-only Home page redesign for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the existing code and return a safe implementation plan.
+
+Attached files:
+1) Reference screenshot showing the desired Home page visual direction/layout.
+   - Use this screenshot ONLY as a design/layout reference.
+   - Do NOT place this screenshot on the website.
+   - Do NOT bake header/text/forms/cards/footer into an image.
+   - The final website must be built with real React/HTML/CSS components.
+
+2) Final hero background image asset.
+   - This is the only image that should be used as the actual Home hero background.
+   - Please place/reference it as a website asset, preferably under:
+     artifacts/website/public/images/home-hero-georgia-road.png
+     or if converted safely:
+     artifacts/website/public/images/home-hero-georgia-road.webp
+
+Goal:
+Rebuild the public website Home page hero/layout according to the approved visual direction, using the final uploaded hero background image asset.
+
+Approved visual direction:
+- Dark premium car rental website hero.
+- Background image: realistic Georgia mountain road, dark SUV/RAV4-style car on the right, church/monastery and mountain scenery.
+- Left side must remain readable with dark gradient overlay.
+- UI/text must be real HTML/CSS/React components, not part of the image.
+- Header should be simplified.
+- Hero should be car-rental-focused.
+- Booking form should be compact and polished, similar to the reference screenshot.
+- Trustpilot and Google rating cards should appear below the booking form.
+- Location/service cards can remain/refine below trust cards if safe and already present or easy to implement cleanly.
+- Footer should become compact and not vertically stretched.
+
+Strict scope:
+- Website only.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / metadata unless absolutely necessary.
+- Do NOT re-enable the chatbot.
+- Do NOT add fake review counts.
+- Do NOT add Trustpilot/Google widgets/scripts.
+- Do NOT add aggregateRating schema.
+- Do NOT use unsupported claims like 15,000 customers or 250 vehicles.
+- Do NOT broadly refactor unrelated website pages.
+
+Header changes:
+- Remove Home from the visible header navigation.
+- Remove About Us from the visible header navigation.
+- Logo should link to the homepage.
+- Header visible nav order should be:
+  Fleet → Locations → Services → Terms & Conditions
+- Keep Login and Book Now on the right.
+- Keep styling consistent with existing dark/red Tbilisicars design.
+
+Hero copy:
+Use a shorter, stronger commercial headline:
+
+Rent a Car in Georgia
+
+Subheadline:
+Tbilisi, Kutaisi & Batumi airports · No prepayment · Transparent prices
+
+Experience/trust line:
+10+ years of car rental experience
+
+Benefits row:
+- Full Insurance
+- Unlimited Mileage
+- Free Additional Drivers
+- Roadside Assistance
+- 24/7 Customer Support
+
+Booking form:
+- Make the Home booking form more compact and polished, inspired by the reference screenshot.
+- Keep the existing booking functionality intact.
+- Do NOT change booking search behavior.
+- Do NOT change route/navigation behavior.
+- Do NOT change pickup/dropoff/date/time business logic.
+- Only adjust layout/styling where safe.
+- Search button text remains:
+  Search Vehicles
+
+Trust cards:
+Place Trustpilot and Google cards below the booking form.
+Use only current real values:
+- Trustpilot: Excellent, 4.6 / 5
+- Google: Excellent, 4.7 / 5
+No review counts.
+No embedded widgets/scripts.
+No aggregateRating schema.
+
+Stats:
+Remove/hide unsupported large stat cards:
+- 15,000+ customers
+- 250+ vehicles
+- any similar unsupported large claims
+Keep only:
+- 10+ years of car rental experience
+
+Footer:
+Plan compact footer refinement if needed:
+- Footer should not feel vertically stretched.
+- About Us should be available in Footer, not main header.
+- Keep useful navigation links, city links, legal links, and contact info.
+- Do not duplicate large Trustpilot/Google cards in Footer if they are now placed below the booking form.
+- Keep footer horizontally balanced and compact on desktop.
+- Keep mobile footer readable.
+
+Image handling:
+- Use the final uploaded hero image as a website asset.
+- Prefer responsive handling:
+  - desktop: background-cover / object-cover
+  - dark gradient overlay for left-side readability
+  - bottom fade into the page background
+  - mobile crop/position so the text and car do not conflict
+- If converting PNG to WebP is safe and already supported in the environment, mention it in the plan.
+- Do not introduce heavy image tooling unless already available.
+- Do not use the reference screenshot as a website asset.
+
+Chatbot:
+- Public chatbot is currently intentionally disabled.
+- Keep it disabled.
+- Do not delete chatbot code.
+- Do not change the chatbot flag except to preserve disabled behavior.
+
+Likely files:
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/Header.tsx or Navbar component
+- artifacts/website/src/components/Footer.tsx
+- artifacts/website/src/components/ChatbotWidget.tsx only if needed to confirm disabled state, but do not re-enable
+- public image asset path under artifacts/website/public/images/
+
+Checks to plan:
+Run:
+PORT=3000 BASE_PATH=/ pnpm --filter @workspace/website build
+
+Return in your Plan response:
+1. Exact files you plan to change.
+2. Where the uploaded hero background image will be placed/referenced.
+3. Whether the Home booking form can be restyled safely without changing logic.
+4. How you will handle desktop and mobile responsiveness.
+5. How you will keep the chatbot disabled.
+6. How you will remove unsupported stats without affecting other pages.
+7. Whether Footer trust cards will be removed or replaced now that trust cards move under booking form.
+8. Any risks or limitations.
+9. Confirm no CRM/API/DB/booking/pricing/payment/accounting/Google Ads tracking changes.
+10. Do NOT edit files until Build approval.

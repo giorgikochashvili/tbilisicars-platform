@@ -1,0 +1,225 @@
+We need to clarify and update the Home page redesign plan before Build approval.
+
+This is a live production system. Do NOT edit files yet. First inspect the current code again if needed and return an updated safe implementation plan.
+
+Attached files:
+1) Reference screenshot showing the desired Home page layout/design.
+   - Use this screenshot ONLY as a visual/layout reference.
+   - Do NOT place this screenshot on the website.
+   - Do NOT bake header/text/forms/cards/footer into an image.
+   - The final Home page must be built with real React/HTML/CSS components.
+
+2) Final hero background image.
+   - Use this image as the actual Home hero background.
+   - Place/reference it as a website asset, preferably:
+     artifacts/website/public/images/home-hero-georgia-road.png
+     or if safely converted:
+     artifacts/website/public/images/home-hero-georgia-road.webp
+
+Important clarification:
+The reference screenshot is not only for the hero background. We want the Home page to visually follow this reference more closely, while still using real React/HTML/CSS components and keeping all business logic safe.
+
+Goal:
+Create a premium, modern, car-rental-focused Home page similar to the attached reference screenshot:
+- simplified header
+- strong dark hero with Georgia road/SUV background
+- left-side commercial headline
+- compact booking form
+- Trustpilot/Google cards below the booking form
+- compact location/service cards below trust cards
+- compact premium footer
+
+Strict scope:
+- Website only.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable the chatbot.
+- Do NOT add fake review counts.
+- Do NOT add Trustpilot/Google widgets/scripts.
+- Do NOT add aggregateRating schema.
+- Do NOT use unsupported claims like 15,000 customers or 250 vehicles.
+- Do NOT broadly refactor unrelated website pages.
+- Do NOT use the reference screenshot as a website asset.
+
+1. Header requirements:
+- Remove Home from the visible header navigation.
+- Remove About Us from the visible header navigation.
+- Logo must continue linking to homepage.
+- Visible header nav order:
+  Fleet → Locations → Services → Terms & Conditions
+- Keep Login and Book Now on the right.
+- Keep styling consistent with the Tbilisicars dark/red brand design.
+- Header should feel clean, premium and not overcrowded.
+
+2. Hero layout requirements:
+- Use the final uploaded hero background image as the actual hero visual.
+- Keep text on the left and the car/background visible on the right.
+- Use a dark gradient overlay so the text remains highly readable.
+- Use a bottom fade into the page background.
+- Do not hide the car or Georgia scenery too much with overlays.
+- The layout should visually follow the attached reference screenshot.
+
+Hero headline:
+Rent a Car in Georgia
+
+Hero subheadline:
+Tbilisi, Kutaisi & Batumi airports · No prepayment · Transparent prices
+
+Experience/trust line:
+10+ years of car rental experience
+
+Benefits row:
+- Full Insurance
+- Unlimited Mileage
+- Free Additional Drivers
+- Roadside Assistance
+- 24/7 Customer Support
+
+3. Booking form requirements:
+- Make the Home booking form visually closer to the reference screenshot:
+  compact, polished, premium, not too tall.
+- Keep the existing booking functionality intact.
+- Do NOT change:
+  - validation logic
+  - route/navigation logic
+  - pickup/dropoff logic
+  - date/time logic
+  - location selection logic
+  - search behavior
+- Only adjust layout/styling where safe.
+- Search button text remains:
+  Search Vehicles
+
+4. Trust cards requirements:
+- Place Trustpilot and Google cards below the booking form.
+- Use only real current values:
+  Trustpilot: Excellent, 4.6 / 5
+  Google: Excellent, 4.7 / 5
+- No review counts.
+- No embedded widgets/scripts.
+- No aggregateRating schema.
+- Cards should look premium and compact, similar to the reference.
+- They should not visually overload the hero.
+
+5. Location/service cards below trust cards:
+Add or refine a compact row below the trust cards, similar to the reference screenshot.
+
+Cards:
+- Tbilisi Airport
+- Kutaisi Airport
+- Batumi Airport
+- City Delivery
+
+Suggested short subtitles:
+- Tbilisi Airport — Easy airport pickup
+- Kutaisi Airport — Airport and city service
+- Batumi Airport — Airport and city service
+- City Delivery — Hotel and address delivery by arrangement
+
+Important:
+- Do not invent fake images if no safe images exist.
+- If image cards need assets and no suitable assets exist, use the safest fallback:
+  dark gradient/glass cards with icons or existing safe website assets.
+- Do not add fake location claims.
+- Do not use the reference screenshot as an asset.
+- Cards should be visually premium, compact and balanced.
+- Cards may link to /locations or relevant existing city/location routes only if those routes already exist safely.
+
+6. Unsupported stats:
+Remove/hide unsupported large stat cards:
+- 15,000+ customers
+- 250+ vehicles
+- any similar unsupported large claims
+
+Keep only:
+- 10+ years of car rental experience
+
+If the current Home page has an animated counter/stat strip, remove it only if it is local to Home and has no side effects.
+
+7. Footer requirements:
+Make the Footer closer to the compact reference style while preserving useful information.
+
+Footer should include:
+- Brand block
+- Company: About Us, Contact Us
+- Fleet: All Vehicles, SUVs, Sedans, Vans if these links exist or can safely point to /fleet
+- Services: Car Rental Services, Airport & City Service, Chauffeur Service or safe existing services anchors/page
+- Help: Terms & Conditions, Privacy Policy
+- Contact Us: use only correct current contact info already existing in the Footer/codebase
+
+Important:
+- Do not invent phone numbers.
+- Do not invent emails.
+- Do not add fake social icons.
+- Do not add social links unless real links already exist.
+- Do not duplicate large Trustpilot/Google cards in Footer if they are now under the booking form.
+- Footer should not feel vertically stretched.
+- Footer should sit balanced horizontally/compactly on desktop.
+- Footer must remain readable on mobile.
+
+8. Design quality requirements:
+- The final Home page should visually follow the attached reference screenshot closely.
+- Keep the Tbilisicars dark premium style, but make the page feel richer, more modern, and clearly car-rental focused.
+- Use the brand red color only as an accent:
+  buttons, small badges, icons, active states.
+- Do not overuse red backgrounds or make the page visually heavy.
+- The hero image should remain visible and impressive, especially the vehicle and Georgia scenery.
+- Text must remain highly readable with clean dark overlays.
+- Cards should feel premium:
+  subtle borders, soft shadows, transparent/dark glass effect where appropriate.
+- Spacing should be balanced and compact, not stretched vertically.
+- Desktop layout should feel wide, premium and polished.
+- Mobile layout must remain clean, readable and not overcrowded.
+- Avoid generic template-looking sections.
+- Avoid low-contrast grey text.
+- Avoid fake claims, fake ratings, fake review counts, fake social links, or invented contacts.
+
+9. Image handling:
+- Use the final uploaded hero image as a website asset.
+- Prefer responsive handling:
+  - desktop: background-cover / object-cover
+  - dark gradient overlay for left-side readability
+  - bottom fade into the page background
+  - mobile crop/position so the text and car do not conflict
+- If converting PNG to WebP is safe and already supported in the environment, mention it in the plan.
+- Do not introduce heavy image tooling unless already available.
+- Do not use the reference screenshot as a website asset.
+
+10. Chatbot:
+- Public chatbot is currently intentionally disabled.
+- Keep it disabled.
+- Do not delete chatbot code.
+- Do not change ENABLE_PUBLIC_CHATBOT to true.
+
+Likely files:
+- artifacts/website/public/images/home-hero-georgia-road.png or .webp
+- artifacts/website/src/pages/Home.tsx
+- artifacts/website/src/components/Header.tsx or Navbar component
+- artifacts/website/src/components/Footer.tsx
+- artifacts/website/src/components/ChatbotWidget.tsx only if needed to confirm disabled state, but do not re-enable
+
+Checks to plan:
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in your updated Plan response:
+1. Exact files you plan to change.
+2. Where the uploaded hero background image will be placed/referenced.
+3. Whether the Home booking form can be restyled safely without changing logic.
+4. Whether location/service cards can be implemented safely now.
+5. Whether Footer links are real existing routes or placeholders.
+6. How you will preserve premium visual quality and avoid overusing red.
+7. How you will handle desktop and mobile responsiveness.
+8. How you will keep the chatbot disabled.
+9. How you will remove unsupported stats without affecting other pages.
+10. Whether Footer trust cards will be removed now that trust cards move under booking form.
+11. Any missing assets, risks, or limitations.
+12. Confirm no CRM/API/DB/booking/pricing/payment/accounting/Google Ads tracking/SEO schema changes.
+13. Do NOT edit files until Build approval.

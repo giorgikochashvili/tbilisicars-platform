@@ -4,12 +4,10 @@ import { Menu, X, ChevronDown, User, Shield, LogOut, Bookmark } from "lucide-rea
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const NAV_LINKS = [
-  { label: "Home", href: "/" },
   { label: "Fleet", href: "/fleet" },
-  { label: "About Us", href: "/about" },
-  { label: "Terms & Conditions", href: "/terms" },
   { label: "Locations", href: "/locations" },
   { label: "Services", href: "/services" },
+  { label: "Terms & Conditions", href: "/terms" },
 ];
 
 interface CustomerMe {
@@ -64,11 +62,9 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50">
-      {/* Main nav */}
       <div className="bg-[hsl(211,55%,8%)] border-b border-border shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <Link href="/" className="flex items-center gap-3 shrink-0">
               <img
                 src="/tbilisi-logo.png"
@@ -82,7 +78,6 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-1">
               {NAV_LINKS.map((link) => (
                 <Link
@@ -100,9 +95,7 @@ export default function Header() {
               ))}
             </nav>
 
-            {/* Book Now CTA + account dropdown + mobile burger */}
             <div className="flex items-center gap-3">
-              {/* Account dropdown (desktop) */}
               <div className="relative hidden sm:block" ref={loginMenuRef}>
                 <button
                   onClick={() => setLoginOpen((v) => !v)}
@@ -188,7 +181,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile drawer */}
         {open && (
           <div className="lg:hidden border-t border-border bg-[hsl(211,55%,8%)]">
             <nav className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
@@ -216,7 +208,6 @@ export default function Header() {
                 Book Now
               </Link>
 
-              {/* Mobile account options */}
               <div className="border-t border-border/60 mt-1 pt-1 flex flex-col gap-1">
                 {loggedIn ? (
                   <>
