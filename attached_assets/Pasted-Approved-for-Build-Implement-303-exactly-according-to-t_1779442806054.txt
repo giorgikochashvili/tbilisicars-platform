@@ -1,0 +1,75 @@
+Approved for Build.
+
+Implement #303 exactly according to the plan, with these final clarifications:
+
+1. Scope remains strict
+- Prefer touching only artifacts/website/src/pages/Home.tsx.
+- Header/Footer should not be touched unless absolutely necessary for a tiny responsive visual fix.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking logic, validation, routing, pickup/dropoff/date/time/location business logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT replace the hero image asset.
+- Do NOT use the reference screenshot as a website asset.
+- Do NOT add fake review counts or aggregateRating schema.
+
+2. Booking form
+- Make the desktop booking form visually close to the attached reference screenshot:
+  compact horizontal dark-glass bar, low height, subtle dividers, action column on the right.
+- Keep all state variables, handlers, refs, validation, navigation and search behavior completely untouched.
+- Only change layout/classes/styling.
+- If DateTimePicker/SearchButton components do not support an exact visual split without logic changes, do NOT modify their logic. Use safe wrapper styling only.
+- If 768px tablet width is too tight for a true single-row layout, prioritize a clean responsive tablet layout over forcing a cramped row. Desktop wide screens should be single-row; tablet/mobile must remain clean and usable.
+
+3. Hero image
+- Do not change the image asset.
+- Adjust only objectPosition/layout/spacing so the SUV and Georgia scenery look more natural and less covered by the booking form.
+- Preserve natural aspect ratio; no stretching/distortion.
+
+4. Trust cards
+- Make them more premium and legible.
+- Use only:
+  Trustpilot: Excellent, 4.6 / 5
+  Google: Excellent, 4.7 / 5
+- No review counts, no scripts, no widgets.
+
+5. Location cards
+- Refine premium dark-glass style as planned.
+- No invented photos.
+- No fake claims.
+- Keep existing safe routes.
+
+6. Mobile responsiveness is mandatory
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Acceptance:
+- no horizontal overflow
+- hero text readable
+- image crop not awkward
+- booking form fully usable
+- date/time fields tappable
+- checkbox readable
+- Search Vehicles button visible/tappable
+- trust cards and location cards wrap cleanly
+- footer remains readable
+- no overlap between elements
+
+7. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- what hero positioning changes were made
+- what booking form layout changes were made
+- what trust/location card visual changes were made
+- mobile widths checked and result
+- build result
+- confirmation no business logic or non-website files changed

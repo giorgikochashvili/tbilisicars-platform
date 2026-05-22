@@ -377,7 +377,7 @@ export default function Home() {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          style={{ objectPosition: "65% center" }}
+          style={{ objectPosition: "68% center" }}
           draggable={false}
         />
 
@@ -437,13 +437,14 @@ export default function Home() {
           </div>
 
           {/* Booking Widget */}
-          <div
-            className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl text-left max-w-3xl"
-          >
-            {/* Location row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left max-w-3xl">
+
+            {/* Main bar — stacked on mobile/tablet, single row on lg+ */}
+            <div className="flex flex-col lg:flex-row lg:items-stretch divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+
+              {/* Pickup Location */}
+              <div className="flex-1 min-w-0 p-4 lg:p-3">
+                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Location
                 </label>
                 <LocationSelect
@@ -465,47 +466,9 @@ export default function Home() {
                 )}
               </div>
 
-              {!sameLocation && (
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
-                    Return Location
-                  </label>
-                  <LocationSelect
-                    value={dropoffLocationId}
-                    onChange={handleDropoffChange}
-                    options={visibleLocations}
-                    placeholder="Select location…"
-                  />
-                  {dropoffIsDowntown && (
-                    <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
-                      <input
-                        type="checkbox"
-                        checked={dropoffDelivery}
-                        onChange={(e) => setDropoffDelivery(e.target.checked)}
-                        className="w-4 h-4 rounded border-border accent-primary"
-                      />
-                      <span className="text-xs text-muted-foreground">Delivery Service</span>
-                    </label>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Same location checkbox */}
-            <label className="flex items-center gap-2 mb-3 cursor-pointer w-fit">
-              <input
-                type="checkbox"
-                checked={sameLocation}
-                onChange={(e) => setSameLocation(e.target.checked)}
-                className="w-4 h-4 rounded border-border accent-primary"
-              />
-              <span className="text-sm text-muted-foreground">Return to same location</span>
-            </label>
-
-            {/* Date row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+              {/* Pickup Date & Time */}
+              <div className="flex-1 min-w-0 p-4 lg:p-3">
+                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Pickup Date &amp; Time
                 </label>
                 <DateTimePicker
@@ -516,8 +479,10 @@ export default function Home() {
                   onDone={() => dropoffPickerRef.current?.openPicker()}
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+
+              {/* Return Date & Time */}
+              <div className="flex-1 min-w-0 p-4 lg:p-3">
+                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
                   Return Date &amp; Time
                 </label>
                 <DateTimePicker
@@ -528,13 +493,51 @@ export default function Home() {
                   placeholder="Select return date & time"
                 />
               </div>
+
+              {/* Action column: checkbox + search */}
+              <div className="shrink-0 lg:w-52 p-4 lg:p-3 flex flex-col justify-center gap-2.5">
+                <label className="flex items-center gap-1.5 cursor-pointer w-fit">
+                  <input
+                    type="checkbox"
+                    checked={sameLocation}
+                    onChange={(e) => setSameLocation(e.target.checked)}
+                    className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                  />
+                  <span className="text-xs text-muted-foreground leading-tight">Return to same location</span>
+                </label>
+                <SearchButton onValidate={validateSearch} onSearch={navigateToBooking} />
+              </div>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive mb-3">{error}</p>
+            {/* Return Location — expanded row when sameLocation=false */}
+            {!sameLocation && (
+              <div className="p-4 lg:px-3 lg:py-3 border-t border-white/10">
+                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  Return Location
+                </label>
+                <LocationSelect
+                  value={dropoffLocationId}
+                  onChange={handleDropoffChange}
+                  options={visibleLocations}
+                  placeholder="Select location…"
+                />
+                {dropoffIsDowntown && (
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={dropoffDelivery}
+                      onChange={(e) => setDropoffDelivery(e.target.checked)}
+                      className="w-4 h-4 rounded border-border accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground">Delivery Service</span>
+                  </label>
+                )}
+              </div>
             )}
 
-            <SearchButton onValidate={validateSearch} onSearch={navigateToBooking} />
+            {error && (
+              <p className="px-4 pb-3 text-sm text-destructive">{error}</p>
+            )}
           </div>
 
           {/* Trust cards — Trustpilot & Google */}
@@ -545,17 +548,15 @@ export default function Home() {
                 href={r.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-3 hover:bg-black/60 hover:border-white/20 transition-colors backdrop-blur-sm"
+                className="flex items-center gap-3.5 bg-black/40 border border-white/10 rounded-xl px-5 py-4 hover:bg-black/60 hover:border-white/20 transition-colors backdrop-blur-sm"
               >
-                <span className={`text-base font-bold leading-none select-none ${r.markColor}`}>
+                <span className={`text-xl font-bold leading-none select-none ${r.markColor}`}>
                   {r.brandMark}
                 </span>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-white">{r.platform}</span>
-                    <span className={`text-[10px] leading-none ${r.starColor}`}>★★★★★</span>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                  <div className="text-sm font-semibold text-white mb-0.5">{r.platform}</div>
+                  <div className={`text-sm leading-none mb-1 ${r.starColor}`}>★★★★★</div>
+                  <div className="text-xs text-muted-foreground">
                     <span className="font-semibold text-white/80">{r.rating}</span>
                     {" · "}{r.descriptor}
                   </div>
@@ -570,9 +571,11 @@ export default function Home() {
               <Link
                 key={card.href + card.label}
                 href={card.href}
-                className="group flex items-start gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 hover:bg-black/55 hover:border-white/22 transition-colors backdrop-blur-sm"
+                className="group flex items-start gap-3 bg-white/[0.07] border border-white/10 rounded-xl px-4 py-3.5 hover:bg-white/[0.10] hover:border-primary/25 transition-colors backdrop-blur-sm"
               >
-                <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5 group-hover:text-primary/80 transition-colors" />
+                <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-primary group-hover:text-primary/80 transition-colors" />
+                </div>
                 <div>
                   <div className="text-sm font-semibold text-white leading-tight">{card.label}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{card.sub}</div>
