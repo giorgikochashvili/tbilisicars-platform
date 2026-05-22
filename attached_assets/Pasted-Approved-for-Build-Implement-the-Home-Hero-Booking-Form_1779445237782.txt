@@ -1,0 +1,120 @@
+Approved for Build.
+
+Implement the Home Hero & Booking Form Visual Polish v3 exactly according to the plan, with these final clarifications:
+
+1. Scope
+- Change only artifacts/website/src/pages/Home.tsx if possible.
+- Do NOT change Header/Footer unless absolutely required.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change validation.
+- Do NOT change routing/search behavior.
+- Do NOT change pickup/dropoff/date/time/location business logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT replace the hero image asset.
+- Do NOT use reference screenshots as website assets.
+- Do NOT add fake review counts or fake claims.
+
+2. Hero structure
+- Move Trustpilot/Google cards and Explore Georgia/location cards out of the hero into a new section immediately below the hero, as planned.
+- Hero should contain only:
+  - headline/subheadline
+  - 10+ years line
+  - benefits strip
+  - booking form
+- This should reduce hero visual height and make the background image look natural, wide and cinematic.
+- Keep SUV, road, mountain and church visible.
+- Do not distort the image.
+
+3. Booking form
+- Make the booking bar wide and premium across the content width.
+- Move “Return to same location” into the Pickup Location section.
+- It must NOT remain in the action/search column.
+- Search action column should contain only Search Vehicles.
+- Keep Search Vehicles on one line.
+- If Return to same location is unchecked, Return Location appears as a clean second row/expanded section below the main bar.
+- Do not change any booking state, handlers, refs, validation or navigation logic.
+
+4. Dropdown behavior
+- Implement LocationSelect dropdown portal only to prevent clipping and make the dropdown appear as a proper floating panel.
+- Keep all LocationSelect value/onChange/group/location logic unchanged.
+- Dropdown must not be clipped by the booking bar.
+- z-index/layering must work correctly.
+- It must be usable on desktop and mobile.
+
+5. Benefits strip
+- Place the benefits strip between the hero copy and the booking form so it visually aligns with the booking bar.
+- Exact order:
+  Full Insurance
+  Unlimited Mileage
+  Free Additional Drivers
+  Roadside Assistance
+  24/7 Customer Support
+- Keep icons small, clean and premium.
+
+6. Trust cards below hero
+- Trustpilot/Google cards should be centered, compact, glass-like and slightly transparent.
+- Use only:
+  Trustpilot: 4.6 / 5 · Excellent
+  Google: 4.7 / 5 · Excellent
+- No review counts.
+- No widgets/scripts.
+- No aggregateRating schema.
+- Keep them visually close enough to the hero/booking area, not too far down.
+
+7. Explore Georgia cards
+- Add/keep heading:
+  Explore Georgia with Tbilisicars
+- Use exact card text:
+  Tbilisi Airport — Easy pickup & fast start
+  Kutaisi Airport — Your gateway to the west
+  Batumi Airport — Explore the Black Sea coast
+  City Delivery — We deliver to your location
+- Routes:
+  Tbilisi Airport → /car-rental-tbilisi
+  Kutaisi Airport → /car-rental-kutaisi
+  Batumi Airport → /car-rental-batumi
+  City Delivery → /locations
+- Use premium dark-glass card style.
+- No fake photos.
+- No fake claims.
+
+8. Mobile responsiveness is mandatory
+Check:
+- 360px Android
+- 390px iPhone
+- 412px Android
+- 430px iPhone Pro Max
+- 768px tablet
+
+Acceptance:
+- no horizontal overflow
+- hero text readable
+- image crop natural
+- booking form stacks cleanly
+- Pickup checkbox readable/tappable inside Pickup section
+- dropdown usable and not clipped
+- Search Vehicles visible/tappable
+- Trustpilot/Google cards wrap/stack cleanly
+- Explore Georgia cards wrap/stack cleanly
+- footer readable
+- no overlaps
+
+9. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return:
+- exact files changed
+- hero structure/height changes
+- booking form changes
+- checkbox move confirmation
+- dropdown portal/clipping fix confirmation
+- trust cards/location cards changes
+- desktop preview summary
+- mobile widths checked
+- build result
+- confirmation no business logic or non-website files changed

@@ -1,0 +1,137 @@
+We need a new PLAN before another Home page visual revision.
+
+The current Home redesign is closer, but the Preview still does not match the intended premium reference. Do NOT edit files yet. First return a precise implementation plan.
+
+Current issues from Preview:
+1. The hero background image still feels vertically stretched / unnatural.
+2. The booking tab overlaps/cuts across the vehicle too much.
+3. The booking tab is too narrow and not integrated across the page width like the reference.
+4. The benefits row is not aligned with the booking tab design.
+5. “Return to same location” checkbox is currently in the action/search area, but it must be moved into the Pickup Location section.
+6. Location dropdown behavior/positioning needs to feel like a proper external dropdown panel, not visually trapped inside the field.
+7. Text/field spacing must be more premium and readable.
+
+Important: This is a visual/layout planning task only. Do NOT change files yet.
+
+Design target:
+- Follow the attached reference screenshot more closely.
+- Premium dark car-rental hero.
+- Hero image must look natural, not stretched.
+- Booking bar should be wide, elegant, and integrated into the design.
+- UI must be real React/HTML/CSS, not baked into an image.
+
+Required plan details:
+
+1. Hero image proportion / height
+Plan how to make the hero image look more natural:
+- reduce the visual vertical stretch/depth
+- preserve natural aspect ratio
+- no distortion
+- keep SUV, road, mountain and church visible
+- avoid the booking bar cutting the car awkwardly
+- if needed, adjust min-height, max-height, object-position, object-fit, overlay and content spacing
+
+2. Booking tab placement and width
+Plan how to reposition the booking tab:
+- move it slightly lower if needed
+- make it wider across the content width, closer to the reference screenshot
+- it should feel like a long premium horizontal booking bar
+- it must not cover the vehicle awkwardly
+- keep compact height
+- keep text readable
+- keep the design balanced
+
+3. Benefits row position
+Plan how to place the benefits row so it follows the upper line / top edge of the booking tab visually:
+Exact order:
+- Full Insurance
+- Unlimited Mileage
+- Free Additional Drivers
+- Roadside Assistance
+- 24/7 Customer Support
+
+Requirements:
+- small icons
+- compact spacing
+- clean premium style
+- visually aligned with the booking bar
+- should not feel like a separate bulky section
+
+4. Booking form structure
+Plan the final desktop structure as a long horizontal bar:
+- Pickup Location section
+- Pickup Date & Time section
+- Return Date & Time section
+- Search Vehicles action section
+
+Very important:
+The “Return to same location” checkbox must move into the Pickup Location section.
+It should be visually integrated under or beside the Pickup Location input, cleanly and elegantly.
+It must NOT remain in the action/search column.
+
+If “Return to same location” is unchecked:
+- Return Location should appear as a clean second row or expanded section below the main bar.
+- It must not break the main desktop bar.
+- It must remain usable on mobile.
+
+5. Dropdown behavior
+Plan how to make the Pickup Location dropdown look correct:
+- dropdown list should appear as a proper floating/external panel
+- it should not look visually trapped inside the field
+- z-index/layering must be correct
+- it must not be clipped by the booking bar container
+- it must remain usable on desktop and mobile
+
+6. Field proportions
+Plan how to make all text fit well:
+- Search Vehicles should stay on one line
+- Location/date/time placeholders should not be badly truncated
+- field widths should feel balanced
+- no cramped/cheap-looking layout
+
+7. Mobile responsiveness is mandatory
+Plan checks for:
+- 360px Android
+- 390px iPhone
+- 412px Android
+- 430px iPhone Pro Max
+- 768px tablet
+
+Mobile acceptance:
+- no horizontal overflow
+- hero text readable
+- image crop not awkward
+- booking form stacks cleanly
+- Pickup checkbox readable and tappable inside Pickup section
+- dropdown usable
+- Search Vehicles visible and tappable
+- trust cards and location cards wrap cleanly
+- footer readable
+- no overlaps
+
+Strict scope:
+- Prefer changing only artifacts/website/src/pages/Home.tsx
+- Do NOT change CRM/API/DB/migrations
+- Do NOT change booking logic
+- Do NOT change validation
+- Do NOT change routing/search behavior
+- Do NOT change pickup/dropoff/date/time/location business logic
+- Do NOT change pricing/availability/payment/accounting
+- Do NOT change Google Ads tracking
+- Do NOT change SEO schema / JSON-LD / Helmet metadata
+- Do NOT re-enable chatbot
+- Do NOT replace the hero image asset
+- Do NOT use the reference screenshot as a website asset
+- Do NOT add fake review counts or fake claims
+
+Return:
+1. Exact files you plan to change
+2. Hero image proportion/positioning plan
+3. Booking tab width/placement plan
+4. Exact plan for moving “Return to same location” checkbox into Pickup Location section
+5. Dropdown clipping/z-index plan
+6. Desktop layout plan
+7. Mobile layout plan
+8. Risks or limitations
+9. Confirmation no business logic/non-website changes
+10. Do NOT edit files until Build approval

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
+import ReactDOM from "react-dom";
 import { Helmet } from "react-helmet-async";
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -94,10 +95,10 @@ const HERO_RATING_CARDS = [
 ];
 
 const LOCATION_CARDS = [
-  { label: "Tbilisi Airport", sub: "Easy airport pickup", href: "/car-rental-tbilisi" },
-  { label: "Kutaisi Airport", sub: "Airport and city service", href: "/car-rental-kutaisi" },
-  { label: "Batumi Airport", sub: "Airport and city service", href: "/car-rental-batumi" },
-  { label: "City Delivery", sub: "Hotel and address delivery by arrangement", href: "/locations" },
+  { label: "Tbilisi Airport", sub: "Easy pickup & fast start",       href: "/car-rental-tbilisi" },
+  { label: "Kutaisi Airport", sub: "Your gateway to the west",       href: "/car-rental-kutaisi" },
+  { label: "Batumi Airport",  sub: "Explore the Black Sea coast",    href: "/car-rental-batumi"  },
+  { label: "City Delivery",   sub: "We deliver to your location",    href: "/locations"          },
 ];
 
 const VEHICLE_CATEGORIES = [
@@ -174,14 +175,43 @@ function LocationSelect({
   placeholder: string;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropStyle, setDropStyle] = useState<CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  function openDropdown() {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropH = 260;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow >= dropH ? rect.bottom + 4 : rect.top - dropH - 4;
+    setDropStyle({
+      position: "fixed",
+      top: Math.max(8, top),
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+    setOpen(true);
+  }
+
   useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    function handleDown(e: MouseEvent) {
+      if (
+        !triggerRef.current?.contains(e.target as Node) &&
+        !dropRef.current?.contains(e.target as Node)
+      ) setOpen(false);
     }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, []);
+    function handleScroll() { setOpen(false); }
+    document.addEventListener("mousedown", handleDown);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [open]);
+
   const selected = options.find((o) => String(o.id) === String(value));
   const airports = options.filter((o) => o.name.includes("Airport"));
   const downtowns = options.filter((o) => !o.name.includes("Airport"));
@@ -189,27 +219,18 @@ function LocationSelect({
     ...(airports.length > 0 ? [{ label: "Airports", items: airports }] : []),
     ...(downtowns.length > 0 ? [{ label: "Downtown Offices", items: downtowns }] : []),
   ];
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
-        className={[
-          "w-full flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm text-left transition-all",
-          "focus:outline-none focus:ring-2 focus:ring-primary/60",
-          open ? "border-primary/50" : "border-white/10 hover:border-primary/40",
-        ].join(" ")}
-      >
-        <span className={`flex-1 truncate ${selected ? "text-foreground" : "text-muted-foreground"}`}>
-          {selected ? selected.name : placeholder}
-        </span>
-        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
+
+  const dropdown = open
+    ? ReactDOM.createPortal(
         <div
-          className="absolute z-50 top-full mt-1.5 w-full rounded-xl border border-white/10 shadow-2xl overflow-hidden"
-          style={{ background: "hsl(211,55%,7%)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
+          ref={dropRef}
+          style={{
+            ...dropStyle,
+            background: "hsl(211,55%,7%)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+          }}
+          className="rounded-xl border border-white/10 shadow-2xl overflow-hidden"
         >
           <div className="max-h-56 overflow-y-auto premium-scroll">
             {groups.map(({ label, items }) => (
@@ -235,8 +256,30 @@ function LocationSelect({
               </div>
             ))}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openDropdown())}
+        style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+        className={[
+          "w-full flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm text-left transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-primary/60",
+          open ? "border-primary/50" : "border-white/10 hover:border-primary/40",
+        ].join(" ")}
+      >
+        <span className={`flex-1 truncate ${selected ? "text-foreground" : "text-muted-foreground"}`}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {dropdown}
     </div>
   );
 }
@@ -368,7 +411,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden min-h-[460px] sm:min-h-[570px]"
+        className="relative overflow-hidden min-h-[480px] sm:min-h-[560px]"
         style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
@@ -394,174 +437,187 @@ export default function Home() {
           className="absolute inset-0 pointer-events-none sm:hidden"
           style={{ background: "rgba(5,16,30,0.72)" }}
         />
-        {/* Bottom fade into page */}
+        {/* Bottom fade into continuation section */}
         <div
           className="absolute bottom-0 left-0 right-0 pointer-events-none"
           style={{
-            height: "120px",
+            height: "100px",
             background: "linear-gradient(to top, hsl(211,55%,8%) 0%, transparent 100%)",
           }}
         />
 
-        {/* Content */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-10">
+        {/* Content — flex column so form pins to bottom via mt-auto */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[480px] sm:min-h-[560px]">
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
-          <div className="max-w-xl mb-6">
+          <div className="max-w-xl mb-4">
             <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 leading-[1.1] text-white">
               Rent a Car in Georgia
             </h1>
             <p className="text-base sm:text-lg text-slate-200 mb-3 leading-snug">
               Tbilisi, Kutaisi &amp; Batumi airports · No prepayment · Transparent prices
             </p>
-            <p className="flex items-center gap-2 text-sm font-semibold text-primary mb-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
               <Award className="w-4 h-4 shrink-0" />
               10+ years of car rental experience
             </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              {[
-                { label: "Full Insurance", Icon: Shield },
-                { label: "Unlimited Mileage", Icon: Infinity },
-                { label: "Free Additional Drivers", Icon: Users },
-                { label: "Roadside Assistance", Icon: HeartHandshake },
-                { label: "24/7 Customer Support", Icon: Clock },
-              ].map(({ label, Icon }, idx, arr) => (
-                <span key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">
-                  <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{label}</span>
-                  {idx < arr.length - 1 && (
-                    <span className="hidden sm:inline-block w-px h-3 bg-slate-600/70 ml-1" />
-                  )}
-                </span>
-              ))}
-            </div>
           </div>
 
-          {/* Booking Widget */}
-          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left max-w-4xl">
-
-            {/* Main bar — stacked on mobile/tablet, single row on lg+ */}
-            <div className="flex flex-col lg:flex-row lg:items-stretch divide-y lg:divide-y-0 lg:divide-x divide-white/10">
-
-              {/* Pickup Location */}
-              <div className="flex-1 min-w-0 p-4 lg:p-3">
-                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Pickup Location
-                </label>
-                <LocationSelect
-                  value={pickupLocationId}
-                  onChange={handlePickupChange}
-                  options={visibleLocations}
-                  placeholder="Select location…"
-                />
-                {pickupIsDowntown && (
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
-                    <input
-                      type="checkbox"
-                      checked={pickupDelivery}
-                      onChange={(e) => setPickupDelivery(e.target.checked)}
-                      className="w-4 h-4 rounded border-border accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground">Delivery Service</span>
-                  </label>
+          {/* Benefits strip — visually aligned with top of booking bar */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-4">
+            {[
+              { label: "Full Insurance", Icon: Shield },
+              { label: "Unlimited Mileage", Icon: Infinity },
+              { label: "Free Additional Drivers", Icon: Users },
+              { label: "Roadside Assistance", Icon: HeartHandshake },
+              { label: "24/7 Customer Support", Icon: Clock },
+            ].map(({ label, Icon }, idx, arr) => (
+              <span key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">
+                <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{label}</span>
+                {idx < arr.length - 1 && (
+                  <span className="hidden sm:inline-block w-px h-3 bg-slate-600/70 ml-1" />
                 )}
-              </div>
+              </span>
+            ))}
+          </div>
 
-              {/* Pickup Date & Time */}
-              <div className="flex-1 min-w-0 p-4 lg:p-3">
-                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Pickup Date &amp; Time
-                </label>
-                <DateTimePicker
-                  value={pickupDatetime}
-                  min={minDt}
-                  onChange={setPickupDatetime}
-                  placeholder="Select date & time"
-                  onDone={() => dropoffPickerRef.current?.openPicker()}
-                />
-              </div>
+          {/* Spacer — pushes booking form to bottom, lets hero image show through */}
+          <div className="flex-1" />
 
-              {/* Return Date & Time */}
-              <div className="flex-1 min-w-0 p-4 lg:p-3">
-                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Return Date &amp; Time
-                </label>
-                <DateTimePicker
-                  ref={dropoffPickerRef}
-                  value={dropoffDatetime}
-                  min={pickupDatetime || minDt}
-                  onChange={setDropoffDatetime}
-                  placeholder="Select date & time"
-                />
-              </div>
+          {/* Booking Widget — full width of max-w-5xl content area */}
+          <div className="pb-6 sm:pb-8">
+            <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left">
 
-              {/* Action column: checkbox + search */}
-              <div className="shrink-0 lg:w-52 p-4 lg:p-3 flex flex-col justify-center gap-2.5">
-                <label className="flex items-center gap-1.5 cursor-pointer w-fit">
-                  <input
-                    type="checkbox"
-                    checked={sameLocation}
-                    onChange={(e) => setSameLocation(e.target.checked)}
-                    className="w-4 h-4 rounded border-border accent-primary shrink-0"
+              {/* Main bar — stacked on mobile/tablet, single row on lg+ */}
+              <div className="flex flex-col lg:flex-row lg:items-stretch divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+
+                {/* Pickup Location */}
+                <div className="flex-1 min-w-0 p-4 lg:p-3">
+                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Pickup Location
+                  </label>
+                  <LocationSelect
+                    value={pickupLocationId}
+                    onChange={handlePickupChange}
+                    options={visibleLocations}
+                    placeholder="Select location…"
                   />
-                  <span className="text-xs text-muted-foreground leading-tight">Return to same location</span>
-                </label>
-                <SearchButton
-                  onValidate={validateSearch}
-                  onSearch={navigateToBooking}
-                  className="w-full bg-primary hover:bg-accent text-white font-semibold py-3 px-5 rounded-xl transition-colors text-sm shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
-                />
-              </div>
-            </div>
-
-            {/* Return Location — expanded row when sameLocation=false */}
-            {!sameLocation && (
-              <div className="p-4 lg:px-3 lg:py-3 border-t border-white/10">
-                <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                  Return Location
-                </label>
-                <LocationSelect
-                  value={dropoffLocationId}
-                  onChange={handleDropoffChange}
-                  options={visibleLocations}
-                  placeholder="Select location…"
-                />
-                {dropoffIsDowntown && (
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                  {/* "Return to same location" lives here — moved from action column */}
+                  <label className="flex items-center gap-1.5 mt-2 cursor-pointer w-fit">
                     <input
                       type="checkbox"
-                      checked={dropoffDelivery}
-                      onChange={(e) => setDropoffDelivery(e.target.checked)}
-                      className="w-4 h-4 rounded border-border accent-primary"
+                      checked={sameLocation}
+                      onChange={(e) => setSameLocation(e.target.checked)}
+                      className="w-4 h-4 rounded border-border accent-primary shrink-0"
                     />
-                    <span className="text-xs text-muted-foreground">Delivery Service</span>
+                    <span className="text-xs text-muted-foreground leading-tight">Return to same location</span>
                   </label>
-                )}
+                  {pickupIsDowntown && (
+                    <label className="flex items-center gap-2 mt-1.5 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={pickupDelivery}
+                        onChange={(e) => setPickupDelivery(e.target.checked)}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">Delivery Service</span>
+                    </label>
+                  )}
+                </div>
+
+                {/* Pickup Date & Time */}
+                <div className="flex-1 min-w-0 p-4 lg:p-3">
+                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Pickup Date &amp; Time
+                  </label>
+                  <DateTimePicker
+                    value={pickupDatetime}
+                    min={minDt}
+                    onChange={setPickupDatetime}
+                    placeholder="Select date & time"
+                    onDone={() => dropoffPickerRef.current?.openPicker()}
+                  />
+                </div>
+
+                {/* Return Date & Time */}
+                <div className="flex-1 min-w-0 p-4 lg:p-3">
+                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Return Date &amp; Time
+                  </label>
+                  <DateTimePicker
+                    ref={dropoffPickerRef}
+                    value={dropoffDatetime}
+                    min={pickupDatetime || minDt}
+                    onChange={setDropoffDatetime}
+                    placeholder="Select date & time"
+                  />
+                </div>
+
+                {/* Action column: Search Vehicles only */}
+                <div className="shrink-0 lg:w-52 p-4 lg:p-3 flex flex-col justify-center">
+                  <SearchButton
+                    onValidate={validateSearch}
+                    onSearch={navigateToBooking}
+                    className="w-full bg-primary hover:bg-accent text-white font-semibold py-3 px-5 rounded-xl transition-colors text-sm shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
+                  />
+                </div>
               </div>
-            )}
 
-            {error && (
-              <p className="px-4 pb-3 text-sm text-destructive">{error}</p>
-            )}
+              {/* Return Location — expanded row when sameLocation=false */}
+              {!sameLocation && (
+                <div className="p-4 lg:px-3 lg:py-3 border-t border-white/10">
+                  <label className="block text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                    Return Location
+                  </label>
+                  <LocationSelect
+                    value={dropoffLocationId}
+                    onChange={handleDropoffChange}
+                    options={visibleLocations}
+                    placeholder="Select location…"
+                  />
+                  {dropoffIsDowntown && (
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                      <input
+                        type="checkbox"
+                        checked={dropoffDelivery}
+                        onChange={(e) => setDropoffDelivery(e.target.checked)}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">Delivery Service</span>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <p className="px-4 pb-3 text-sm text-destructive">{error}</p>
+              )}
+            </div>
           </div>
+        </div>
+      </section>
 
-          {/* Trust cards — Trustpilot & Google */}
-          <div className="flex flex-wrap gap-3 mt-4 max-w-4xl">
+      {/* ── Trust cards + Explore Georgia — continuation of dark hero section ── */}
+      <section style={{ background: "hsl(211,55%,8%)" }} className="pb-10">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6">
+
+          {/* Trustpilot & Google — glass-like, centered, compact */}
+          <div className="flex justify-center flex-wrap gap-3 pt-2 pb-7">
             {HERO_RATING_CARDS.map((r) => (
               <a
                 key={r.platform}
                 href={r.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3.5 bg-black/40 border border-white/10 rounded-xl px-5 py-4 hover:bg-black/60 hover:border-white/20 transition-colors backdrop-blur-sm"
+                className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 hover:bg-white/[0.10] hover:border-white/20 transition-colors backdrop-blur-md"
               >
-                <span className={`text-xl font-bold leading-none select-none ${r.markColor}`}>
+                <span className={`text-lg font-bold leading-none select-none ${r.markColor}`}>
                   {r.brandMark}
                 </span>
                 <div>
-                  <div className="text-sm font-semibold text-white mb-0.5">{r.platform}</div>
-                  <div className={`text-sm leading-none mb-1 ${r.starColor}`}>★★★★★</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-sm font-semibold text-white leading-tight">{r.platform}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     <span className="font-semibold text-white/80">{r.rating}</span>
                     {" · "}{r.descriptor}
                   </div>
@@ -570,8 +626,13 @@ export default function Home() {
             ))}
           </div>
 
+          {/* Explore Georgia heading */}
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">
+            Explore Georgia with Tbilisicars
+          </h2>
+
           {/* Location / service cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 max-w-5xl">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {LOCATION_CARDS.map((card) => (
               <Link
                 key={card.href + card.label}
