@@ -19,7 +19,7 @@ const SERVICES = [
     icon: <Shield className="w-6 h-6 text-primary" />,
     title: "Full Insurance & Low Deposit",
     desc: "All vehicles include an insurance package in the price shown on our website. Customers can also choose an additional comprehensive insurance option for extra protection. A low deposit, usually from 100 EUR, is left when picking up the vehicle and returned after the car is brought back, subject to rental conditions.",
-    features: ["Insurance package included in price", "Optional comprehensive upgrade", "Deposit from 100 EUR, returned on return"],
+    features: ["Insurance package included in price", "Optional comprehensive upgrade", "Deposit 100 EUR · Refundable at drop-off"],
   },
   {
     icon: <Infinity className="w-6 h-6 text-primary" />,
