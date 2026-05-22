@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search, Package } from "lucide-react";
+import { Car, Users, Fuel, Settings, ChevronRight, Phone, Search, Package, X } from "lucide-react";
 import { Link } from "wouter";
 
 interface VehicleModel {
@@ -21,7 +21,6 @@ interface VehicleModel {
   vehicle_count: string;
   min_price_per_day: string | null;
   price_currency: string | null;
-  // Discount fields — only present when location + pickup_datetime are provided
   website_discount_id?: number | null;
   website_discount_name?: string | null;
   website_discount_type?: string | null;
@@ -35,6 +34,86 @@ interface BookingConfig {
   vehicleModels: VehicleModel[];
 }
 
+// ── Category ordering ────────────────────────────────────────────────────────
+const CATEGORY_ORDER: Record<string, number> = {
+  "economy": 1,
+  "standard": 2,
+  "intermediate sedan": 2,
+  "intermediate": 2,
+  "standard sedan": 2,
+  "full-size sedan": 3,
+  "fullsize sedan": 3,
+  "full size sedan": 3,
+  "crossover": 4,
+  "intermediate suv": 4,
+  "crossover suv": 4,
+  "full-size suv": 5,
+  "fullsize suv": 5,
+  "full size suv": 5,
+  "suv": 5,
+  "7-seater": 6,
+  "7-seater suv": 6,
+  "seven seater": 6,
+  "7 seater": 6,
+  "van": 7,
+  "minivan": 7,
+  "off-road": 8,
+  "offroad": 8,
+  "off road": 8,
+};
+
+function categoryOrder(cat: string): number {
+  return CATEGORY_ORDER[cat.toLowerCase().trim()] ?? 99;
+}
+
+// ── Category helper text ─────────────────────────────────────────────────────
+const HELPER_GENERAL =
+  "Select a category above to find the right vehicle for your trip. Whether you need an economy car for city travel, an SUV for mountain routes, a 7-seater for group travel, or a van for a larger group, Tbilisicars has options available at Tbilisi, Kutaisi and Batumi.";
+
+const HELPER_MULTI =
+  "Browse the vehicles below to compare options across your selected categories.";
+
+const CATEGORY_HELPERS: Array<{ match: (s: string) => boolean; text: string }> = [
+  {
+    match: (s) => s.includes("economy"),
+    text: "Economy cars are a fuel-efficient and budget-friendly choice for city driving, short trips and everyday travel around Georgia. A practical option if you prefer to keep costs low.",
+  },
+  {
+    match: (s) => s.includes("standard") || (s.includes("intermediate") && !s.includes("suv")),
+    text: "Comfortable everyday cars suitable for city use, airport transfers and medium-distance trips. A balanced choice for most travel in Georgia.",
+  },
+  {
+    match: (s) => s.includes("full") && s.includes("sedan"),
+    text: "Larger sedans with more interior space and comfort. Well suited for longer drives, business travel and relaxed journeys between Georgian cities.",
+  },
+  {
+    match: (s) => s.includes("crossover") || (s.includes("intermediate") && s.includes("suv")),
+    text: "A practical choice for exploring Georgia's varied terrain — mountain roads, countryside routes and mixed road conditions. Offers more ground clearance than a standard sedan.",
+  },
+  {
+    match: (s) => (s.includes("full") && s.includes("suv")) || s === "suv",
+    text: "Spacious and capable vehicles for mountain regions, longer journeys and family travel. Suitable for routes where road conditions may vary.",
+  },
+  {
+    match: (s) => s.includes("7") || s.includes("seven"),
+    text: "An option for families and groups travelling together across Georgia. Provides extra seating while still being suitable for different road types.",
+  },
+  {
+    match: (s) => s.includes("van") || s.includes("minivan"),
+    text: "Comfortable group travel for larger families, teams or groups who need more passenger and luggage capacity.",
+  },
+  {
+    match: (s) => s.includes("off"),
+    text: "Vehicles better suited for difficult routes and remote destinations in Georgia. Note that access to some areas may be subject to road or legal restrictions.",
+  },
+];
+
+function getCategoryHelper(cat: string): string {
+  const lower = cat.toLowerCase().trim();
+  return CATEGORY_HELPERS.find((h) => h.match(lower))?.text ?? HELPER_GENERAL;
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
 async function apiFetch(path: string) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -70,8 +149,10 @@ function fuelLabel(f: string | null) {
   return map[f] ?? f;
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Fleet() {
   const [location, navigate] = useLocation();
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const selectedModelId = useMemo(() => {
     const search = location.includes("?") ? location.slice(location.indexOf("?") + 1) : "";
@@ -86,6 +167,22 @@ export default function Fleet() {
 
   const models = config?.vehicleModels ?? [];
 
+  // Derive unique, sorted categories from real data
+  const uniqueCategories = useMemo(() => {
+    const seen = new Set<string>();
+    models.forEach((m) => { if (m.category) seen.add(m.category); });
+    return Array.from(seen).sort((a, b) => {
+      const diff = categoryOrder(a) - categoryOrder(b);
+      return diff !== 0 ? diff : a.localeCompare(b);
+    });
+  }, [models]);
+
+  // Filtered models based on selection
+  const filteredModels = useMemo(() => {
+    if (selectedCategories.length === 0) return models;
+    return models.filter((m) => m.category && selectedCategories.includes(m.category));
+  }, [models, selectedCategories]);
+
   useEffect(() => {
     if (!selectedModelId || !config) return;
     const t = setTimeout(() => {
@@ -94,9 +191,29 @@ export default function Fleet() {
     return () => clearTimeout(t);
   }, [selectedModelId, config]);
 
+  function toggleCategory(cat: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  }
+
+  function clearCategories() {
+    setSelectedCategories([]);
+  }
+
   function bookVehicle(modelId: number) {
     navigate(`/booking?vehicleModelId=${modelId}`);
   }
+
+  // Helper text logic
+  const helperText =
+    selectedCategories.length === 0
+      ? HELPER_GENERAL
+      : selectedCategories.length === 1
+      ? getCategoryHelper(selectedCategories[0])
+      : HELPER_MULTI;
+
+  const showChips = uniqueCategories.length > 1;
 
   return (
     <div className="min-h-screen py-12 px-4">
@@ -116,17 +233,63 @@ export default function Fleet() {
         <meta name="twitter:image" content="https://tbilisicars.com/opengraph.jpg" />
       </Helmet>
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary/15 border border-primary/25 rounded-full px-4 py-1.5 text-sm text-primary mb-4">
             <Car className="w-4 h-4" />
-            Our Premium Fleet
+            Our Fleet
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Choose Your Perfect Car</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">Choose the Right Car for Your Trip</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Browse our curated selection of premium vehicles, maintained to the highest standards for your journey across Georgia.
+            Browse available rental cars at Tbilisi, Kutaisi and Batumi airports and city locations. Select a category to find the right vehicle for your trip.
           </p>
         </div>
+
+        {/* Category filter chips */}
+        {showChips && !isLoading && !error && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {/* All / Clear chip */}
+              <button
+                onClick={clearCategories}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer ${
+                  selectedCategories.length === 0
+                    ? "bg-primary text-white border-primary"
+                    : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-white"
+                }`}
+              >
+                All Vehicles
+              </button>
+              {uniqueCategories.map((cat) => {
+                const isSelected = selectedCategories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-white"
+                    }`}
+                  >
+                    {cat}
+                    {isSelected && <X className="w-3 h-3 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Category helper text panel */}
+        {showChips && !isLoading && !error && models.length > 0 && (
+          <div className="max-w-3xl mx-auto mb-10">
+            <div className="bg-card border border-border rounded-xl px-5 py-4 text-sm text-muted-foreground leading-relaxed text-center">
+              {helperText}
+            </div>
+          </div>
+        )}
 
         {/* Loading */}
         {isLoading && (
@@ -156,7 +319,7 @@ export default function Fleet() {
           </div>
         )}
 
-        {/* Empty state — professional with actions */}
+        {/* Empty state — no vehicles at all */}
         {!isLoading && !error && models.length === 0 && (
           <div className="max-w-lg mx-auto text-center py-16">
             <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-5">
@@ -188,10 +351,24 @@ export default function Fleet() {
           </div>
         )}
 
+        {/* Empty filtered state */}
+        {!isLoading && !error && models.length > 0 && filteredModels.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground">
+            <Car className="w-10 h-10 mx-auto mb-4 opacity-30" />
+            <p className="mb-4">No vehicles found in the selected categories.</p>
+            <button
+              onClick={clearCategories}
+              className="inline-flex items-center gap-2 bg-primary hover:bg-accent text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              Show All Vehicles
+            </button>
+          </div>
+        )}
+
         {/* Vehicle Grid */}
-        {!isLoading && models.length > 0 && (
+        {!isLoading && filteredModels.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {models.map((m) => {
+            {filteredModels.map((m) => {
               const transmission = transmissionLabel(m.transmission);
               const fuel = fuelLabel(m.fuel_type);
               const originalPrice = m.min_price_per_day ? Number(m.min_price_per_day) : null;
@@ -199,7 +376,6 @@ export default function Fleet() {
               const price = hasDiscount ? m.discounted_min_price_per_day! : originalPrice;
               const currency = m.price_currency ?? "GEL";
               const isOnRequest = Number(m.vehicle_count) === 0;
-
               const isSelected = m.id === selectedModelId;
 
               return (
@@ -303,7 +479,7 @@ export default function Fleet() {
                       </p>
                     )}
 
-                    {/* On-request explanation — always visible */}
+                    {/* On-request explanation */}
                     {isOnRequest && (
                       <div className="mb-3 mt-auto p-3 rounded-xl bg-amber-400/10 border border-amber-400/20">
                         <p className="text-xs text-amber-400/90 leading-relaxed">

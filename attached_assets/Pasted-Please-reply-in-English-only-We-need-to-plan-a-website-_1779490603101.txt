@@ -1,0 +1,170 @@
+Please reply in English only.
+
+We need to plan a website-only Fleet page upgrade for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current Fleet page code and return a safe implementation plan in English.
+
+Goal:
+Improve the public /fleet page so it is more useful for customers, more SEO-aligned, and better for conversion, while staying consistent with the current dark premium website design.
+
+Business goal:
+The Fleet page should help customers quickly understand vehicle categories and choose the right car for their trip in Georgia. This should support more website bookings, not just visual polish.
+
+Strict scope:
+- Website only.
+- Fleet page only unless a tiny shared component/style update is absolutely necessary.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change actual vehicle/model data source.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata unless you only recommend it as a later separate task.
+- Do NOT re-enable chatbot.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT add unsupported claims.
+- Do NOT invent fleet categories.
+- Do NOT add new packages.
+
+Likely file:
+- artifacts/website/src/pages/Fleet.tsx
+
+Current problems to solve:
+1. Remove or soften “Premium” wording from the Fleet page.
+   The company may have premium cars later, but current wording such as “Our Premium Fleet” or “premium vehicles” overstates reality and should be replaced with accurate wording.
+
+2. Add category filter chips/buttons under the Fleet page intro/title.
+   Customers should be able to filter cars by category.
+
+3. Category filters should support:
+   - select one category
+   - select multiple categories
+   - deselect selected categories
+   - clear all / show all
+   - clean visual selected state
+   - mobile-friendly horizontal scroll or wrapping, whichever fits best
+
+4. Category filters must be based on real existing categories from available vehicle/fleet data.
+   Do NOT hardcode fake categories that do not exist.
+   If the current page already receives vehicle category values, use those.
+   If categories need normalization/order mapping, plan it carefully without changing backend data.
+
+Preferred category order:
+Use this approximate business/logical order when those categories exist:
+1. Economy
+2. Standard / Intermediate Sedan
+3. Full-size Sedan
+4. Crossover / Intermediate SUV
+5. Full-size SUV
+6. 7-seater SUV
+7. Van
+8. Off-road
+9. Other existing categories after these
+
+Important:
+Use existing category names from data where needed, but visually order them in a customer-friendly way.
+Do not break existing category labels coming from data.
+
+5. Add SEO/helper text below category filters.
+When a category is selected, show a high-quality explanatory text block for that category.
+
+Behavior:
+- If no category is selected, show a general fleet helper text.
+- If one category is selected, show that category’s specific helper text.
+- If multiple categories are selected, show a concise general comparison text rather than many long paragraphs.
+
+Suggested category helper text direction:
+- Economy:
+  Fuel-efficient and budget-friendly cars for city driving, short trips and affordable travel around Georgia.
+- Standard / Intermediate Sedan:
+  Comfortable everyday cars for city use, airport arrivals and medium-distance trips.
+- Full-size Sedan:
+  More space and comfort for longer drives, business trips and relaxed travel between Georgian cities.
+- Crossover / Intermediate SUV:
+  A practical choice for exploring Georgia’s mountain regions, light adventure routes and mixed road conditions.
+- Full-size SUV:
+  Strong and comfortable vehicles for mountain regions, long journeys and family travel across Georgia.
+- 7-seater SUV:
+  A good option for families and groups of friends travelling together across different regions of Georgia.
+- Van:
+  Comfortable group travel for larger families, teams or friends who need more passenger and luggage space.
+- Off-road:
+  Better suited for difficult routes and remote destinations where stronger capability is important. Do NOT overpromise “without limits” if road/legal restrictions still apply.
+
+Please rewrite these helper texts professionally in natural English.
+Avoid exaggerated claims.
+Keep SEO value but do not keyword-stuff.
+
+6. Keep existing vehicle cards and booking action working.
+The “Book This Car” / vehicle selection flow must continue to work exactly as now.
+Do not change:
+- vehicle card data
+- image logic
+- pricing display logic
+- booking route behavior
+- booking search behavior
+- model/vehicle API calls, if any
+
+7. Visual/design requirements:
+- Keep current dark premium website style.
+- Category chips should look clean, premium and clickable.
+- Selected state should be obvious.
+- Helper text block should look like a polished content panel, not a huge paragraph.
+- Fleet grid/card layout should remain visually stable.
+- Mobile responsiveness is mandatory for Android and iOS.
+- No horizontal overflow.
+- Do not make the page heavy or slow.
+- Avoid heavy animations.
+
+8. SEO / conversion alignment:
+Natural terms to support:
+- car rental fleet Georgia
+- economy car rental Georgia
+- SUV rental Georgia
+- 7-seater car rental Georgia
+- van rental Georgia
+- car rental Tbilisi
+- car rental Kutaisi
+- car rental Batumi
+- car rental for mountain roads Georgia
+
+Do not keyword-stuff.
+Keep content useful for real customers.
+Help customers choose a vehicle category based on trip type.
+
+9. Mobile requirements:
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- category filters usable by touch
+- selected chips visible
+- helper text readable
+- vehicle cards stack/grid cleanly
+- buttons tappable
+- no overlapping elements
+
+10. Build check to include in final implementation later:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan, in English:
+1. Exact files you plan to change.
+2. Current Fleet page structure summary.
+3. Current category data source and how categories are represented.
+4. How you will remove/soften “Premium” wording.
+5. Category filter implementation plan.
+6. Category ordering/normalization plan.
+7. Category helper text plan.
+8. Mobile responsiveness plan.
+9. Risks or limitations.
+10. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services changes.
+11. Do NOT edit files until Build approval.

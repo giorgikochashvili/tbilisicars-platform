@@ -1,0 +1,115 @@
+Please reply in English only.
+
+Approved for Build.
+
+Implement #305 Fleet Page Upgrade according to the plan, with these final clarifications:
+
+1. Scope
+- Change only:
+  artifacts/website/src/pages/Fleet.tsx
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing logic.
+- Do NOT change availability logic.
+- Do NOT change payment/accounting logic.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT change Home page.
+- Do NOT change Services page.
+- Do NOT change Header/Footer.
+- Do NOT add new packages.
+- Do NOT modify actual vehicle/model data source.
+- Do NOT change vehicle card data, image logic, pricing display, or booking action behavior.
+
+2. Copy changes
+- Replace “Our Premium Fleet” with:
+  Our Fleet
+- Replace the current H1 with:
+  Choose the Right Car for Your Trip
+- Replace subtitle with accurate non-exaggerated copy:
+  Browse available rental cars at Tbilisi, Kutaisi and Batumi airports and city locations. Select a category to find the right vehicle for your trip.
+- Remove/avoid “premium vehicles” wording and any wording that overstates reality.
+
+3. Category filters
+- Derive categories only from real loaded vehicle/model data.
+- Do NOT invent categories.
+- Add category chips below the page intro/title and above helper text/grid.
+- Support:
+  - select one
+  - select multiple
+  - deselect
+  - show all / clear all
+- Selected state must be visually obvious.
+- Filtering must be frontend-only.
+- Vehicle cards and booking action behavior must remain unchanged.
+
+4. Category ordering
+Use the planned customer-friendly order map:
+- Economy
+- Standard / Intermediate Sedan
+- Full-size Sedan
+- Crossover / Intermediate SUV
+- Full-size SUV
+- 7-seater SUV
+- Van
+- Off-road
+- Other existing categories after these, alphabetically
+
+Use case-insensitive normalization for ordering/helper lookup.
+Do not alter the displayed category names coming from data unless only visual capitalization is already safe and consistent.
+
+5. Helper text
+- Show a general fleet helper when no category is selected.
+- Show a specific category helper when one category is selected.
+- Show a short multi-category comparison message when 2+ categories are selected.
+- Keep text professional, useful and SEO-aligned.
+- Do not keyword-stuff.
+- Do not overpromise, especially for Off-road vehicles.
+- Off-road helper must mention that some areas may be subject to road or legal restrictions.
+
+6. Empty filtered state
+If no vehicles match selected categories:
+- Show a clean message.
+- Include a “Show All” button to clear selection.
+
+7. Design
+- Keep dark premium style.
+- Chips should be clean, clickable and touch-friendly.
+- Helper text should be a compact polished panel.
+- No heavy animation.
+- No horizontal overflow.
+- Vehicle grid layout must remain stable.
+
+8. Mobile responsiveness is mandatory
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- no horizontal overflow
+- chips usable by touch
+- selected chips visible
+- helper text readable
+- vehicle cards stack/grid cleanly
+- buttons tappable
+- no overlaps
+
+9. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in English:
+- exact files changed
+- copy changes made
+- category data source confirmation
+- filter behavior summary
+- helper text behavior summary
+- mobile widths checked
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Header/Footer changes
