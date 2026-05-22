@@ -420,7 +420,7 @@ export default function Home() {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          style={{ objectPosition: "50% 40%" }}
+          style={{ objectPosition: "60% 45%" }}
           draggable={false}
         />
 
