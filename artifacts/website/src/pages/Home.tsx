@@ -368,8 +368,8 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden"
-        style={{ background: "hsl(211,55%,8%)", minHeight: "600px" }}
+        className="relative overflow-hidden min-h-[460px] sm:min-h-[570px]"
+        style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
         <img
@@ -418,26 +418,27 @@ export default function Home() {
               <Award className="w-4 h-4 shrink-0" />
               10+ years of car rental experience
             </p>
-            <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               {[
-                "Full Insurance",
-                "Unlimited Mileage",
-                "Free Additional Drivers",
-                "Roadside Assistance",
-                "24/7 Customer Support",
-              ].map((item, idx, arr) => (
-                <span key={item} className="flex items-center gap-x-2">
-                  <span>{item}</span>
+                { label: "Full Insurance", Icon: Shield },
+                { label: "Unlimited Mileage", Icon: Infinity },
+                { label: "Free Additional Drivers", Icon: Users },
+                { label: "Roadside Assistance", Icon: HeartHandshake },
+                { label: "24/7 Customer Support", Icon: Clock },
+              ].map(({ label, Icon }, idx, arr) => (
+                <span key={label} className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">
+                  <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{label}</span>
                   {idx < arr.length - 1 && (
-                    <span className="inline-block w-1 h-1 rounded-full bg-red-500 opacity-70 animate-pulse" />
+                    <span className="hidden sm:inline-block w-px h-3 bg-slate-600/70 ml-1" />
                   )}
                 </span>
               ))}
-            </p>
+            </div>
           </div>
 
           {/* Booking Widget */}
-          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left max-w-3xl">
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl text-left max-w-4xl">
 
             {/* Main bar — stacked on mobile/tablet, single row on lg+ */}
             <div className="flex flex-col lg:flex-row lg:items-stretch divide-y lg:divide-y-0 lg:divide-x divide-white/10">
@@ -475,7 +476,7 @@ export default function Home() {
                   value={pickupDatetime}
                   min={minDt}
                   onChange={setPickupDatetime}
-                  placeholder="Select pickup date & time"
+                  placeholder="Select date & time"
                   onDone={() => dropoffPickerRef.current?.openPicker()}
                 />
               </div>
@@ -490,7 +491,7 @@ export default function Home() {
                   value={dropoffDatetime}
                   min={pickupDatetime || minDt}
                   onChange={setDropoffDatetime}
-                  placeholder="Select return date & time"
+                  placeholder="Select date & time"
                 />
               </div>
 
@@ -505,7 +506,11 @@ export default function Home() {
                   />
                   <span className="text-xs text-muted-foreground leading-tight">Return to same location</span>
                 </label>
-                <SearchButton onValidate={validateSearch} onSearch={navigateToBooking} />
+                <SearchButton
+                  onValidate={validateSearch}
+                  onSearch={navigateToBooking}
+                  className="w-full bg-primary hover:bg-accent text-white font-semibold py-3 px-5 rounded-xl transition-colors text-sm shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
+                />
               </div>
             </div>
 
@@ -541,7 +546,7 @@ export default function Home() {
           </div>
 
           {/* Trust cards — Trustpilot & Google */}
-          <div className="flex flex-wrap gap-3 mt-4 max-w-3xl">
+          <div className="flex flex-wrap gap-3 mt-4 max-w-4xl">
             {HERO_RATING_CARDS.map((r) => (
               <a
                 key={r.platform}
