@@ -1,0 +1,139 @@
+Please reply in English only.
+
+We need to plan a website-only image/performance optimization step for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current public website image assets and return a safe implementation plan in English.
+
+Goal:
+Optimize the public website image assets, especially the Home hero image, so the website remains visually high-quality but loads faster on desktop and mobile.
+
+Important:
+This is an image/performance optimization step only.
+Do NOT redesign the Home page.
+Do NOT change website copy/content.
+Do NOT change layout unless a tiny image reference/path adjustment is required.
+
+Business goal:
+Improve mobile loading speed, landing page experience, SEO/Core Web Vitals, and Google Ads landing page quality without reducing visual quality or breaking the approved Home design.
+
+Strict scope:
+- Website only.
+- Public/static image assets only, especially the Home hero image.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT change Home layout/design/copy.
+- Do NOT change Services/Fleet/Locations/Terms content.
+- Do NOT change Header/Footer.
+- Do NOT re-enable chatbot.
+- Do NOT change vehicle upload/storage logic.
+- Do NOT touch CRM-uploaded vehicle images.
+- Do NOT touch PDF/email image logic.
+- Do NOT delete source images unless explicitly approved.
+- Do NOT add new packages unless absolutely necessary and approved.
+
+Likely assets/files to inspect:
+- artifacts/website/public/images/home-hero-georgia-road.png
+- artifacts/website/public/
+- artifacts/website/src/pages/Home.tsx
+- any existing website image assets used on public pages
+
+Plan tasks:
+
+1. Inspect current image assets
+Report:
+- current Home hero image path
+- file size in MB/KB
+- resolution
+- format
+- where it is referenced in code
+- whether mobile currently downloads the same large image as desktop
+
+2. Safe WebP optimization plan
+Check if the environment already has safe built-in tools such as ImageMagick/cwebp available.
+If safe, propose creating an optimized WebP version of the Home hero image, for example:
+- artifacts/website/public/images/home-hero-georgia-road-final.webp
+or
+- artifacts/website/public/images/home-hero-georgia-road.webp
+
+Important:
+- Preserve visual quality.
+- Do not make the image blurry.
+- Keep natural aspect ratio.
+- Do not crop or alter composition.
+- Do not reduce quality too aggressively.
+- Target reasonable quality, around 80–85 if WebP conversion is used.
+- Keep the current PNG source unless explicitly approved to remove it.
+
+3. Home.tsx image reference plan
+If WebP is created, plan how Home.tsx will reference the optimized image.
+Prefer a simple path update only.
+Do not redesign hero.
+Do not change overlay/layout/object-position unless absolutely necessary.
+
+4. Optional mobile image plan
+Evaluate whether we need a separate mobile image.
+If the optimized WebP is already acceptable, do NOT add unnecessary complexity.
+If a separate mobile image is recommended, explain:
+- why it is needed
+- exact filename
+- exact resolution/crop
+- how it would be referenced safely
+- risks
+
+Do not implement mobile-specific image unless explicitly approved later.
+
+5. Other public images
+Briefly inspect other website public image assets and report if any are unusually large.
+Do not optimize everything in this step unless clearly safe.
+Priority is Home hero image only.
+
+6. Cache/path consideration
+If replacing an image at the same path may cause browser cache issues, recommend whether using a new filename is safer.
+Do not change paths blindly.
+Explain the safest option.
+
+7. Quality acceptance
+The optimized image must:
+- look visually the same or nearly the same in Replit Preview
+- preserve the approved Home hero composition
+- not blur the car, road, church, mountains or sunset sky
+- not affect text readability
+- not affect booking form placement
+
+8. Mobile responsiveness
+If any image reference changes are made later, check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Acceptance:
+- no horizontal overflow
+- hero image still crops naturally
+- main visual subject not awkwardly cut
+- text readable
+- booking form usable
+- no overlapping sections
+
+9. Build check to include later:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan, in English:
+1. Exact files/assets inspected.
+2. Current Home hero image size/resolution/format.
+3. Current Home hero reference path in code.
+4. Recommended optimization method.
+5. Proposed new optimized asset filename/path.
+6. Expected file size reduction.
+7. Whether Home.tsx would need a path-only update.
+8. Whether a mobile-specific image is needed or not.
+9. Other large public image findings, if any.
+10. Risks or limitations.
+11. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/layout/content changes.
+12. Do NOT edit files until Build approval.

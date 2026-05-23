@@ -416,7 +416,7 @@ export default function Home() {
       >
         {/* Hero background image */}
         <img
-          src="/images/home-hero-georgia-road.png"
+          src="/images/home-hero-georgia-road.webp"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"

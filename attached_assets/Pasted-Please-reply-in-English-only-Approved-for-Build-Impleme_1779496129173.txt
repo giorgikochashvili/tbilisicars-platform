@@ -1,0 +1,96 @@
+Please reply in English only.
+
+Approved for Build.
+
+Implement #309 Image/Performance Optimization according to the inspection report.
+
+Final constraints:
+
+1. Scope
+- Website only.
+- Optimize only the Home hero image.
+- Create the optimized WebP file:
+  artifacts/website/public/images/home-hero-georgia-road.webp
+- Keep the existing PNG source:
+  artifacts/website/public/images/home-hero-georgia-road.png
+- Update only the Home hero image src reference in:
+  artifacts/website/src/pages/Home.tsx
+
+2. Do NOT change
+- Do NOT change Home layout/design/copy.
+- Do NOT change overlay.
+- Do NOT change objectPosition.
+- Do NOT change hero height.
+- Do NOT change booking form.
+- Do NOT change Services/Fleet/Locations/Terms content.
+- Do NOT change Header/Footer.
+- Do NOT change CRM/API/DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT touch vehicle upload/storage logic.
+- Do NOT touch CRM-uploaded vehicle images.
+- Do NOT touch PDF/email image logic.
+- Do NOT delete the PNG source.
+- Do NOT add new packages.
+
+3. WebP conversion
+Use the available ImageMagick convert tool.
+
+Run:
+convert artifacts/website/public/images/home-hero-georgia-road.png \
+  -quality 83 \
+  -define webp:method=6 \
+  artifacts/website/public/images/home-hero-georgia-road.webp
+
+Requirements:
+- Keep resolution unchanged.
+- No crop.
+- No resize.
+- No composition change.
+- Preserve visual quality.
+- Target quality 83.
+- WebP should visually match the PNG in Preview.
+
+4. Home.tsx reference
+Update only the image src:
+From:
+  /images/home-hero-georgia-road.png
+
+To:
+  /images/home-hero-georgia-road.webp
+
+No other Home.tsx visual/layout changes.
+
+5. Verification
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Check Preview/screenshots:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+- 1440px desktop
+
+Acceptance:
+- no visual regression
+- hero image still looks sharp
+- car/road/church/mountains/sunset quality preserved
+- text readability unchanged
+- booking form placement unchanged
+- no horizontal overflow
+
+6. Return in English:
+- exact files changed
+- generated WebP file size
+- original PNG file size
+- estimated reduction
+- confirmation PNG source kept
+- confirmation only Home.tsx src path changed
+- build result
+- viewport checks completed
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/layout/content changes
