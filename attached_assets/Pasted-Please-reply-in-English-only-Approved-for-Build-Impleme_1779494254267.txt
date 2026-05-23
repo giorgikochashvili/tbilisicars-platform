@@ -1,0 +1,99 @@
+Please reply in English only.
+
+Approved for Build.
+
+Implement #308 Header / Footer Polish according to the plan.
+
+Final constraints:
+
+1. Scope
+- Change only:
+  artifacts/website/src/components/Footer.tsx
+- Do NOT change Header.tsx because it was confirmed correct.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO metadata / JSON-LD.
+- Do NOT re-enable chatbot.
+- Do NOT change Home page.
+- Do NOT change Services page content.
+- Do NOT change Fleet page content.
+- Do NOT change Locations page content.
+- Do NOT change Terms page content.
+- Do NOT add new routes.
+- Do NOT add new packages.
+- Do NOT add social links.
+- Do NOT add fake ratings or unsupported claims.
+
+2. Footer changes
+Make exactly these consistency fixes:
+
+A) Contact / office label
+Change:
+Batumi Office
+To:
+Batumi Airport / City
+
+B) Fleet column
+Replace misleading category links:
+- SUVs → /fleet
+- Sedans → /fleet
+- Vans → /fleet
+
+With only:
+- All Vehicles → /fleet
+- Book a Car → /booking
+
+Reason: Fleet category filters are frontend-only and not URL-addressable, so footer category links would be misleading.
+
+C) Services column
+Replace:
+Additional Services
+With:
+Pickup & Return
+
+Final Services column should be:
+- Car Rental Services → /services
+- Airport & City Service → /services
+- Pickup & Return → /services
+
+3. Keep unchanged
+- Brand column
+- Company column
+- About Us link
+- Contact Us link
+- city page links
+- Help / Legal links
+- copyright bar
+- email
+- layout/grid structure
+- design style
+
+4. Mobile responsiveness
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Must pass:
+- no horizontal overflow
+- footer columns stack cleanly
+- footer links readable/tappable
+- no overlapping elements
+
+5. Build
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in English:
+- exact files changed
+- confirmation Header.tsx was not changed
+- footer copy/link changes made
+- mobile widths checked
+- build result
+- confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Locations/Terms changes

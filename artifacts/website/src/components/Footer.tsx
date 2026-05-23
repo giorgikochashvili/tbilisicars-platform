@@ -4,7 +4,7 @@ import { Phone, Mail, MapPin } from "lucide-react";
 const OFFICES = [
   { city: "Tbilisi Airport", phone: "+995 557 37 63 63" },
   { city: "Kutaisi Airport", phone: "+995 595 28 66 00" },
-  { city: "Batumi Office", phone: "+995 557 37 63 63" },
+  { city: "Batumi Airport / City", phone: "+995 557 37 63 63" },
 ];
 
 export default function Footer() {
@@ -58,9 +58,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {[
                 { label: "All Vehicles", href: "/fleet" },
-                { label: "SUVs", href: "/fleet" },
-                { label: "Sedans", href: "/fleet" },
-                { label: "Vans", href: "/fleet" },
+                { label: "Book a Car", href: "/booking" },
               ].map((l, i) => (
                 <li key={i}>
                   <Link href={l.href} className="text-xs text-muted-foreground hover:text-white transition-colors">
@@ -78,7 +76,7 @@ export default function Footer() {
               {[
                 { label: "Car Rental Services", href: "/services" },
                 { label: "Airport & City Service", href: "/services" },
-                { label: "Additional Services", href: "/services" },
+                { label: "Pickup & Return", href: "/services" },
               ].map((l, i) => (
                 <li key={i}>
                   <Link href={l.href} className="text-xs text-muted-foreground hover:text-white transition-colors">

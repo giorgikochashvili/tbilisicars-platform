@@ -1,0 +1,126 @@
+Please reply in English only.
+
+We need to plan a website-only Header/Footer final polish for TBILISICARS CRM&WEB.
+
+This is a live production system. Do NOT edit files yet. First inspect the current Header and Footer code and return a safe implementation plan in English.
+
+Goal:
+Check and, only if needed, lightly polish the public website Header and Footer so navigation, internal links, contact information, mobile layout and overall consistency are clean after the recent Home, Services, Fleet, Locations and Terms page updates.
+
+Important:
+This is a final consistency/polish step, not a redesign.
+If Header/Footer are already correct, report that no changes are needed.
+
+Strict scope:
+- Website only.
+- Header/Footer only, unless a tiny shared style/component adjustment is absolutely necessary.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT change Home page content/hero.
+- Do NOT change Services page.
+- Do NOT change Fleet page.
+- Do NOT change Locations page.
+- Do NOT change Terms page.
+- Do NOT re-enable chatbot.
+- Do NOT add new packages.
+- Do NOT add fake social links.
+- Do NOT invent contact information.
+- Do NOT add unsupported claims or fake review counts.
+
+Likely files:
+- artifacts/website/src/components/Header.tsx
+- artifacts/website/src/components/Footer.tsx
+
+Header current expected direction:
+- Home should NOT appear in visible navigation.
+- Logo should link to the homepage.
+- About Us should NOT appear in the main Header navigation.
+- Visible navigation order should be:
+  Fleet → Locations → Services → Terms & Conditions
+- Login should remain on the right.
+- Book Now should remain on the right and link to the booking flow.
+- Mobile menu should work cleanly.
+- Header should not be visually overcrowded.
+
+Header plan should verify:
+1. Current navigation order.
+2. Logo homepage link.
+3. Book Now route.
+4. Login behavior unchanged.
+5. Mobile menu behavior.
+6. Whether any polish is needed.
+
+Footer current expected direction:
+- Footer should be compact and useful, not vertically stretched.
+- About Us should be available in the Footer.
+- Contact Us should be available in the Footer.
+- City links should be present and correct:
+  /car-rental-tbilisi
+  /car-rental-kutaisi
+  /car-rental-batumi
+- Legal links should be present and correct:
+  /terms
+  /privacy
+- Fleet / Services / Locations links should be useful and point only to real existing routes.
+- Contact info must come only from existing current code / verified existing footer content.
+- Do NOT invent phone numbers, emails, or social links.
+- Do NOT add fake social icons.
+- Do NOT add fake ratings or review counts.
+- Footer should be mobile readable and compact.
+
+Footer plan should verify:
+1. Current footer columns/structure.
+2. Existing contact info.
+3. Existing route links.
+4. Whether Trustpilot/Google rating cards still appear in Footer.
+5. Whether Footer duplicates Home hero trust cards too heavily.
+6. Whether About Us exists in Footer.
+7. Whether mobile layout is clean.
+8. Whether any polish is needed.
+
+Design requirements:
+- Keep current dark premium Tbilisicars style.
+- Header and Footer should feel consistent with the updated Home/Services/Fleet/Locations/Terms pages.
+- Keep spacing balanced and compact.
+- Avoid heavy animations.
+- Avoid adding new visual elements unless needed.
+- Mobile responsiveness is mandatory for Android and iOS.
+
+Mobile requirements:
+Check:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Mobile acceptance:
+- no horizontal overflow
+- Header menu opens and closes cleanly
+- navigation links tappable
+- Book Now tappable
+- Footer columns stack cleanly
+- footer links readable/tappable
+- no overlapping elements
+
+Build check to include later:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Return in Plan, in English:
+1. Exact files inspected.
+2. Exact files you plan to change, if any.
+3. Current Header structure summary.
+4. Current Footer structure summary.
+5. Route/link verification.
+6. Contact info verification.
+7. Whether Trustpilot/Google cards remain in Footer and recommendation.
+8. Proposed polish changes, if any.
+9. Mobile responsiveness plan.
+10. Risks or limitations.
+11. Confirmation no CRM/API/DB/booking/pricing/payment/accounting/Google Ads/chatbot/Home/Services/Fleet/Locations/Terms content changes.
+12. Do NOT edit files until Build approval.
