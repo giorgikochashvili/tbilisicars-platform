@@ -1,17 +1,17 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ChevronLeft, ChevronRight, GanttChart, AlertTriangle,
-  Car, MapPin, Calendar, Info,
+  ChevronLeft, ChevronRight, ChevronDown, GanttChart, AlertTriangle,
+  Car, MapPin, Calendar,
 } from "lucide-react";
-import VehicleDetail from "./VehicleDetail";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import VehicleDetail from "./VehicleDetail";
+import BookingDetail from "./BookingDetail";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,8 @@ interface Booking {
   status: BookingStatus;
   pickupDate: string;
   dropoffDate: string;
+  pickupDateTime?: string;   // full ISO — for hour-aware overdue logic
+  dropoffDateTime?: string;  // full ISO — for hour-aware overdue logic
   customerName: string;
 }
 
@@ -32,6 +34,8 @@ interface Vehicle {
   plate: string;
   status: VehicleStatus | null;
   city: string | null;
+  modelId?: number | null;    // new — for model grouping
+  modelName?: string | null;  // new — for compact label + group header
   bookings: Booking[];
 }
 
@@ -40,20 +44,17 @@ interface CalendarData {
   dateRange: { start: string; end: string };
 }
 
+interface ModelGroup {
+  key: string;
+  modelName: string;
+  vehicles: Vehicle[];
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DAY_PX = 44; // width of each day column in pixels
-const LABEL_WIDTH_DESKTOP = 220; // vehicle label column width on desktop
-const LABEL_WIDTH_MOBILE = 120; // vehicle label column width on mobile
-
-const STATUS_COLORS: Record<BookingStatus, { bar: string; text: string }> = {
-  PENDING: { bar: "bg-yellow-500/80 hover:bg-yellow-500 border-yellow-600/50", text: "text-yellow-950" },
-  CONFIRMED: { bar: "bg-emerald-500/80 hover:bg-emerald-500 border-emerald-600/50", text: "text-emerald-950" },
-  DELIVERED: { bar: "bg-blue-500/80 hover:bg-blue-500 border-blue-600/50", text: "text-blue-950" },
-  RETURNED: { bar: "bg-slate-400/60 hover:bg-slate-400 border-slate-500/50", text: "text-slate-900" },
-  CANCELED: { bar: "bg-red-500/70 hover:bg-red-500 border-red-600/50 line-through", text: "text-red-950" },
-  NO_SHOW: { bar: "bg-orange-500/70 hover:bg-orange-500 border-orange-600/50", text: "text-orange-950" },
-};
+const DAY_PX = 44;
+const LABEL_WIDTH_DESKTOP = 220;
+const LABEL_WIDTH_MOBILE = 120;
 
 const VEHICLE_STATUS_COLORS: Record<VehicleStatus, string> = {
   AVAILABLE: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -91,6 +92,141 @@ function formatDayOfWeek(date: Date): string {
   return date.toLocaleDateString("en-GB", { weekday: "short" });
 }
 
+// ── Pure display helpers ──────────────────────────────────────────────────────
+
+/** Natural sort for license plates — TT-002 sorts before TT-010 */
+function naturalSort(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+}
+
+/** True if booking's date range intersects [rangeStart, rangeEnd] */
+function isBookingVisible(booking: Booking, rangeStart: Date, rangeEnd: Date): boolean {
+  const pickup = parseDate(booking.pickupDate);
+  const dropoff = parseDate(booking.dropoffDate);
+  return pickup <= rangeEnd && dropoff >= rangeStart;
+}
+
+/** Earliest visible pickup date across a vehicle's bookings (for within-group sorting) */
+function earliestVisibleStart(bookings: Booking[], rangeStart: Date, rangeEnd: Date): Date {
+  const visible = bookings.filter((b) => isBookingVisible(b, rangeStart, rangeEnd));
+  if (visible.length === 0) return new Date(8640000000000000);
+  return visible.reduce((min, b) => {
+    const d = parseDate(b.pickupDate);
+    return d < min ? d : min;
+  }, parseDate(visible[0]!.pickupDate));
+}
+
+/**
+ * Display-only: true if PENDING/CONFIRMED booking is 4+ hours past its pickup datetime.
+ * Does NOT modify any data — read-only computation for bar color only.
+ */
+function isPickupOverdue(booking: Booking, now: Date): boolean {
+  if (booking.status !== "PENDING" && booking.status !== "CONFIRMED") return false;
+  const ref = booking.pickupDateTime
+    ? new Date(booking.pickupDateTime)
+    : parseDate(booking.pickupDate);
+  return now.getTime() - ref.getTime() > 4 * 3_600_000;
+}
+
+/**
+ * Display-only: true if DELIVERED booking is 4+ hours past its dropoff datetime.
+ * Does NOT modify any data — read-only computation for bar color only.
+ */
+function isDropoffOverdue(booking: Booking, now: Date): boolean {
+  if (booking.status !== "DELIVERED") return false;
+  const ref = booking.dropoffDateTime
+    ? new Date(booking.dropoffDateTime)
+    : parseDate(booking.dropoffDate);
+  return now.getTime() - ref.getTime() > 4 * 3_600_000;
+}
+
+/** Returns Tailwind classes for a booking bar based on status + overdue state. Pure/display-only. */
+function getBookingColors(
+  booking: Booking,
+  now: Date,
+): { bar: string; text: string; dashed: boolean } {
+  const s = booking.status;
+
+  if (s === "RETURNED") {
+    return {
+      bar: "bg-slate-400/50 hover:bg-slate-400/70 border-slate-500/40",
+      text: "text-slate-200",
+      dashed: false,
+    };
+  }
+
+  if (s === "CANCELED" || s === "NO_SHOW") {
+    // Muted + dashed — NOT red
+    return {
+      bar: "bg-slate-600/25 hover:bg-slate-600/35 border-slate-500/40 opacity-50",
+      text: "text-slate-400",
+      dashed: true,
+    };
+  }
+
+  if (s === "DELIVERED") {
+    if (isDropoffOverdue(booking, now)) {
+      return {
+        bar: "bg-red-600/80 hover:bg-red-600 border-red-700/50",
+        text: "text-red-100",
+        dashed: false,
+      };
+    }
+    return {
+      bar: "bg-emerald-500/80 hover:bg-emerald-500 border-emerald-600/50",
+      text: "text-emerald-950",
+      dashed: false,
+    };
+  }
+
+  // PENDING or CONFIRMED
+  if (isPickupOverdue(booking, now)) {
+    return {
+      bar: "bg-red-600/80 hover:bg-red-600 border-red-700/50",
+      text: "text-red-100",
+      dashed: false,
+    };
+  }
+  return {
+    bar: "bg-blue-500/80 hover:bg-blue-500 border-blue-600/50",
+    text: "text-blue-950",
+    dashed: false,
+  };
+}
+
+/** Build model groups from flat vehicle list, sorted and with vehicles sorted within. */
+function buildModelGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): ModelGroup[] {
+  const map = new Map<string, ModelGroup>();
+
+  for (const v of vehicles) {
+    // Stable key: modelId-based for known models, vehicle-id for ungrouped
+    const key = v.modelId != null ? `m_${v.modelId}` : `u_${v.id}`;
+    const name = v.modelName || v.label || "Unknown";
+    if (!map.has(key)) map.set(key, { key, modelName: name, vehicles: [] });
+    map.get(key)!.vehicles.push(v);
+  }
+
+  // Sort vehicles within each group: booked first (by earliest visible start), then natural plate sort
+  for (const g of map.values()) {
+    g.vehicles.sort((a, b) => {
+      const aVis = a.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
+      const bVis = b.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
+      if (aVis && !bVis) return -1;
+      if (!aVis && bVis) return 1;
+      if (aVis && bVis) {
+        return (
+          earliestVisibleStart(a.bookings, rangeStart, rangeEnd).getTime() -
+          earliestVisibleStart(b.bookings, rangeStart, rangeEnd).getTime()
+        );
+      }
+      return naturalSort(a.plate || String(a.id), b.plate || String(b.id));
+    });
+  }
+
+  // Sort groups alphabetically by model name
+  return [...map.values()].sort((a, b) => a.modelName.localeCompare(b.modelName));
+}
+
 // ── API fetch ─────────────────────────────────────────────────────────────────
 
 async function fetchCalendar(startDate: string, endDate: string, city: string): Promise<CalendarData> {
@@ -101,13 +237,12 @@ async function fetchCalendar(startDate: string, endDate: string, city: string): 
   return res.json();
 }
 
-// ── Conflict detection ────────────────────────────────────────────────────────
+// ── Conflict detection (unchanged) ───────────────────────────────────────────
 
 function hasConflict(bookings: Booking[]): boolean {
   if (bookings.length < 2) return false;
   const sorted = [...bookings].sort((a, b) => a.pickupDate.localeCompare(b.pickupDate));
   for (let i = 0; i < sorted.length - 1; i++) {
-    // If current booking dropoff >= next booking pickup → overlap
     if (sorted[i]!.dropoffDate >= sorted[i + 1]!.pickupDate) return true;
   }
   return false;
@@ -125,20 +260,25 @@ function isBookingInConflict(target: Booking, bookings: Booking[]): boolean {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function FleetCalendarPage() {
-  const [, navigate] = useLocation();
+  // Dialog state — label click opens VehicleDetail, bar click opens BookingDetail
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
+  const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
+
+  // Collapsed model group keys (local UI state only — not persisted)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Responsive label width
   const [labelWidth, setLabelWidth] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP
+    typeof window !== "undefined" && window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP,
   );
   useEffect(() => {
-    const update = () => setLabelWidth(window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP);
+    const update = () =>
+      setLabelWidth(window.innerWidth < 768 ? LABEL_WIDTH_MOBILE : LABEL_WIDTH_DESKTOP);
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Default: today to today + 13 (14 days)
+  // Default: start 3 days before today (unchanged)
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => toDateStr(today), [today]);
 
@@ -150,7 +290,6 @@ export default function FleetCalendarPage() {
   const startStr = toDateStr(rangeStart);
   const endStr = toDateStr(rangeEnd);
 
-  // Build array of dates in visible range
   const dates = useMemo(() => {
     const arr: Date[] = [];
     for (let i = 0; i < rangeSize; i++) arr.push(addDays(rangeStart, i));
@@ -165,18 +304,32 @@ export default function FleetCalendarPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Navigation
+  // Navigation (unchanged)
   const goBack = () => setRangeStart((d) => addDays(d, -rangeSize));
   const goForward = () => setRangeStart((d) => addDays(d, rangeSize));
   const goToday = () => setRangeStart(today);
 
-  // Compute today column index
   const todayIdx = useMemo(() => {
     const diff = diffDays(rangeStart, today);
     return diff >= 0 && diff < rangeSize ? diff : -1;
   }, [rangeStart, today, rangeSize]);
 
-  // Booking bar positioning within range
+  // Build model groups whenever data or range changes
+  const modelGroups = useMemo(
+    () => (data ? buildModelGroups(data.vehicles, rangeStart, rangeEnd) : []),
+    [data, rangeStart, rangeEnd],
+  );
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Booking bar geometry — clipped to visible range (unchanged math)
   function bookingBar(booking: Booking) {
     const pickupDate = parseDate(booking.pickupDate);
     const dropoffDate = parseDate(booking.dropoffDate);
@@ -189,6 +342,9 @@ export default function FleetCalendarPage() {
 
   const totalGridWidth = rangeSize * DAY_PX;
   const LABEL_WIDTH = labelWidth;
+
+  // Computed once per render for overdue checks (display-only)
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-500 h-full">
@@ -203,9 +359,8 @@ export default function FleetCalendarPage() {
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Controls — unchanged */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* City filter */}
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger className="w-[148px] h-9 text-sm">
               <MapPin className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
@@ -219,8 +374,7 @@ export default function FleetCalendarPage() {
             </SelectContent>
           </Select>
 
-          {/* Range picker */}
-          <Select value={String(rangeSize)} onValueChange={(v) => setRangeSize(Number(v) as any)}>
+          <Select value={String(rangeSize)} onValueChange={(v) => setRangeSize(Number(v) as 7 | 14 | 30)}>
             <SelectTrigger className="w-[108px] h-9 text-sm">
               <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
@@ -232,7 +386,6 @@ export default function FleetCalendarPage() {
             </SelectContent>
           </Select>
 
-          {/* Date navigation */}
           <div className="flex items-center gap-1 border border-border/50 rounded-lg p-0.5 bg-card/60">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goBack}>
               <ChevronLeft className="w-4 h-4" />
@@ -258,16 +411,19 @@ export default function FleetCalendarPage() {
 
       {/* ── Legend ── */}
       <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-xs text-muted-foreground font-medium">Status:</span>
-        {(Object.keys(STATUS_COLORS) as BookingStatus[]).map((s) => (
-          <span
-            key={s}
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${STATUS_COLORS[s].bar} ${STATUS_COLORS[s].text}`}
-          >
-            {s}
+        <span className="text-xs text-muted-foreground font-medium">Colors:</span>
+        {[
+          { label: "Scheduled", cls: "bg-blue-500/80 border-blue-600/50 text-blue-950" },
+          { label: "Active", cls: "bg-emerald-500/80 border-emerald-600/50 text-emerald-950" },
+          { label: "Overdue (4h+)", cls: "bg-red-600/80 border-red-700/50 text-red-100" },
+          { label: "Returned", cls: "bg-slate-400/50 border-slate-500/40 text-slate-200" },
+          { label: "Canceled / No-show", cls: "bg-slate-600/25 border-dashed border-slate-500/40 text-slate-400 opacity-60" },
+        ].map(({ label, cls }) => (
+          <span key={label} className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${cls}`}>
+            {label}
           </span>
         ))}
-        <span className="ml-2 flex items-center gap-1 text-[10px] text-muted-foreground border border-orange-500/40 bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded">
+        <span className="ml-2 flex items-center gap-1 text-[10px] border border-orange-500/40 bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded">
           <AlertTriangle className="w-3 h-3" /> Conflict
         </span>
       </div>
@@ -295,16 +451,14 @@ export default function FleetCalendarPage() {
           </div>
         ) : (
           <div className="overflow-auto" ref={scrollRef}>
-            {/* Sticky outer wrapper */}
             <div style={{ minWidth: LABEL_WIDTH + totalGridWidth + 24 }}>
-              {/* ── Date header row ── */}
+
+              {/* ── Date header row (unchanged) ── */}
               <div className="flex sticky top-0 z-20 bg-card border-b border-border/40 shadow-sm">
-                {/* Empty vehicle label area — sticky left so corner stays fixed during horizontal scroll */}
                 <div
                   className="flex-shrink-0 border-r border-border/40 bg-card sticky left-0 z-30"
                   style={{ width: LABEL_WIDTH }}
                 />
-                {/* Date columns header */}
                 <div className="flex" style={{ width: totalGridWidth }}>
                   {dates.map((d, i) => {
                     const isToday = toDateStr(d) === todayStr;
@@ -331,146 +485,194 @@ export default function FleetCalendarPage() {
                 </div>
               </div>
 
-              {/* ── Vehicle rows ── */}
-              {data.vehicles.map((vehicle) => {
-                const rowHasConflict = hasConflict(vehicle.bookings);
+              {/* ── Model groups ── */}
+              {modelGroups.map((group) => {
+                const isCollapsed = collapsedGroups.has(group.key);
+                const visibleBookedCount = group.vehicles.filter((v) =>
+                  v.bookings.some((b) => isBookingVisible(b, rangeStart, rangeEnd)),
+                ).length;
+
                 return (
-                  <div
-                    key={vehicle.id}
-                    className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group
-                      ${rowHasConflict ? "bg-orange-500/5" : ""}`}
-                  >
-                    {/* Vehicle label — sticky left, mobile-compact or desktop-full */}
+                  <div key={group.key}>
+                    {/* Group header row — click to collapse/expand */}
                     <div
-                      className="flex-shrink-0 flex flex-col justify-center px-2 py-2 border-r border-border/30 gap-0.5 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors group/label"
-                      style={{ width: LABEL_WIDTH }}
-                      onClick={() => setDetailVehicleId(vehicle.id)}
-                      title="Open vehicle detail"
+                      className="flex border-b border-border/30 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
+                      onClick={() => toggleGroup(group.key)}
                     >
-                      {/* Plate — always prominent */}
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className="text-xs font-mono font-bold text-foreground truncate flex-1">
-                          {vehicle.plate}
+                      {/* Sticky label */}
+                      <div
+                        className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-muted/25 sticky left-0 z-10"
+                        style={{ width: LABEL_WIDTH }}
+                      >
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform duration-150 ${isCollapsed ? "-rotate-90" : ""}`}
+                        />
+                        <span className="text-xs font-semibold text-foreground truncate flex-1">
+                          {group.modelName}
                         </span>
-                        {rowHasConflict && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p className="text-xs">Booking conflict detected</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        <Info className="w-2.5 h-2.5 text-muted-foreground/30 group-hover/label:text-primary/60 flex-shrink-0 transition-colors" />
+                        <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 tabular-nums whitespace-nowrap">
+                          {group.vehicles.length}
+                          {visibleBookedCount > 0 && (
+                            <span className="text-primary/70"> · {visibleBookedCount}↑</span>
+                          )}
+                        </span>
                       </div>
-                      {/* Model — secondary, truncated */}
-                      <span className="text-[10px] text-muted-foreground truncate leading-tight">
-                        {vehicle.label}
-                      </span>
-                      {/* Status + city — only on desktop (hidden when label is too narrow) */}
-                      {LABEL_WIDTH > 160 && (
-                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                          {vehicle.status && (
-                            <Badge
-                              variant="outline"
-                              className={`text-[9px] h-4 px-1 py-0 ${VEHICLE_STATUS_COLORS[vehicle.status]}`}
-                            >
-                              {vehicle.status}
-                            </Badge>
-                          )}
-                          {vehicle.city && (
-                            <span className="text-[9px] text-muted-foreground/70">{vehicle.city}</span>
-                          )}
-                        </div>
-                      )}
+                      {/* Grid lines in header */}
+                      <div className="flex-shrink-0 relative" style={{ width: totalGridWidth, height: 32 }}>
+                        {dates.map((d, i) => {
+                          const isToday = toDateStr(d) === todayStr;
+                          const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                          return (
+                            <div
+                              key={i}
+                              className={`absolute top-0 bottom-0 border-r border-border/10 ${isToday ? "bg-primary/5" : isWeekend ? "bg-muted/10" : ""}`}
+                              style={{ left: i * DAY_PX, width: DAY_PX }}
+                            />
+                          );
+                        })}
+                        {todayIdx >= 0 && (
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-primary/25 pointer-events-none"
+                            style={{ left: todayIdx * DAY_PX + DAY_PX / 2 - 1 }}
+                          />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Timeline area */}
-                    <div
-                      className="relative flex-shrink-0"
-                      style={{ width: totalGridWidth, height: 60 }}
-                    >
-                      {/* Day grid lines + today highlight */}
-                      {dates.map((d, i) => {
-                        const isToday = toDateStr(d) === todayStr;
-                        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                    {/* Vehicle rows — hidden when group is collapsed */}
+                    {!isCollapsed &&
+                      group.vehicles.map((vehicle) => {
+                        const rowHasConflict = hasConflict(vehicle.bookings);
+                        // Compact label: "RAV4 AA-123-BB" (model name + plate)
+                        const compactLabel = `${vehicle.modelName || vehicle.label} ${vehicle.plate || vehicle.id}`.trim();
+
                         return (
                           <div
-                            key={i}
-                            className={`absolute top-0 bottom-0 border-r border-border/15
-                              ${isToday ? "bg-primary/8" : isWeekend ? "bg-muted/15" : ""}`}
-                            style={{ left: i * DAY_PX, width: DAY_PX }}
-                          />
-                        );
-                      })}
-
-                      {/* Today vertical line */}
-                      {todayIdx >= 0 && (
-                        <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-primary/40 z-10 pointer-events-none"
-                          style={{ left: todayIdx * DAY_PX + DAY_PX / 2 - 1 }}
-                        />
-                      )}
-
-                      {/* Booking bars */}
-                      {vehicle.bookings.map((booking) => {
-                        const { left, width } = bookingBar(booking);
-                        if (width <= 0) return null;
-                        const colors = STATUS_COLORS[booking.status] ?? STATUS_COLORS.PENDING;
-                        const inConflict = isBookingInConflict(booking, vehicle.bookings);
-
-                        return (
-                          <Tooltip key={booking.id}>
-                            <TooltipTrigger asChild>
-                              <button
-                                className={`absolute top-1/2 -translate-y-1/2 rounded border text-[10px] font-semibold
-                                  truncate px-1.5 flex items-center gap-1 cursor-pointer transition-all
-                                  ${colors.bar} ${colors.text}
-                                  ${inConflict ? "ring-2 ring-orange-400/70 ring-offset-0" : ""}
-                                  hover:z-20 hover:shadow-md`}
-                                style={{
-                                  left: left + 2,
-                                  width: Math.max(width - 4, 8),
-                                  height: 28,
-                                }}
-                                onClick={() => navigate("/bookings")}
-                              >
-                                {inConflict && <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" />}
-                                <span className="truncate">
-                                  #{booking.id} {booking.customerName}
+                            key={vehicle.id}
+                            className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group ${rowHasConflict ? "bg-orange-500/5" : ""}`}
+                          >
+                            {/* Vehicle label — sticky left, click opens VehicleDetail */}
+                            <div
+                              className="flex-shrink-0 flex flex-col justify-center px-2 py-2 border-r border-border/30 gap-0.5 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors"
+                              style={{ width: LABEL_WIDTH }}
+                              onClick={() => setDetailVehicleId(vehicle.id)}
+                              title="Open vehicle detail"
+                            >
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-[11px] font-mono font-semibold text-foreground truncate flex-1">
+                                  {compactLabel}
                                 </span>
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[220px]">
-                              <div className="text-xs space-y-0.5">
-                                <div className="font-bold">Booking #{booking.id}</div>
-                                <div>{booking.customerName}</div>
-                                <div className="text-muted-foreground">
-                                  {booking.pickupDate} → {booking.dropoffDate}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span
-                                    className={`inline-block w-2 h-2 rounded-full ${colors.bar.split(" ")[0]}`}
-                                  />
-                                  {booking.status}
-                                  {inConflict && (
-                                    <span className="text-orange-400 font-bold ml-1">⚠ CONFLICT</span>
+                                {rowHasConflict && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                      <p className="text-xs">Booking conflict detected</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                              {LABEL_WIDTH > 160 && vehicle.status && (
+                                <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[9px] h-4 px-1 py-0 ${VEHICLE_STATUS_COLORS[vehicle.status]}`}
+                                  >
+                                    {vehicle.status}
+                                  </Badge>
+                                  {vehicle.city && (
+                                    <span className="text-[9px] text-muted-foreground/70">{vehicle.city}</span>
                                   )}
                                 </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+                              )}
+                            </div>
+
+                            {/* Timeline area */}
+                            <div
+                              className="relative flex-shrink-0"
+                              style={{ width: totalGridWidth, height: 60 }}
+                            >
+                              {/* Day grid lines + today/weekend highlight (unchanged) */}
+                              {dates.map((d, i) => {
+                                const isToday = toDateStr(d) === todayStr;
+                                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                                return (
+                                  <div
+                                    key={i}
+                                    className={`absolute top-0 bottom-0 border-r border-border/15 ${isToday ? "bg-primary/8" : isWeekend ? "bg-muted/15" : ""}`}
+                                    style={{ left: i * DAY_PX, width: DAY_PX }}
+                                  />
+                                );
+                              })}
+
+                              {/* Today vertical line (unchanged) */}
+                              {todayIdx >= 0 && (
+                                <div
+                                  className="absolute top-0 bottom-0 w-0.5 bg-primary/40 z-10 pointer-events-none"
+                                  style={{ left: todayIdx * DAY_PX + DAY_PX / 2 - 1 }}
+                                />
+                              )}
+
+                              {/* Booking bars — click opens BookingDetail */}
+                              {vehicle.bookings.map((booking) => {
+                                const { left, width } = bookingBar(booking);
+                                if (width <= 0) return null;
+                                const { bar, text, dashed } = getBookingColors(booking, now);
+                                const inConflict = isBookingInConflict(booking, vehicle.bookings);
+
+                                return (
+                                  <Tooltip key={booking.id}>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        className={`absolute top-1/2 -translate-y-1/2 rounded border text-[10px] font-semibold
+                                          truncate px-1.5 flex items-center gap-1 cursor-pointer transition-all
+                                          ${bar} ${text}
+                                          ${dashed ? "border-dashed" : ""}
+                                          ${inConflict ? "ring-2 ring-orange-400/70 ring-offset-0" : ""}
+                                          hover:z-20 hover:shadow-md`}
+                                        style={{
+                                          left: left + 2,
+                                          width: Math.max(width - 4, 8),
+                                          height: 28,
+                                        }}
+                                        onClick={() => setDetailBookingId(booking.id)}
+                                      >
+                                        {inConflict && <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" />}
+                                        <span className="truncate">
+                                          #{booking.id} {booking.customerName}
+                                        </span>
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[220px]">
+                                      <div className="text-xs space-y-0.5">
+                                        <div className="font-bold">Booking #{booking.id}</div>
+                                        <div>{booking.customerName}</div>
+                                        <div className="text-muted-foreground">
+                                          {booking.pickupDate} → {booking.dropoffDate}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <span className={`inline-block w-2 h-2 rounded-full ${bar.split(" ")[0]}`} />
+                                          {booking.status}
+                                          {inConflict && (
+                                            <span className="text-orange-400 font-bold ml-1">⚠ CONFLICT</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              })}
+
+                              {vehicle.bookings.length === 0 && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <span className="text-[10px] text-muted-foreground/30 italic">no bookings</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         );
                       })}
-
-                      {/* Empty state for vehicle with no bookings */}
-                      {vehicle.bookings.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-[10px] text-muted-foreground/30 italic">no bookings</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 );
               })}
@@ -481,11 +683,14 @@ export default function FleetCalendarPage() {
 
       {/* ── Footer summary ── */}
       {data && !isLoading && (
-        <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground px-1">
           <span>{data.vehicles.length} vehicle{data.vehicles.length !== 1 ? "s" : ""}</span>
           <span>·</span>
+          <span>{modelGroups.length} model{modelGroups.length !== 1 ? "s" : ""}</span>
+          <span>·</span>
           <span>
-            {data.vehicles.reduce((acc, v) => acc + v.bookings.length, 0)} booking{data.vehicles.reduce((acc, v) => acc + v.bookings.length, 0) !== 1 ? "s" : ""} in range
+            {data.vehicles.reduce((acc, v) => acc + v.bookings.length, 0)} booking
+            {data.vehicles.reduce((acc, v) => acc + v.bookings.length, 0) !== 1 ? "s" : ""} in range
           </span>
           <span>·</span>
           <span>{startStr} → {endStr}</span>
@@ -501,10 +706,18 @@ export default function FleetCalendarPage() {
         </div>
       )}
 
+      {/* Vehicle detail — label click (unchanged) */}
       <VehicleDetail
         vehicleId={detailVehicleId}
         open={detailVehicleId !== null}
         onClose={() => setDetailVehicleId(null)}
+      />
+
+      {/* Booking detail — bar click (new) */}
+      <BookingDetail
+        bookingId={detailBookingId}
+        open={detailBookingId !== null}
+        onClose={() => setDetailBookingId(null)}
       />
     </div>
   );

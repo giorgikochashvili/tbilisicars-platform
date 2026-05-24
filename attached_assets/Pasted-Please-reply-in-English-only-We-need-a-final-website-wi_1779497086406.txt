@@ -1,0 +1,232 @@
+Please reply in English only.
+
+We need a final website-wide QA check for the recent TBILISICARS public website improvement batch.
+
+This is a live production project, but we are still in Replit Preview/code stage.
+Do NOT Git Sync.
+Do NOT deploy.
+Do NOT edit files unless explicitly approved after your QA report.
+
+Goal:
+Verify that all recent website changes work together safely before we decide whether anything else needs fixing.
+
+Recent completed website changes include:
+1. Home redesign and hero image update
+2. Home hero image WebP optimization
+3. Services page rewrite
+4. Fleet page category filters/helper text
+5. Locations page hub with city links
+6. Terms page accordion/summary/table of contents
+7. Terms Section 8 safer wording cleanup, if already applied
+8. Header/Footer final polish
+
+Strict QA scope:
+- Inspect and verify only.
+- Do NOT change files.
+- Do NOT change CRM.
+- Do NOT change API.
+- Do NOT change DB/migrations.
+- Do NOT change booking logic.
+- Do NOT change pricing/availability/payment/accounting.
+- Do NOT change Google Ads tracking.
+- Do NOT change SEO schema / JSON-LD / Helmet metadata.
+- Do NOT re-enable chatbot.
+- Do NOT add packages.
+- Do NOT create routes/pages.
+- Do NOT Git Sync or deploy.
+
+1. Build and file scope check
+Run:
+BASE_PATH=/ PORT=3000 pnpm --filter @workspace/website build
+
+Check:
+- build passes
+- no TypeScript errors
+- changed files are website-only
+- no CRM/API/DB/migration files changed
+- no booking/pricing/payment/accounting files changed
+- chatbot remains disabled
+- Home hero uses:
+  /images/home-hero-georgia-road.webp
+- PNG source still exists but is not used by Home hero
+- no unexpected files were changed
+
+2. Pages to verify in Preview / route checks
+Check these routes open correctly:
+- /
+- /services
+- /fleet
+- /locations
+- /terms
+- /privacy
+- /about
+- /contact
+- /car-rental-tbilisi
+- /car-rental-kutaisi
+- /car-rental-batumi
+- /booking
+
+Do not change city landing pages or booking flow. Just verify routes are reachable.
+
+3. Header / navigation check
+Verify:
+- Logo links to /
+- Visible nav order:
+  Fleet → Locations → Services → Terms & Conditions
+- Home is not in visible nav
+- About Us is not in visible nav
+- Book Now links to /booking
+- Login dropdown still works visually
+- Mobile hamburger menu opens/closes and links are tappable
+
+4. Footer check
+Verify:
+- Footer is compact and readable
+- About Us link exists
+- Contact Us link exists
+- city links are correct:
+  /car-rental-tbilisi
+  /car-rental-kutaisi
+  /car-rental-batumi
+- Terms and Privacy links are correct
+- Fleet column uses All Vehicles and Book a Car only
+- Services column uses Car Rental Services, Airport & City Service, Pickup & Return
+- Batumi label is Batumi Airport / City
+- no fake social links
+- no fake ratings/review counts
+
+5. Home page check
+Verify:
+- Home hero image loads from WebP path
+- Hero image is sharp and not distorted
+- headline/subheadline readable
+- top benefits row readable
+- booking form usable
+- Pickup Location dropdown opens and is not clipped
+- Drop-off in different location checkbox default unchecked
+- checking Drop-off in different location shows Return Location field
+- Search Vehicles button is visible/tappable
+- Trustpilot/Google cards show real values only
+- Explore Georgia section and location cards look clean
+- no horizontal overflow
+
+6. Services page check
+Verify:
+- H1: Car Rental Services in Georgia
+- 7 service cards present:
+  Car Rental Services
+  Airport & City Service
+  Full Insurance & Low Deposit
+  Unlimited Mileage
+  Free Additional Drivers
+  24/7 Working Hours & Roadside Assistance
+  Chauffeur Service
+- Free Additional Drivers includes age 21–70
+- Add-Ons section removed
+- CTA says Choose Your Car
+- /booking link unchanged
+- no exaggerated or fake claims
+
+7. Fleet page check
+Verify:
+- H1: Choose the Right Car for Your Trip
+- “Premium” wording removed/softened
+- category chips are derived from real live data
+- All Vehicles default works
+- category select/deselect works
+- multi-select works
+- helper text changes correctly:
+  none selected = general text
+  one selected = specific helper
+  multiple selected = comparison text
+- filtered grid updates correctly
+- no category filter URL expectation is introduced
+- vehicle card booking actions unchanged
+
+8. Locations page check
+Verify:
+- H1: Car Rental Locations in Georgia
+- three city hub cards exist:
+  Tbilisi → /car-rental-tbilisi
+  Kutaisi → /car-rental-kutaisi
+  Batumi → /car-rental-batumi
+- no unsupported operational claims such as exact minutes/meters/distances
+- handover explanation section uses careful wording:
+  by arrangement
+  where available
+  depending on availability
+- CTA says Choose Your Car, not View Cars by Location
+- dynamic API location list is preserved
+
+9. Terms page check
+Verify:
+- Key Rental Conditions summary exists
+- Table of Contents exists and anchor links work
+- only “What’s Included in the Price” opens by default
+- other sections collapsed by default
+- accordion open/close works
+- Section 8 “Vehicle Pick-Up Process” wording is safe if the cleanup has already been applied
+- no deposit/insurance claims were added to summary unless verified in Terms
+- legal content was not broadly rewritten
+
+10. Mobile responsiveness checks
+Check at:
+- 360px
+- 390px
+- 412px
+- 430px
+- 768px
+
+Across key pages:
+- /
+- /services
+- /fleet
+- /locations
+- /terms
+
+Must pass:
+- no horizontal overflow
+- header/menu usable
+- text readable
+- cards stack cleanly
+- buttons/tap targets comfortable
+- booking form usable
+- dropdowns not clipped
+- footer readable
+- no overlapping elements
+
+11. SEO / metadata safety check
+Verify:
+- no sitemap.xml changes unless already planned
+- no robots.txt changes
+- no JSON-LD/schema changes
+- Home Helmet/schema unchanged
+- Services meta description changed only as approved
+- /booking noindex behavior not changed
+- Google Ads tracking code not changed
+
+12. Performance check
+Verify:
+- Home hero WebP exists and is used
+- WebP size is around 214 KB
+- PNG source remains
+- no other obvious public image performance issue was introduced
+
+Return a QA report in English with:
+1. Build result
+2. Files changed summary / scope check
+3. Page route check results
+4. Header/Footer check results
+5. Home check results
+6. Services check results
+7. Fleet check results
+8. Locations check results
+9. Terms check results
+10. Mobile viewport check results
+11. SEO/metadata safety check results
+12. Performance/image check results
+13. Any issues found, grouped as:
+   - Blocking
+   - Should fix before Git Sync
+   - Can defer
+14. Do NOT edit files unless explicitly approved after this report.

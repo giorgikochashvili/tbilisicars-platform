@@ -8,7 +8,7 @@ import {
   locationTable,
   bookingTable,
 } from "@workspace/db";
-import { and, eq, gte, inArray, isNotNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -38,6 +38,7 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       status: vehicleTable.status,
       locationId: vehicleTable.locationId,
       city: locationTable.city,
+      modelId: vehicleModelTable.id,
       modelName: vehicleModelTable.name,
       brandName: brandTable.name,
     })
@@ -47,9 +48,8 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
     .leftJoin(locationTable, eq(vehicleTable.locationId, locationTable.id));
 
   // Apply city filter
-  const filteredVehicles = city && city !== "all"
-    ? vehicleRows.filter((v) => v.city === city)
-    : vehicleRows;
+  const filteredVehicles =
+    city && city !== "all" ? vehicleRows.filter((v) => v.city === city) : vehicleRows;
 
   if (filteredVehicles.length === 0) {
     res.json({ vehicles: [], dateRange: { start: startDate, end: endDate } });
@@ -73,7 +73,7 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       and(
         isNotNull(bookingTable.vehicleId),
         inArray(bookingTable.vehicleId, vehicleIds),
-        // Booking overlaps visible range: pickup <= endDate AND dropoff >= startDate
+        // Booking overlaps visible range: pickup <= rangeEnd AND dropoff >= rangeStart
         lte(bookingTable.pickupDatetime, end),
         gte(bookingTable.dropoffDatetime, start),
       ),
@@ -96,11 +96,18 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       plate: v.licensePlate,
       status: v.status,
       city: v.city,
+      // Read-only enrichment for model grouping (new fields)
+      modelId: v.modelId ?? null,
+      modelName: v.modelName ?? null,
       bookings: vBookings.map((b) => ({
         id: b.id,
         status: b.status,
+        // Date-only strings — preserved for compatibility
         pickupDate: b.pickupDatetime.toISOString().split("T")[0],
         dropoffDate: b.dropoffDatetime.toISOString().split("T")[0],
+        // Full ISO datetimes — read-only, for hour-aware overdue display logic (new fields)
+        pickupDateTime: b.pickupDatetime.toISOString(),
+        dropoffDateTime: b.dropoffDatetime.toISOString(),
         customerName: b.contactFullName,
       })),
     };

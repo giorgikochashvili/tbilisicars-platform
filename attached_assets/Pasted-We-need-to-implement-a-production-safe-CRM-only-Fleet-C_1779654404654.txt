@@ -1,0 +1,200 @@
+We need to implement a production-safe CRM-only Fleet Calendar / Fleet Timeline Phase 1 redesign.
+
+Context:
+This is a live production car rental CRM. Staff are actively using it and real bookings are coming in. The change must be surgical, minimal, reversible, and isolated. Do not perform broad refactors. Do not change booking business logic, pricing, availability, payments, accounting, parking, service, voucher/email generation, public website, SEO, Google Ads, or database schema.
+
+Target:
+Redesign the existing CRM Fleet Calendar into a compact rental fleet timeline board similar to professional car rental planning calendars.
+
+Primary files to inspect/change:
+1. artifacts/crm/src/pages/FleetCalendar.tsx
+2. artifacts/api-server/src/routes/admin-fleet-calendar.ts
+
+Avoid changing other files unless absolutely required. If another file must be changed, stop and explain why before proceeding.
+
+STRICT EXCLUSIONS:
+- Do not change booking creation logic.
+- Do not change booking update logic.
+- Do not change pricing.
+- Do not change availability/conflict logic.
+- Do not change payments or accounting.
+- Do not change parking or service modules.
+- Do not add database migrations.
+- Do not change voucher or email generation.
+- Do not change the public website, SEO, Google Ads, or public booking flow.
+- Do not add drag-and-drop booking movement.
+- Do not add right-click actions.
+- Do not add pickup/dropoff/cancel/no-show/confirm mutation actions.
+- Do not introduce new major dependencies.
+
+API change — read-only enrichment only:
+In artifacts/api-server/src/routes/admin-fleet-calendar.ts, keep the existing response fields unchanged and add only the read-only fields needed by the calendar UI:
+
+- modelId: vehicle model id if available, nullable if needed
+- modelName: display model/group name
+- pickupDateTime: full pickup datetime for each booking if available
+- dropoffDateTime: full dropoff datetime for each booking if available
+
+Important:
+- Existing fields must remain compatible:
+  id, label, plate, status, city, bookings[] with id, status, pickupDate, dropoffDate, customerName.
+- Do not remove current fields.
+- Do not change booking query semantics except adding safe selected fields.
+- Do not filter out INACTIVE, CANCELED, or NO_SHOW vehicles/bookings in this phase unless already filtered by existing code.
+- Do not change date extraction logic for existing pickupDate/dropoffDate.
+- Full datetime fields are needed only for hour-aware overdue display logic.
+
+CRM FleetCalendar UI requirements:
+In artifacts/crm/src/pages/FleetCalendar.tsx:
+
+1. Main layout
+- Transform the current FleetCalendar into a cleaner compact rental timeline board.
+- Preserve the existing functional timeline grid math if it already works.
+- Preserve existing range controls where possible: 7 / 14 / 30 days, previous/next, Today, city filter if already present.
+- Preserve today highlighting and weekend shading if already present.
+- Preserve existing conflict ring/indicator behavior if already present.
+- Keep horizontal scrolling controlled inside the calendar/timeline area.
+- Keep the date header sticky at the top.
+- Keep the left vehicle/model column sticky during horizontal scroll.
+- Avoid extra outer page scroll complexity where possible.
+
+2. Vehicle labels
+- Vehicle row label must be compact:
+  {model} {licensePlate}
+  Example: “RAV4 AA-123-AA”
+- Do not show long brand/model text in every row if it makes the calendar bulky.
+- If plate is missing, use a safe fallback such as vehicle id, but do not invent fake values.
+
+3. Model grouping
+- Vehicles must be grouped by model.
+- Use modelId as the stable group key when available.
+- Use modelName as the group display label.
+- Each model group must have a clean collapsible/expandable header row.
+- Collapse/expand state can be local component state only; no persistence needed.
+- Group header should show useful compact summary if easy and safe:
+  e.g. model name, total cars, visible booked count.
+- Group header row must preserve row/grid alignment.
+- Group header label must remain sticky on the left during horizontal scroll.
+
+4. Sorting inside each model group
+Inside each model group:
+- Vehicles with bookings visible in the current date range must appear first.
+- Those booked vehicles must be ordered by earliest visible booking start date.
+- Vehicles without visible bookings must appear after booked vehicles.
+- Vehicles without visible bookings must be sorted by natural license plate order, not simple string order.
+  Example: TT2 should come before TT10.
+- Implement natural plate sorting inline as a small utility, no dependency needed.
+
+Visible booking definition:
+A booking is visible if its pickup/dropoff range intersects the currently visible calendar range.
+
+5. Booking bars
+- Booking bars must continue to align to pickup/dropoff date range.
+- Bars must continue to be clipped correctly when booking starts before visible range or ends after visible range.
+- Same-vehicle multiple bookings should continue to render.
+- Existing conflict indicator/ring must be preserved.
+- Do not implement stacked/offset overlap layout in this phase unless it already exists.
+
+6. Booking bar click behavior
+- Clicking a booking bar must open the exact Booking Detail for that booking id.
+- Do not navigate vaguely to /bookings.
+- Preferred approach: import and mount the existing BookingDetail dialog/component directly in FleetCalendar using local state:
+  detailBookingId, open boolean, onClose.
+- Do not modify BookingDetail.tsx unless absolutely necessary.
+- If direct dialog mounting is not possible, use an existing exact open pattern such as /bookings?open=<id>, but prefer staying on the calendar.
+
+7. Color logic
+Implement display-only booking bar colors:
+
+- Gray = completed/returned reservation.
+  RETURNED -> gray.
+
+- Blue = scheduled/upcoming reservation.
+  PENDING or CONFIRMED -> blue, unless it is pickup-overdue by the rule below.
+
+- Green = active/current rental.
+  DELIVERED -> green, unless it is dropoff-overdue by the rule below.
+
+- Red = overdue / attention needed only.
+  Red must be used for operational overdue, not for canceled history.
+
+Hour-aware overdue rules:
+A booking becomes red only after a 4-hour grace period:
+
+Pickup overdue:
+- status is PENDING or CONFIRMED
+- current time is more than 4 hours after scheduled pickup datetime
+- pickup action has not happened yet, meaning status is still PENDING/CONFIRMED
+
+Dropoff overdue:
+- status is DELIVERED
+- current time is more than 4 hours after scheduled dropoff datetime
+- dropoff/return action has not happened yet, meaning status is still DELIVERED
+
+Important:
+- This overdue state must be pure display/computed logic only.
+- Do not update booking status.
+- Do not write overdue state to database.
+- Do not trigger notifications.
+- Do not create audit logs.
+- Do not change pickup/dropoff workflows.
+
+Canceled / No-show:
+- CANCELED and NO_SHOW must not be strong red.
+- Keep them visible but visually de-emphasized if currently returned:
+  dashed border, reduced opacity, muted/neutral style.
+- Do not hide them in this phase unless already hidden by existing code.
+
+8. Minimal hover
+- Hover tooltip/popover is optional/minimal in Phase 1.
+- If keeping or adding tooltip, keep it simple:
+  customer name, date range, status.
+- Do not build a complex right-click or action menu.
+
+9. Responsive behavior
+- Calendar should remain usable on desktop/tablet/mobile.
+- On mobile/tablet, horizontal scroll is acceptable and expected.
+- No layout breakage outside the intended scroll container.
+- Sticky left column and sticky top header must not overlap incorrectly.
+- Group headers must stay aligned with the timeline rows.
+
+Acceptance criteria:
+1. CRM FleetCalendar visually behaves like a clean rental timeline board.
+2. Vehicles are grouped by model.
+3. Model groups are collapsible/expandable.
+4. Vehicle labels are compact: model + plate, e.g. “RAV4 AA-123-AA”.
+5. Inside each model group, vehicles with visible bookings appear first.
+6. Booked vehicles are ordered by earliest visible booking start date.
+7. Vehicles without visible bookings are ordered by natural license plate sort.
+8. Booking bars align correctly to pickup/dropoff dates and clip correctly to visible range.
+9. Booking colors are:
+   - gray = returned/completed
+   - blue = pending/confirmed scheduled
+   - green = delivered/active
+   - red = pickup/dropoff overdue after 4-hour grace period only
+   - canceled/no-show = muted/dashed/de-emphasized, not strong red
+10. Clicking a booking bar opens the exact Booking Detail for that booking id without losing the calendar context.
+11. Existing conflict ring/indicator is preserved.
+12. Existing filters/range navigation are preserved unless impossible.
+13. No database migration.
+14. No public website changes.
+15. No booking/pricing/payment/accounting/parking/service/voucher/email logic changes.
+16. No right-click actions or drag/drop movement.
+17. CRM build/typecheck passes.
+18. API build/typecheck passes if API types are affected.
+19. Provide a concise final report listing:
+    - exact files changed
+    - what was changed
+    - what was intentionally not touched
+    - how to test manually in preview
+
+Implementation notes:
+- Prefer pure helper functions for:
+  visible booking detection
+  earliest visible booking date
+  natural plate sort
+  overdue detection with 4-hour grace period
+  booking color class mapping
+- Keep changes readable and localized inside FleetCalendar.tsx.
+- Do not add new dependencies unless truly unavoidable.
+- If any existing data field name differs from expected, inspect current schema/types and adapt safely without changing DB schema.
