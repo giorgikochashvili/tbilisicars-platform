@@ -1,0 +1,123 @@
+We need one final production-safe mobile/tablet responsiveness review before deploying Fleet Calendar Phase 1D.
+
+Current status:
+Fleet Calendar Phase 1D is already implemented in Replit but not deployed to production yet.
+
+Phase 1D changed:
+1. artifacts/api-server/src/routes/admin-fleet-calendar.ts
+2. artifacts/crm/src/pages/FleetCalendar.tsx
+
+Phase 1D added:
+- default Group by Category
+- business category/model ordering
+- plate color accent
+- service wrench icon
+- vehicle parking tooltip
+- opaque group headers
+- green group count
+- dark-neutral booking tooltip with Price and Deposit
+- read-only API enrichment for service/parking/booking display fields
+
+Now we need to inspect and, if needed, plan a small mobile/tablet responsiveness polish before production deployment.
+
+Important:
+This is a live CRM. Keep this review narrow and safe.
+Do not write code yet. Plan only.
+
+Primary goal:
+Improve iOS / Android / tablet usability without damaging or changing the desktop layout.
+
+Strict desktop protection:
+- Desktop layout must remain visually unchanged unless there is a clear bug.
+- Do not change desktop board height, desktop spacing, desktop date column width, desktop group layout, desktop vehicle row behavior, or desktop controls behavior unless absolutely necessary.
+- Prefer breakpoint-specific responsive changes only.
+- Use mobile/tablet-specific classes/styles where possible.
+- Existing desktop Fleet Calendar behavior must remain intact.
+
+Likely target file:
+artifacts/crm/src/pages/FleetCalendar.tsx
+
+Do not touch artifacts/api-server/src/routes/admin-fleet-calendar.ts unless you find a real non-responsive issue, but mobile polish should not require API changes.
+
+Mobile/tablet requirements:
+
+1. Top controls must wrap cleanly on narrow screens
+The following controls must remain usable and not overlap:
+- Group by selector
+- Region/city filter
+- Range selector
+- Previous / Next buttons
+- Today button
+
+On phone widths, it is acceptable for controls to wrap into multiple rows, but they must stay readable, tappable, and visually clean.
+
+2. Calendar board must fit mobile viewport cleanly
+- Keep internal vertical scroll for vehicle rows.
+- Keep internal horizontal scroll for date columns.
+- Avoid body/page horizontal overflow.
+- Avoid making the whole CRM page the main scrolling area for vehicle rows.
+- The calendar board should remain the main scroll surface.
+- Use mobile-safe viewport units if needed, but avoid breaking desktop.
+
+3. Left vehicle column on mobile
+- Should be narrow enough on mobile but still readable.
+- Model/plate text should truncate safely.
+- Plate color accent must not break layout.
+- Service wrench icon must stay visible and tappable.
+- Wrench click must not trigger VehicleDetail.
+- Row height should remain compact.
+- Vehicle row click must still open VehicleDetail.
+
+4. Sticky behavior
+- Sticky date header must continue working inside the internal scroll container.
+- Sticky left vehicle/group/category column must continue working during horizontal scroll.
+- Group/category headers must remain opaque and not allow booking bars to bleed through.
+
+5. Booking bars on touch devices
+- Booking bars must remain tappable.
+- Tap/click must still open exact BookingDetail.
+- Bars should not become too thin or hard to tap on mobile.
+- Do not change booking bar logic, color logic, overdue logic, conflict logic, or date positioning logic.
+
+6. Tooltips and touch behavior
+- Hover tooltips are mainly desktop-oriented, but they must not break mobile layout.
+- Vehicle parking tooltip and booking tooltip must not cause horizontal overflow.
+- If tooltip behavior on mobile is awkward, propose a safe minimal adjustment, but do not replace it with a new modal in this phase.
+- BookingDetail and VehicleDetail dialogs must remain usable.
+
+7. Responsive test widths
+Plan against these widths:
+- 390px iPhone
+- 430px large phone
+- 768px tablet
+- 1024px tablet/small desktop
+- normal desktop width must remain visually unchanged
+
+Strict exclusions:
+- No API changes unless absolutely required and justified.
+- No DB migration.
+- No new dependencies.
+- No booking creation/update changes.
+- No status/action workflow changes.
+- No pricing/availability/payment/accounting changes.
+- No parking action/business logic changes.
+- No service mutation/status workflow changes.
+- No website/SEO/Google Ads changes.
+- No voucher/email changes.
+- No right-click actions.
+- No drag/drop booking movement.
+- No persistent custom model/category ordering.
+- No broad refactor.
+
+Plan output:
+- Whether mobile/tablet polish is needed
+- Exact file(s) proposed to change
+- Exact responsive CSS/layout changes proposed
+- Confirmation that desktop layout will be preserved
+- Risks
+- Verification steps for:
+  1. 390px iPhone
+  2. 430px large phone
+  3. 768px tablet
+  4. 1024px tablet/small desktop
+  5. normal desktop unchanged

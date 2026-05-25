@@ -539,7 +539,7 @@ export default function FleetCalendarPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* City filter */}
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger className="w-[148px] h-9 text-sm">
@@ -630,7 +630,12 @@ export default function FleetCalendarPage() {
       ── */}
       <Card
         className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden flex flex-col"
-        style={{ maxHeight: "calc(100svh - 240px)", minHeight: "300px" }}
+        style={{
+          maxHeight: labelWidth === LABEL_WIDTH_MOBILE
+            ? "calc(100svh - 360px)"
+            : "calc(100svh - 240px)",
+          minHeight: "300px",
+        }}
       >
         {isLoading ? (
           <div className="p-6 space-y-3 flex-1">
@@ -775,7 +780,7 @@ export default function FleetCalendarPage() {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <button
-                                            className="p-0.5 rounded text-orange-400/80 hover:text-orange-400 transition-colors"
+                                            className="p-1 sm:p-0.5 rounded text-orange-400/80 hover:text-orange-400 transition-colors"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               window.location.href = `/crm/service?vehicleSearch=${encodeURIComponent(vehicle.plate ?? "")}`;
