@@ -1,0 +1,81 @@
+We need a production-safe Fleet Calendar Phase 1C polish based on live review.
+
+Current status:
+Fleet Calendar Phase 1B is deployed and working: 60-day view, internal scroll, Group by Model/Category, Brand+Model group headers, historical bookings, BookingDetail click, and VehicleDetail click all work.
+
+Now we need a small polish/bugfix patch.
+
+Important:
+This is a live CRM. Keep the change surgical and isolated. Do not touch booking creation/update logic, pricing, payments, accounting, parking, service, public website, voucher/email, database schema, or migrations.
+
+Please inspect first and propose a plan only. Do not write code yet.
+
+Likely target file:
+artifacts/crm/src/pages/FleetCalendar.tsx
+
+Only touch API file if absolutely necessary, and explain why before changing. The API already returns pickupDateTime/dropoffDateTime from Phase 1.
+
+Required changes:
+
+1. Dashboard → Fleet Calendar region continuity
+- If a staff member selected a region/location filter on the Operations Dashboard, and then opens Fleet Calendar, Fleet Calendar should initialize with the same selected region/location when possible.
+- Examples:
+  Dashboard selected Tbilisi → Fleet Calendar opens with Tbilisi selected.
+  Dashboard selected Kutaisi → Fleet Calendar opens with Kutaisi selected.
+  Dashboard selected Batumi → Fleet Calendar opens with Batumi selected.
+  Dashboard selected All → Fleet Calendar opens with All Regions selected.
+- Implement as frontend UI-state continuity only.
+- Prefer existing localStorage/state patterns if available.
+- Do not add database persistence.
+- If stored value is missing or invalid, safely fall back to All Regions.
+
+2. Compact vehicle rows
+- In Fleet Calendar vehicle rows, remove the vehicle availability/status badge and city label from the left row label area.
+- Keep only compact model + license plate text.
+- Example:
+  Forester FF246K
+  Outback KX844KK
+  Cruze HP558HH
+- Reduce vehicle row height so more vehicles are visible in the board at once.
+- Preserve group header rows.
+- Preserve VehicleDetail opening on vehicle row click.
+- Preserve all booking bars, colors, conflicts, grouping, internal scroll, and date header behavior.
+- Do not remove vehicle status from API or other CRM pages; this is only a Fleet Calendar visual compacting change.
+
+3. Conflict detection must use full datetime, not date-only
+- Current Fleet Calendar conflict indicator appears to treat same-day booking transitions as conflicts.
+- Fix Fleet Calendar conflict detection so it only marks a conflict when full pickup/dropoff datetimes actually overlap.
+- Use pickupDateTime and dropoffDateTime fields when available.
+- A booking ending at 10:00 and another booking starting at 13:15 on the same vehicle/date must NOT be marked as conflict.
+- Exact boundary touch should not count as overlap:
+  previous.dropoffDateTime <= next.pickupDateTime means no conflict.
+- True overlap should still show conflict:
+  previous.dropoffDateTime > next.pickupDateTime AND previous.pickupDateTime < next.dropoffDateTime.
+- This must be display-only conflict indicator logic.
+- Do not change booking creation/update conflict validation.
+- Do not change backend availability logic.
+- Do not update DB or booking statuses.
+
+Strict exclusions:
+- No DB migration.
+- No new dependencies.
+- No booking mutation changes.
+- No status/action workflow changes.
+- No pricing/availability/payment/accounting changes.
+- No parking/service changes.
+- No website/SEO/Google Ads changes.
+- No right-click actions.
+- No drag/drop booking movement.
+- No persistent model order customization.
+
+Plan output:
+- Exact files you propose to change
+- Whether API changes are needed
+- What you will change
+- What you will not touch
+- Risks
+- How you will verify:
+  1. Dashboard selected region carries into Fleet Calendar
+  2. vehicle rows are compact and more rows fit
+  3. same-day non-overlapping bookings no longer show conflict
+  4. true overlapping bookings still show conflict

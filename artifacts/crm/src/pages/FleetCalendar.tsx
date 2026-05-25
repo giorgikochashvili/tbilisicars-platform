@@ -2,7 +2,6 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -59,13 +58,6 @@ const DAY_PX = 44;
 const LABEL_WIDTH_DESKTOP = 220;
 const LABEL_WIDTH_MOBILE = 120;
 
-const VEHICLE_STATUS_COLORS: Record<VehicleStatus, string> = {
-  AVAILABLE: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  RENTED: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  MAINTENANCE: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  RESERVED: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  INACTIVE: "bg-slate-500/15 text-slate-400 border-slate-500/30",
-};
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -286,24 +278,58 @@ async function fetchCalendar(startDate: string, endDate: string, city: string): 
   return res.json();
 }
 
-// ── Conflict detection (unchanged) ───────────────────────────────────────────
+// ── Conflict detection (datetime-aware) ──────────────────────────────────────
+
+/** Booking start as ms timestamp — full ISO when available, else start-of-day */
+function bookingStartMs(b: Booking): number {
+  return b.pickupDateTime
+    ? new Date(b.pickupDateTime).getTime()
+    : parseDate(b.pickupDate).getTime();
+}
+
+/** Booking end as ms timestamp — full ISO when available, else start-of-day */
+function bookingEndMs(b: Booking): number {
+  return b.dropoffDateTime
+    ? new Date(b.dropoffDateTime).getTime()
+    : parseDate(b.dropoffDate).getTime();
+}
+
+/**
+ * True only when two bookings genuinely overlap.
+ * Exact boundary touch (A.end === B.start) is NOT a conflict — clean handoff.
+ * Rule: A.end > B.start AND A.start < B.end  (strict inequality on both sides)
+ */
+function bookingsOverlap(a: Booking, b: Booking): boolean {
+  return bookingEndMs(a) > bookingStartMs(b) && bookingStartMs(a) < bookingEndMs(b);
+}
 
 function hasConflict(bookings: Booking[]): boolean {
-  if (bookings.length < 2) return false;
-  const sorted = [...bookings].sort((a, b) => a.pickupDate.localeCompare(b.pickupDate));
-  for (let i = 0; i < sorted.length - 1; i++) {
-    if (sorted[i]!.dropoffDate >= sorted[i + 1]!.pickupDate) return true;
-  }
+  for (let i = 0; i < bookings.length - 1; i++)
+    for (let j = i + 1; j < bookings.length; j++)
+      if (bookingsOverlap(bookings[i]!, bookings[j]!)) return true;
   return false;
 }
 
 function isBookingInConflict(target: Booking, bookings: Booking[]): boolean {
-  return bookings.some(
-    (b) =>
-      b.id !== target.id &&
-      b.pickupDate <= target.dropoffDate &&
-      b.dropoffDate >= target.pickupDate,
-  );
+  return bookings.some((b) => b.id !== target.id && bookingsOverlap(target, b));
+}
+
+// ── City init from Dashboard region ──────────────────────────────────────────
+
+/**
+ * Read the region the staff last selected on the Operations Dashboard.
+ * Dashboard stores it under "dashboard-region" as "All"|"Tbilisi"|"Kutaisi"|"Batumi".
+ * Map "All", missing, or invalid → "all".  Valid city names pass through unchanged.
+ * Wrapped in try/catch so private-mode / quota errors silently fall back to "all".
+ */
+function loadInitialCity(): string {
+  try {
+    const v = localStorage.getItem("dashboard-region");
+    if (v === "Tbilisi" || v === "Kutaisi" || v === "Batumi") return v;
+    return "all";
+  } catch {
+    return "all";
+  }
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -339,7 +365,8 @@ export default function FleetCalendarPage() {
   // Default: 60-day window centred on today (today −30 … today +29)
   const [rangeSize, setRangeSize] = useState<7 | 14 | 30 | 60>(60);
   const [rangeStart, setRangeStart] = useState<Date>(() => addDays(today, -30));
-  const [city, setCity] = useState("all");
+  // Initialise from Dashboard's last-selected region (read-only, no writes back)
+  const [city, setCity] = useState<string>(loadInitialCity);
 
   const rangeEnd = useMemo(() => addDays(rangeStart, rangeSize - 1), [rangeStart, rangeSize]);
   const startStr = toDateStr(rangeStart);
@@ -647,45 +674,30 @@ export default function FleetCalendarPage() {
                           >
                             {/* Vehicle label — sticky left, click opens VehicleDetail */}
                             <div
-                              className="flex-shrink-0 flex flex-col justify-center px-2 py-2 border-r border-border/30 gap-0.5 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors"
+                              className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-r border-border/30 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors min-w-0"
                               style={{ width: LABEL_WIDTH }}
                               onClick={() => setDetailVehicleId(vehicle.id)}
                               title="Open vehicle detail"
                             >
-                              <div className="flex items-center gap-1 min-w-0">
-                                <span className="text-[11px] font-mono font-semibold text-foreground truncate flex-1">
-                                  {compactLabel}
-                                </span>
-                                {rowHasConflict && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent side="right">
-                                      <p className="text-xs">Booking conflict detected</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                              </div>
-                              {LABEL_WIDTH > 160 && vehicle.status && (
-                                <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[9px] h-4 px-1 py-0 ${VEHICLE_STATUS_COLORS[vehicle.status]}`}
-                                  >
-                                    {vehicle.status}
-                                  </Badge>
-                                  {vehicle.city && (
-                                    <span className="text-[9px] text-muted-foreground/70">{vehicle.city}</span>
-                                  )}
-                                </div>
+                              <span className="text-[11px] font-mono font-semibold text-foreground truncate flex-1">
+                                {compactLabel}
+                              </span>
+                              {rowHasConflict && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">
+                                    <p className="text-xs">Booking conflict detected</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                             </div>
 
                             {/* Timeline area */}
                             <div
                               className="relative flex-shrink-0"
-                              style={{ width: totalGridWidth, height: 60 }}
+                              style={{ width: totalGridWidth, height: 44 }}
                             >
                               {/* Day grid lines + today/weekend highlight (unchanged) */}
                               {dates.map((d, i) => {
