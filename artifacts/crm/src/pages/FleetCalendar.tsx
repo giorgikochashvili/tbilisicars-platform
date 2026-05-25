@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft, ChevronRight, ChevronDown, GanttChart, AlertTriangle,
-  Car, MapPin, Calendar,
+  Car, MapPin, Calendar, LayoutGrid,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import VehicleDetail from "./VehicleDetail";
@@ -17,6 +17,7 @@ import BookingDetail from "./BookingDetail";
 
 type BookingStatus = "PENDING" | "CONFIRMED" | "DELIVERED" | "RETURNED" | "CANCELED" | "NO_SHOW";
 type VehicleStatus = "AVAILABLE" | "RENTED" | "MAINTENANCE" | "RESERVED" | "INACTIVE";
+type GroupBy = "model" | "category";
 
 interface Booking {
   id: number;
@@ -34,8 +35,10 @@ interface Vehicle {
   plate: string;
   status: VehicleStatus | null;
   city: string | null;
-  modelId?: number | null;    // new — for model grouping
-  modelName?: string | null;  // new — for compact label + group header
+  modelId?: number | null;
+  modelName?: string | null;
+  brandName?: string | null;    // for "Brand Model" group headers in model view
+  categoryName?: string | null; // for category grouping
   bookings: Booking[];
 }
 
@@ -44,9 +47,9 @@ interface CalendarData {
   dateRange: { start: string; end: string };
 }
 
-interface ModelGroup {
+interface Group {
   key: string;
-  modelName: string;
+  label: string;   // displayed in group header
   vehicles: Vehicle[];
 }
 
@@ -114,6 +117,35 @@ function earliestVisibleStart(bookings: Booking[], rangeStart: Date, rangeEnd: D
     const d = parseDate(b.pickupDate);
     return d < min ? d : min;
   }, parseDate(visible[0]!.pickupDate));
+}
+
+/**
+ * Sort vehicles within a group:
+ * 1. Vehicles with bookings visible in the current range come first, by earliest pickup.
+ * 2. Vehicles without visible bookings sorted by natural plate order.
+ *
+ * Structured as a standalone function so future custom model/category ordering
+ * can be injected via an optional `customOrder` map without changing group logic.
+ */
+function sortVehiclesInGroup(
+  vehicles: Vehicle[],
+  rangeStart: Date,
+  rangeEnd: Date,
+  // Reserved for Phase 2: customOrder?: Map<number, number>
+): Vehicle[] {
+  return [...vehicles].sort((a, b) => {
+    const aVis = a.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
+    const bVis = b.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
+    if (aVis && !bVis) return -1;
+    if (!aVis && bVis) return 1;
+    if (aVis && bVis) {
+      return (
+        earliestVisibleStart(a.bookings, rangeStart, rangeEnd).getTime() -
+        earliestVisibleStart(b.bookings, rangeStart, rangeEnd).getTime()
+      );
+    }
+    return naturalSort(a.plate || String(a.id), b.plate || String(b.id));
+  });
 }
 
 /**
@@ -194,37 +226,54 @@ function getBookingColors(
   };
 }
 
-/** Build model groups from flat vehicle list, sorted and with vehicles sorted within. */
-function buildModelGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): ModelGroup[] {
-  const map = new Map<string, ModelGroup>();
+/**
+ * Group vehicles by model (brandName + modelName).
+ * Group header label = "Toyota Corolla", "Jeep Compass", etc.
+ */
+function buildModelGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): Group[] {
+  const map = new Map<string, Group>();
 
   for (const v of vehicles) {
-    // Stable key: modelId-based for known models, vehicle-id for ungrouped
     const key = v.modelId != null ? `m_${v.modelId}` : `u_${v.id}`;
-    const name = v.modelName || v.label || "Unknown";
-    if (!map.has(key)) map.set(key, { key, modelName: name, vehicles: [] });
+    // Group header: "Brand Model" e.g. "Jeep Compass"
+    const label =
+      [v.brandName, v.modelName].filter(Boolean).join(" ") || v.label || "Unknown";
+    if (!map.has(key)) map.set(key, { key, label, vehicles: [] });
     map.get(key)!.vehicles.push(v);
   }
 
-  // Sort vehicles within each group: booked first (by earliest visible start), then natural plate sort
   for (const g of map.values()) {
-    g.vehicles.sort((a, b) => {
-      const aVis = a.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
-      const bVis = b.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
-      if (aVis && !bVis) return -1;
-      if (!aVis && bVis) return 1;
-      if (aVis && bVis) {
-        return (
-          earliestVisibleStart(a.bookings, rangeStart, rangeEnd).getTime() -
-          earliestVisibleStart(b.bookings, rangeStart, rangeEnd).getTime()
-        );
-      }
-      return naturalSort(a.plate || String(a.id), b.plate || String(b.id));
-    });
+    g.vehicles = sortVehiclesInGroup(g.vehicles, rangeStart, rangeEnd);
   }
 
-  // Sort groups alphabetically by model name
-  return [...map.values()].sort((a, b) => a.modelName.localeCompare(b.modelName));
+  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * Group vehicles by category (from vehicleModelTable.category).
+ * Group header label = real category name e.g. "Crossover", "Economy".
+ * Vehicles with null categoryName fall into "Uncategorized".
+ */
+function buildCategoryGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): Group[] {
+  const map = new Map<string, Group>();
+
+  for (const v of vehicles) {
+    const cat = v.categoryName?.trim() || "Uncategorized";
+    const key = `cat_${cat}`;
+    if (!map.has(key)) map.set(key, { key, label: cat, vehicles: [] });
+    map.get(key)!.vehicles.push(v);
+  }
+
+  for (const g of map.values()) {
+    g.vehicles = sortVehiclesInGroup(g.vehicles, rangeStart, rangeEnd);
+  }
+
+  return [...map.values()].sort((a, b) => {
+    // Pin "Uncategorized" to the end
+    if (a.label === "Uncategorized") return 1;
+    if (b.label === "Uncategorized") return -1;
+    return a.label.localeCompare(b.label);
+  });
 }
 
 // ── API fetch ─────────────────────────────────────────────────────────────────
@@ -260,12 +309,18 @@ function isBookingInConflict(target: Booking, bookings: Booking[]): boolean {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function FleetCalendarPage() {
-  // Dialog state — label click opens VehicleDetail, bar click opens BookingDetail
+  // Dialog state
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
 
-  // Collapsed model group keys (local UI state only — not persisted)
+  // Group by: model (default) or category
+  const [groupBy, setGroupBy] = useState<GroupBy>("model");
+
+  // Collapsed group keys (local UI state, cleared when groupBy changes)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setCollapsedGroups(new Set());
+  }, [groupBy]);
 
   // Responsive label width
   const [labelWidth, setLabelWidth] = useState(
@@ -278,12 +333,12 @@ export default function FleetCalendarPage() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Default: start 3 days before today (unchanged)
   const today = useMemo(() => new Date(), []);
   const todayStr = useMemo(() => toDateStr(today), [today]);
 
-  const [rangeSize, setRangeSize] = useState<7 | 14 | 30>(14);
-  const [rangeStart, setRangeStart] = useState<Date>(() => addDays(today, -3));
+  // Default: 60-day window centred on today (today −30 … today +29)
+  const [rangeSize, setRangeSize] = useState<7 | 14 | 30 | 60>(60);
+  const [rangeStart, setRangeStart] = useState<Date>(() => addDays(today, -30));
   const [city, setCity] = useState("all");
 
   const rangeEnd = useMemo(() => addDays(rangeStart, rangeSize - 1), [rangeStart, rangeSize]);
@@ -304,21 +359,36 @@ export default function FleetCalendarPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Navigation (unchanged)
+  // Auto-scroll so today is visible (~1/3 from the left of the grid) on data load
+  useEffect(() => {
+    if (!scrollRef.current || !data) return;
+    const todayOffsetPx = diffDays(rangeStart, today) * DAY_PX;
+    const LABEL_W = typeof window !== "undefined" && window.innerWidth < 768
+      ? LABEL_WIDTH_MOBILE
+      : LABEL_WIDTH_DESKTOP;
+    const gridViewport = scrollRef.current.clientWidth - LABEL_W;
+    // Position today at ~1/3 from left, so staff can see past history to the left
+    const target = todayOffsetPx - Math.floor(gridViewport / 3);
+    scrollRef.current.scrollLeft = Math.max(0, target);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Navigation
   const goBack = () => setRangeStart((d) => addDays(d, -rangeSize));
   const goForward = () => setRangeStart((d) => addDays(d, rangeSize));
-  const goToday = () => setRangeStart(today);
+  const goToday = () => setRangeStart(addDays(today, -30));
 
   const todayIdx = useMemo(() => {
     const diff = diffDays(rangeStart, today);
     return diff >= 0 && diff < rangeSize ? diff : -1;
   }, [rangeStart, today, rangeSize]);
 
-  // Build model groups whenever data or range changes
-  const modelGroups = useMemo(
-    () => (data ? buildModelGroups(data.vehicles, rangeStart, rangeEnd) : []),
-    [data, rangeStart, rangeEnd],
-  );
+  // Build groups whenever data, groupBy, or range changes
+  const groups = useMemo(() => {
+    if (!data) return [];
+    return groupBy === "model"
+      ? buildModelGroups(data.vehicles, rangeStart, rangeEnd)
+      : buildCategoryGroups(data.vehicles, rangeStart, rangeEnd);
+  }, [data, groupBy, rangeStart, rangeEnd]);
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups((prev) => {
@@ -343,11 +413,11 @@ export default function FleetCalendarPage() {
   const totalGridWidth = rangeSize * DAY_PX;
   const LABEL_WIDTH = labelWidth;
 
-  // Computed once per render for overdue checks (display-only)
+  // Computed once per render for overdue checks (display-only, no mutations)
   const now = new Date();
 
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in duration-500 h-full">
+    <div className="flex flex-col gap-3 animate-in fade-in duration-500">
       {/* ── Page header ── */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div>
@@ -359,8 +429,9 @@ export default function FleetCalendarPage() {
           </p>
         </div>
 
-        {/* Controls — unchanged */}
+        {/* Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* City filter */}
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger className="w-[148px] h-9 text-sm">
               <MapPin className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
@@ -374,7 +445,20 @@ export default function FleetCalendarPage() {
             </SelectContent>
           </Select>
 
-          <Select value={String(rangeSize)} onValueChange={(v) => setRangeSize(Number(v) as 7 | 14 | 30)}>
+          {/* Group by */}
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
+            <SelectTrigger className="w-[160px] h-9 text-sm">
+              <LayoutGrid className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="model">Group: Model</SelectItem>
+              <SelectItem value="category">Group: Category</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Range picker — 7 / 14 / 30 / 60 */}
+          <Select value={String(rangeSize)} onValueChange={(v) => setRangeSize(Number(v) as 7 | 14 | 30 | 60)}>
             <SelectTrigger className="w-[108px] h-9 text-sm">
               <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue />
@@ -383,9 +467,11 @@ export default function FleetCalendarPage() {
               <SelectItem value="7">7 days</SelectItem>
               <SelectItem value="14">14 days</SelectItem>
               <SelectItem value="30">30 days</SelectItem>
+              <SelectItem value="60">60 days</SelectItem>
             </SelectContent>
           </Select>
 
+          {/* Date navigation */}
           <div className="flex items-center gap-1 border border-border/50 rounded-lg p-0.5 bg-card/60">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goBack}>
               <ChevronLeft className="w-4 h-4" />
@@ -428,10 +514,18 @@ export default function FleetCalendarPage() {
         </span>
       </div>
 
-      {/* ── Timeline grid ── */}
-      <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden flex-1">
+      {/* ── Timeline board ──
+          Board uses a bounded max-height so it scrolls internally instead of
+          making the CRM page grow. The 240px offset covers the app header,
+          main padding, page title, legend, footer, and gaps.
+          Adjust this value if the layout above the board changes significantly.
+      ── */}
+      <Card
+        className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden flex flex-col"
+        style={{ maxHeight: "calc(100svh - 240px)", minHeight: "300px" }}
+      >
         {isLoading ? (
-          <div className="p-6 space-y-3">
+          <div className="p-6 space-y-3 flex-1">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex gap-3 items-center">
                 <Skeleton className="h-12 w-52 rounded-md" />
@@ -450,10 +544,11 @@ export default function FleetCalendarPage() {
             <p>No vehicles found{city !== "all" ? ` in ${city}` : ""}</p>
           </div>
         ) : (
-          <div className="overflow-auto" ref={scrollRef}>
+          /* Internal scroll container: both axes scroll here, not the page */
+          <div className="flex-1 min-h-0 overflow-auto" ref={scrollRef}>
             <div style={{ minWidth: LABEL_WIDTH + totalGridWidth + 24 }}>
 
-              {/* ── Date header row (unchanged) ── */}
+              {/* ── Sticky date header ── */}
               <div className="flex sticky top-0 z-20 bg-card border-b border-border/40 shadow-sm">
                 <div
                   className="flex-shrink-0 border-r border-border/40 bg-card sticky left-0 z-30"
@@ -485,8 +580,8 @@ export default function FleetCalendarPage() {
                 </div>
               </div>
 
-              {/* ── Model groups ── */}
-              {modelGroups.map((group) => {
+              {/* ── Groups (model or category) ── */}
+              {groups.map((group) => {
                 const isCollapsed = collapsedGroups.has(group.key);
                 const visibleBookedCount = group.vehicles.filter((v) =>
                   v.bookings.some((b) => isBookingVisible(b, rangeStart, rangeEnd)),
@@ -499,7 +594,6 @@ export default function FleetCalendarPage() {
                       className="flex border-b border-border/30 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
                       onClick={() => toggleGroup(group.key)}
                     >
-                      {/* Sticky label */}
                       <div
                         className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-muted/25 sticky left-0 z-10"
                         style={{ width: LABEL_WIDTH }}
@@ -508,7 +602,7 @@ export default function FleetCalendarPage() {
                           className={`w-3.5 h-3.5 text-muted-foreground flex-shrink-0 transition-transform duration-150 ${isCollapsed ? "-rotate-90" : ""}`}
                         />
                         <span className="text-xs font-semibold text-foreground truncate flex-1">
-                          {group.modelName}
+                          {group.label}
                         </span>
                         <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 tabular-nums whitespace-nowrap">
                           {group.vehicles.length}
@@ -517,7 +611,7 @@ export default function FleetCalendarPage() {
                           )}
                         </span>
                       </div>
-                      {/* Grid lines in header */}
+                      {/* Grid lines in group header */}
                       <div className="flex-shrink-0 relative" style={{ width: totalGridWidth, height: 32 }}>
                         {dates.map((d, i) => {
                           const isToday = toDateStr(d) === todayStr;
@@ -543,7 +637,7 @@ export default function FleetCalendarPage() {
                     {!isCollapsed &&
                       group.vehicles.map((vehicle) => {
                         const rowHasConflict = hasConflict(vehicle.bookings);
-                        // Compact label: "RAV4 AA-123-BB" (model name + plate)
+                        // Compact label: "ModelName Plate" — brand not repeated since it's in the group header
                         const compactLabel = `${vehicle.modelName || vehicle.label} ${vehicle.plate || vehicle.id}`.trim();
 
                         return (
@@ -614,7 +708,7 @@ export default function FleetCalendarPage() {
                                 />
                               )}
 
-                              {/* Booking bars — click opens BookingDetail */}
+                              {/* Booking bars — click opens BookingDetail inline */}
                               {vehicle.bookings.map((booking) => {
                                 const { left, width } = bookingBar(booking);
                                 if (width <= 0) return null;
@@ -686,7 +780,7 @@ export default function FleetCalendarPage() {
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground px-1">
           <span>{data.vehicles.length} vehicle{data.vehicles.length !== 1 ? "s" : ""}</span>
           <span>·</span>
-          <span>{modelGroups.length} model{modelGroups.length !== 1 ? "s" : ""}</span>
+          <span>{groups.length} {groupBy === "model" ? "model" : "categor"}{groups.length !== 1 ? (groupBy === "model" ? "s" : "ies") : (groupBy === "model" ? "" : "y")}</span>
           <span>·</span>
           <span>
             {data.vehicles.reduce((acc, v) => acc + v.bookings.length, 0)} booking
@@ -706,14 +800,14 @@ export default function FleetCalendarPage() {
         </div>
       )}
 
-      {/* Vehicle detail — label click (unchanged) */}
+      {/* Vehicle detail — label click */}
       <VehicleDetail
         vehicleId={detailVehicleId}
         open={detailVehicleId !== null}
         onClose={() => setDetailVehicleId(null)}
       />
 
-      {/* Booking detail — bar click (new) */}
+      {/* Booking detail — bar click, stays on this page */}
       <BookingDetail
         bookingId={detailBookingId}
         open={detailBookingId !== null}

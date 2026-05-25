@@ -1,0 +1,90 @@
+Switching to Build mode.
+
+Proceed with Fleet Calendar Phase 1B exactly according to the plan, but keep it production-safe and strictly limited.
+
+Hard scope:
+Change only:
+1. artifacts/crm/src/pages/FleetCalendar.tsx
+2. artifacts/api-server/src/routes/admin-fleet-calendar.ts
+
+Do not change any other files.
+
+API:
+- Add only safe read-only response fields needed for UI:
+  - brandName
+  - categoryName
+- Do not change DB schema.
+- Do not add migrations.
+- Do not change booking query semantics except selecting/exposing safe display fields.
+- Do not filter out returned, canceled, no-show, inactive, or historical bookings in this patch.
+
+CRM:
+- Add 60-day / approximately 2-month default calendar view around today.
+- Keep 7/14/30 options if existing and add 60 days.
+- On initial load, horizontally position the board so today is comfortably visible, not stuck at the first column.
+- User must be able to scroll left for previous bookings and right for future bookings inside the calendar board.
+- Add internal board scrolling:
+  - vertical scroll for vehicle rows inside the board
+  - horizontal scroll for date columns inside the board
+  - avoid making the whole CRM page the main scrolling surface for vehicle rows
+- Keep title, legend, filters, Group by, and date controls above the board.
+- Do not modify AppLayout.tsx.
+- Use a bounded board height/flex/min-h-0 approach. If using calc(100svh - 240px), keep it localized and easy to adjust later.
+- Sticky date header and sticky left group/vehicle column must continue to work inside the internal scroll container.
+
+Group by:
+- Add local UI state only:
+  Group by: Model / Category
+- Default: Model.
+- No persistence.
+- No settings UI.
+
+Model view:
+- Group header must show Brand + Model, e.g. “Jeep Compass”, “Toyota Corolla”, “Toyota Camry XV70”.
+- Vehicle rows stay compact; do not repeat full brand unnecessarily.
+
+Category view:
+- Group vehicles by real categoryName from existing DB/API data.
+- Do not invent categories.
+- If categoryName is null, use a safe “Uncategorized” group.
+- Vehicles from different models but same category should appear together.
+- Preserve the same booked-first and natural-sort behavior.
+
+Sorting:
+- For both Model and Category views:
+  - vehicles with bookings visible in the current range first
+  - booked vehicles ordered by earliest visible booking start
+  - free vehicles after
+  - free vehicles sorted deterministically/naturally by plate/model
+- Do not implement persistent custom model order in this patch.
+- Structure helper functions cleanly so future custom model order can be added later.
+
+Historical bookings:
+- Returned/completed bookings inside the visible 60-day range must remain visible as gray bars.
+- Do not filter out returned/history bookings.
+- CANCELED/NO_SHOW remain muted/dashed and not strong red.
+
+Preserve:
+- Inline BookingDetail open on booking bar click.
+- VehicleDetail open on vehicle label click.
+- Existing color/overdue logic.
+- Existing conflict ring.
+- Existing today/weekend highlighting.
+- Existing city filter and date navigation behavior.
+
+Strict exclusions:
+- No booking mutation changes.
+- No status/action workflow changes.
+- No pricing/availability/payment/accounting changes.
+- No parking/service changes.
+- No website/SEO/Google Ads changes.
+- No right-click actions.
+- No drag/drop booking movement.
+- No DB migration.
+- No new dependencies.
+
+After implementation:
+- Run relevant CRM/API typecheck/build checks.
+- Report exact files changed.
+- Confirm no excluded files/logic were touched.
+- Provide preview/manual test steps.

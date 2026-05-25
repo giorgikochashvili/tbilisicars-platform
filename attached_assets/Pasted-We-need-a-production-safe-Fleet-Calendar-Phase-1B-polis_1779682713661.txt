@@ -1,0 +1,102 @@
+We need a production-safe Fleet Calendar Phase 1B polish based on live review.
+
+Current status:
+Fleet Calendar Phase 1 is deployed and functional: model groups, collapsible headers, booking bars, colors, and inline BookingDetail work. Now we need a limited polish patch.
+
+Important:
+This is a live CRM. Keep the change surgical and isolated. Do not touch booking creation/update logic, pricing, payments, accounting, parking, service, public website, voucher/email, database schema, or migrations.
+
+Please inspect first and propose a plan only. Do not write code yet.
+
+Likely files:
+1. artifacts/crm/src/pages/FleetCalendar.tsx
+2. artifacts/api-server/src/routes/admin-fleet-calendar.ts only if category fields or brand+model group labels require safe read-only API enrichment.
+
+Required polish:
+
+1. Two-month timeline window with left/right scroll
+- The default Fleet Calendar view should cover approximately 2 months around today.
+- Prefer today - 30 days to today + 30 days, or a similarly balanced 60-day window.
+- The user must be able to scroll left to see previous days/bookings and right to see future days/bookings inside the calendar board.
+- Do not force the user to use month navigation just to see recent past days.
+- On initial load, auto-scroll horizontally so today is in a comfortable visible position, not stuck as the first column.
+
+2. Internal calendar board scrolling / viewport-fit layout
+- The Fleet Calendar page should fit the available screen height cleanly.
+- When staff opens Fleet Calendar, the calendar board should already be visible and expanded within the screen.
+- Avoid making the whole CRM page infinitely tall because the vehicle list is long.
+- The outer CRM/module page should not be the main scrolling surface for vehicle rows.
+- The calendar board itself must have the scrolling behavior:
+  - internal vertical scroll for vehicle/model/category rows
+  - internal horizontal scroll for date columns
+- The title, subtitle, legend, filters, Group by control, and date controls should stay above the board.
+- The board should use the remaining viewport height, for example using a calculated height or flex/min-h-0 pattern.
+- Sticky date header and sticky left vehicle/model/category column must continue to work inside this internal scroll container.
+- Do not break sidebar/header layout.
+- Do not create double-scroll confusion unless unavoidable; intended scrolling should be inside the calendar board.
+
+3. Group by toggle
+- Add a top control near the date/range controls:
+  Group by: Model / Category
+- Default should be Model.
+- This must be local UI state only for now; no persistence.
+
+4. Model mode
+- Model group headers must display full brand + model, e.g. “Jeep Compass”, “Toyota Corolla”, “Toyota Camry XV70”.
+- Vehicle row labels can stay compact and do not need full brand repetition.
+- Example:
+  Jeep Compass
+    Compass DA028EL
+    Compass CR300IN
+
+5. Category mode
+- When Group by Category is selected, group vehicles by their real fleet category from existing data.
+- Category group headers should display real category names, e.g. Economy, Standard, Full-size, Crossover, Full-size SUV, 7-seater SUV, Van, Off-road, or whatever categories exist in the system.
+- Vehicles from different models but the same category should appear together inside that category.
+- Example:
+  Crossover
+    Compass DA028EL
+    Compass CR300IN
+    Crosstrek RK938R
+    Crosstrek NA991E
+    Outlander Sport XX123XX
+- Do not invent categories. Use existing DB/API data only.
+- If categoryId/categoryName is not currently returned by the fleet-calendar API, propose the smallest read-only API enrichment needed.
+
+6. Sorting
+For both Model mode and Category mode:
+- Vehicles with bookings visible in the current date range must appear first.
+- Booked vehicles must be ordered by earliest visible booking start date.
+- Vehicles without visible bookings appear after.
+- Free vehicles must use deterministic sorting:
+  natural license plate sort where appropriate, and stable model/category ordering.
+- Do not implement persistent custom model ordering in this patch.
+- If easy and safe, structure the sorting code so future custom model order can be added later.
+- Do not add a settings UI or DB migration for custom model order now.
+
+7. Preserve historical bookings
+- Returned/completed bookings inside the 2-month visible range must still appear as gray bars.
+- Example:
+  If a vehicle had a booking 10–20 May and another booking 26–31 May, and both are inside the visible 2-month window, both must render.
+- Do not filter out returned/history bookings.
+- CANCELED/NO_SHOW behavior remains muted/dashed, not strong red.
+
+Strict exclusions:
+- No DB migration.
+- No new dependencies.
+- No booking mutation changes.
+- No status/action workflow changes.
+- No pricing/availability/payment/accounting changes.
+- No parking/service changes.
+- No website/SEO/Google Ads changes.
+- No right-click actions.
+- No drag/drop booking movement.
+- No persistent model order customization in this patch.
+
+Plan output:
+- Exact files you propose to change
+- Whether API enrichment is needed for brand/model/category labels
+- What you will change
+- What you will not touch
+- Risks, especially internal scroll + sticky header/left column behavior
+- How you will verify the live issues are fixed

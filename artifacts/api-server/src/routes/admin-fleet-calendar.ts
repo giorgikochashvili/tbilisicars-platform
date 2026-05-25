@@ -40,6 +40,7 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       city: locationTable.city,
       modelId: vehicleModelTable.id,
       modelName: vehicleModelTable.name,
+      modelCategory: vehicleModelTable.category,
       brandName: brandTable.name,
     })
     .from(vehicleTable)
@@ -96,16 +97,18 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       plate: v.licensePlate,
       status: v.status,
       city: v.city,
-      // Read-only enrichment for model grouping (new fields)
+      // Read-only enrichment — display only, no mutations
       modelId: v.modelId ?? null,
       modelName: v.modelName ?? null,
+      brandName: v.brandName ?? null,
+      categoryName: v.modelCategory ?? null,
       bookings: vBookings.map((b) => ({
         id: b.id,
         status: b.status,
         // Date-only strings — preserved for compatibility
         pickupDate: b.pickupDatetime.toISOString().split("T")[0],
         dropoffDate: b.dropoffDatetime.toISOString().split("T")[0],
-        // Full ISO datetimes — read-only, for hour-aware overdue display logic (new fields)
+        // Full ISO datetimes — read-only, for hour-aware overdue display logic
         pickupDateTime: b.pickupDatetime.toISOString(),
         dropoffDateTime: b.dropoffDatetime.toISOString(),
         customerName: b.contactFullName,
