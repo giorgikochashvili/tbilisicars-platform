@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft, ChevronRight, ChevronDown, GanttChart, AlertTriangle,
-  Car, MapPin, Calendar, LayoutGrid,
+  Car, MapPin, Calendar, LayoutGrid, Wrench,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import VehicleDetail from "./VehicleDetail";
@@ -26,6 +26,10 @@ interface Booking {
   pickupDateTime?: string;   // full ISO — for hour-aware overdue logic
   dropoffDateTime?: string;  // full ISO — for hour-aware overdue logic
   customerName: string;
+  totalAmount?: string | null;
+  currency?: string | null;
+  deposit?: string | null;
+  depositCurrency?: string | null;
 }
 
 interface Vehicle {
@@ -38,6 +42,8 @@ interface Vehicle {
   modelName?: string | null;
   brandName?: string | null;    // for "Brand Model" group headers in model view
   categoryName?: string | null; // for category grouping
+  hasActiveService?: boolean;   // display-only: SCHEDULED or IN_PROGRESS service exists
+  parkingZone?: string | null;  // display-only: active parking zone key or null
   bookings: Booking[];
 }
 
@@ -48,7 +54,8 @@ interface CalendarData {
 
 interface Group {
   key: string;
-  label: string;   // displayed in group header
+  label: string;
+  categoryHint?: string; // category name of this group's vehicles — used in model view sort
   vehicles: Vehicle[];
 }
 
@@ -58,6 +65,24 @@ const DAY_PX = 44;
 const LABEL_WIDTH_DESKTOP = 220;
 const LABEL_WIDTH_MOBILE = 120;
 
+/**
+ * Business-logical category order — mirrors Fleet.tsx MODEL_CATEGORIES exactly
+ * so both pages stay consistent without a shared constant.
+ * Unknown categories fall alphabetically after the known set; "Uncategorized" last.
+ */
+const CATEGORY_ORDER: readonly string[] = [
+  "Economy",
+  "Standard / Intermediate Sedan",
+  "Full-Size Sedan",
+  "Crossover / Intermediate SUV",
+  "Full-Size SUV",
+  "7 Seater SUV",
+  "Minivan / People Carrier",
+  "Off-Road",
+  "Business Class",
+  "Coupe / Convertible",
+  "Sports Car",
+];
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -115,15 +140,11 @@ function earliestVisibleStart(bookings: Booking[], rangeStart: Date, rangeEnd: D
  * Sort vehicles within a group:
  * 1. Vehicles with bookings visible in the current range come first, by earliest pickup.
  * 2. Vehicles without visible bookings sorted by natural plate order.
- *
- * Structured as a standalone function so future custom model/category ordering
- * can be injected via an optional `customOrder` map without changing group logic.
  */
 function sortVehiclesInGroup(
   vehicles: Vehicle[],
   rangeStart: Date,
   rangeEnd: Date,
-  // Reserved for Phase 2: customOrder?: Map<number, number>
 ): Vehicle[] {
   return [...vehicles].sort((a, b) => {
     const aVis = a.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
@@ -220,17 +241,18 @@ function getBookingColors(
 
 /**
  * Group vehicles by model (brandName + modelName).
- * Group header label = "Toyota Corolla", "Jeep Compass", etc.
+ * Groups are sorted by CATEGORY_ORDER position first, then alphabetically within
+ * the same category position — so Economy models appear before Full-Size SUVs, etc.
  */
 function buildModelGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): Group[] {
   const map = new Map<string, Group>();
 
   for (const v of vehicles) {
     const key = v.modelId != null ? `m_${v.modelId}` : `u_${v.id}`;
-    // Group header: "Brand Model" e.g. "Jeep Compass"
     const label =
       [v.brandName, v.modelName].filter(Boolean).join(" ") || v.label || "Unknown";
-    if (!map.has(key)) map.set(key, { key, label, vehicles: [] });
+    if (!map.has(key))
+      map.set(key, { key, label, categoryHint: v.categoryName ?? undefined, vehicles: [] });
     map.get(key)!.vehicles.push(v);
   }
 
@@ -238,13 +260,22 @@ function buildModelGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date)
     g.vehicles = sortVehiclesInGroup(g.vehicles, rangeStart, rangeEnd);
   }
 
-  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+  return [...map.values()].sort((a, b) => {
+    const ai = a.categoryHint ? CATEGORY_ORDER.indexOf(a.categoryHint) : -1;
+    const bi = b.categoryHint ? CATEGORY_ORDER.indexOf(b.categoryHint) : -1;
+    if (ai !== -1 || bi !== -1) {
+      const aPos = ai === -1 ? 9999 : ai;
+      const bPos = bi === -1 ? 9999 : bi;
+      if (aPos !== bPos) return aPos - bPos;
+    }
+    return a.label.localeCompare(b.label);
+  });
 }
 
 /**
  * Group vehicles by category (from vehicleModelTable.category).
- * Group header label = real category name e.g. "Crossover", "Economy".
- * Vehicles with null categoryName fall into "Uncategorized".
+ * Groups are sorted by CATEGORY_ORDER position; unknown categories fall after
+ * the known set alphabetically; "Uncategorized" is always last.
  */
 function buildCategoryGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Date): Group[] {
   const map = new Map<string, Group>();
@@ -261,10 +292,14 @@ function buildCategoryGroups(vehicles: Vehicle[], rangeStart: Date, rangeEnd: Da
   }
 
   return [...map.values()].sort((a, b) => {
-    // Pin "Uncategorized" to the end
     if (a.label === "Uncategorized") return 1;
     if (b.label === "Uncategorized") return -1;
-    return a.label.localeCompare(b.label);
+    const ai = CATEGORY_ORDER.indexOf(a.label);
+    const bi = CATEGORY_ORDER.indexOf(b.label);
+    if (ai !== -1 && bi !== -1) return ai - bi;   // both known — order by position
+    if (ai !== -1) return -1;                      // a known, b unknown
+    if (bi !== -1) return 1;                       // b known, a unknown
+    return a.label.localeCompare(b.label);         // both unknown — alphabetical
   });
 }
 
@@ -297,7 +332,6 @@ function bookingEndMs(b: Booking): number {
 /**
  * True only when two bookings genuinely overlap.
  * Exact boundary touch (A.end === B.start) is NOT a conflict — clean handoff.
- * Rule: A.end > B.start AND A.start < B.end  (strict inequality on both sides)
  */
 function bookingsOverlap(a: Booking, b: Booking): boolean {
   return bookingEndMs(a) > bookingStartMs(b) && bookingStartMs(a) < bookingEndMs(b);
@@ -312,6 +346,54 @@ function hasConflict(bookings: Booking[]): boolean {
 
 function isBookingInConflict(target: Booking, bookings: Booking[]): boolean {
   return bookings.some((b) => b.id !== target.id && bookingsOverlap(target, b));
+}
+
+// ── Plate accent ──────────────────────────────────────────────────────────────
+
+/**
+ * Display-only Tailwind text-color class for the plate span of the vehicle label.
+ *   green  = DELIVERED booking currently active (now between pickup → dropoff)
+ *   blue   = PENDING/CONFIRMED booking visible in the current range
+ *   orange = free / no active or upcoming booking
+ * Applied only to the plate text — model name remains neutral.
+ */
+function getPlateAccent(
+  vehicle: Vehicle,
+  now: Date,
+  rangeStart: Date,
+  rangeEnd: Date,
+): string {
+  const isActive = vehicle.bookings.some(
+    (b) =>
+      b.status === "DELIVERED" &&
+      b.pickupDateTime &&
+      b.dropoffDateTime &&
+      new Date(b.pickupDateTime) <= now &&
+      new Date(b.dropoffDateTime) >= now,
+  );
+  if (isActive) return "text-emerald-400";
+
+  const hasUpcoming = vehicle.bookings.some(
+    (b) =>
+      (b.status === "PENDING" || b.status === "CONFIRMED") &&
+      isBookingVisible(b, rangeStart, rangeEnd),
+  );
+  if (hasUpcoming) return "text-sky-400";
+
+  return "text-orange-400/70";
+}
+
+// ── Parking zone label ────────────────────────────────────────────────────────
+
+/** Human-readable label for the zone key stored in parking_assignment.zone. */
+function formatParkingZone(zone: string | null | undefined): string {
+  if (!zone) return "—";
+  const labels: Record<string, string> = {
+    AIRPORT: "TBS AIR PARKING",
+    FREE: "Free Parking",
+    TASHKENT: "Tashkent",
+  };
+  return labels[zone] ?? zone;
 }
 
 // ── City init from Dashboard region ──────────────────────────────────────────
@@ -339,8 +421,8 @@ export default function FleetCalendarPage() {
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
 
-  // Group by: model (default) or category
-  const [groupBy, setGroupBy] = useState<GroupBy>("model");
+  // Group by: category (default) or model
+  const [groupBy, setGroupBy] = useState<GroupBy>("category");
 
   // Collapsed group keys (local UI state, cleared when groupBy changes)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -426,7 +508,7 @@ export default function FleetCalendarPage() {
     });
   };
 
-  // Booking bar geometry — clipped to visible range (unchanged math)
+  // Booking bar geometry — clipped to visible range
   function bookingBar(booking: Booking) {
     const pickupDate = parseDate(booking.pickupDate);
     const dropoffDate = parseDate(booking.dropoffDate);
@@ -479,8 +561,8 @@ export default function FleetCalendarPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="model">Group: Model</SelectItem>
               <SelectItem value="category">Group: Category</SelectItem>
+              <SelectItem value="model">Group: Model</SelectItem>
             </SelectContent>
           </Select>
 
@@ -545,7 +627,6 @@ export default function FleetCalendarPage() {
           Board uses a bounded max-height so it scrolls internally instead of
           making the CRM page grow. The 240px offset covers the app header,
           main padding, page title, legend, footer, and gaps.
-          Adjust this value if the layout above the board changes significantly.
       ── */}
       <Card
         className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm overflow-hidden flex flex-col"
@@ -616,13 +697,13 @@ export default function FleetCalendarPage() {
 
                 return (
                   <div key={group.key}>
-                    {/* Group header row — click to collapse/expand */}
+                    {/* Group header row — solid bg (bg-card) prevents booking bars bleeding through */}
                     <div
-                      className="flex border-b border-border/30 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
+                      className="flex border-b border-border/30 bg-card hover:bg-muted/20 transition-colors cursor-pointer select-none relative z-[1]"
                       onClick={() => toggleGroup(group.key)}
                     >
                       <div
-                        className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-muted/25 sticky left-0 z-10"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-card sticky left-0 z-10"
                         style={{ width: LABEL_WIDTH }}
                       >
                         <ChevronDown
@@ -634,7 +715,7 @@ export default function FleetCalendarPage() {
                         <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 tabular-nums whitespace-nowrap">
                           {group.vehicles.length}
                           {visibleBookedCount > 0 && (
-                            <span className="text-primary/70"> · {visibleBookedCount}↑</span>
+                            <span className="text-emerald-500/80"> · {visibleBookedCount}↑</span>
                           )}
                         </span>
                       </div>
@@ -664,42 +745,81 @@ export default function FleetCalendarPage() {
                     {!isCollapsed &&
                       group.vehicles.map((vehicle) => {
                         const rowHasConflict = hasConflict(vehicle.bookings);
-                        // Compact label: "ModelName Plate" — brand not repeated since it's in the group header
-                        const compactLabel = `${vehicle.modelName || vehicle.label} ${vehicle.plate || vehicle.id}`.trim();
+                        const plateAccent = getPlateAccent(vehicle, now, rangeStart, rangeEnd);
 
                         return (
                           <div
                             key={vehicle.id}
                             className={`flex border-b border-border/20 hover:bg-muted/10 transition-colors group ${rowHasConflict ? "bg-orange-500/5" : ""}`}
                           >
-                            {/* Vehicle label — sticky left, click opens VehicleDetail */}
-                            <div
-                              className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-r border-border/30 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors min-w-0"
-                              style={{ width: LABEL_WIDTH }}
-                              onClick={() => setDetailVehicleId(vehicle.id)}
-                              title="Open vehicle detail"
-                            >
-                              <span className="text-[11px] font-mono font-semibold text-foreground truncate flex-1">
-                                {compactLabel}
-                              </span>
-                              {rowHasConflict && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">
-                                    <p className="text-xs">Booking conflict detected</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
+                            {/* Vehicle label — sticky left, click opens VehicleDetail.
+                                Outer Tooltip shows parking zone on hover.
+                                Inner Tooltips cover wrench and conflict icons. */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-r border-border/30 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors min-w-0"
+                                  style={{ width: LABEL_WIDTH }}
+                                  onClick={() => setDetailVehicleId(vehicle.id)}
+                                >
+                                  <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="text-[10px] font-medium text-muted-foreground truncate leading-tight">
+                                      {vehicle.modelName || vehicle.label}
+                                    </span>
+                                    <span className={`text-[11px] font-mono font-semibold tabular-nums truncate leading-tight ${plateAccent}`}>
+                                      {vehicle.plate || String(vehicle.id)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                                    {vehicle.hasActiveService && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            className="p-0.5 rounded text-orange-400/80 hover:text-orange-400 transition-colors"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.location.href = `/crm/service?vehicleSearch=${encodeURIComponent(vehicle.plate ?? "")}`;
+                                            }}
+                                          >
+                                            <Wrench className="w-3 h-3" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                          <p className="text-xs">Active service — click to view</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {rowHasConflict && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">
+                                          <p className="text-xs">Booking conflict detected</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="text-xs">
+                                <div className="space-y-0.5">
+                                  <div className="font-semibold">
+                                    {[vehicle.brandName, vehicle.modelName].filter(Boolean).join(" ") || vehicle.label}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    Parking: {formatParkingZone(vehicle.parkingZone)}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
 
                             {/* Timeline area */}
                             <div
                               className="relative flex-shrink-0"
                               style={{ width: totalGridWidth, height: 44 }}
                             >
-                              {/* Day grid lines + today/weekend highlight (unchanged) */}
+                              {/* Day grid lines + today/weekend highlight */}
                               {dates.map((d, i) => {
                                 const isToday = toDateStr(d) === todayStr;
                                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
@@ -712,7 +832,7 @@ export default function FleetCalendarPage() {
                                 );
                               })}
 
-                              {/* Today vertical line (unchanged) */}
+                              {/* Today vertical line */}
                               {todayIdx >= 0 && (
                                 <div
                                   className="absolute top-0 bottom-0 w-0.5 bg-primary/40 z-10 pointer-events-none"
@@ -720,7 +840,7 @@ export default function FleetCalendarPage() {
                                 />
                               )}
 
-                              {/* Booking bars — click opens BookingDetail inline */}
+                              {/* Booking bars — click opens BookingDetail */}
                               {vehicle.bookings.map((booking) => {
                                 const { left, width } = bookingBar(booking);
                                 if (width <= 0) return null;
@@ -750,20 +870,60 @@ export default function FleetCalendarPage() {
                                         </span>
                                       </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-[220px]">
-                                      <div className="text-xs space-y-0.5">
-                                        <div className="font-bold">Booking #{booking.id}</div>
-                                        <div>{booking.customerName}</div>
-                                        <div className="text-muted-foreground">
-                                          {booking.pickupDate} → {booking.dropoffDate}
+                                    <TooltipContent
+                                      side="top"
+                                      className="bg-slate-900 border border-slate-700/60 text-slate-100 shadow-xl p-0 max-w-[240px]"
+                                    >
+                                      <div className="px-3 py-2.5 space-y-1.5 text-xs">
+                                        <div className="flex items-center gap-2 pb-1.5 border-b border-slate-700/50">
+                                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${bar.split(" ")[0]}`} />
+                                          <span className="font-bold text-slate-100">#{booking.id}</span>
+                                          <span className="text-slate-400 ml-auto">{booking.status}</span>
                                         </div>
-                                        <div className="flex items-center gap-1">
-                                          <span className={`inline-block w-2 h-2 rounded-full ${bar.split(" ")[0]}`} />
-                                          {booking.status}
-                                          {inConflict && (
-                                            <span className="text-orange-400 font-bold ml-1">⚠ CONFLICT</span>
-                                          )}
+                                        <div className="font-medium text-slate-100">{booking.customerName}</div>
+                                        <div className="text-slate-400 space-y-0.5">
+                                          <div>
+                                            ↑{" "}
+                                            {booking.pickupDateTime
+                                              ? new Date(booking.pickupDateTime).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) +
+                                                " " +
+                                                new Date(booking.pickupDateTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                                              : booking.pickupDate}
+                                          </div>
+                                          <div>
+                                            ↓{" "}
+                                            {booking.dropoffDateTime
+                                              ? new Date(booking.dropoffDateTime).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) +
+                                                " " +
+                                                new Date(booking.dropoffDateTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                                              : booking.dropoffDate}
+                                          </div>
                                         </div>
+                                        <div className="pt-1.5 border-t border-slate-700/50 space-y-1">
+                                          <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-400">Price</span>
+                                            <span className="text-slate-100 font-medium tabular-nums">
+                                              {booking.totalAmount && parseFloat(booking.totalAmount) > 0
+                                                ? `${parseFloat(booking.totalAmount).toLocaleString()} ${booking.currency ?? ""}`.trim()
+                                                : "—"}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center justify-between gap-3">
+                                            <span className="text-slate-400">Deposit</span>
+                                            <span className="text-slate-100 font-medium tabular-nums">
+                                              {booking.deposit && parseFloat(booking.deposit) > 0
+                                                ? `${parseFloat(booking.deposit).toLocaleString()} ${booking.depositCurrency ?? ""}`.trim()
+                                                : "—"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        {inConflict && (
+                                          <div className="pt-1 border-t border-slate-700/50">
+                                            <span className="text-orange-400 font-bold flex items-center gap-1">
+                                              <AlertTriangle className="w-3 h-3" /> CONFLICT
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     </TooltipContent>
                                   </Tooltip>

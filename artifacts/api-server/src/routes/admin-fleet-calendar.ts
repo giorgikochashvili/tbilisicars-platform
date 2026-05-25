@@ -7,8 +7,10 @@ import {
   brandTable,
   locationTable,
   bookingTable,
+  maintenanceServicesTable,
+  parkingAssignmentTable,
 } from "@workspace/db";
-import { and, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -68,6 +70,11 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       pickupDatetime: bookingTable.pickupDatetime,
       dropoffDatetime: bookingTable.dropoffDatetime,
       contactFullName: bookingTable.contactFullName,
+      // Display-only amounts — read from booking record, no mutations
+      totalAmount: bookingTable.totalAmount,
+      currency: bookingTable.currency,
+      deposit: bookingTable.deposit,
+      depositCurrency: bookingTable.depositCurrency,
     })
     .from(bookingTable)
     .where(
@@ -80,7 +87,36 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       ),
     );
 
-  // ── 3. Group bookings by vehicle ────────────────────────────────────────────
+  // ── 3. Active service records (SCHEDULED or IN_PROGRESS) ───────────────────
+  // Read-only: used to display wrench icon on vehicle label. No mutations.
+  const activeServiceRows = await db
+    .select({ vehicleId: maintenanceServicesTable.vehicleId })
+    .from(maintenanceServicesTable)
+    .where(
+      and(
+        inArray(maintenanceServicesTable.vehicleId, vehicleIds),
+        inArray(maintenanceServicesTable.status, ["SCHEDULED", "IN_PROGRESS"]),
+      ),
+    );
+  const activeServiceSet = new Set(activeServiceRows.map((r) => r.vehicleId));
+
+  // ── 4. Active parking assignments (removedAt IS NULL) ──────────────────────
+  // Read-only: used to display parking zone in vehicle label tooltip. No mutations.
+  const parkingRows = await db
+    .select({
+      vehicleId: parkingAssignmentTable.vehicleId,
+      zone: parkingAssignmentTable.zone,
+    })
+    .from(parkingAssignmentTable)
+    .where(
+      and(
+        inArray(parkingAssignmentTable.vehicleId, vehicleIds),
+        isNull(parkingAssignmentTable.removedAt),
+      ),
+    );
+  const parkingMap = new Map(parkingRows.map((r) => [r.vehicleId, r.zone]));
+
+  // ── 5. Group bookings by vehicle ────────────────────────────────────────────
   const bookingsByVehicle = new Map<number, typeof bookings>();
   for (const b of bookings) {
     if (b.vehicleId == null) continue;
@@ -88,7 +124,7 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
     bookingsByVehicle.get(b.vehicleId)!.push(b);
   }
 
-  // ── 4. Build response ────────────────────────────────────────────────────────
+  // ── 6. Build response ────────────────────────────────────────────────────────
   const vehicles = filteredVehicles.map((v) => {
     const vBookings = bookingsByVehicle.get(v.id) ?? [];
     return {
@@ -102,6 +138,8 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
       modelName: v.modelName ?? null,
       brandName: v.brandName ?? null,
       categoryName: v.modelCategory ?? null,
+      hasActiveService: activeServiceSet.has(v.id),
+      parkingZone: parkingMap.get(v.id) ?? null,
       bookings: vBookings.map((b) => ({
         id: b.id,
         status: b.status,
@@ -112,6 +150,11 @@ router.get("/admin/fleet-calendar", requireAdmin, async (req, res) => {
         pickupDateTime: b.pickupDatetime.toISOString(),
         dropoffDateTime: b.dropoffDatetime.toISOString(),
         customerName: b.contactFullName,
+        // Display-only booking amounts — read from record, not payment aggregations
+        totalAmount: b.totalAmount ?? null,
+        currency: b.currency ?? null,
+        deposit: b.deposit ?? null,
+        depositCurrency: b.depositCurrency ?? null,
       })),
     };
   });

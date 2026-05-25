@@ -1,0 +1,153 @@
+We need a production-safe Fleet Calendar Phase 1D polish based on live review.
+
+Current status:
+Fleet Calendar is deployed and working with:
+- 60-day view
+- internal board scroll
+- Group by Model / Category
+- Brand+Model group headers
+- compact vehicle rows
+- Dashboard region continuity
+- datetime-aware conflict detection
+- BookingDetail click
+- VehicleDetail click
+
+Now we need a careful visual/UX and data-display refinement.
+
+Important:
+This is a live CRM. Keep the change surgical and isolated. Do not touch booking creation/update logic, pricing, backend availability validation, payments/accounting calculations, parking actions, service record mutation logic, public website, voucher/email, database schema, or migrations.
+
+Please inspect first and propose a plan only. Do not write code yet.
+
+Likely files:
+1. artifacts/crm/src/pages/FleetCalendar.tsx
+2. artifacts/api-server/src/routes/admin-fleet-calendar.ts only if tooltip/payment/parking/service display requires safe read-only API enrichment.
+3. If Service navigation/filter already uses a specific route/query pattern, inspect the relevant Service page file only to reuse existing pattern. Do not modify Service unless absolutely necessary.
+
+Required changes:
+
+1. Default Group by = Category
+- Fleet Calendar should open by default with Group by: Category.
+- Group by: Model must remain available.
+
+2. Business/logical category ordering
+- Category groups must not be random/alphabetical-only.
+- Use business/logical order:
+  Economy
+  Standard / Sedan
+  Full-size Sedan
+  Crossover / Intermediate SUV
+  Full-size SUV
+  7-seater SUV
+  Minivan / Van
+  Off-road
+  Other / Uncategorized
+- Use real category names from existing DB/API data. Do not invent categories.
+- If category names differ slightly, map them safely into this order where obvious.
+- Unknown categories should appear after known categories using stable alphabetical order.
+- Uncategorized must appear last.
+
+3. Business-friendly model ordering
+- Model groups and vehicles inside Category view should use deterministic/business-friendly ordering where safe.
+- Check if existing Fleet page / CRM / website code already has a model/category order.
+- If a reliable existing order exists, propose reusing it.
+- If no existing order exists, propose a frontend-only constant/order helper in FleetCalendar.tsx.
+- Do not implement persistent custom ordering yet.
+- Do not add settings UI.
+- Do not add DB migration.
+
+4. Vehicle plate visual accent
+- Make compact vehicle rows easier to scan.
+- Apply subtle color accent to the license plate text only, not the whole row.
+- Logic:
+  Green plate = vehicle is currently active/rented, based on active DELIVERED booking now.
+  Blue plate = vehicle is not currently active, but has upcoming PENDING/CONFIRMED booking in the visible range.
+  Orange plate = neutral/free/no active or upcoming scheduled booking in the visible range.
+- Keep it subtle and professional. If color should be applied only to plate span, preserve model text neutral.
+- Do not change booking bar colors.
+
+5. Service wrench icon beside vehicle label
+- If the vehicle has an active service record, show a small wrench icon beside the model/plate.
+- Active service means Scheduled / In Progress / Pending-type service if such status exists in current code.
+- Do not show wrench for Completed / Cancelled service.
+- If service status changes to completed/cancelled, the wrench should disappear after data refresh.
+- Clicking the wrench should open/navigate to Service module filtered by that vehicle/license plate, similar to the existing wrench behavior already used in TBS AIR PARKING if available.
+- The wrench click must not trigger VehicleDetail row click; use stopPropagation.
+- Do not change service record creation/update/status logic.
+- If FleetCalendar API does not currently have service info, propose the smallest safe read-only API enrichment needed, e.g. hasActiveService / activeServiceStatus.
+
+6. Vehicle hover parking info
+- When hovering over a vehicle row label, show a small tooltip with current parking info if available.
+- Example:
+  Parking: TBS AIR PARKING / Zone A
+  Parking: Free
+  Parking: Tashkent
+  Parking: Unknown
+- Do not invent parking values.
+- If parking/current location info is not available in the FleetCalendar response, propose the smallest safe read-only API enrichment needed.
+- Do not change parking business logic, parking actions, zone movement, or auto-remove behavior.
+
+7. Group/category/model header visual protection
+- Booking bars must not visually bleed through or overlap group/category/model header rows.
+- Header rows should have a solid/opaque background and correct z-index/border.
+- Group header rows should remain clean and readable during hover and horizontal scroll.
+
+8. Group summary count colors
+- In group headers, count/arrow indicators such as “5 · ↑3” currently show the active/booked count in red.
+- If ↑3 means booked/active count, it should be green or a calm positive operational color, not red.
+- Reserve red for real problems: overdue/conflict/error.
+
+9. Booking hover tooltip redesign
+- Current booking hover tooltip has an aggressive red background.
+- Change it to a dark-neutral/premium style that fits the CRM dark theme:
+  dark slate background, subtle border, readable text, optional small status dot/badge.
+- Tooltip must not visually clash with the calendar.
+- Tooltip should show:
+  Booking #
+  Customer name
+  Status
+  Pickup date + time
+  Dropoff date + time
+  Paid amount
+  Deposit amount
+  Both currencies where available
+- If paid/deposit/currency fields are not currently available, propose the smallest safe read-only API enrichment needed.
+- Do not change payment/accounting calculation logic.
+- Do not invent amounts. If a value is missing/null, show “—”.
+
+Strict exclusions:
+- No booking creation/update changes.
+- No backend availability/conflict validation changes.
+- No pricing changes.
+- No payment/accounting calculation changes.
+- No parking action/business logic changes.
+- No service mutation/status workflow changes.
+- No website/SEO/Google Ads changes.
+- No voucher/email changes.
+- No database migration.
+- No new dependencies unless absolutely unavoidable.
+- No right-click actions.
+- No drag/drop booking movement.
+- No persistent custom model/category ordering.
+
+Plan output:
+- Exact files you propose to change
+- Whether API read-only enrichment is needed for:
+  1. parking info
+  2. active service/wrench status
+  3. paid/deposit/currency tooltip fields
+- Whether existing ordering exists elsewhere and can be reused
+- What will be changed
+- What will not be touched
+- Risks
+- Whether this should be implemented as one patch or split into smaller patches
+- Verification steps:
+  1. Default opens Group by Category
+  2. Category/model order is logical
+  3. Plate color accents work and do not over-color the UI
+  4. Service wrench appears/disappears correctly based on active service
+  5. Wrench click opens Service filtered by plate
+  6. Vehicle hover shows parking info safely
+  7. Group headers no longer get overlapped by bars
+  8. Group summary counts are not red unless actual problem
+  9. Booking tooltip style and information are correct
