@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronLeft, ChevronRight, ChevronDown, GanttChart, AlertTriangle,
-  Car, MapPin, Calendar, LayoutGrid, Wrench,
+  Car, MapPin, Calendar, LayoutGrid, Wrench, Minus, Plus,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import VehicleDetail from "./VehicleDetail";
@@ -380,7 +380,7 @@ function getPlateAccent(
   );
   if (hasUpcoming) return "text-sky-400";
 
-  return "text-orange-400/70";
+  return "text-foreground/50";
 }
 
 // ── Parking zone label ────────────────────────────────────────────────────────
@@ -397,6 +397,20 @@ function formatParkingZone(zone: string | null | undefined): string {
 }
 
 // ── City init from Dashboard region ──────────────────────────────────────────
+
+// ── Board zoom ────────────────────────────────────────────────────────────────
+
+const ZOOM_STEPS = [80, 90, 100, 110, 120] as const;
+
+/** Restore last chosen zoom from localStorage; fall back to 100. */
+function loadInitialZoom(): number {
+  try {
+    const v = localStorage.getItem("fleet-calendar-zoom");
+    const n = Number(v);
+    if ((ZOOM_STEPS as readonly number[]).includes(n)) return n;
+  } catch {}
+  return 100;
+}
 
 /**
  * Read the region the staff last selected on the Operations Dashboard.
@@ -450,6 +464,12 @@ export default function FleetCalendarPage() {
   // Initialise from Dashboard's last-selected region (read-only, no writes back)
   const [city, setCity] = useState<string>(loadInitialCity);
 
+  // Board zoom: 80 / 90 / 100 / 110 / 120 — persisted to localStorage
+  const [boardZoom, setBoardZoom] = useState<number>(loadInitialZoom);
+  useEffect(() => {
+    try { localStorage.setItem("fleet-calendar-zoom", String(boardZoom)); } catch {}
+  }, [boardZoom]);
+
   const rangeEnd = useMemo(() => addDays(rangeStart, rangeSize - 1), [rangeStart, rangeSize]);
   const startStr = toDateStr(rangeStart);
   const endStr = toDateStr(rangeEnd);
@@ -471,7 +491,7 @@ export default function FleetCalendarPage() {
   // Auto-scroll so today is visible (~1/3 from the left of the grid) on data load
   useEffect(() => {
     if (!scrollRef.current || !data) return;
-    const todayOffsetPx = diffDays(rangeStart, today) * DAY_PX;
+    const todayOffsetPx = diffDays(rangeStart, today) * EFFECTIVE_DAY_PX;
     const LABEL_W = typeof window !== "undefined" && window.innerWidth < 768
       ? LABEL_WIDTH_MOBILE
       : LABEL_WIDTH_DESKTOP;
@@ -516,10 +536,11 @@ export default function FleetCalendarPage() {
     const endClipped = dropoffDate > rangeEnd ? rangeEnd : dropoffDate;
     const leftDays = diffDays(rangeStart, startClipped);
     const spanDays = diffDays(startClipped, endClipped) + 1;
-    return { left: leftDays * DAY_PX, width: spanDays * DAY_PX };
+    return { left: leftDays * EFFECTIVE_DAY_PX, width: spanDays * EFFECTIVE_DAY_PX };
   }
 
-  const totalGridWidth = rangeSize * DAY_PX;
+  const EFFECTIVE_DAY_PX = Math.round(DAY_PX * boardZoom / 100);
+  const totalGridWidth = rangeSize * EFFECTIVE_DAY_PX;
   const LABEL_WIDTH = labelWidth;
 
   // Computed once per render for overdue checks (display-only, no mutations)
@@ -601,6 +622,27 @@ export default function FleetCalendarPage() {
           <Button variant="outline" size="sm" className="h-9 text-sm" onClick={goToday}>
             Today
           </Button>
+
+          {/* Board zoom */}
+          <div className="flex items-center gap-0.5 border border-border/50 rounded-lg p-0.5 bg-card/60">
+            <Button
+              variant="ghost" size="icon" className="h-7 w-7"
+              onClick={() => setBoardZoom(z => Math.max(80, z - 10))}
+              disabled={boardZoom <= 80}
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </Button>
+            <span className="text-xs font-medium tabular-nums text-muted-foreground px-1 min-w-[36px] text-center select-none">
+              {boardZoom}%
+            </span>
+            <Button
+              variant="ghost" size="icon" className="h-7 w-7"
+              onClick={() => setBoardZoom(z => Math.min(120, z + 10))}
+              disabled={boardZoom >= 120}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -676,7 +718,7 @@ export default function FleetCalendarPage() {
                         key={i}
                         className={`flex-shrink-0 border-r border-border/20 flex flex-col items-center justify-center py-2 gap-0.5 select-none
                           ${isToday ? "bg-primary/15 border-r-primary/40" : isWeekend ? "bg-muted/20" : ""}`}
-                        style={{ width: DAY_PX }}
+                        style={{ width: EFFECTIVE_DAY_PX }}
                       >
                         <span className={`text-[10px] font-medium uppercase tracking-wide ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                           {formatDayOfWeek(d)}
@@ -708,7 +750,7 @@ export default function FleetCalendarPage() {
                       onClick={() => toggleGroup(group.key)}
                     >
                       <div
-                        className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-card sticky left-0 z-10"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-r border-border/30 bg-card sticky left-0 z-20"
                         style={{ width: LABEL_WIDTH }}
                       >
                         <ChevronDown
@@ -733,14 +775,14 @@ export default function FleetCalendarPage() {
                             <div
                               key={i}
                               className={`absolute top-0 bottom-0 border-r border-border/10 ${isToday ? "bg-primary/5" : isWeekend ? "bg-muted/10" : ""}`}
-                              style={{ left: i * DAY_PX, width: DAY_PX }}
+                              style={{ left: i * EFFECTIVE_DAY_PX, width: EFFECTIVE_DAY_PX }}
                             />
                           );
                         })}
                         {todayIdx >= 0 && (
                           <div
                             className="absolute top-0 bottom-0 w-0.5 bg-primary/25 pointer-events-none"
-                            style={{ left: todayIdx * DAY_PX + DAY_PX / 2 - 1 }}
+                            style={{ left: todayIdx * EFFECTIVE_DAY_PX + EFFECTIVE_DAY_PX / 2 - 1 }}
                           />
                         )}
                       </div>
@@ -763,18 +805,31 @@ export default function FleetCalendarPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div
-                                  className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-r border-border/30 bg-card sticky left-0 z-10 cursor-pointer hover:bg-muted/10 transition-colors min-w-0"
+                                  className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 border-r border-border/30 bg-card sticky left-0 z-20 cursor-pointer hover:bg-muted/10 transition-colors min-w-0"
                                   style={{ width: LABEL_WIDTH }}
                                   onClick={() => setDetailVehicleId(vehicle.id)}
                                 >
-                                  <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="text-[10px] font-medium text-muted-foreground truncate leading-tight">
-                                      {vehicle.modelName || vehicle.label}
-                                    </span>
-                                    <span className={`text-[11px] font-mono font-semibold tabular-nums truncate leading-tight ${plateAccent}`}>
-                                      {vehicle.plate || String(vehicle.id)}
-                                    </span>
-                                  </div>
+                                  {labelWidth === LABEL_WIDTH_DESKTOP ? (
+                                    // Desktop/tablet: model + plate inline on one row
+                                    <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                                      <span className="text-[10px] font-medium text-muted-foreground truncate leading-tight flex-1 min-w-0">
+                                        {vehicle.modelName || vehicle.label}
+                                      </span>
+                                      <span className={`text-[10px] font-mono font-semibold tabular-nums flex-shrink-0 leading-tight ${plateAccent}`}>
+                                        {vehicle.plate || String(vehicle.id)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    // Mobile: stacked two-line layout
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                      <span className="text-[10px] font-medium text-muted-foreground truncate leading-tight">
+                                        {vehicle.modelName || vehicle.label}
+                                      </span>
+                                      <span className={`text-[11px] font-mono font-semibold tabular-nums truncate leading-tight ${plateAccent}`}>
+                                        {vehicle.plate || String(vehicle.id)}
+                                      </span>
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-0.5 flex-shrink-0">
                                     {vehicle.hasActiveService && (
                                       <Tooltip>
@@ -822,7 +877,7 @@ export default function FleetCalendarPage() {
                             {/* Timeline area */}
                             <div
                               className="relative flex-shrink-0"
-                              style={{ width: totalGridWidth, height: 44 }}
+                              style={{ width: totalGridWidth, height: 36 }}
                             >
                               {/* Day grid lines + today/weekend highlight */}
                               {dates.map((d, i) => {
@@ -832,7 +887,7 @@ export default function FleetCalendarPage() {
                                   <div
                                     key={i}
                                     className={`absolute top-0 bottom-0 border-r border-border/15 ${isToday ? "bg-primary/8" : isWeekend ? "bg-muted/15" : ""}`}
-                                    style={{ left: i * DAY_PX, width: DAY_PX }}
+                                    style={{ left: i * EFFECTIVE_DAY_PX, width: EFFECTIVE_DAY_PX }}
                                   />
                                 );
                               })}
@@ -841,7 +896,7 @@ export default function FleetCalendarPage() {
                               {todayIdx >= 0 && (
                                 <div
                                   className="absolute top-0 bottom-0 w-0.5 bg-primary/40 z-10 pointer-events-none"
-                                  style={{ left: todayIdx * DAY_PX + DAY_PX / 2 - 1 }}
+                                  style={{ left: todayIdx * EFFECTIVE_DAY_PX + EFFECTIVE_DAY_PX / 2 - 1 }}
                                 />
                               )}
 
@@ -861,11 +916,11 @@ export default function FleetCalendarPage() {
                                           ${bar} ${text}
                                           ${dashed ? "border-dashed" : ""}
                                           ${inConflict ? "ring-2 ring-orange-400/70 ring-offset-0" : ""}
-                                          hover:z-20 hover:shadow-md`}
+                                          hover:z-[15] hover:shadow-md`}
                                         style={{
                                           left: left + 2,
                                           width: Math.max(width - 4, 8),
-                                          height: 28,
+                                          height: 24,
                                         }}
                                         onClick={() => setDetailBookingId(booking.id)}
                                       >

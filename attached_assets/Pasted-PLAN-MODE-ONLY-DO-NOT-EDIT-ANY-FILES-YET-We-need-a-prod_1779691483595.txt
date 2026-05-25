@@ -1,0 +1,93 @@
+PLAN MODE ONLY — DO NOT EDIT ANY FILES YET.
+
+We need a production-safe UI refinement plan for the CRM Fleet Calendar.
+
+Project context:
+- Live production system
+- Make only surgical changes
+- No assumptions
+- No unrelated refactors
+- No new dependencies unless absolutely necessary
+- Do not touch booking logic, pricing logic, permissions, or unrelated CRM pages
+- Mobile responsiveness is mandatory, but desktop must not regress
+
+Target area:
+- artifacts/crm/src/pages/FleetCalendar.tsx
+- Only inspect other files if strictly needed for this task
+- If another file is needed, explain exactly why before proposing changes
+
+Current context:
+Fleet Calendar has already been improved recently:
+- default grouping by category
+- category/model ordering
+- vehicle plate color accents
+- service wrench
+- booking tooltip improvements
+- mobile/tablet responsiveness improvements
+
+Now we want one more refinement batch.
+
+Required changes to plan:
+
+1) Free / neutral vehicle plate color
+- Change the plate color for free / neutral vehicles from orange to white
+- Keep the other current color logic intact
+- Reason: orange conflicts visually with the service wrench icon
+
+2) Inline vehicle label layout
+- Move the vehicle plate to the same line as the model
+- Example:
+  Prius 4th AC531AC
+- The goal is a more compact label block and better space efficiency
+
+3) Reduce row/label height further
+- After model + plate become inline, reduce the vehicle label line height / vertical spacing / padding as much as safely possible
+- The entire vehicle row should become more compact
+- Must still remain visually readable and fit the design well
+- This is important: we specifically want to shrink the full row height as much as practical without making it ugly or hard to read
+
+4) Left label area must stay solid and above booking bars
+- There is still a visual bleed issue:
+  when hovering or viewing old booking bars, the booking bar/visual can appear to cross into the left model/plate column
+- Fix this so that:
+  - the left sticky vehicle label column is fully opaque
+  - booking bars remain visually behind it
+  - no booking bar or hover visual should cross through the model/plate field
+- This must work consistently during horizontal scroll and hover states
+
+5) Fleet Calendar board zoom controls
+- Add compact zoom controls near the top controls area:
+  - minus
+  - current zoom percentage
+  - plus
+- This zoom must affect only the Fleet Calendar board area, not the whole CRM page
+- It should help staff zoom in/out the calendar view for comfort
+- Recommended zoom steps: 80%, 90%, 100%, 110%, 120%
+- Default should be 100%
+- If practical and safe, remember last chosen zoom in localStorage
+- Must not break sticky headers, sticky left column, or scroll behavior
+
+6) Responsive safety
+- These changes must not break desktop layout
+- They must also remain usable on iOS and Android mobile/tablet
+- Desktop and tablet should prefer inline model + plate
+- If a very narrow width needs a fallback, plan the safest responsive behavior
+
+What I need from you in PLAN MODE:
+1. Inspect the current FleetCalendar implementation
+2. Identify the exact minimal file set required
+3. Explain how each requested change should be implemented
+4. Call out any risk areas
+5. Provide acceptance criteria
+6. Clearly separate:
+   - what will change
+   - what will not change
+7. Confirm whether this can remain frontend-only, or whether any backend/API change is needed
+8. Do not write code yet
+9. Do not create or attach any extra asset files, screenshots, text files, or temporary files
+
+Important:
+- Keep this production-safe
+- Keep scope narrow
+- No build mode yet
+- Return a clean implementation plan only
