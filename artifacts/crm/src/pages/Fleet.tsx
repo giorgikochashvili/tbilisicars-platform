@@ -135,10 +135,11 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
     status: "AVAILABLE" | "RENTED" | "MAINTENANCE" | "RESERVED" | "INACTIVE";
     mileage: number;
     locationId: string;
+    partnerId: string;
   }>({ 
     vehicleModelId: "", licensePlate: "", techpassportNumber: "", 
     year: new Date().getFullYear(), color: "White", 
-    status: "AVAILABLE", mileage: 0, locationId: ""
+    status: "AVAILABLE", mileage: 0, locationId: "", partnerId: ""
   });
   
   const queryClient = useQueryClient();
@@ -153,6 +154,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
   const allModels: any[] = (models as any) || [];
   const allBrands: any[] = (brands as any) || [];
   const allLocations: any[] = (locations as any) || [];
+
+  const [ownerPartners, setOwnerPartners] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/api/admin/partners?isActive=true&partnerRole=VEHICLE_OWNER", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setOwnerPartners(Array.isArray(d) ? d : []))
+      .catch(() => setOwnerPartners([]));
+  }, []);
 
   // Build exactly 3 region options for the location dropdown (one representative per city)
   const MAIN_REGION_CITIES = ["Tbilisi", "Kutaisi", "Batumi"];
@@ -251,13 +260,14 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
         status: item.status || "AVAILABLE",
         mileage: item.mileage || 0,
         locationId,
+        partnerId: item.partnerId?.toString() || "",
       });
     } else {
       setEditingItem(null);
       setFormData({ 
         vehicleModelId: "", licensePlate: "", techpassportNumber: "", 
         year: new Date().getFullYear(), color: "White", 
-        status: "AVAILABLE", mileage: 0, locationId: ""
+        status: "AVAILABLE", mileage: 0, locationId: "", partnerId: ""
       });
     }
     setIsModalOpen(true);
@@ -277,6 +287,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
       ...formData,
       vehicleModelId: parseInt(formData.vehicleModelId),
       locationId: formData.locationId ? parseInt(formData.locationId) : undefined,
+      partnerId: formData.partnerId ? parseInt(formData.partnerId) : null,
     };
     
     if (editingItem) {
@@ -652,6 +663,24 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                       <SelectItem key={r.id} value={r.id.toString()}>{r.city}</SelectItem>
                     ))
                   )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Owner Partner</Label>
+              <Select
+                value={formData.partnerId || "__none__"}
+                onValueChange={(val) => setFormData({ ...formData, partnerId: val === "__none__" ? "" : val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No partner assigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No partner assigned</SelectItem>
+                  {ownerPartners.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

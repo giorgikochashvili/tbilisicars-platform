@@ -1,0 +1,220 @@
+Continue and complete ONLY Stage 2: Partners & Payables — CRM UI.
+
+Important:
+The previous build partially created these files and committed them:
+- artifacts/crm/src/pages/Partners.tsx
+- artifacts/crm/src/components/partners/PartnerFormDialog.tsx
+- artifacts/crm/src/pages/PartnerDetail.tsx
+
+Do NOT revert them.
+Do NOT start a new unrelated task.
+Do NOT pivot to Fleet Calendar or any other old session plan.
+Do NOT modify DB schema or create migrations.
+Do NOT modify Stage 1 API routes unless absolutely required to fix a frontend contract mismatch, and if so report it clearly.
+Do NOT touch website, booking creation/update, public booking, pricing, payment status calculation, exchange rate logic, voucher/email code, Fleet Calendar, Google Ads/SEO, or DB migrations.
+
+Goal:
+Finish wiring and completing the already-started Stage 2 CRM UI.
+
+Remaining work:
+
+1. Wire routes in artifacts/crm/src/App.tsx
+Add protected routes:
+- /partners
+- /partners/:id
+
+Use existing ProtectedRoute pattern with permissionKey="canManageAccounting".
+Import the already-created Partners and PartnerDetail pages.
+
+2. Add sidebar item in artifacts/crm/src/components/layout/AppSidebar.tsx
+Add:
+- title: Partners
+- url: /partners
+- icon: Handshake
+- permissionKey: canManageAccounting
+
+Position after Accounting.
+Use existing nav item style.
+Do not change other sidebar items.
+
+3. Complete/verify the existing Partners UI files
+Review the already-created:
+- Partners.tsx
+- PartnerFormDialog.tsx
+- PartnerDetail.tsx
+
+Ensure:
+- Partners page fetches GET /api/admin/partners?partnerRole=VEHICLE_OWNER
+- It does not show BROKER_REFERRER partners
+- Add Partner sends partnerRole: "VEHICLE_OWNER"
+- Partner role is not exposed to the user
+- Agreement notes helper text clearly says informational only / not used for automatic calculation
+- Partner detail shows owned vehicles
+- UI matches existing CRM style and dark mode
+
+4. Add Partner selector to artifacts/crm/src/pages/Fleet.tsx
+In the vehicle edit/detail form/dialog, add Partner (owner) selector.
+
+Fetch:
+GET /api/admin/partners?isActive=true&partnerRole=VEHICLE_OWNER
+
+Rules:
+- Default must be empty / “No partner assigned”
+- Do NOT show or auto-assign Tbilisicars
+- If vehicle has partnerId, show selected partner
+- On save include partnerId: number | null in PATCH /api/admin/fleet/vehicles/:id
+- Do not change other Fleet logic
+
+5. Add partner payable section to artifacts/crm/src/pages/Accounting.tsx
+Use existing expanded row loading:
+GET /api/admin/accounting/:id
+
+Use these Stage 1 fields exactly:
+- booking_id
+- booking_ref_id
+- vehicle_partner_id
+- vehicle_partner_name
+- vehicle_partner_agreement_notes
+- partner_payable_id
+- partner_payable_status
+- partner_payable_amount
+- partner_payable_currency
+- partner_payable_notes
+- partner_payable_paid_at
+- partner_payable_expense_entry_id
+- partner_payable_source_income_id
+
+Trigger:
+expandedEntryData.vehicle_partner_id != null
+
+Do NOT use expandedEntryData.partner_id for this trigger.
+
+Income row Partner section:
+If current entry is INCOME and vehicle_partner_id exists, render compact Partner section:
+- Partner name
+- Vehicle plate
+- Booking: #booking_ref_id
+- Source income: current row amount/currency
+- Agreement notes if present
+
+If no partner_payable_id:
+Show:
+- amount input, always empty on open
+- currency select GEL/USD/EUR, default GEL
+- Add to Pending button
+
+Important:
+Partner payable amount must ALWAYS be manual.
+Do NOT prefill from income amount, booking total, agreement notes, percentage, fixed amount, previous payment, or any other source.
+No auto-calculation.
+
+POST /api/admin/partners/payables payload must use:
+{
+  partnerId: expandedEntryData.vehicle_partner_id,
+  bookingId: expandedEntryData.booking_id,
+  vehicleId: expandedEntryData.related_vehicle_id,
+  sourceIncomeAccountingEntryId: current entry id,
+  amount,
+  currency
+}
+
+Do NOT use booking_ref_id as bookingId.
+booking_ref_id is display only.
+
+On 409 show inline:
+“A payable already exists for this income entry (status: PENDING/PAID). Only a canceled payable may be replaced.”
+
+If partner_payable_status === "PENDING":
+Show:
+- Pending badge
+- amount/currency
+- Edit pending inline: amount + notes + Save/Cancel
+- Cancel button
+- Mark as Paid button with confirmation dialog
+
+Use:
+PATCH /api/admin/partners/payables/:id
+POST /api/admin/partners/payables/:id/cancel
+POST /api/admin/partners/payables/:id/mark-paid
+
+After every mutation, refresh expanded row by re-calling GET /api/admin/accounting/:id.
+
+If partner_payable_status === "PAID":
+Show:
+- Paid badge
+- amount/currency
+- paid date
+- generated expense entry id/link if available
+
+If partner_payable_status === "CANCELED":
+Show:
+- Canceled badge
+- Create New Payable option that resets to empty manual amount input
+
+6. Expense row Partner Payout section
+If current entry type is EXPENSE and expandedEntryData.partner_payable_id exists:
+Show read-only Partner Payout section:
+- Partner
+- Booking
+- Vehicle
+- Source income entry id
+- payable amount/currency
+- paid date if available
+
+This must make auto-created partner payout expenses clearly distinguishable from generic expenses.
+
+7. Edit warnings in Accounting modal
+When editing an accounting entry, fetch or use GET /api/admin/accounting/:id context to detect partner_payable_id.
+
+If editing INCOME and linked non-canceled partner payable exists:
+Show yellow warning:
+“This entry has a linked partner payable (#N). Changing the amount here does not automatically update the payable — finance must adjust it manually.”
+
+If editing EXPENSE and linked partner payable exists:
+Show yellow warning:
+“This expense was auto-generated from partner payable #N. Editing here does not update the payable. All partner/booking/vehicle links are preserved.”
+
+Do not block saving.
+Warnings are informational only.
+
+8. Mobile/dark mode
+Keep UI compact and consistent with existing CRM.
+No horizontal overflow.
+Forms/buttons usable on mobile.
+Partner sections readable in dark mode.
+
+Strict non-touch list:
+Do not modify:
+- artifacts/website/*
+- artifacts/crm/src/pages/FleetCalendar.tsx
+- artifacts/crm/src/pages/Bookings.tsx
+- booking creation/edit UI
+- pricing UI
+- voucher/email UI
+- payment-status logic UI
+- public-facing pages
+- API booking/payment/pricing routes
+- DB schema/migrations
+
+Checks:
+Run:
+pnpm --filter @workspace/crm run typecheck
+
+Baseline is 13 errors in 7 pre-existing files.
+Do not increase the error count.
+
+If available, run:
+pnpm --filter @workspace/crm build
+
+Final report must include:
+1. changed files list
+2. confirmation that App.tsx and AppSidebar.tsx are wired
+3. confirmation that Fleet.tsx partner selector works with nullable partnerId
+4. confirmation that Accounting.tsx uses vehicle_partner_id trigger and booking_id payload
+5. confirmation that payable amount input is always empty/manual
+6. typecheck output summary
+7. build output summary
+8. confirmation no strict non-touch files were modified
+9. confirmation no DB/API/migration changes were made
+
+Continue Stage 2 only. Do not start any unrelated task.

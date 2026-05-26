@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { 
   LayoutDashboard, CalendarDays, Car, Users, 
   MapPin, Package, BadgeDollarSign, Tag, Percent,
-  LogOut, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X, Monitor
+  LogOut, UserCog, Wrench, BookOpenText, GanttChart, BarChart3, Bell, Activity, PlaneTakeoff, Bot, ClipboardList, Star, Smile, X, Monitor, Handshake
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -34,6 +34,7 @@ const navItems: Array<{ title: string; url: string; icon: React.ElementType; per
   { title: "Fleet Calendar",  url: "/fleet-calendar",  icon: GanttChart,       permissionKey: "canViewCalendar" },
   { title: "Service",         url: "/service",         icon: Wrench,           permissionKey: "canManageService" },
   { title: "Accounting",      url: "/accounting",      icon: BookOpenText,     permissionKey: "canViewAccounting" },
+  { title: "Partners",        url: "/partners",        icon: Handshake,        permissionKey: "canManageAccounting" },
   { title: "Reports",         url: "/reports",         icon: BarChart3,        permissionKey: "canViewReports" },
   { title: "Alerts",          url: "/alerts",          icon: Bell,             permissionKey: "canViewAlerts" },
   { title: "Customers",       url: "/customers",       icon: Users,            permissionKey: "canManageUsers" },

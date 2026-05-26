@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Filter, X, Edit, Trash2, TrendingUp, TrendingDown,
   ArrowUpCircle, ArrowDownCircle, DollarSign, MoreHorizontal,
-  RefreshCw, ChevronDown, ChevronRight, User, Car,
+  RefreshCw, ChevronDown, ChevronRight, User, Car, Handshake,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -112,6 +112,20 @@ export default function AccountingPage() {
   const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
   const [expandedEntryData, setExpandedEntryData] = useState<any>(null);
   const [expandedEntryLoading, setExpandedEntryLoading] = useState(false);
+
+  // Partner payable inline state
+  const [payableAmount, setPayableAmount] = useState("");
+  const [payableCurrency, setPayableCurrency] = useState<"GEL" | "USD" | "EUR">("GEL");
+  const [payableError, setPayableError] = useState<string | null>(null);
+  const [payableEditMode, setPayableEditMode] = useState(false);
+  const [payableEditAmount, setPayableEditAmount] = useState("");
+  const [payableEditNotes, setPayableEditNotes] = useState("");
+  const [payableMarkPaidConfirm, setPayableMarkPaidConfirm] = useState(false);
+  const [payableCancelConfirm, setPayableCancelConfirm] = useState(false);
+  const [payableMutating, setPayableMutating] = useState(false);
+
+  // Edit warning detail — fetched in background when modal opens for edit
+  const [editingEntryDetail, setEditingEntryDetail] = useState<any | null>(null);
 
   const [showRateEditor, setShowRateEditor] = useState(false);
   const [rateUsd, setRateUsd] = useState("");
@@ -229,12 +243,107 @@ export default function AccountingPage() {
         notes: entry.notes ?? "",
       });
       setAutoGel(entry.convertedGel?.toString() ?? "");
+      // Fetch entry detail in background for edit warnings
+      setEditingEntryDetail(null);
+      apiFetch(`/api/admin/accounting/${entry.id}`)
+        .then((d) => setEditingEntryDetail(d))
+        .catch(() => setEditingEntryDetail(null));
     } else {
       setEditingEntry(null);
       setFormData(EMPTY_FORM);
       setAutoGel("");
+      setEditingEntryDetail(null);
     }
     setIsModalOpen(true);
+  };
+
+  const handleCreatePayable = async (entryId: number, entryData: any) => {
+    const amtNum = parseFloat(payableAmount);
+    if (!payableAmount || isNaN(amtNum) || amtNum <= 0) {
+      toast({ title: "Validation", description: "Enter a positive amount", variant: "destructive" });
+      return;
+    }
+    setPayableMutating(true);
+    setPayableError(null);
+    try {
+      await apiFetch("/api/admin/partners/payables", {
+        method: "POST",
+        body: JSON.stringify({
+          partnerId: entryData.vehicle_partner_id,
+          bookingId: entryData.booking_id,
+          vehicleId: entryData.related_vehicle_id,
+          sourceIncomeAccountingEntryId: entryId,
+          amount: amtNum,
+          currency: payableCurrency,
+        }),
+      });
+      setPayableAmount("");
+      setPayableCurrency("GEL");
+      toast({ title: "Payable created" });
+      await refreshExpandedEntry(entryId);
+    } catch (err: any) {
+      const msg: string = err?.message ?? "Failed to create payable";
+      if (msg.includes("409") || msg.toLowerCase().includes("already exists")) {
+        setPayableError(
+          `A payable already exists for this income entry (status: ${entryData.partner_payable_status ?? "existing"}). Only a canceled payable may be replaced.`
+        );
+      } else {
+        setPayableError(msg);
+      }
+    } finally {
+      setPayableMutating(false);
+    }
+  };
+
+  const handleUpdatePayable = async (payableId: number) => {
+    const amtNum = parseFloat(payableEditAmount);
+    if (!payableEditAmount || isNaN(amtNum) || amtNum <= 0) {
+      toast({ title: "Validation", description: "Enter a positive amount", variant: "destructive" });
+      return;
+    }
+    setPayableMutating(true);
+    try {
+      await apiFetch(`/api/admin/partners/payables/${payableId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ amount: amtNum, notes: payableEditNotes || null }),
+      });
+      setPayableEditMode(false);
+      toast({ title: "Payable updated" });
+      if (expandedEntryId) await refreshExpandedEntry(expandedEntryId);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message ?? "Failed to update payable", variant: "destructive" });
+    } finally {
+      setPayableMutating(false);
+    }
+  };
+
+  const handleCancelPayable = async (payableId: number) => {
+    setPayableMutating(true);
+    try {
+      await apiFetch(`/api/admin/partners/payables/${payableId}/cancel`, { method: "POST" });
+      setPayableCancelConfirm(false);
+      toast({ title: "Payable canceled" });
+      if (expandedEntryId) await refreshExpandedEntry(expandedEntryId);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message ?? "Failed to cancel payable", variant: "destructive" });
+    } finally {
+      setPayableMutating(false);
+    }
+  };
+
+  const handleMarkPaidPayable = async (payableId: number) => {
+    setPayableMutating(true);
+    try {
+      await apiFetch(`/api/admin/partners/payables/${payableId}/mark-paid`, { method: "POST" });
+      setPayableMarkPaidConfirm(false);
+      toast({ title: "Payable marked as paid — expense entry created" });
+      if (expandedEntryId) await refreshExpandedEntry(expandedEntryId);
+      invalidate();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message ?? "Failed to mark payable as paid", variant: "destructive" });
+    } finally {
+      setPayableMutating(false);
+    }
   };
 
   const handleSave = () => {
@@ -312,6 +421,32 @@ export default function AccountingPage() {
       setExpandedEntryLoading(false);
     }
   };
+
+  const refreshExpandedEntry = async (id: number) => {
+    setExpandedEntryLoading(true);
+    try {
+      const data = await apiFetch(`/api/admin/accounting/${id}`);
+      setExpandedEntryData(data);
+    } catch {
+      // keep existing data on error
+    } finally {
+      setExpandedEntryLoading(false);
+    }
+  };
+
+  // Reset payable inline state whenever the expanded row changes
+  useEffect(() => {
+    setPayableAmount("");
+    setPayableCurrency("GEL");
+    setPayableError(null);
+    setPayableEditMode(false);
+    setPayableEditAmount("");
+    setPayableEditNotes("");
+    setPayableMarkPaidConfirm(false);
+    setPayableCancelConfirm(false);
+    setPayableMutating(false);
+  }, [expandedEntryId]);
+
   const allCategories = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES];
   const categoryOptions = formData.type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -680,6 +815,204 @@ export default function AccountingPage() {
                                 )}
                               </div>
                             )}
+
+                            {/* Partner payable section — only when vehicle has a partner owner */}
+                            {expandedEntryData?.vehicle_partner_id != null && (
+                              <div className="border-t border-border/30 pt-2 mt-1 space-y-2">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                  <Handshake className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                  Vehicle Owner Partner
+                                </div>
+
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                  <span><span className="font-medium text-foreground">Partner:</span> {expandedEntryData.vehicle_partner_name}</span>
+                                  {expandedEntryData.vehicle_plate && (
+                                    <span><span className="font-medium text-foreground">Vehicle:</span> <span className="font-mono">{expandedEntryData.vehicle_plate}</span></span>
+                                  )}
+                                  {expandedEntryData.booking_ref_id && (
+                                    <span><span className="font-medium text-foreground">Booking:</span> <span className="font-mono">#{expandedEntryData.booking_ref_id}</span></span>
+                                  )}
+                                  {expandedEntryData.vehicle_partner_agreement_notes && (
+                                    <span className="w-full"><span className="font-medium text-foreground">Agreement notes:</span> {expandedEntryData.vehicle_partner_agreement_notes}</span>
+                                  )}
+                                </div>
+
+                                {/* INCOME row: payable workflow */}
+                                {e.type === "INCOME" && (
+                                  <>
+                                    {/* No payable yet (or null payable id) */}
+                                    {!expandedEntryData.partner_payable_id && (
+                                      <div className="space-y-2 pt-0.5">
+                                        <p className="text-xs text-muted-foreground">No payable recorded yet.</p>
+                                        {payableError && <p className="text-xs text-destructive">{payableError}</p>}
+                                        <div className="flex items-end gap-2 flex-wrap">
+                                          <div className="grid gap-1">
+                                            <Label className="text-xs">Amount</Label>
+                                            <Input type="number" step="0.01" min="0" value={payableAmount}
+                                              onChange={(ev) => setPayableAmount(ev.target.value)}
+                                              placeholder="Enter amount" className="h-8 w-32 text-xs bg-background" />
+                                          </div>
+                                          <div className="grid gap-1">
+                                            <Label className="text-xs">Currency</Label>
+                                            <Select value={payableCurrency} onValueChange={(v) => setPayableCurrency(v as "GEL" | "USD" | "EUR")}>
+                                              <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="GEL">₾ GEL</SelectItem>
+                                                <SelectItem value="USD">$ USD</SelectItem>
+                                                <SelectItem value="EUR">€ EUR</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <Button size="sm" className="h-8 text-xs" disabled={payableMutating}
+                                            onClick={() => handleCreatePayable(e.id, expandedEntryData)}>
+                                            {payableMutating ? "Saving…" : "Add to Pending"}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* PENDING payable */}
+                                    {expandedEntryData.partner_payable_id && expandedEntryData.partner_payable_status === "PENDING" && (
+                                      <div className="space-y-2 pt-0.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <Badge variant="outline" className="text-amber-500 border-amber-500/30 bg-amber-500/10 text-xs">Pending</Badge>
+                                          <span className="text-xs font-mono font-medium">
+                                            {expandedEntryData.partner_payable_amount} {expandedEntryData.partner_payable_currency}
+                                          </span>
+                                          {expandedEntryData.partner_payable_notes && (
+                                            <span className="text-xs text-muted-foreground">· {expandedEntryData.partner_payable_notes}</span>
+                                          )}
+                                        </div>
+                                        {!payableEditMode ? (
+                                          <div className="flex gap-2 flex-wrap">
+                                            <Button size="sm" variant="outline" className="h-7 text-xs"
+                                              onClick={() => {
+                                                setPayableEditMode(true);
+                                                setPayableEditAmount(expandedEntryData.partner_payable_amount?.toString() ?? "");
+                                                setPayableEditNotes(expandedEntryData.partner_payable_notes ?? "");
+                                              }}>Edit</Button>
+                                            <Button size="sm" variant="outline" className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                                              disabled={payableMutating} onClick={() => setPayableCancelConfirm(true)}>
+                                              Cancel Payable
+                                            </Button>
+                                            <Button size="sm" className="h-7 text-xs" disabled={payableMutating}
+                                              onClick={() => setPayableMarkPaidConfirm(true)}>
+                                              Mark as Paid
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            <div className="flex items-end gap-2 flex-wrap">
+                                              <div className="grid gap-1">
+                                                <Label className="text-xs">Amount</Label>
+                                                <Input type="number" step="0.01" value={payableEditAmount}
+                                                  onChange={(ev) => setPayableEditAmount(ev.target.value)}
+                                                  className="h-8 w-32 text-xs bg-background" />
+                                              </div>
+                                              <div className="grid gap-1 flex-1 min-w-[140px]">
+                                                <Label className="text-xs">Notes</Label>
+                                                <Input value={payableEditNotes}
+                                                  onChange={(ev) => setPayableEditNotes(ev.target.value)}
+                                                  placeholder="Optional notes…" className="h-8 text-xs bg-background" />
+                                              </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <Button size="sm" className="h-7 text-xs" disabled={payableMutating}
+                                                onClick={() => handleUpdatePayable(expandedEntryData.partner_payable_id)}>
+                                                {payableMutating ? "Saving…" : "Save"}
+                                              </Button>
+                                              <Button size="sm" variant="ghost" className="h-7 text-xs"
+                                                onClick={() => setPayableEditMode(false)}>Cancel</Button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* PAID payable */}
+                                    {expandedEntryData.partner_payable_id && expandedEntryData.partner_payable_status === "PAID" && (
+                                      <div className="space-y-1 pt-0.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10 text-xs">Paid</Badge>
+                                          <span className="text-xs font-mono font-medium">
+                                            {expandedEntryData.partner_payable_amount} {expandedEntryData.partner_payable_currency}
+                                          </span>
+                                          {expandedEntryData.partner_payable_paid_at && (
+                                            <span className="text-xs text-muted-foreground">
+                                              · {new Date(expandedEntryData.partner_payable_paid_at).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {expandedEntryData.partner_payable_expense_entry_id && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Expense entry: <span className="font-mono">#{expandedEntryData.partner_payable_expense_entry_id}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* CANCELED payable — allow creating a new one */}
+                                    {expandedEntryData.partner_payable_id && expandedEntryData.partner_payable_status === "CANCELED" && (
+                                      <div className="space-y-2 pt-0.5">
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-slate-500 border-slate-500/30 bg-slate-500/10 text-xs">Canceled</Badge>
+                                          <span className="text-xs text-muted-foreground">Create a new payable:</span>
+                                        </div>
+                                        {payableError && <p className="text-xs text-destructive">{payableError}</p>}
+                                        <div className="flex items-end gap-2 flex-wrap">
+                                          <div className="grid gap-1">
+                                            <Label className="text-xs">Amount</Label>
+                                            <Input type="number" step="0.01" min="0" value={payableAmount}
+                                              onChange={(ev) => setPayableAmount(ev.target.value)}
+                                              placeholder="Enter amount" className="h-8 w-32 text-xs bg-background" />
+                                          </div>
+                                          <div className="grid gap-1">
+                                            <Label className="text-xs">Currency</Label>
+                                            <Select value={payableCurrency} onValueChange={(v) => setPayableCurrency(v as "GEL" | "USD" | "EUR")}>
+                                              <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="GEL">₾ GEL</SelectItem>
+                                                <SelectItem value="USD">$ USD</SelectItem>
+                                                <SelectItem value="EUR">€ EUR</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <Button size="sm" className="h-8 text-xs" disabled={payableMutating}
+                                            onClick={() => handleCreatePayable(e.id, expandedEntryData)}>
+                                            {payableMutating ? "Saving…" : "Add to Pending"}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* EXPENSE row: read-only partner payout section */}
+                                {e.type === "EXPENSE" && expandedEntryData.partner_payable_id && (
+                                  <div className="space-y-1 pt-0.5 text-xs text-muted-foreground">
+                                    <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/60">Auto-generated Partner Payout</p>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                      {expandedEntryData.vehicle_partner_name && (
+                                        <span><span className="font-medium text-foreground">Partner:</span> {expandedEntryData.vehicle_partner_name}</span>
+                                      )}
+                                      {expandedEntryData.booking_ref_id && (
+                                        <span><span className="font-medium text-foreground">Booking:</span> <span className="font-mono">#{expandedEntryData.booking_ref_id}</span></span>
+                                      )}
+                                      {expandedEntryData.partner_payable_source_income_id && (
+                                        <span><span className="font-medium text-foreground">Source income:</span> <span className="font-mono">#{expandedEntryData.partner_payable_source_income_id}</span></span>
+                                      )}
+                                      <span>
+                                        <span className="font-medium text-foreground">Payable:</span>{" "}
+                                        <span className="font-mono">{expandedEntryData.partner_payable_amount} {expandedEntryData.partner_payable_currency}</span>
+                                      </span>
+                                      {expandedEntryData.partner_payable_paid_at && (
+                                        <span><span className="font-medium text-foreground">Paid:</span> {new Date(expandedEntryData.partner_payable_paid_at).toLocaleDateString()}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -828,6 +1161,18 @@ export default function AccountingPage() {
             </div>
           </div>
 
+          {/* Edit warnings — partner payable links */}
+          {editingEntry && editingEntryDetail?.partner_payable_id &&
+            editingEntryDetail?.partner_payable_status !== "CANCELED" && (
+            <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2.5 text-xs text-yellow-600 dark:text-yellow-400 leading-relaxed mx-6 mb-1">
+              {editingEntry.type === "INCOME" ? (
+                <>⚠ This entry has a linked partner payable (#{editingEntryDetail.partner_payable_id}). Changing the amount here does not automatically update the payable — finance must adjust it manually.</>
+              ) : (
+                <>⚠ This expense was auto-generated from partner payable #{editingEntryDetail.partner_payable_id}. Editing here does not update the payable. All partner/booking/vehicle links are preserved.</>
+              )}
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button
@@ -835,6 +1180,44 @@ export default function AccountingPage() {
               disabled={createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? "Saving…" : "Save Entry"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Payable Confirm */}
+      <Dialog open={payableCancelConfirm} onOpenChange={setPayableCancelConfirm}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>Cancel Payable?</DialogTitle>
+            <DialogDescription>
+              This will mark the partner payable as canceled. A new payable can be created afterward.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayableCancelConfirm(false)}>Back</Button>
+            <Button variant="destructive" disabled={payableMutating}
+              onClick={() => handleCancelPayable(expandedEntryData?.partner_payable_id)}>
+              {payableMutating ? "Canceling…" : "Cancel Payable"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Payable as Paid Confirm */}
+      <Dialog open={payableMarkPaidConfirm} onOpenChange={setPayableMarkPaidConfirm}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>Mark Payable as Paid?</DialogTitle>
+            <DialogDescription>
+              This will mark the payable as paid and auto-create a partner payout expense entry in the ledger.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayableMarkPaidConfirm(false)}>Back</Button>
+            <Button disabled={payableMutating}
+              onClick={() => handleMarkPaidPayable(expandedEntryData?.partner_payable_id)}>
+              {payableMutating ? "Processing…" : "Confirm Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -35,6 +35,8 @@ import AdminAI from "@/pages/AdminAI";
 import TasksPage from "@/pages/Tasks";
 import FeaturedSliderPage from "@/pages/FeaturedSlider";
 import ShowroomPage from "@/pages/Showroom";
+import PartnersPage from "@/pages/Partners";
+import PartnerDetailPage from "@/pages/PartnerDetail";
 import NotFound from "@/pages/not-found";
 import type { AdminProfile } from "@workspace/api-zod";
 
@@ -158,6 +160,8 @@ function Router() {
       <Route path="/tasks"><ProtectedRoute component={TasksPage} permissionKey="canManageTasks" /></Route>
       <Route path="/featured-cars"><ProtectedRoute component={FeaturedSliderPage} permissionKey="canManageVehicles" /></Route>
       <Route path="/showroom"><ProtectedRoute component={ShowroomPage} /></Route>
+      <Route path="/partners/:id"><ProtectedRoute component={PartnerDetailPage} permissionKey="canManageAccounting" /></Route>
+      <Route path="/partners"><ProtectedRoute component={PartnersPage} permissionKey="canManageAccounting" /></Route>
 
       <Route path="/document/:id/:type"><DocumentRoute component={BookingDocument} /></Route>
       <Route path="/payment-doc/:bookingId/:paymentId/:type"><DocumentRoute component={PaymentDocument} /></Route>
