@@ -50,3 +50,6 @@ Thumbs.db
 
 # Sensitive files
 cookies.txt
+
+# Prompt / session text files auto-saved by Replit agent
+attached_assets/*.txt
