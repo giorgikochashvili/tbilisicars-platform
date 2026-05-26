@@ -1,0 +1,308 @@
+Build ONLY Stage 2: Partners & Payables — CRM UI.
+
+Stage 1 DB + API is already completed and committed.
+Do NOT modify DB schema.
+Do NOT create migrations.
+Do NOT modify API routes unless there is a tiny TypeScript contract/import issue absolutely required by the CRM build, and if so report it clearly.
+Do NOT touch website, booking creation/update, public booking, pricing, payment status calculation, exchange rate logic, voucher/email code, Fleet Calendar, or Google Ads/SEO files.
+
+This is a live production CRM. Keep the implementation surgical and use the approved Stage 1 API contract.
+
+Stage 2 goal:
+Build the CRM UI for:
+1. Partners page
+2. Partner detail page
+3. Vehicle partner selector in Fleet vehicle edit/detail
+4. Accounting Ledger expanded row partner payable workflow
+5. Pending → Paid action that calls existing Stage 1 API and shows generated Expense context
+6. Income/Expense edit warnings for linked partner payable records
+
+Use only Stage 1 API endpoints:
+- GET /api/admin/partners?partnerRole=VEHICLE_OWNER
+- GET /api/admin/partners?isActive=true&partnerRole=VEHICLE_OWNER
+- POST /api/admin/partners
+- GET /api/admin/partners/:id
+- PATCH /api/admin/partners/:id
+- GET /api/admin/partners/:id/vehicles
+- POST /api/admin/partners/payables
+- PATCH /api/admin/partners/payables/:id
+- POST /api/admin/partners/payables/:id/cancel
+- POST /api/admin/partners/payables/:id/mark-paid
+- GET /api/admin/accounting/:id existing expanded-entry endpoint with Stage 1 fields
+
+Critical API response fields from GET /api/admin/accounting/:id:
+- booking_id = real numeric booking.id for API payloads
+- booking_ref_id = display/reference value only
+- vehicle_partner_id
+- vehicle_partner_name
+- vehicle_partner_agreement_notes
+- partner_payable_id
+- partner_payable_status
+- partner_payable_amount
+- partner_payable_currency
+- partner_payable_notes
+- partner_payable_paid_at
+- partner_payable_expense_entry_id
+- partner_payable_source_income_id
+
+Important:
+Use bookingId: expandedEntryData.booking_id when creating a payable.
+Do NOT use booking_ref_id as bookingId.
+UI may display Booking: #booking_ref_id.
+
+Use vehicle_partner_id as the trigger for showing the Partner section.
+Do NOT use expandedEntryData.partner_id for this.
+Use:
+expandedEntryData.vehicle_partner_id != null
+
+Strict financial rules:
+- Partner payable amount must always be empty until finance manually enters it.
+- Do NOT prefill payable amount from income amount, booking total, agreement notes, percentages, fixed amounts, previous payments, or any other source.
+- Agreement notes are informational only.
+- No auto-calculation.
+- No owner_type.
+- No Tbilisicars auto-assignment.
+- If vehicle has no partner, show no partner / no partner assigned; do not infer Tbilisicars ownership.
+
+UI tasks:
+
+1. Partners list page
+Create:
+artifacts/crm/src/pages/Partners.tsx
+
+Fetch:
+GET /api/admin/partners?partnerRole=VEHICLE_OWNER
+
+Show:
+- search/filter
+- table columns: Name, Type, Phone, Email, Status, Actions
+- actions: View Detail, Edit, Deactivate/Reactivate
+- Add Partner button
+
+Only VEHICLE_OWNER partners should appear here.
+Existing BROKER_REFERRER partners must not appear.
+
+2. Partner form dialog
+Create:
+artifacts/crm/src/components/partners/PartnerFormDialog.tsx
+
+Fields:
+- Name required
+- Type: Individual / Company
+- Phone
+- Email
+- Personal ID or Company ID
+- Bank Name
+- Bank Account
+- IBAN
+- Account Holder Name
+- Agreement Notes textarea with visible helper text: “Informational only — not used for automatic calculation.”
+- General Notes textarea
+- Is Active toggle in edit mode
+
+On create:
+POST /api/admin/partners
+Always send partnerRole: "VEHICLE_OWNER"
+Do not expose partnerRole in the UI.
+
+On edit:
+PATCH /api/admin/partners/:id
+
+3. Partner detail page
+Create:
+artifacts/crm/src/pages/PartnerDetail.tsx
+
+Route:
+/partners/:id
+
+Fetch:
+GET /api/admin/partners/:id
+
+Show:
+- full partner info card
+- bank details
+- agreement notes
+- general notes
+- active/inactive status
+- Owned Vehicles section:
+  - plate
+  - brand + model
+  - link to vehicle/fleet detail if current routing supports it
+
+4. Routing and sidebar
+Modify:
+artifacts/crm/src/App.tsx
+artifacts/crm/src/components/layout/AppSidebar.tsx
+
+Add sidebar item:
+Partners
+Icon: Handshake
+Position: after Accounting
+Permission: canManageAccounting
+
+Add protected routes:
+- /partners
+- /partners/:id
+
+Use existing ProtectedRoute pattern with canManageAccounting.
+
+5. Fleet vehicle partner field
+Modify:
+artifacts/crm/src/pages/Fleet.tsx
+
+In vehicle edit/detail form/dialog:
+Add Partner (owner) selector.
+
+Fetch:
+GET /api/admin/partners?isActive=true&partnerRole=VEHICLE_OWNER
+
+Default empty:
+“No partner assigned”
+
+On save:
+include partnerId: number | null in PATCH /api/admin/fleet/vehicles/:id
+
+If vehicle already has partnerId, show selected partner.
+If no partnerId, do not show Tbilisicars; show empty/no partner assigned.
+
+Do not change other Fleet logic.
+
+6. Accounting expanded row partner payable section
+Modify:
+artifacts/crm/src/pages/Accounting.tsx
+
+Existing expanded row loads:
+GET /api/admin/accounting/:id
+
+Inside the existing expanded-entry block, add compact Partner section.
+
+Trigger:
+if expandedEntryData.vehicle_partner_id != null
+
+Header:
+- Partner: vehicle_partner_name
+- Vehicle: vehicle_plate
+- Booking: #booking_ref_id
+- Source income: current ledger row amount/currency
+- Agreement notes: vehicle_partner_agreement_notes if present
+
+If no existing partner_payable_id:
+Show:
+- Amount input, always empty
+- Currency select GEL/USD/EUR, default GEL
+- Add to Pending button
+
+POST /api/admin/partners/payables payload:
+{
+  partnerId: expandedEntryData.vehicle_partner_id,
+  bookingId: expandedEntryData.booking_id,
+  vehicleId: expandedEntryData.related_vehicle_id,
+  sourceIncomeAccountingEntryId: current entry id,
+  amount,
+  currency
+}
+
+On 409:
+Show inline error:
+“A payable already exists for this income entry (status: PENDING/PAID). Only a canceled payable may be replaced.”
+
+If partner_payable_status === "PENDING":
+Show:
+- Pending badge
+- amount/currency
+- Edit pending inline:
+  - amount
+  - notes
+  - save/cancel
+- Cancel button
+- Mark as Paid button with confirmation dialog
+
+Actions:
+PATCH /api/admin/partners/payables/:id
+POST /api/admin/partners/payables/:id/cancel
+POST /api/admin/partners/payables/:id/mark-paid
+
+After every payable mutation:
+refresh the expanded entry data by re-calling GET /api/admin/accounting/:id.
+
+If partner_payable_status === "PAID":
+Show:
+- Paid badge
+- amount/currency
+- paid date
+- generated expense entry id/link if available
+
+If partner_payable_status === "CANCELED":
+Show:
+- Canceled badge
+- Create New Payable option that resets to empty input
+
+7. Expense row partner payout section
+In Accounting expanded row, if current ledger entry type is EXPENSE and expandedEntryData.partner_payable_id exists:
+Show read-only Partner Payout section:
+- Partner
+- Booking
+- Vehicle
+- Source income entry id
+- payable amount/currency
+- paid date if available
+
+This makes auto-created partner payout expenses clearly distinguishable from generic expenses.
+
+8. Edit warnings
+In Accounting Add/Edit Entry modal:
+When editing an entry, fetch or pass GET /api/admin/accounting/:id context to detect partner_payable_id.
+
+If editing INCOME and linked non-canceled partner payable exists:
+Show yellow warning:
+“This entry has a linked partner payable (#N). Changing the amount here does not automatically update the payable — finance must adjust it manually.”
+
+If editing EXPENSE and linked partner payable exists:
+Show yellow warning:
+“This expense was auto-generated from partner payable #N. Editing here does not update the payable. All partner/booking/vehicle links are preserved.”
+
+Do not block saving.
+Warnings are informational only.
+
+9. Styling/responsiveness
+Use existing CRM style/components.
+Do not redesign Accounting or Fleet.
+Keep Partner section compact and readable in dark mode.
+Mobile responsiveness is mandatory:
+- no horizontal overflow
+- forms readable
+- buttons usable
+- tables/cards should stack or scroll cleanly if needed
+
+10. Strict non-touch list
+Do not modify:
+- artifacts/website/*
+- artifacts/crm/src/pages/FleetCalendar.tsx
+- artifacts/crm/src/pages/Bookings.tsx
+- booking creation/edit UI
+- pricing UI
+- voucher/email UI
+- payment-status logic UI
+- public-facing pages
+- API booking/payment/pricing routes
+- DB schema/migrations
+
+11. Checks
+After implementation run:
+pnpm --filter @workspace/crm run typecheck
+
+Baseline is 13 errors in 7 pre-existing files.
+Do not increase this count.
+
+Also run CRM build if available:
+pnpm --filter @workspace/crm build
+
+Provide:
+- changed files list
+- typecheck output summary
+- build output summary
+- confirmation that no strict non-touch files were modified
+- confirmation that no migrations/API route changes were made
+- short manual UI verification notes if possible
+
+Build Stage 2 CRM UI only.
