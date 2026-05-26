@@ -693,7 +693,7 @@ function HandoverDisplay({
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
               Notes
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground break-words min-w-0">
               {handover.notes}
             </div>
           </div>
@@ -2865,12 +2865,14 @@ export default function BookingDetail({
                                 );
                               }}
                             >
-                              <span className="truncate">
+                              <span className="truncate min-w-0">
                                 {booking.vehicle.brandName
                                   ? `${booking.vehicle.brandName} `
                                   : ""}
-                                {booking.vehicle.modelName} ·{" "}
-                                {booking.vehicle.licensePlate}
+                                {booking.vehicle.modelName}
+                              </span>
+                              <span className="shrink-0 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                                · {booking.vehicle.licensePlate}
                               </span>
                               <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
                             </button>
@@ -4094,7 +4096,7 @@ export default function BookingDetail({
             return (
               <>
                 {/* Header bar */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                <div className="flex items-center justify-between flex-wrap gap-y-1 px-4 py-2 border-b border-white/10">
                   <span className="text-sm text-white/70 capitalize">
                     {photoViewer.type} photos &mdash; {idx + 1} / {total}
                   </span>
@@ -4140,7 +4142,7 @@ export default function BookingDetail({
                 </div>
 
                 {/* Image area */}
-                <div className="relative flex items-center justify-center min-h-[300px] max-h-[70vh]">
+                <div className="relative flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-auto" style={{ touchAction: 'pinch-zoom' }}>
                   {src ? (
                     <img
                       key={src}
@@ -4213,14 +4215,14 @@ export default function BookingDetail({
             {booking?.vehicle && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/40 border border-border/40 text-sm">
                 <Car className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="font-medium">
+                <span className="font-medium min-w-0 truncate">
                   {booking.vehicle.brandName
                     ? `${booking.vehicle.brandName} `
                     : ""}
                   {booking.vehicle.modelName}
                 </span>
-                <span className="text-muted-foreground">·</span>
-                <span className="font-mono text-xs">
+                <span className="text-muted-foreground shrink-0">·</span>
+                <span className="font-mono text-xs shrink-0">
                   {booking.vehicle.licensePlate}
                 </span>
                 <span className="ml-auto text-[11px] text-muted-foreground uppercase tracking-wide">
