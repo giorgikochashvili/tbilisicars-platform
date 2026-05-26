@@ -107,6 +107,7 @@ type BookingRowFlat = {
   dropoffLocationCity: string | null;
   partnerId: number | null;
   partnerName: string | null;
+  customerContacted: boolean;
 };
 
 function mapToBookingRow(row: BookingRowFlat) {
@@ -124,6 +125,7 @@ function mapToBookingRow(row: BookingRowFlat) {
     source: row.source,
     broker: row.broker,
     createdAt: row.createdAt,
+    customerContacted: row.customerContacted,
     customer: {
       id: row.customerId,
       fullName: row.customerFullName,

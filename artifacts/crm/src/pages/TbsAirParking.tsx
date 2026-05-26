@@ -73,6 +73,15 @@ export default function TbsAirParking() {
 
   // Fallback browse state
   const [browseMode, setBrowseMode] = useState(false);
+
+  // Remove confirmation dialog state
+  const [confirmRemove, setConfirmRemove] = useState<{
+    id: number;
+    licensePlate: string | null;
+    brandName: string | null;
+    modelName: string | null;
+    zone: string;
+  } | null>(null);
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedModelId, setSelectedModelId] = useState("");
 
@@ -365,7 +374,13 @@ export default function TbsAirParking() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          onClick={() => removeMutation.mutate(entry.id)}
+                          onClick={() => setConfirmRemove({
+                            id: entry.id,
+                            licensePlate: entry.licensePlate ?? null,
+                            brandName: entry.brandName ?? null,
+                            modelName: entry.modelName ?? null,
+                            zone: entry.zone,
+                          })}
                           disabled={removeMutation.isPending || moveMutation.isPending}
                           title="Remove from parking"
                         >
@@ -554,6 +569,43 @@ export default function TbsAirParking() {
               className="gap-1.5"
             >
               {assignMutation.isPending ? "Assigning…" : "Assign to Parking"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove from parking confirmation dialog */}
+      <Dialog open={confirmRemove !== null} onOpenChange={(open) => { if (!open) setConfirmRemove(null); }}>
+        <DialogContent className="max-w-sm w-full">
+          <DialogHeader>
+            <DialogTitle>Remove from parking?</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-1 text-sm">
+            <p>
+              <span className="font-semibold">{confirmRemove?.licensePlate ?? `#${confirmRemove?.id}`}</span>
+              {(confirmRemove?.brandName || confirmRemove?.modelName) && (
+                <span className="text-muted-foreground"> — {[confirmRemove.brandName, confirmRemove.modelName].filter(Boolean).join(" ")}</span>
+              )}
+            </p>
+            <p className="text-muted-foreground">
+              Zone: <span className="font-medium text-foreground">{confirmRemove?.zone}</span>
+            </p>
+          </div>
+          <DialogFooter className="gap-2 flex-row justify-end">
+            <Button variant="ghost" onClick={() => setConfirmRemove(null)} disabled={removeMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={removeMutation.isPending}
+              onClick={() => {
+                if (confirmRemove) {
+                  removeMutation.mutate(confirmRemove.id);
+                  setConfirmRemove(null);
+                }
+              }}
+            >
+              {removeMutation.isPending ? "Removing…" : "Remove from Parking"}
             </Button>
           </DialogFooter>
         </DialogContent>

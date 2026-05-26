@@ -178,6 +178,7 @@ const DEFAULT_WIDGET_CONFIG: WidgetConfig = {
 
 const WIDGET_STORAGE_KEY = "crm_dashboard_widgets";
 const WIDGET_V2_MIGRATED_KEY = "crm_dashboard_widgets_v2";
+const BOOKING_OVERVIEW_DEFAULT_OFF_KEY = "crm_dashboard_booking_overview_default_off_v1";
 
 function loadWidgetConfig(): WidgetConfig {
   try {
@@ -194,6 +195,16 @@ function loadWidgetConfig(): WidgetConfig {
     if (localStorage.getItem(WIDGET_V2_MIGRATED_KEY) !== "1") {
       mergedSections.bookingOverview = false;
       try { localStorage.setItem(WIDGET_V2_MIGRATED_KEY, "1"); } catch {}
+    }
+    // Second migration: covers browsers where v2 ran but never persisted the corrected
+    // value back to localStorage. Forces bookingOverview off and writes it back so the
+    // stored value is also false. After this key is set, intentional user enables persist.
+    if (localStorage.getItem(BOOKING_OVERVIEW_DEFAULT_OFF_KEY) !== "1") {
+      mergedSections.bookingOverview = false;
+      try {
+        localStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify({ ...parsed, sections: mergedSections }));
+        localStorage.setItem(BOOKING_OVERVIEW_DEFAULT_OFF_KEY, "1");
+      } catch {}
     }
     // Restore stored order; append any newly added keys not yet in stored order
     const rawOrder = ((parsed.sectionOrder ?? []) as SectionKey[])
