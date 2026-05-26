@@ -1,0 +1,69 @@
+Revise once more before Build. The plan is now close, but there are API contract inconsistencies that must be fixed before implementation.
+
+1. Booking ID vs Booking Reference
+Do not use booking_ref_id as bookingId in API payloads.
+partner_payable.booking_id is an integer FK to booking.id, so the accounting detail response must return both:
+- booking_id: real numeric booking.id for API payloads and DB links
+- booking_ref_id or booking_reference: display/reference value for UI only
+
+In CRM:
+- POST /api/admin/partners/payables must send bookingId: expandedEntryData.booking_id
+- UI display may show Booking: #expandedEntryData.booking_ref_id
+Do not send booking_ref_id as bookingId.
+
+2. Partner role filter must be part of the Stage 1 API contract
+GET /admin/partners must support:
+- isActive
+- search
+- partnerRole
+
+CRM Partners page and Fleet partner selector must use:
+GET /api/admin/partners?partnerRole=VEHICLE_OWNER
+GET /api/admin/partners?isActive=true&partnerRole=VEHICLE_OWNER
+
+POST /admin/partners from the CRM Partners module must create partner_role = 'VEHICLE_OWNER'. Existing broker/referrer partners must not appear in the Partners page or vehicle owner selector.
+
+3. Standardize field names in accounting detail response
+Use these exact concepts consistently:
+Vehicle owner partner context, available before payable exists:
+- vehicle_partner_id
+- vehicle_partner_name
+- vehicle_partner_agreement_notes
+
+Linked payable context, only when payable exists:
+- partner_payable_id
+- partner_payable_status
+- partner_payable_amount
+- partner_payable_currency
+- partner_payable_notes
+- partner_payable_paid_at
+- partner_payable_expense_entry_id
+- partner_payable_source_income_id
+
+Do not use expandedEntryData.partner_id for the vehicle owner trigger in CRM. Use expandedEntryData.vehicle_partner_id.
+
+4. Duplicate payable rule wording
+Update all Done/Acceptance criteria to say:
+A second non-canceled payable for the same source income entry is rejected with 409.
+This blocks both PENDING and PAID.
+Only CANCELED allows a new payable.
+
+5. Partner payable create validation
+When creating a payable, validate:
+- source income accounting entry exists
+- source entry type is INCOME
+- source entry is related to the same booking/vehicle context if bookingId/vehicleId are provided
+- partnerId matches the vehicle owner partner when vehicle_partner_id exists, unless there is a clear reason to allow otherwise
+- amount > 0
+- currency is valid
+
+6. Keep all previous constraints:
+- no auto-calculation
+- payable amount always empty until finance manually enters it
+- no owner_type
+- no Tbilisicars auto-assignment
+- no new canManagePartners permission
+- no booking/pricing/payment-status/public booking/website/Fleet Calendar changes
+- Stage 1 DB/API first; Stage 2 CRM only after Stage 1 is approved and built
+
+Revise plan only. Do not Build yet.

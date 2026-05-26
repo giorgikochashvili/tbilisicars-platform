@@ -1,0 +1,218 @@
+Build ONLY Stage 1: Partners & Payables — DB + API.
+
+Do NOT build the CRM UI task yet.
+Do NOT modify CRM frontend pages except only if a generated type import is absolutely required, but ideally no CRM UI changes in this stage.
+Do NOT touch website, booking creation/update, public booking, pricing, payment status calculation, exchange rate logic, voucher/email code, Fleet Calendar, or Google Ads/SEO files.
+
+This is a live production system. Keep the implementation surgical and follow the approved #311 DB + API plan exactly.
+
+Scope for this build:
+
+1. Extend existing partner table safely
+- Existing partner table is already used for booking.partner_id broker/referrer tracking.
+- Add partner_role varchar(20) not null default 'BROKER_REFERRER'.
+- Allowed values: VEHICLE_OWNER, BROKER_REFERRER, OTHER.
+- Existing partner rows must remain BROKER_REFERRER by default.
+- New CRM-created vehicle owner partners will later use VEHICLE_OWNER.
+- Do not break existing booking.partner_id broker/referrer behavior.
+- Add nullable/safe partner business fields:
+  - type default 'Individual'
+  - personal_id_or_company_id
+  - bank_name
+  - bank_account
+  - iban
+  - account_holder_name
+  - agreement_notes
+  - general_notes
+  - is_active default true
+- agreement_notes is informational only. It must never drive calculations.
+
+2. Add nullable vehicle.partner_id
+- Add vehicle.partner_id nullable FK to partner.id ON DELETE SET NULL.
+- Add index idx_vehicle_partner_id.
+- Do not add owner_type.
+- Do not auto-assign Tbilisicars.
+- Empty/null partner_id means no partner assigned.
+
+3. Add partner_payable table
+Create partner_payable with:
+- id
+- partner_id not null FK partner.id
+- booking_id nullable FK booking.id ON DELETE SET NULL
+- vehicle_id nullable FK vehicle.id ON DELETE SET NULL
+- source_income_accounting_entry_id not null FK accounting_entries.id
+- amount numeric(12,2) not null
+- currency accounting_currency_enum not null default GEL
+- status enum PENDING / PAID / CANCELED default PENDING
+- notes
+- created_by_admin_id nullable FK admins.id
+- paid_by_admin_id nullable FK admins.id
+- paid_at
+- expense_accounting_entry_id nullable FK accounting_entries.id ON DELETE SET NULL
+- created_at / updated_at
+- indexes for partner_id, source_income_accounting_entry_id, status, booking_id
+
+Add DB-level unique partial index:
+one non-canceled payable per source_income_accounting_entry_id.
+
+Use:
+WHERE status != 'CANCELED'
+
+This must block both PENDING and PAID duplicates.
+Only a CANCELED payable may allow creating a new one.
+
+4. API routes
+Add admin partners routes:
+- GET /admin/partners
+  Permission: canViewAccounting
+  Query params: isActive, search, partnerRole
+  Must support partnerRole=VEHICLE_OWNER for future CRM page and vehicle owner selector.
+- POST /admin/partners
+  Permission: canManageAccounting
+  Must accept partnerRole.
+  CRM will later create with partnerRole='VEHICLE_OWNER'.
+- GET /admin/partners/:id
+  Permission: canViewAccounting
+  Return all partner fields plus owned vehicles where vehicle.partner_id = partner.id.
+- PATCH /admin/partners/:id
+  Permission: canManageAccounting
+- GET /admin/partners/:id/vehicles
+  Permission: canViewAccounting
+
+Add admin partner payables routes:
+- GET /admin/partners/payables
+  Permission: canViewAccounting
+- POST /admin/partners/payables
+  Permission: canManageAccounting
+- GET /admin/partners/payables/:id
+  Permission: canViewAccounting
+- PATCH /admin/partners/payables/:id
+  Permission: canManageAccounting
+  Only PENDING can be edited.
+- POST /admin/partners/payables/:id/cancel
+  Permission: canManageAccounting
+  Only PENDING can be canceled.
+- POST /admin/partners/payables/:id/mark-paid
+  Permission: canManageAccounting
+  Must use a single DB transaction.
+
+Register new routes cleanly in the existing admin routes index.
+
+5. Vehicle partner link API
+Modify PATCH /admin/fleet/vehicles/:id to accept partnerId: number | null.
+Persist it to vehicle.partner_id.
+Emit audit logs:
+- vehicle partner linked
+- vehicle partner unlinked
+No other fleet logic changes.
+
+6. Accounting detail enrichment
+Modify existing getAccountingEntry(id) in admin-accounting.service.ts.
+Do not create a parallel endpoint.
+The existing GET /api/admin/accounting/:id must return all existing fields unchanged, plus new fields.
+
+Return both:
+- booking_id = real numeric booking.id for API payloads
+- booking_ref_id = existing display/reference value for UI
+
+Do not remove booking_ref_id.
+
+Add vehicle owner partner context available before payable exists:
+- vehicle_partner_id
+- vehicle_partner_name
+- vehicle_partner_agreement_notes
+
+These fields come from vehicle.partner_id and must be non-null whenever the related vehicle has a partner, even if no payable has been created.
+
+Add linked payable context only when a non-canceled payable exists:
+- partner_payable_id
+- partner_payable_status
+- partner_payable_amount
+- partner_payable_currency
+- partner_payable_notes
+- partner_payable_paid_at
+- partner_payable_expense_entry_id
+- partner_payable_source_income_id
+
+For income entries, join payables by source_income_accounting_entry_id and status != CANCELED.
+For expense entries created from payables, join by expense_accounting_entry_id.
+
+7. Partner payable create validation
+When POST /admin/partners/payables is called, validate:
+- sourceIncomeAccountingEntryId exists
+- source entry type is INCOME
+- no existing non-canceled payable for the same source income entry
+- amount > 0
+- currency is valid GEL / USD / EUR
+- if income entry vehicle has vehicle.partner_id, request partnerId must match that vehicle.partner_id
+- if bookingId is provided, it must match the income entry related booking context
+- if vehicleId is provided, it must match the income entry related vehicle context
+Return 400 for validation failures, 404 for not found, 409 for duplicate non-canceled payable.
+
+8. Mark as Paid transaction
+POST /admin/partners/payables/:id/mark-paid must:
+- run inside one db.transaction
+- lock payable row FOR UPDATE
+- reject if status is not PENDING
+- reject if expense_accounting_entry_id is already set
+- use existing getExchangeRate / convertToGel helpers exactly as existing accounting entries do
+- insert exactly one EXPENSE accounting entry:
+  - type EXPENSE
+  - category Partner Vehicle Payout
+  - amount/currency from payable
+  - relatedBookingId from payable.booking_id
+  - relatedVehicleId from payable.vehicle_id
+  - adminId from current session
+  - notes must include partner name, booking reference/id, vehicle plate, and source income entry id
+- update payable to PAID
+- set paid_at, paid_by_admin_id, expense_accounting_entry_id
+- emit audit logs for partner_payable marked paid and accounting_entry partner payout created
+- return updated payable and new expense entry id
+
+Do not change exchange rate logic. Only consume existing helpers.
+
+9. Audit logging
+Use existing logAudit pattern for:
+- partner created
+- partner updated
+- partner deactivated
+- partner reactivated
+- vehicle partner linked
+- vehicle partner unlinked
+- partner payable created
+- partner payable updated
+- partner payable canceled
+- partner payable marked paid
+- accounting entry partner payout created
+
+10. Strict non-touch list
+Do not modify:
+- artifacts/website/*
+- artifacts/crm/src/pages/FleetCalendar.tsx
+- artifacts/api-server/src/routes/admin-bookings.ts
+- artifacts/api-server/src/routes/public-bookings.ts
+- artifacts/api-server/src/routes/admin-booking-payments.ts
+- artifacts/api-server/src/routes/admin-rates.ts
+- artifacts/api-server/src/routes/admin-voucher-import.ts
+- artifacts/api-server/src/routes/customer-auth.ts
+- voucher/email generation code
+- pricing logic
+- payment status calculation
+- exchange rate logic, except consuming existing helpers
+- CRM UI pages for Partners/Accounting/Fleet in this stage unless absolutely necessary for types; Stage 2 will handle UI later
+
+11. Build/check requirements
+After implementation:
+- Generate migrations.
+- Show generated migration SQL.
+- Confirm migrations only add columns/tables/indexes and do not drop or alter existing data destructively.
+- Run:
+  pnpm --filter @workspace/db run generate
+  pnpm --filter @workspace/api-server run typecheck
+- Baseline typecheck has existing errors. Do not increase the error count.
+- Provide changed files list.
+- Provide final summary of touched files and confirm strict non-touch files were not changed.
+
+Do not implement Stage 2 CRM UI now.
+Do not build Partners page, PartnerDetail, Fleet partner combobox, or Accounting expanded row UI now.
+Stage 2 will happen only after this DB + API stage is reviewed and approved.

@@ -232,17 +232,76 @@ router.get("/admin/fleet/vehicles/:id", requireAdmin, async (req, res) => {
 
 router.patch("/admin/fleet/vehicles/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminVehicleParams.parse({ id: req.params.id });
-  const body = UpdateAdminVehicleBody.parse(req.body);
+
+  // Extract partnerId before Zod strips unknown fields
+  const rawBody = req.body as Record<string, unknown>;
+  const partnerIdRaw = Object.prototype.hasOwnProperty.call(rawBody, "partnerId")
+    ? rawBody.partnerId
+    : undefined;
+
+  // Fetch current partner_id for audit (before any update)
+  let prevPartnerId: number | null = null;
+  if (partnerIdRaw !== undefined) {
+    const { rows: cur } = await pool.query<{ partner_id: number | null }>(
+      "SELECT partner_id FROM vehicle WHERE id = $1",
+      [id],
+    );
+    prevPartnerId = cur[0]?.partner_id ?? null;
+  }
+
+  const body = UpdateAdminVehicleBody.parse(rawBody);
   const vehicle = await updateAdminVehicle(id, body as any);
+  const plate = (vehicle as any).licensePlate ?? null;
+
   logAudit({
     actorId: req.session.adminId ?? null,
     entityType: "vehicle",
     entityId: id,
-    entityRef: vehicleRef((vehicle as any).licensePlate, id),
+    entityRef: vehicleRef(plate, id),
     action: "updated",
-    summary: `Admin updated vehicle ${vehicleRef((vehicle as any).licensePlate, id)}`,
-    afterData: { status: (vehicle as any).status, licensePlate: (vehicle as any).licensePlate },
+    summary: `Admin updated vehicle ${vehicleRef(plate, id)}`,
+    afterData: { status: (vehicle as any).status, licensePlate: plate },
   });
+
+  // Handle partner link / unlink
+  if (partnerIdRaw !== undefined) {
+    const newPartnerId =
+      partnerIdRaw === null ? null : Number(partnerIdRaw);
+    if (partnerIdRaw !== null && isNaN(newPartnerId as number)) {
+      res.status(400).json({ error: "Invalid partnerId" });
+      return;
+    }
+
+    await pool.query(
+      "UPDATE vehicle SET partner_id = $1, updated_at = now() WHERE id = $2",
+      [newPartnerId, id],
+    );
+
+    if (newPartnerId !== null && newPartnerId !== prevPartnerId) {
+      logAudit({
+        actorId: req.session.adminId ?? null,
+        entityType: "vehicle",
+        entityId: id,
+        entityRef: vehicleRef(plate, id),
+        action: "partner_linked",
+        summary: `Vehicle ${vehicleRef(plate, id)} owner partner set to partner #${newPartnerId}`,
+        beforeData: prevPartnerId != null ? { partnerId: prevPartnerId } : null,
+        afterData: { partnerId: newPartnerId },
+      });
+    } else if (newPartnerId === null && prevPartnerId !== null) {
+      logAudit({
+        actorId: req.session.adminId ?? null,
+        entityType: "vehicle",
+        entityId: id,
+        entityRef: vehicleRef(plate, id),
+        action: "partner_unlinked",
+        summary: `Vehicle ${vehicleRef(plate, id)} owner partner removed (was partner #${prevPartnerId})`,
+        beforeData: { partnerId: prevPartnerId },
+        afterData: { partnerId: null },
+      });
+    }
+  }
+
   res.json(UpdateAdminVehicleResponse.parse(vehicle));
 });
 

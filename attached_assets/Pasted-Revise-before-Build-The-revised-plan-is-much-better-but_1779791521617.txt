@@ -1,0 +1,38 @@
+Revise before Build. The revised plan is much better, but we still need 3 critical corrections.
+
+1. Existing partner table is already used for booking.partner_id broker/referrer tracking. We must not mix broker/referrer partners with vehicle owner partners in the new CRM Partners page.
+Add a clear role/category field, e.g. partner_role or partner_kind, using project naming style:
+- VEHICLE_OWNER
+- BROKER_REFERRER or GENERAL/OTHER as appropriate for existing rows
+
+Existing partner rows must NOT automatically become vehicle owners.
+The new CRM Partners page and vehicle owner selection must show only vehicle-owner partners.
+New partners created from the Partners module should be vehicle-owner partners.
+Do not break existing booking.partner_id broker/referrer behavior.
+
+2. Duplicate payable prevention must block both PENDING and PAID payables for the same source income accounting entry.
+A source income entry should not be able to create a second payable after the first one is PAID.
+Only CANCELED payable may allow creating a new one.
+Use a DB/API guard equivalent to:
+one non-canceled payable per source_income_accounting_entry_id.
+Return 409 if PENDING or PAID already exists.
+
+3. Accounting detail enrichment must show partner context before a payable exists.
+For an INCOME booking payment where the booking vehicle has vehicle.partner_id, GET /api/admin/accounting/:id must return vehicle owner partner fields even if partner_payable does not exist yet:
+- vehicle_partner_id
+- vehicle_partner_name
+- vehicle_partner_agreement_notes
+
+Separately return partner_payable_* fields only when a payable exists.
+This is required so the Accounting expanded row can show Partner Information and an empty manual payable amount input before Add to Pending.
+
+Keep all previous constraints:
+- no auto-calculation
+- partner payable amount always empty until manually entered
+- no owner_type
+- no Tbilisicars auto-assignment
+- no new canManagePartners permission
+- no booking/pricing/payment-status/public booking/website/Fleet Calendar changes
+- DB/API Stage 1 first, CRM Stage 2 only after Stage 1 is approved and built
+
+Revise plan only. Do not Build yet.

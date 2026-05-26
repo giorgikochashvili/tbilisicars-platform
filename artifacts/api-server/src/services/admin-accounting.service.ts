@@ -26,6 +26,7 @@ export const EXPENSE_CATEGORIES = [
   "Marketing",
   "Airport Office Fee",
   "Parking Fee",
+  "Partner Vehicle Payout",
   "Other Expense",
 ] as const;
 
@@ -176,6 +177,7 @@ export async function getAccountingEntry(id: number) {
   const { rows } = await pool.query(
     `SELECT
       ae.*,
+      b.id                 AS booking_id,
       b.id                 AS booking_ref_id,
       u.full_name          AS customer_name,
       u.email              AS customer_email,
@@ -184,7 +186,18 @@ export async function getAccountingEntry(id: number) {
       vm.name              AS vehicle_model_name,
       br.name              AS vehicle_brand_name,
       bp.method            AS payment_method,
-      bp.payment_type      AS payment_type_detail
+      bp.payment_type      AS payment_type_detail,
+      vop.id               AS vehicle_partner_id,
+      vop.name             AS vehicle_partner_name,
+      vop.agreement_notes  AS vehicle_partner_agreement_notes,
+      COALESCE(pp.id,   pp2.id)     AS partner_payable_id,
+      COALESCE(pp.status::text, pp2.status::text) AS partner_payable_status,
+      COALESCE(pp.amount,   pp2.amount)   AS partner_payable_amount,
+      COALESCE(pp.currency::text, pp2.currency::text) AS partner_payable_currency,
+      COALESCE(pp.notes,    pp2.notes)    AS partner_payable_notes,
+      COALESCE(pp.paid_at,  pp2.paid_at)  AS partner_payable_paid_at,
+      COALESCE(pp.expense_accounting_entry_id,  pp2.expense_accounting_entry_id)  AS partner_payable_expense_entry_id,
+      COALESCE(pp.source_income_accounting_entry_id, pp2.source_income_accounting_entry_id) AS partner_payable_source_income_id
     FROM accounting_entries ae
     LEFT JOIN booking b        ON b.id   = ae.related_booking_id
     LEFT JOIN "user" u         ON u.id   = b.user_id
@@ -192,11 +205,16 @@ export async function getAccountingEntry(id: number) {
     LEFT JOIN vehicle_model vm ON vm.id  = v.vehicle_model_id
     LEFT JOIN brand br         ON br.id  = vm.brand_id
     LEFT JOIN booking_payment bp ON bp.accounting_entry_id = ae.id
+    LEFT JOIN partner vop ON vop.id = v.partner_id
+    LEFT JOIN partner_payable pp  ON pp.source_income_accounting_entry_id = ae.id
+                                 AND pp.status != 'CANCELED'
+    LEFT JOIN partner_payable pp2 ON pp2.expense_accounting_entry_id = ae.id
     WHERE ae.id = $1`,
     [id],
   );
   if (!rows[0]) throw new NotFoundError(`Accounting entry ${id} not found`);
   return rows[0] as typeof rows[0] & {
+    booking_id: number | null;
     booking_ref_id: number | null;
     customer_name: string | null;
     customer_email: string | null;
@@ -206,6 +224,17 @@ export async function getAccountingEntry(id: number) {
     vehicle_brand_name: string | null;
     payment_method: string | null;
     payment_type_detail: string | null;
+    vehicle_partner_id: number | null;
+    vehicle_partner_name: string | null;
+    vehicle_partner_agreement_notes: string | null;
+    partner_payable_id: number | null;
+    partner_payable_status: string | null;
+    partner_payable_amount: string | null;
+    partner_payable_currency: string | null;
+    partner_payable_notes: string | null;
+    partner_payable_paid_at: Date | null;
+    partner_payable_expense_entry_id: number | null;
+    partner_payable_source_income_id: number | null;
   };
 }
 

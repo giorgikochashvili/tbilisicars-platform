@@ -212,6 +212,10 @@ export const vehicleTable = pgTable(
     locationId: integer("location_id").references(() => locationTable.id, {
       onDelete: "set null",
     }),
+    // Optional vehicle-owner partner link. FK → partner.id (ON DELETE SET NULL) kept as
+    // plain integer to avoid circular import with partners.ts (same pattern as
+    // vehicle_history.changed_by_id → admins.id). The FK constraint lives in migration SQL.
+    partnerId: integer("partner_id"),
     startingPrice: numeric("starting_price", { precision: 10, scale: 2 }).default("50.00"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -222,6 +226,7 @@ export const vehicleTable = pgTable(
     index("idx_vehicle_starting_price").on(t.startingPrice),
     index("idx_vehicle_status").on(t.status),
     index("idx_vehicle_location_id").on(t.locationId),
+    index("idx_vehicle_partner_id").on(t.partnerId),
   ],
 );
 

@@ -1,0 +1,221 @@
+We need to plan a careful new CRM/Accounting feature for the live TBILISICARS CRM&WEB production project.
+
+IMPORTANT:
+This is a live production system. Staff actively use the CRM and real bookings/payments exist.
+Do NOT build yet.
+Do NOT modify files yet.
+First analyze the existing structure and provide an implementation plan only.
+
+Goal:
+Create a simple Partners + Accounting Partner Payable workflow.
+
+High-level feature:
+1. Add a new CRM module/page: Partners.
+2. Allow partner records with personal/company info, bank details, and cooperation/agreement notes.
+3. Allow vehicles to be optionally linked to a partner.
+4. In Accounting Ledger, when an Income booking payment is related to a vehicle that has a linked partner, show partner context in the expanded ledger row.
+5. Finance manually enters a partner payable amount from that Income row and clicks “Add to Pending”.
+6. This creates a Pending partner payable record.
+7. When finance marks the pending partner payable as Paid, the system automatically creates an Expense accounting entry.
+8. The Expense entry must include and display the original booking, vehicle, partner, and source income payment context.
+9. Income and Expense entries must remain editable, but linked partner payable/expense records need warning/audit protection.
+
+Strict non-goals:
+- Do NOT auto-calculate partner payable amount.
+- Do NOT prefill partner payable amount from agreement notes, percentages, fixed amounts, booking totals, income amounts, or previous payments.
+- Partner payable amount must always be empty until finance manually enters it.
+- Agreement / cooperation notes are informational only and must not drive calculations.
+- Do NOT auto-assign Tbilisicars as a vehicle owner.
+- Vehicle partner field must be empty by default.
+- If no partner is selected, show “No partner assigned” or blank, but do not store or display automatic Tbilisicars ownership.
+- Do NOT create advanced settlement logic.
+- Do NOT create monthly settlement reports.
+- Do NOT create automatic percentage/fixed split calculations.
+- Do NOT create Debtors logic.
+- Do NOT change pricing logic.
+- Do NOT change public booking logic.
+- Do NOT change booking creation/update logic.
+- Do NOT change payment status calculation.
+- Do NOT change exchange rate logic.
+- Do NOT change vouchers/emails.
+- Do NOT change website/SEO/Google Ads.
+- Do NOT touch Fleet Calendar.
+
+Required concepts:
+
+A) Partners module
+Create a CRM Partners page and Partner detail page.
+
+Partner fields:
+- name
+- type: Individual / Company
+- phone
+- email optional
+- personal_id_or_company_id
+- bank_name
+- bank_account and/or IBAN
+- account_holder_name
+- agreement_notes / cooperation notes
+- general notes
+- is_active
+- owned vehicles list
+
+Agreement notes are text-only. They are not used for automatic calculation.
+
+B) Vehicle partner link
+Vehicles should support an optional partner link.
+Default must be empty/null.
+Do not automatically mark vehicles as Tbilisicars-owned.
+
+Suggested fields, but inspect existing vehicle schema first:
+- partner_id nullable
+Possibly avoid owner_type unless needed. If owner_type is used, do not default it to Tbilisicars in a way that hides missing partner data.
+
+Vehicle detail/edit should show/select partner.
+Partner detail should show owned vehicles.
+
+C) Accounting Ledger Partner section
+When an accounting Income entry is a Booking Payment and its booking vehicle has a linked partner, the expanded ledger row should show:
+
+Partner Information:
+- Partner name
+- Vehicle plate/model
+- Booking reference/id
+- Source income amount/currency
+- Agreement/cooperation notes
+- Partner payable amount input: empty by default
+- Currency
+- Button: Add to Pending
+
+Partner payable amount must be manual only and always empty before user entry.
+
+D) Partner Pending / Partner Payables
+Create a simple pending partner payable model.
+
+Suggested table:
+partner_payables
+- id
+- partner_id
+- booking_id
+- vehicle_id
+- source_income_accounting_entry_id
+- amount
+- currency
+- status: PENDING / PAID / CANCELED
+- notes
+- created_by_admin_id
+- paid_by_admin_id
+- paid_at
+- expense_accounting_entry_id
+- created_at
+- updated_at
+
+Please inspect existing accounting schema and naming style before final table naming.
+
+Rules:
+- One source income accounting entry should not create duplicate active partner payables.
+- If a partner payable already exists for the income entry, show existing status instead of Add to Pending.
+- Pending can be edited.
+- Pending can be canceled.
+- Pending can be marked as Paid.
+
+E) Mark as Paid → automatic Expense entry
+When finance marks a pending partner payable as Paid:
+- Create an Accounting Expense entry automatically.
+- Category should be something like “Partner Vehicle Payout” or use/create the closest existing category if categories are DB-based.
+- Amount/currency equals the manually entered partner payable amount.
+- Link the expense to:
+  - partner_payable_id
+  - partner_id
+  - booking_id
+  - vehicle_id
+  - source_income_accounting_entry_id
+- Notes should include partner, booking, vehicle, and source income context.
+
+Expense Ledger row must clearly display:
+- Partner
+- Booking
+- Vehicle
+- Source income/payment
+- Partner payout amount
+- Created from pending partner payable
+
+It must not appear as a generic expense with no context.
+
+F) Editing Income and Expense
+Income and Expense entries must remain editable.
+
+If an Income entry has a linked partner payable:
+- Editing should be allowed if existing system allows it.
+- Show warning that changing the income amount does not automatically update the partner payable.
+- Partner payable must remain manual.
+- Add audit log.
+
+If an Expense entry was auto-created from a partner payable:
+- Editing should preserve all links: partner payable, partner, booking, vehicle, source income.
+- Show warning on amount edit.
+- Either update linked partner payable amount/status consistently or clearly propose a safer rule.
+- Add audit log.
+- Do not lose financial traceability.
+
+G) Audit logging
+Use the existing audit logging pattern.
+
+Audit events should exist for:
+- partner created
+- partner edited
+- partner deactivated/reactivated
+- vehicle linked to partner
+- vehicle unlinked from partner
+- partner payable created
+- partner payable edited
+- partner payable canceled
+- partner payable marked paid
+- automatic partner payout expense created
+- linked income/expense edited where partner payable context exists
+
+H) Permissions
+Inspect existing permissions/roles before changing anything.
+For now, propose minimal safe permission handling:
+- admin can manage partners/payables
+- accounting/finance users should access these actions if current permission system supports it
+Do not redesign the permissions system.
+
+I) UI integration
+Inspect current CRM navigation/sidebar structure.
+Add Partners page consistently with existing CRM style.
+Inspect Accounting/Ledger page structure and expanded row design.
+Do not redesign the whole Accounting module.
+Only add partner context and pending/payable controls in a compact way.
+
+J) Build/test requirements for later implementation
+When we move to Build later, expected checks:
+- TypeScript/typecheck
+- API build
+- CRM build
+- Migration generation/review if DB changes are needed
+- Ensure no website build is needed unless untouched
+- No pricing/booking/payment regression
+
+Your Plan response must include:
+
+1. Exact files/modules you need to inspect.
+2. Existing DB tables/schema involved.
+3. Proposed new DB tables/columns and migration names.
+4. API routes to add/change.
+5. CRM pages/components to add/change.
+6. Accounting Ledger integration details.
+7. How duplicate pending records will be prevented.
+8. How Mark as Paid creates Expense safely.
+9. How Income/Expense editing will preserve links.
+10. Audit log plan.
+11. Permission plan.
+12. Risks and how to avoid damaging existing production logic.
+13. Exact list of files that should NOT be touched.
+14. Acceptance criteria for implementation.
+15. Whether you recommend splitting implementation into smaller stages.
+
+Again:
+DO NOT BUILD.
+DO NOT EDIT FILES.
+PLAN ONLY.

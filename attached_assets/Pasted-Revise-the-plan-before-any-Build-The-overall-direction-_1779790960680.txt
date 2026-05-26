@@ -1,0 +1,84 @@
+Revise the plan before any Build.
+
+The overall direction is good, but we need to reduce risk and keep the first version simpler.
+
+IMPORTANT:
+Do not build yet until the revised plan is approved.
+
+Apply these corrections:
+
+1. Do not add a new canManagePartners permission flag in this first version.
+   - Avoid changing adminsTable for a new permission.
+   - Use existing accounting/admin permission patterns for now.
+   - Inspect current permission usage first.
+   - Prefer existing canManageAccounting for write actions if that is the current accounting finance permission.
+   - Reads can use the existing accounting/admin access pattern.
+   - Do not redesign permissions.
+
+2. Vehicle partner link must be nullable partnerId only.
+   - Do not add owner_type in this first version.
+   - Do not auto-assign Tbilisicars as owner.
+   - Default must be empty/null.
+   - If no partner is selected, show “No partner assigned” or blank.
+
+3. Partner agreement/cooperation notes are informational only.
+   - Do not create percentage/fixed agreement fields unless already present and harmless.
+   - Do not auto-calculate partner payable amount from agreement notes, booking total, income amount, percentages, fixed amounts, or previous payments.
+   - Partner payable amount must always start empty and be entered manually by finance.
+
+4. Confirm existing partner schema before extending.
+   - If a partner table already exists, explain its current fields and usage.
+   - Only extend it if safe.
+   - If it is used for another purpose, propose the safest approach before editing.
+
+5. Accounting detail endpoint:
+   - Do not assume GET /api/admin/accounting/:id exists with that exact shape.
+   - Inspect how Accounting.tsx loads expanded ledger details today.
+   - Enrich the existing route/data shape used by the expanded ledger row.
+   - Do not invent a parallel accounting detail system unless necessary.
+
+6. Mark as Paid safety:
+   - Must be a single DB transaction.
+   - Reject if payable is not PENDING.
+   - Reject duplicate mark-paid if expense_accounting_entry_id already exists.
+   - Create exactly one Expense entry.
+   - Store links: partner_payable_id, partner_id, booking_id, vehicle_id, source_income_accounting_entry_id where schema supports this.
+   - Expense must display full context: partner, booking, vehicle, source income.
+   - Do not change payment status calculation or exchange rate logic.
+   - If GEL equivalent/category handling needs existing accounting conventions, follow current patterns and explain them.
+
+7. Editing safety:
+   - Income and Expense remain editable if existing accounting allows editing.
+   - If linked partner payable exists, show warning.
+   - Do not automatically change partner payable amount when Income is edited.
+   - If auto-created Partner Payout Expense is edited, preserve links and audit log.
+   - If amount edit consistency is risky, propose the safest rule before implementation.
+
+8. Split implementation into safe stages:
+   Stage 1: DB/API only.
+   Stage 2: CRM frontend only after Stage 1 passes.
+   Do not build both tasks at once.
+
+9. Strict non-touch list:
+   - booking creation/update
+   - public booking
+   - pricing
+   - payment status calculation
+   - exchange rate logic
+   - voucher/email
+   - website/SEO/Google Ads
+   - Fleet Calendar
+
+10. Revised plan must list:
+   - exact DB changes
+   - exact API routes
+   - exact CRM files
+   - migrations required
+   - risks
+   - how existing Accounting Ledger data loading works
+   - how duplicate partner payables are prevented
+   - how Expense is linked to source Income/Booking/Vehicle/Partner
+   - build/typecheck commands
+   - confirmation that no unrelated files will be changed
+
+Again: revise plan only. Do not build yet.
