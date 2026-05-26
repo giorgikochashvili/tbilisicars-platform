@@ -138,26 +138,66 @@ function earliestVisibleStart(bookings: Booking[], rangeStart: Date, rangeEnd: D
   }, parseDate(visible[0]!.pickupDate));
 }
 
+/** True if the booking is a DELIVERED rental visible in the calendar range.
+ *  status DELIVERED alone is the criterion — no interval-contains-now check.
+ *  This keeps overdue deliveries (past dropoff, car still out) in bucket 0. */
+function isActiveDelivery(booking: Booking, rangeStart: Date, rangeEnd: Date): boolean {
+  return booking.status === "DELIVERED" && isBookingVisible(booking, rangeStart, rangeEnd);
+}
+
+/** True if the booking is operationally upcoming (PENDING or CONFIRMED) and
+ *  intersects the current calendar range. */
+function isOperationalUpcoming(booking: Booking, rangeStart: Date, rangeEnd: Date): boolean {
+  return (
+    (booking.status === "PENDING" || booking.status === "CONFIRMED") &&
+    isBookingVisible(booking, rangeStart, rangeEnd)
+  );
+}
+
+/** Booking start ms — prefers full ISO pickupDateTime, falls back to pickupDate midnight. */
+function bookingPickupMs(booking: Booking): number {
+  return booking.pickupDateTime
+    ? new Date(booking.pickupDateTime).getTime()
+    : parseDate(booking.pickupDate).getTime();
+}
+
 /**
- * Sort vehicles within a group:
- * 1. Vehicles with bookings visible in the current range come first, by earliest pickup.
- * 2. Vehicles without visible bookings sorted by natural plate order.
+ * Sort vehicles within a group into three operational buckets:
+ *   0 — Active delivery: ≥1 DELIVERED booking visible in range (car is currently out).
+ *   1 — Operational upcoming: ≥1 PENDING/CONFIRMED booking visible in range.
+ *   2 — No operational booking: only RETURNED/CANCELED/NO_SHOW visible, or none.
+ * Within each bucket, sort by earliest relevant pickup datetime then natural plate order.
  */
 function sortVehiclesInGroup(
   vehicles: Vehicle[],
   rangeStart: Date,
   rangeEnd: Date,
 ): Vehicle[] {
+  const bucket = (v: Vehicle): 0 | 1 | 2 => {
+    if (v.bookings.some((b) => isActiveDelivery(b, rangeStart, rangeEnd))) return 0;
+    if (v.bookings.some((b) => isOperationalUpcoming(b, rangeStart, rangeEnd))) return 1;
+    return 2;
+  };
+
+  const earliestMs = (
+    v: Vehicle,
+    pred: (b: Booking, rs: Date, re: Date) => boolean,
+  ): number =>
+    v.bookings
+      .filter((b) => pred(b, rangeStart, rangeEnd))
+      .reduce((min, b) => Math.min(min, bookingPickupMs(b)), Infinity);
+
   return [...vehicles].sort((a, b) => {
-    const aVis = a.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
-    const bVis = b.bookings.some((bk) => isBookingVisible(bk, rangeStart, rangeEnd));
-    if (aVis && !bVis) return -1;
-    if (!aVis && bVis) return 1;
-    if (aVis && bVis) {
-      return (
-        earliestVisibleStart(a.bookings, rangeStart, rangeEnd).getTime() -
-        earliestVisibleStart(b.bookings, rangeStart, rangeEnd).getTime()
-      );
+    const aBucket = bucket(a);
+    const bBucket = bucket(b);
+    if (aBucket !== bBucket) return aBucket - bBucket;
+
+    if (aBucket === 0) {
+      const diff = earliestMs(a, isActiveDelivery) - earliestMs(b, isActiveDelivery);
+      if (diff !== 0) return diff;
+    } else if (aBucket === 1) {
+      const diff = earliestMs(a, isOperationalUpcoming) - earliestMs(b, isOperationalUpcoming);
+      if (diff !== 0) return diff;
     }
     return naturalSort(a.plate || String(a.id), b.plate || String(b.id));
   });
