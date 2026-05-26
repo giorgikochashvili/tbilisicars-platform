@@ -532,11 +532,29 @@ export default function FleetCalendarPage() {
 
   // Booking bar geometry — clipped to visible range
   function bookingBar(booking: Booking) {
-    const pickupDate = parseDate(booking.pickupDate);
-    const dropoffDate = parseDate(booking.dropoffDate);
-    const startClipped = pickupDate < rangeStart ? rangeStart : pickupDate;
-    const endClipped = dropoffDate > rangeEnd ? rangeEnd : dropoffDate;
-    const leftDays = diffDays(rangeStart, startClipped);
+    // Normalize range boundaries to local midnight so diffDays() always returns
+    // an exact integer column index. Without this, rangeStart carries the
+    // time-of-day from new Date() at page load; diffDays(afternoon, midnight)
+    // is fractional and Math.round pushes bars one column left when loaded past noon.
+    const rangeStartDay = parseDate(toDateStr(rangeStart));
+    const rangeEndDay   = parseDate(toDateStr(rangeEnd));
+
+    // Prefer full ISO datetime → extract local calendar date so bar placement
+    // matches the browser's local timezone (e.g. Tbilisi UTC+4).
+    // Falls back to the date-only string if datetime fields are absent.
+    const pickupDayStr  = booking.pickupDateTime
+      ? toDateStr(new Date(booking.pickupDateTime))
+      : booking.pickupDate;
+    const dropoffDayStr = booking.dropoffDateTime
+      ? toDateStr(new Date(booking.dropoffDateTime))
+      : booking.dropoffDate;
+
+    const pickupDay  = parseDate(pickupDayStr);
+    const dropoffDay = parseDate(dropoffDayStr);
+
+    const startClipped = pickupDay  < rangeStartDay ? rangeStartDay : pickupDay;
+    const endClipped   = dropoffDay > rangeEndDay   ? rangeEndDay   : dropoffDay;
+    const leftDays = diffDays(rangeStartDay, startClipped);
     const spanDays = diffDays(startClipped, endClipped) + 1;
     return { left: leftDays * EFFECTIVE_DAY_PX, width: spanDays * EFFECTIVE_DAY_PX };
   }
