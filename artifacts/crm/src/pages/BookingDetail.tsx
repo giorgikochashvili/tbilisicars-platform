@@ -2143,6 +2143,35 @@ export default function BookingDetail({
     [bookingId, fetchBooking],
   );
 
+  const handleSaveModelOnly = useCallback(async () => {
+    if (!bookingId || assignSelectedModelId == null) return;
+    setSavingAssign(true);
+    try {
+      const hadVehicle = !!booking?.vehicle;
+      await apiFetch(`/admin/bookings/${bookingId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          vehicleModelId: assignSelectedModelId,
+          ...(hadVehicle ? { vehicleId: null } : {}),
+        }),
+      });
+      setIsAssignOpen(false);
+      await fetchBooking();
+      toast({
+        title: hadVehicle
+          ? "Booked model changed — vehicle unassigned"
+          : "Booked model updated",
+        description: hadVehicle
+          ? "The assigned vehicle was cleared because the booked model changed."
+          : undefined,
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingAssign(false);
+    }
+  }, [bookingId, assignSelectedModelId, booking?.vehicle, fetchBooking, toast]);
+
   const handleUnassignVehicle = useCallback(async () => {
     if (!bookingId) return;
     setSavingAssign(true);
@@ -4208,7 +4237,8 @@ export default function BookingDetail({
           <DialogHeader>
             <DialogTitle>Assign Vehicle</DialogTitle>
             <DialogDescription>
-              Select a model and an available vehicle for this booking.
+              Select a vehicle to assign, or use "Save model only" to change the
+              booked model without assigning a specific vehicle.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2 space-y-3">
@@ -4262,6 +4292,18 @@ export default function BookingDetail({
                 </Select>
               )}
             </div>
+            {assignSelectedModelId != null &&
+              assignSelectedModelId !== booking?.vehicleModelId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={savingAssign}
+                  onClick={handleSaveModelOnly}
+                >
+                  Save model only (no vehicle)
+                </Button>
+              )}
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">
                 Vehicle

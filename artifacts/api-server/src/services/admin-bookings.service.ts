@@ -626,6 +626,13 @@ export async function createAdminBooking(data: {
   const pickupDate = new Date(data.pickupDatetime);
   const dropoffDate = new Date(data.dropoffDatetime);
 
+  if (dropoffDate <= pickupDate) {
+    throw new AppError(
+      422,
+      "Return date cannot be earlier than pickup date. Please correct the booking dates.",
+    );
+  }
+
   let userId = data.customerId;
   if (!userId) {
     const customer = await findOrCreateCustomer({
@@ -802,6 +809,13 @@ export async function updateAdminBooking(
       const effectiveVehicleId = data.vehicleId ?? booking.vehicleId ?? null;
       const pickup  = data.pickupDatetime  ? new Date(data.pickupDatetime)  : booking.pickupDatetime;
       const dropoff = data.dropoffDatetime ? new Date(data.dropoffDatetime) : booking.dropoffDatetime;
+
+      if ((data.pickupDatetime || data.dropoffDatetime) && dropoff <= pickup) {
+        throw new AppError(
+          422,
+          "Return date cannot be earlier than pickup date. Please correct the booking dates.",
+        );
+      }
 
       if (effectiveVehicleId) {
         // 1. Lock the vehicle row — serialises concurrent updates for the same vehicle

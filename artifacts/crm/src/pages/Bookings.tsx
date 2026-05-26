@@ -534,6 +534,19 @@ export default function BookingsPage() {
       toast({ title: "Validation Error", description: "Dropoff date is required", variant: "destructive" });
       return false;
     }
+    if (booking.pickupDate && booking.pickupTime && booking.dropoffDate && booking.dropoffTime) {
+      const pickup  = new Date(`${booking.pickupDate}T${booking.pickupTime}:00`);
+      const dropoff = new Date(`${booking.dropoffDate}T${booking.dropoffTime}:00`);
+      if (dropoff <= pickup) {
+        toast({
+          title: "Validation Error",
+          description:
+            "Return date cannot be earlier than pickup date. Please correct the booking dates.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
     if (booking.pickupType === "hotel" && !booking.pickupAddress.trim()) {
       toast({ title: "Validation Error", description: "Please enter a hotel name or address for pickup", variant: "destructive" });
       return false;
