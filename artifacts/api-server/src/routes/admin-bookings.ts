@@ -27,6 +27,7 @@ import {
   deleteAdminBooking,
   appendBookingPhotos,
   toggleCustomerContacted,
+  replaceVehicleOnBooking,
 } from "../services/admin-bookings.service.js";
 import {
   createHandover,
@@ -589,5 +590,57 @@ router.post(
     });
   },
 );
+
+router.post("/admin/bookings/:id/replace-vehicle", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+
+  const { newVehicleId, reason } = req.body as { newVehicleId?: unknown; reason?: unknown };
+
+  if (
+    !newVehicleId ||
+    typeof newVehicleId !== "number" ||
+    !Number.isInteger(newVehicleId) ||
+    newVehicleId <= 0
+  ) {
+    res.status(400).json({ error: "newVehicleId must be a positive integer" });
+    return;
+  }
+
+  const trimmedReason = typeof reason === "string" ? reason.trim() : "";
+  if (!trimmedReason) {
+    res.status(400).json({ error: "reason is required and cannot be empty" });
+    return;
+  }
+
+  // Capture old vehicleId before replacement for the audit log
+  const { rows: cur } = await pool.query<{ vehicle_id: number | null }>(
+    "SELECT vehicle_id FROM booking WHERE id = $1 AND deleted_at IS NULL",
+    [id],
+  );
+  const oldVehicleId = cur[0]?.vehicle_id ?? null;
+
+  const { booking, oldVehicleId: confirmedOldId } = await replaceVehicleOnBooking(
+    id,
+    newVehicleId,
+    trimmedReason,
+  );
+
+  logAudit({
+    actorId: req.session.adminId ?? null,
+    entityType: "booking",
+    entityId: id,
+    entityRef: bookingRef(id),
+    action: "vehicle_replaced",
+    summary: `Admin replaced vehicle on booking ${bookingRef(id)}: vehicle #${confirmedOldId ?? oldVehicleId} → #${newVehicleId} — ${trimmedReason}`,
+    beforeData: { vehicleId: confirmedOldId ?? oldVehicleId },
+    afterData: { vehicleId: newVehicleId, reason: trimmedReason },
+  });
+
+  res.json(booking);
+});
 
 export default router;

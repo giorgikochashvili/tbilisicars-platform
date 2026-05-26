@@ -1896,6 +1896,14 @@ export default function BookingDetail({
   const [loadingAssignVehicles, setLoadingAssignVehicles] = useState(false);
   const [savingAssign, setSavingAssign] = useState(false);
 
+  // Replace Vehicle dialog state (DELIVERED bookings only)
+  const [isReplaceOpen, setIsReplaceOpen] = useState(false);
+  const [replaceVehicles, setReplaceVehicles] = useState<any[]>([]);
+  const [loadingReplaceVehicles, setLoadingReplaceVehicles] = useState(false);
+  const [replaceSelectedVehicleId, setReplaceSelectedVehicleId] = useState<number | null>(null);
+  const [replaceReason, setReplaceReason] = useState("");
+  const [savingReplace, setSavingReplace] = useState(false);
+
   const handleExtrasEdit = async () => {
     try {
       const data = await apiFetch("/admin/extras");
@@ -2065,6 +2073,45 @@ export default function BookingDetail({
     }
   }, [booking?.vehicleModelId, booking?.pickupLocation?.id, overviewLocations]);
 
+  const openReplaceDialog = useCallback(async () => {
+    setReplaceSelectedVehicleId(null);
+    setReplaceReason("");
+    setIsReplaceOpen(true);
+    setLoadingReplaceVehicles(true);
+    try {
+      let locations = overviewLocations;
+      if (locations.length === 0) {
+        try {
+          const data = await apiFetch("/admin/locations");
+          locations = data ?? [];
+          setOverviewLocations(locations);
+        } catch {
+          // Non-critical
+        }
+      }
+      const pickupCity = locations.find(
+        (l: any) => l.id === booking?.pickupLocation?.id,
+      )?.city;
+      if (!pickupCity) {
+        toast({
+          title: "Pickup city missing",
+          description: "Cannot list vehicles without a pickup city.",
+          variant: "destructive",
+        });
+        setIsReplaceOpen(false);
+        return;
+      }
+      const vehiclesData = await apiFetch(
+        `/admin/fleet/vehicles?limit=100&city=${encodeURIComponent(pickupCity)}`,
+      );
+      setReplaceVehicles(vehiclesData?.data ?? []);
+    } catch (e: any) {
+      toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingReplaceVehicles(false);
+    }
+  }, [booking?.pickupLocation?.id, overviewLocations]);
+
   const handleModelChange = useCallback(
     async (modelId: number) => {
       setAssignSelectedModelId(modelId);
@@ -2189,6 +2236,29 @@ export default function BookingDetail({
       setSavingAssign(false);
     }
   }, [bookingId, fetchBooking]);
+
+  const handleReplaceVehicle = useCallback(async () => {
+    if (!bookingId || replaceSelectedVehicleId == null) return;
+    const trimmed = replaceReason.trim();
+    if (!trimmed) {
+      toast({ title: "Reason required", description: "Please enter a replacement reason.", variant: "destructive" });
+      return;
+    }
+    setSavingReplace(true);
+    try {
+      await apiFetch(`/admin/bookings/${bookingId}/replace-vehicle`, {
+        method: "POST",
+        body: JSON.stringify({ newVehicleId: replaceSelectedVehicleId, reason: trimmed }),
+      });
+      setIsReplaceOpen(false);
+      await fetchBooking();
+      toast({ title: "Vehicle replaced", description: "The active rental vehicle has been updated." });
+    } catch (e: any) {
+      toast({ title: "Replacement failed", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingReplace(false);
+    }
+  }, [bookingId, replaceSelectedVehicleId, replaceReason, fetchBooking]);
 
   useEffect(() => {
     if (open && bookingId) {
@@ -2905,13 +2975,23 @@ export default function BookingDetail({
                               </span>
                               <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
                             </button>
-                            <button
-                              type="button"
-                              className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
-                              onClick={openAssignDialog}
-                            >
-                              Change
-                            </button>
+                            {booking.status === "DELIVERED" ? (
+                              <button
+                                type="button"
+                                className="text-[11px] px-2 py-0.5 rounded border border-amber-500/40 text-amber-600 hover:bg-amber-500/10 transition-colors font-medium flex-shrink-0"
+                                onClick={openReplaceDialog}
+                              >
+                                Replace Vehicle
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="text-[11px] px-2 py-0.5 rounded border border-primary/40 text-primary hover:bg-primary/10 transition-colors font-medium flex-shrink-0"
+                                onClick={openAssignDialog}
+                              >
+                                Change
+                              </button>
+                            )}
                           </div>
                           {booking.vehicleModelName &&
                             booking.vehicle.modelName !==
@@ -2945,6 +3025,34 @@ export default function BookingDetail({
                         <div className="font-medium">—</div>
                       )}
                     </div>
+                    {booking.vehicleReplacementHistory &&
+                      booking.vehicleReplacementHistory.length > 0 && (
+                        <div className="mt-1 space-y-1">
+                          <div className="text-[11px] uppercase text-muted-foreground tracking-wide">
+                            Vehicle Replacement History
+                          </div>
+                          {booking.vehicleReplacementHistory.map((r: any) => (
+                            <div
+                              key={r.id}
+                              className="text-xs border border-border/30 rounded px-2 py-1.5 space-y-0.5 bg-muted/20"
+                            >
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono font-medium">
+                                  {r.licensePlate ?? `#${r.vehicleId}`}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {formatDate(r.startDate)} → {formatDate(r.endDate)}
+                                </span>
+                              </div>
+                              {r.notes && (
+                                <div className="text-muted-foreground italic">
+                                  {r.notes}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Booking Price
@@ -4351,6 +4459,117 @@ export default function BookingDetail({
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Replace Vehicle Dialog — DELIVERED bookings with assigned vehicle only */}
+      <Dialog
+        open={isReplaceOpen}
+        onOpenChange={(v) => {
+          if (!savingReplace) setIsReplaceOpen(v);
+        }}
+      >
+        <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-sm overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>Replace Vehicle</DialogTitle>
+            <DialogDescription>
+              Select the replacement vehicle and provide a reason. The current
+              vehicle will be marked available and the new one set as rented.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 space-y-3">
+            {booking?.vehicle && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/40 border border-border/40 text-sm">
+                <Car className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="font-medium min-w-0 truncate">
+                  {booking.vehicle.brandName
+                    ? `${booking.vehicle.brandName} `
+                    : ""}
+                  {booking.vehicle.modelName}
+                </span>
+                <span className="text-muted-foreground shrink-0">·</span>
+                <span className="font-mono text-xs shrink-0">
+                  {booking.vehicle.licensePlate}
+                </span>
+                <span className="ml-auto text-[11px] text-muted-foreground uppercase tracking-wide shrink-0">
+                  Current
+                </span>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Replacement Vehicle
+              </Label>
+              <div className="max-h-52 overflow-y-auto space-y-1 pr-0.5">
+                {loadingReplaceVehicles ? (
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    Loading vehicles…
+                  </div>
+                ) : replaceVehicles.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    No vehicles available in this city.
+                  </div>
+                ) : (
+                  replaceVehicles.map((v: any) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      disabled={savingReplace || v.id === booking?.vehicleId}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left transition-colors border disabled:opacity-40 ${
+                        replaceSelectedVehicleId === v.id
+                          ? "border-primary bg-primary/10"
+                          : "border-border/30 hover:bg-muted/60"
+                      }`}
+                      onClick={() => setReplaceSelectedVehicleId(v.id)}
+                    >
+                      <span className="font-mono font-medium text-sm">
+                        {v.licensePlate}
+                      </span>
+                      <span className="text-xs text-muted-foreground capitalize ml-2">
+                        {v.id === booking?.vehicleId
+                          ? "current"
+                          : (v.status?.toLowerCase() ?? "")}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Reason <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                placeholder="Reason for replacement (required)…"
+                value={replaceReason}
+                onChange={(e) => setReplaceReason(e.target.value)}
+                disabled={savingReplace}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={savingReplace}
+              onClick={() => setIsReplaceOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={
+                savingReplace ||
+                replaceSelectedVehicleId == null ||
+                !replaceReason.trim()
+              }
+              onClick={handleReplaceVehicle}
+            >
+              {savingReplace ? "Replacing…" : "Confirm Replacement"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

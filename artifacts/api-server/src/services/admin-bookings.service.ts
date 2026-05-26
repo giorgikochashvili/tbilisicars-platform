@@ -3,6 +3,7 @@ import {
   pool,
   bookingTable,
   bookingHistoryTable,
+  bookingVehicleAssignmentsTable,
   userTable,
   vehicleTable,
   vehicleModelTable,
@@ -496,7 +497,7 @@ export async function getAdminBooking(id: number) {
   const row = rows[0];
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
 
-  const [extras, payments, pickupPhotoCountRows] = await Promise.all([
+  const [extras, payments, pickupPhotoCountRows, replacementHistory] = await Promise.all([
     db
       .select({
         id: bookingextraTable.id,
@@ -531,6 +532,19 @@ export async function getAdminBooking(id: number) {
           isNull(bookingphotoTable.photoArchivedAt),
         ),
       ),
+    db
+      .select({
+        id:          bookingVehicleAssignmentsTable.id,
+        vehicleId:   bookingVehicleAssignmentsTable.vehicleId,
+        licensePlate: vehicleTable.licensePlate,
+        startDate:   bookingVehicleAssignmentsTable.startDate,
+        endDate:     bookingVehicleAssignmentsTable.endDate,
+        notes:       bookingVehicleAssignmentsTable.notes,
+      })
+      .from(bookingVehicleAssignmentsTable)
+      .leftJoin(vehicleTable, eq(bookingVehicleAssignmentsTable.vehicleId, vehicleTable.id))
+      .where(eq(bookingVehicleAssignmentsTable.bookingId, id))
+      .orderBy(asc(bookingVehicleAssignmentsTable.startDate)),
   ]);
 
   const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
@@ -569,6 +583,14 @@ export async function getAdminBooking(id: number) {
     extras,
     payments,
     pickupPhotoCount,
+    vehicleReplacementHistory: replacementHistory.map((r) => ({
+      id:          r.id,
+      vehicleId:   r.vehicleId,
+      licensePlate: r.licensePlate ?? null,
+      startDate:   r.startDate.toISOString(),
+      endDate:     r.endDate.toISOString(),
+      notes:       r.notes ?? null,
+    })),
   };
 }
 
@@ -991,6 +1013,155 @@ export async function updateAdminBookingStatus(
 ) {
   await applyAdminBookingStatus(id, status);
   return getAdminBooking(id);
+}
+
+// ─── Service: replace vehicle on a DELIVERED booking ──────────────────────────
+//
+// Atomically:
+//   1. Guards (DELIVERED, has vehicle, different vehicle, new vehicle exists)
+//   2. Conflict check for new vehicle
+//   3. Inserts booking_vehicle_assignments row for old vehicle (history)
+//   4. Updates booking.vehicleId = newVehicleId (vehicleModelId unchanged)
+//   5. Old vehicle → AVAILABLE, new vehicle → RENTED
+//   6. Removes new vehicle from active parking
+//
+// reason must already be trimmed and non-empty (validated by the route handler).
+
+export async function replaceVehicleOnBooking(
+  id: number,
+  newVehicleId: number,
+  reason: string,
+): Promise<{ booking: Awaited<ReturnType<typeof getAdminBooking>>; oldVehicleId: number }> {
+  let capturedOldVehicleId = 0;
+
+  await db.transaction(async (tx) => {
+    // 1. Lock and read the booking row
+    const bookingRows = await tx
+      .select({
+        vehicleId:         bookingTable.vehicleId,
+        status:            bookingTable.status,
+        pickupDatetime:    bookingTable.pickupDatetime,
+        dropoffDatetime:   bookingTable.dropoffDatetime,
+        dropoffLocationId: bookingTable.dropoffLocationId,
+      })
+      .from(bookingTable)
+      .where(and(eq(bookingTable.id, id), isNull(bookingTable.deletedAt)))
+      .limit(1)
+      .for("update");
+
+    const bk = bookingRows[0];
+    if (!bk) throw new NotFoundError(`Booking ${id} not found`);
+
+    // 2. Guards
+    if (bk.status !== "DELIVERED") {
+      throw new AppError(400, "Vehicle replacement is only allowed on DELIVERED (active) bookings");
+    }
+    const oldVehicleId = bk.vehicleId;
+    if (oldVehicleId == null) {
+      throw new AppError(400, "Booking does not have an assigned vehicle to replace");
+    }
+    if (newVehicleId === oldVehicleId) {
+      throw new AppError(400, "Replacement vehicle must be different from the current vehicle");
+    }
+    capturedOldVehicleId = oldVehicleId;
+
+    // 3. Lock both vehicle rows in ascending-id order (deadlock prevention).
+    //    Track the new-vehicle lock result to verify the vehicle exists.
+    let newVehicleFound = false;
+    if (oldVehicleId < newVehicleId) {
+      await tx
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, oldVehicleId))
+        .for("update");
+      const rows = await tx
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, newVehicleId))
+        .for("update");
+      newVehicleFound = rows.length > 0;
+    } else {
+      const rows = await tx
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, newVehicleId))
+        .for("update");
+      newVehicleFound = rows.length > 0;
+      await tx
+        .select({ id: vehicleTable.id })
+        .from(vehicleTable)
+        .where(eq(vehicleTable.id, oldVehicleId))
+        .for("update");
+    }
+    if (!newVehicleFound) {
+      throw new NotFoundError(`Vehicle ${newVehicleId} not found`);
+    }
+
+    // 4. Conflict check for new vehicle (exclude current booking)
+    const { conflict, conflictingBookingId } = await checkVehicleConflict(
+      newVehicleId,
+      bk.pickupDatetime,
+      bk.dropoffDatetime,
+      id,
+      tx,
+    );
+    if (conflict) {
+      throw new ConflictError(
+        `Replacement vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+      );
+    }
+
+    // 5. Determine startDate for the history row.
+    //    For chained replacements, use the latest existing endDate so the
+    //    chain reads: Vehicle A (pickup→replace1), Vehicle B (replace1→replace2), …
+    //    If no prior history exists, fall back to booking.pickupDatetime.
+    const latestPrior = await tx
+      .select({ endDate: bookingVehicleAssignmentsTable.endDate })
+      .from(bookingVehicleAssignmentsTable)
+      .where(eq(bookingVehicleAssignmentsTable.bookingId, id))
+      .orderBy(desc(bookingVehicleAssignmentsTable.endDate))
+      .limit(1);
+
+    const assignmentStartDate = latestPrior[0]?.endDate ?? bk.pickupDatetime;
+    const replacementTime = new Date();
+
+    // 6. Insert history record for the old vehicle
+    await tx.insert(bookingVehicleAssignmentsTable).values({
+      bookingId:        id,
+      vehicleId:        oldVehicleId,
+      startDate:        assignmentStartDate,
+      endDate:          replacementTime,
+      returnLocationId: bk.dropoffLocationId ?? null,
+      odometerReading:  null,
+      notes:            reason,
+    });
+
+    // 7. Update booking.vehicleId (vehicleModelId deliberately left unchanged)
+    await tx
+      .update(bookingTable)
+      .set({ vehicleId: newVehicleId, updatedAt: new Date() })
+      .where(eq(bookingTable.id, id));
+
+    // 8. Old vehicle → AVAILABLE
+    await tx
+      .update(vehicleTable)
+      .set({ status: "AVAILABLE", updatedAt: new Date() })
+      .where(eq(vehicleTable.id, oldVehicleId));
+
+    // 9. New vehicle → RENTED
+    await tx
+      .update(vehicleTable)
+      .set({ status: "RENTED", updatedAt: new Date() })
+      .where(eq(vehicleTable.id, newVehicleId));
+
+    // 10. Remove new vehicle from active parking (if any)
+    await removeFromParkingByVehicle(newVehicleId, tx);
+  });
+
+  return {
+    booking: await getAdminBooking(id),
+    oldVehicleId: capturedOldVehicleId,
+  };
 }
 
 // ─── Service: update booking extras ───────────────────────────────────────────
