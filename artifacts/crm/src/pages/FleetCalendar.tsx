@@ -93,7 +93,9 @@ function addDays(date: Date, n: number): Date {
 }
 
 function toDateStr(date: Date): string {
-  return date.toISOString().split("T")[0]!;
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${m}-${d}`;
 }
 
 function parseDate(s: string): Date {

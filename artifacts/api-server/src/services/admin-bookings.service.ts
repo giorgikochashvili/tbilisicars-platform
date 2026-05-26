@@ -858,6 +858,10 @@ export async function updateAdminBooking(
       .returning();
     if (!r) throw new NotFoundError(`Booking ${id} not found`);
 
+    if (data.vehicleId != null && data.vehicleId > 0 && r.status === "DELIVERED") {
+      await removeFromParkingByVehicle(data.vehicleId, tx);
+    }
+
     if (extensionChargeAmount && extensionChargeAmount > 0) {
       const oldTotal = r.totalAmount ?? "0";
       const currency = r.currency ?? "GEL";
