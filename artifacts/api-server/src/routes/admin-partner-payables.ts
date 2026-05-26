@@ -436,7 +436,7 @@ router.post(
          JOIN partner p ON p.id = pp.partner_id
          LEFT JOIN vehicle v ON v.id = pp.vehicle_id
          WHERE pp.id = $1
-         FOR UPDATE`,
+         FOR UPDATE OF pp`,
         [id],
       );
 

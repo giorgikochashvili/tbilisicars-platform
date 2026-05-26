@@ -948,6 +948,7 @@ export const ListAdminVehiclesResponse = zod.object({
       mileage: zod.number().nullish(),
       locationId: zod.number().nullish(),
       startingPrice: zod.string(),
+      partnerId: zod.number().nullish(),
       createdAt: zod.date(),
       updatedAt: zod.date(),
       vehicleModel: zod
@@ -1085,6 +1086,7 @@ export const GetAdminVehicleResponse = zod.object({
     .nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
+  partnerId: zod.number().nullish(),
 });
 
 /**
