@@ -104,8 +104,8 @@ export function RecentActivity({ entityType, entityId, limit = 8 }: RecentActivi
             <EntityIcon type={row.entity_type} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-foreground/80 leading-snug">{row.summary}</p>
-            <p className="text-muted-foreground/60 text-[10px] mt-0.5">
+            <p className="text-foreground/80 leading-snug break-words">{row.summary}</p>
+            <p className="text-muted-foreground/60 text-[10px] mt-0.5 break-words">
               {row.actor_name ?? (row.actor_id ? `Admin #${row.actor_id}` : "System")}
               {" · "}
               <span title={format(new Date(row.created_at), "dd MMM yyyy HH:mm:ss")}>

@@ -372,7 +372,7 @@ function CollapsibleSection({
       <div
         className={`transition-all duration-200 ease-in-out overflow-hidden ${open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}
       >
-        <div className="p-4">{children}</div>
+        <div className="p-4 min-w-0 overflow-x-hidden">{children}</div>
       </div>
     </div>
   );
@@ -689,7 +689,7 @@ function HandoverDisplay({
           </div>
         )}
         {handover.notes && (
-          <div className="col-span-2 sm:col-span-3">
+          <div className="col-span-full">
             <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
               Notes
             </div>
@@ -977,7 +977,7 @@ function PhotoAppendDialog({
         if (!v) handleClose();
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -1326,7 +1326,7 @@ function HandoverModal({
         if (!o) handleModalClose();
       }}
     >
-      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-[520px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Icon className={`w-4 h-4 ${accentClass}`} />
@@ -1338,7 +1338,7 @@ function HandoverModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-0.5">
+        <div className="flex-1 overflow-y-auto space-y-4 mt-2 pr-0.5 min-w-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <HandoverDateTimePicker
@@ -2874,7 +2874,7 @@ export default function BookingDetail({
           )}
 
           {!loadingBooking && booking && (
-            <div className="space-y-3 mt-1">
+            <div className="space-y-3 mt-1 min-w-0 overflow-x-hidden">
               {/* Booking Info Strip */}
               <div className="rounded-lg border border-border/40 bg-muted/10 overflow-hidden">
                 {/* Header row with pencil toggle */}
@@ -3036,11 +3036,11 @@ export default function BookingDetail({
                               key={r.id}
                               className="text-xs border border-border/30 rounded px-2 py-1.5 space-y-0.5 bg-muted/20"
                             >
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-mono font-medium">
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                <span className="font-mono font-medium shrink-0">
                                   {r.licensePlate ?? `#${r.vehicleId}`}
                                 </span>
-                                <span className="text-muted-foreground">
+                                <span className="text-muted-foreground break-words min-w-0">
                                   {formatDate(r.startDate)} → {formatDate(r.endDate)}
                                 </span>
                               </div>
@@ -3126,22 +3126,22 @@ export default function BookingDetail({
                               <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-1">
                                 Website Details
                               </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 min-w-0">
                                 {metaEntries.map(({ label, value }) => (
-                                  <span key={label} className="text-xs">
+                                  <span key={label} className="text-xs min-w-0">
                                     <span className="text-muted-foreground">{label}: </span>
-                                    <span className="text-white/90">{value}</span>
+                                    <span className="text-white/90 break-words">{value}</span>
                                   </span>
                                 ))}
                               </div>
                             </div>
                           )}
                           {cleanNotes && (
-                            <div className="col-span-full">
+                            <div className="col-span-full min-w-0">
                               <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                                 Notes
                               </div>
-                              <div className="text-xs">{cleanNotes}</div>
+                              <div className="text-xs break-words">{cleanNotes}</div>
                             </div>
                           )}
                         </>
@@ -3199,7 +3199,7 @@ export default function BookingDetail({
                             (e) => !extrasEditList.some((x) => x.extraId === e.id),
                           ).length > 0 && (
                             <select
-                              className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-white/70 mt-0.5 focus:outline-none focus:border-zinc-400"
+                              className="w-full max-w-full text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-white/70 mt-0.5 focus:outline-none focus:border-zinc-400"
                               value=""
                               onChange={(e) => {
                                 const id = parseInt(e.target.value, 10);
@@ -3276,11 +3276,11 @@ export default function BookingDetail({
                         {booking?.source || "—"}
                       </div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">
                         Ext. Code
                       </div>
-                      <div className="font-mono text-sm">
+                      <div className="font-mono text-sm break-all">
                         {booking?.externalReservationCode || "—"}
                       </div>
                     </div>
