@@ -4169,6 +4169,42 @@ export default function BookingDetail({
                   limit={8}
                 />
               </CollapsibleSection>
+
+              {/* ─── Attribution ──────────────────────────────────────────────── */}
+              <CollapsibleSection
+                title="Attribution"
+                icon={<ExternalLink className="w-3.5 h-3.5" />}
+              >
+                {!booking.attribution ? (
+                  <p className="text-xs text-muted-foreground px-1 py-1">
+                    No attribution data.
+                  </p>
+                ) : (
+                  <div className="rounded-md border border-border/40 bg-muted/10 p-3 space-y-1.5 text-xs">
+                    {(() => {
+                      const a = booking.attribution;
+                      const rows: { label: string; value: string }[] = [];
+                      if (a.sourceBrand)  rows.push({ label: "Source Brand",  value: a.sourceBrand });
+                      if (a.sourceDomain) rows.push({ label: "Source Domain", value: a.sourceDomain });
+                      if (a.referrer)     rows.push({ label: "Referrer",      value: a.referrer });
+                      if (a.landingPath)  rows.push({ label: "Landing Path",  value: a.landingPath });
+                      if (a.utmSource)    rows.push({ label: "UTM Source",    value: a.utmSource });
+                      if (a.utmMedium)    rows.push({ label: "UTM Medium",    value: a.utmMedium });
+                      if (a.utmCampaign)  rows.push({ label: "UTM Campaign",  value: a.utmCampaign });
+                      if (a.utmContent)   rows.push({ label: "UTM Content",   value: a.utmContent });
+                      if (a.utmTerm)      rows.push({ label: "UTM Term",      value: a.utmTerm });
+                      rows.push({ label: "GCLID", value: a.gclid ? "Yes" : "No" });
+                      if (a.createdAt)    rows.push({ label: "Recorded At",   value: formatDateTime(new Date(a.createdAt)) });
+                      return rows.map(({ label, value }) => (
+                        <div key={label} className="flex flex-wrap gap-x-2 min-w-0">
+                          <span className="text-muted-foreground shrink-0 w-28">{label}</span>
+                          <span className="text-foreground break-all min-w-0">{value}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </CollapsibleSection>
             </div>
           )}
 

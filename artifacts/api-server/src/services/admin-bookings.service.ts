@@ -14,6 +14,7 @@ import {
   extraTable,
   paymentTable,
   bookingphotoTable,
+  bookingAttributionTable,
 } from "@workspace/db";
 import {
   and,
@@ -497,7 +498,7 @@ export async function getAdminBooking(id: number) {
   const row = rows[0];
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
 
-  const [extras, payments, pickupPhotoCountRows, replacementHistory] = await Promise.all([
+  const [extras, payments, pickupPhotoCountRows, replacementHistory, attributionRows] = await Promise.all([
     db
       .select({
         id: bookingextraTable.id,
@@ -545,6 +546,23 @@ export async function getAdminBooking(id: number) {
       .leftJoin(vehicleTable, eq(bookingVehicleAssignmentsTable.vehicleId, vehicleTable.id))
       .where(eq(bookingVehicleAssignmentsTable.bookingId, id))
       .orderBy(asc(bookingVehicleAssignmentsTable.startDate)),
+    db
+      .select({
+        sourceBrand:  bookingAttributionTable.sourceBrand,
+        sourceDomain: bookingAttributionTable.sourceDomain,
+        utmSource:    bookingAttributionTable.utmSource,
+        utmMedium:    bookingAttributionTable.utmMedium,
+        utmCampaign:  bookingAttributionTable.utmCampaign,
+        utmContent:   bookingAttributionTable.utmContent,
+        utmTerm:      bookingAttributionTable.utmTerm,
+        gclid:        bookingAttributionTable.gclid,
+        referrer:     bookingAttributionTable.referrer,
+        landingPath:  bookingAttributionTable.landingPath,
+        createdAt:    bookingAttributionTable.createdAt,
+      })
+      .from(bookingAttributionTable)
+      .where(eq(bookingAttributionTable.bookingId, id))
+      .limit(1),
   ]);
 
   const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
@@ -591,6 +609,7 @@ export async function getAdminBooking(id: number) {
       endDate:     r.endDate.toISOString(),
       notes:       r.notes ?? null,
     })),
+    attribution: attributionRows[0] ?? null,
   };
 }
 
