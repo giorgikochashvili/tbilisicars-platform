@@ -498,7 +498,7 @@ export async function getAdminBooking(id: number) {
   const row = rows[0];
   if (!row) throw new NotFoundError(`Booking ${id} not found`);
 
-  const [extras, payments, pickupPhotoCountRows, replacementHistory, attributionRows] = await Promise.all([
+  const [extras, payments, pickupPhotoCountRows, replacementHistory] = await Promise.all([
     db
       .select({
         id: bookingextraTable.id,
@@ -546,7 +546,25 @@ export async function getAdminBooking(id: number) {
       .leftJoin(vehicleTable, eq(bookingVehicleAssignmentsTable.vehicleId, vehicleTable.id))
       .where(eq(bookingVehicleAssignmentsTable.bookingId, id))
       .orderBy(asc(bookingVehicleAssignmentsTable.startDate)),
-    db
+  ]);
+
+  // Attribution is optional — loaded separately so a missing table (pre-0013 migration
+  // environments) or any other error never crashes the whole getAdminBooking call.
+  let attribution: {
+    sourceBrand: string | null;
+    sourceDomain: string | null;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    utmContent: string | null;
+    utmTerm: string | null;
+    gclid: string | null;
+    referrer: string | null;
+    landingPath: string | null;
+    createdAt: Date;
+  } | null = null;
+  try {
+    const attributionRows = await db
       .select({
         sourceBrand:  bookingAttributionTable.sourceBrand,
         sourceDomain: bookingAttributionTable.sourceDomain,
@@ -562,8 +580,11 @@ export async function getAdminBooking(id: number) {
       })
       .from(bookingAttributionTable)
       .where(eq(bookingAttributionTable.bookingId, id))
-      .limit(1),
-  ]);
+      .limit(1);
+    attribution = attributionRows[0] ?? null;
+  } catch (err) {
+    console.warn(`[getAdminBooking] attribution lookup failed for booking ${id}:`, err instanceof Error ? err.message : err);
+  }
 
   const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
   const base = mapToBookingRow(row);
@@ -609,7 +630,7 @@ export async function getAdminBooking(id: number) {
       endDate:     r.endDate.toISOString(),
       notes:       r.notes ?? null,
     })),
-    attribution: attributionRows[0] ?? null,
+    attribution,
   };
 }
 
