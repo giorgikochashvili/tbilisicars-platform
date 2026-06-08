@@ -357,3 +357,44 @@ export type InsertBookingVehicleAssignment = z.infer<
 
 export type Bookingphoto = typeof bookingphotoTable.$inferSelect;
 export type InsertBookingphoto = z.infer<typeof insertBookingphotoSchema>;
+
+// ─── Booking Attribution ───────────────────────────────────────────────────────
+// Satellite table capturing per-booking marketing attribution for public website
+// bookings. 1:0-or-1 relation with booking (UNIQUE on booking_id).
+// All attribution columns are nullable — booking creation is never gated here.
+// source_domain / source_brand are server-derived from Host header allowlist;
+// client-supplied utm/gclid/referrer/landing_path are informational only.
+
+export const bookingAttributionTable = pgTable(
+  "booking_attribution",
+  {
+    id: serial("id").primaryKey(),
+    bookingId: integer("booking_id")
+      .notNull()
+      .unique()
+      .references(() => bookingTable.id, { onDelete: "cascade" }),
+    // Server-derived (authoritative)
+    sourceDomain: varchar("source_domain", { length: 100 }),
+    sourceBrand: varchar("source_brand", { length: 50 }),
+    // Client-captured (informational)
+    utmSource: varchar("utm_source", { length: 200 }),
+    utmMedium: varchar("utm_medium", { length: 200 }),
+    utmCampaign: varchar("utm_campaign", { length: 200 }),
+    utmContent: varchar("utm_content", { length: 200 }),
+    utmTerm: varchar("utm_term", { length: 200 }),
+    gclid: varchar("gclid", { length: 200 }),
+    referrer: varchar("referrer", { length: 1000 }),
+    landingPath: varchar("landing_path", { length: 1000 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_booking_attribution_source_brand").on(t.sourceBrand),
+  ],
+);
+
+export const insertBookingAttributionSchema = createInsertSchema(
+  bookingAttributionTable,
+).omit({ id: true, createdAt: true });
+
+export type BookingAttribution = typeof bookingAttributionTable.$inferSelect;
+export type InsertBookingAttribution = z.infer<typeof insertBookingAttributionSchema>;
