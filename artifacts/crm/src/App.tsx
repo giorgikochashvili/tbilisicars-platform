@@ -38,7 +38,7 @@ import ShowroomPage from "@/pages/Showroom";
 import PartnersPage from "@/pages/Partners";
 import PartnerDetailPage from "@/pages/PartnerDetail";
 import NotFound from "@/pages/not-found";
-import type { AdminProfile } from "@workspace/api-zod";
+import type { AdminProfile } from "@workspace/api-client-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {

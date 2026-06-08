@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import type { AdminProfile } from "@workspace/api-zod";
+import type { AdminProfile } from "@workspace/api-client-react";
 
 type PermKey = keyof AdminProfile | null;
 
