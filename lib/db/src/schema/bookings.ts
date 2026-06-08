@@ -10,6 +10,7 @@ import {
   timestamp,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { userTable } from "./users";
@@ -389,6 +390,7 @@ export const bookingAttributionTable = pgTable(
   },
   (t) => [
     index("idx_booking_attribution_source_brand").on(t.sourceBrand),
+    index("idx_booking_attribution_gclid").on(t.gclid).where(sql`${t.gclid} IS NOT NULL`),
   ],
 );
 
