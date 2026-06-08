@@ -10,6 +10,8 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -146,6 +148,30 @@ export const vehicleModelPhotoTable = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [index("idx_vehicle_model_photo_model_id").on(t.vehicleModelId)],
+);
+
+// ─── Vehicle Model × Brand Website Visibility ────────────────────────────────
+// Join table: a row exists when a model is visible on a given brand's website.
+// Backfilled from available_for_external_systems by migration 0014.
+// DO NOT query this table until migration 0014 has been applied in the target environment.
+
+export const vehicleModelBrandVisibilityTable = pgTable(
+  "vehicle_model_brand_visibility",
+  {
+    vehicleModelId: integer("vehicle_model_id")
+      .notNull()
+      .references(() => vehicleModelTable.id, { onDelete: "cascade" }),
+    brandKey: varchar("brand_key", { length: 50 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.vehicleModelId, t.brandKey] }),
+    index("idx_vehicle_model_brand_visibility_brand_key").on(t.brandKey),
+    check(
+      "chk_brand_key",
+      sql`${t.brandKey} IN ('tbilisicars', 'kutaisicars', 'batumicars')`,
+    ),
+  ],
 );
 
 // ─── Vehicle Group ────────────────────────────────────────────────────────────
@@ -387,3 +413,5 @@ export type InsertVehicleHistory = z.infer<typeof insertVehicleHistorySchema>;
 
 export type Vehicleprice = typeof vehiclepriceTable.$inferSelect;
 export type InsertVehicleprice = z.infer<typeof insertVehiclepriceSchema>;
+
+export type VehicleModelBrandVisibility = typeof vehicleModelBrandVisibilityTable.$inferSelect;
