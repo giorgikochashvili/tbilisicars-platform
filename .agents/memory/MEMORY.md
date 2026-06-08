@@ -1,2 +1,0 @@
-- [DB package project references](db-project-references.md) — lib/db uses composite TS project refs; schema changes require `tsc --build` in lib/db before api-server typecheck sees new exports
-- [Booking attribution Phase 1A](booking-attribution-phase1a.md) — satellite table pattern, sessionStorage key tc_attribution, server-side Host allowlist for source_brand
