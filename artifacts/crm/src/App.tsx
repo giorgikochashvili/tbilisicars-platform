@@ -40,16 +40,6 @@ import PartnerDetailPage from "@/pages/PartnerDetail";
 import NotFound from "@/pages/not-found";
 import type { AdminProfile } from "@workspace/api-client-react";
 
-type AdminProfileWithPermissions = AdminProfile & {
-  canManageService?: boolean;
-  canViewAccounting?: boolean;
-  canManageAccounting?: boolean;
-  canViewAlerts?: boolean;
-  canViewAuditLog?: boolean;
-  canManageParking?: boolean;
-  canUseAdminAI?: boolean;
-};
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -89,7 +79,7 @@ function ProtectedRoute({
   permissionKey,
 }: {
   component: any;
-  permissionKey?: keyof AdminProfileWithPermissions;
+  permissionKey?: keyof AdminProfile;
 }) {
   const { user, isLoading } = useAuth();
 
@@ -105,7 +95,7 @@ function ProtectedRoute({
     return <Redirect to="/login" />;
   }
 
-  if (permissionKey && (user as AdminProfileWithPermissions)[permissionKey] === false) {
+  if (permissionKey && user[permissionKey] === false) {
     return (
       <AppLayout>
         <AccessDenied />
