@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AdminCreateBrandBody {
-  name: string;
-  logoUrl?: string;
-  countryOfOrigin?: string;
+export interface AdminVehicleModelBrandVisibility {
+  tbilisicars: boolean;
+  kutaisicars: boolean;
+  batumicars: boolean;
 }

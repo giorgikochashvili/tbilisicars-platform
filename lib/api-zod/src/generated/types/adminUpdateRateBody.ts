@@ -10,7 +10,6 @@ export interface AdminUpdateRateBody {
   name?: string;
   description?: string;
   parentRateId?: number;
-  rateType?: string;
   incrementType?: string;
   incrementValue?: string;
   validFrom?: string;

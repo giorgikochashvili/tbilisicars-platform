@@ -38,8 +38,6 @@ export type AdminBookingDetail = AdminBookingRow & {
   /** @nullable */
   deposit?: string | null;
   /** @nullable */
-  depositCurrency?: string | null;
-  /** @nullable */
   notes?: string | null;
   /** @nullable */
   documentType?: string | null;
@@ -52,10 +50,6 @@ export type AdminBookingDetail = AdminBookingRow & {
   updatedAt: Date;
   /** @nullable */
   deletedAt?: string | null;
-  /** @nullable */
-  externalReservationCode?: string | null;
-  /** @nullable */
-  voucherImportRef?: string | null;
   extras: AdminBookingExtra[];
   payments: AdminBookingPayment[];
 };

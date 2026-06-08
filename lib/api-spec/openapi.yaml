@@ -2700,6 +2700,20 @@ components:
           type: boolean
         canManageCases:
           type: boolean
+        canManageService:
+          type: boolean
+        canViewAccounting:
+          type: boolean
+        canManageAccounting:
+          type: boolean
+        canViewAlerts:
+          type: boolean
+        canViewAuditLog:
+          type: boolean
+        canManageParking:
+          type: boolean
+        canUseAdminAI:
+          type: boolean
       required:
         - id
         - email
@@ -2719,6 +2733,13 @@ components:
         - canManageTasks
         - canViewCalendar
         - canManageCases
+        - canManageService
+        - canViewAccounting
+        - canManageAccounting
+        - canViewAlerts
+        - canViewAuditLog
+        - canManageParking
+        - canUseAdminAI
 
     # ─── Admin Locations ─────────────────────────────────────────────────────────
 
@@ -2910,6 +2931,8 @@ components:
           required:
             - id
             - name
+        brandVisibility:
+          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
         createdAt:
           type: string
           format: date-time
@@ -3690,6 +3713,20 @@ components:
 
     # ─── Admin Fleet Write Bodies ────────────────────────────────────────────────
 
+    AdminVehicleModelBrandVisibility:
+      type: object
+      properties:
+        tbilisicars:
+          type: boolean
+        kutaisicars:
+          type: boolean
+        batumicars:
+          type: boolean
+      required:
+        - tbilisicars
+        - kutaisicars
+        - batumicars
+
     AdminCreateBrandBody:
       type: object
       properties:
@@ -3748,6 +3785,8 @@ components:
           type: integer
         deposit:
           type: string
+        brandVisibility:
+          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
       required:
         - brandId
         - name
@@ -3788,6 +3827,8 @@ components:
           type: integer
         deposit:
           type: string
+        brandVisibility:
+          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
 
     AdminCreateVehicleBody:
       type: object
@@ -4280,6 +4321,20 @@ components:
           type: boolean
         canManageCases:
           type: boolean
+        canManageService:
+          type: boolean
+        canViewAccounting:
+          type: boolean
+        canManageAccounting:
+          type: boolean
+        canViewAlerts:
+          type: boolean
+        canViewAuditLog:
+          type: boolean
+        canManageParking:
+          type: boolean
+        canUseAdminAI:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -4308,6 +4363,13 @@ components:
         - canManageTasks
         - canViewCalendar
         - canManageCases
+        - canManageService
+        - canViewAccounting
+        - canManageAccounting
+        - canViewAlerts
+        - canViewAuditLog
+        - canManageParking
+        - canUseAdminAI
         - createdAt
         - updatedAt
 

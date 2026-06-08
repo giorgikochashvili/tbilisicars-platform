@@ -22,7 +22,10 @@ export interface AdminLocation {
   longitude?: string | null;
   locationType: AdminLocationLocationType;
   isActive: boolean;
-  /** @nullable */
+  /**
+   * Short prefix used to generate reservation codes (e.g. TBS, KUT, BAT)
+   * @nullable
+   */
   reservationCodePrefix?: string | null;
   createdAt: Date;
   updatedAt: Date;
