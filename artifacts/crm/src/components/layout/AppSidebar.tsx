@@ -23,7 +23,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import type { AdminProfile } from "@workspace/api-client-react";
 
-type PermKey = keyof AdminProfile | null;
+type AdminProfileWithPermissions = AdminProfile & {
+  canManageService?: boolean;
+  canViewAccounting?: boolean;
+  canManageAccounting?: boolean;
+  canViewAlerts?: boolean;
+  canViewAuditLog?: boolean;
+  canManageParking?: boolean;
+  canUseAdminAI?: boolean;
+};
+
+type PermKey = keyof AdminProfileWithPermissions | null;
 
 const navItems: Array<{ title: string; url: string; icon: React.ElementType; permissionKey: PermKey }> = [
   { title: "Dashboard",       url: "/dashboard",      icon: LayoutDashboard,  permissionKey: null },
