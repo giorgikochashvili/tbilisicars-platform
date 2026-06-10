@@ -1,0 +1,4 @@
+- [Migration 0014 dev-verified](migration-0014.md) — vehicle_model_brand_visibility table applied and fully verified in dev; production gated on Phase 3B-2+4+6.
+- [Pre-existing CRM typecheck errors](crm-typecheck-errors.md) — 13 known errors in 4 files; none in FleetCalendar.tsx or admin-fleet-calendar.ts.
+- [API Spec / Codegen workflow](api-spec-codegen.md) — adding routes to openapi.yaml requires component schemas too or api-zod boot-fails on missing exports.
+- [Handwritten discount client](handwritten-discount-client.md) — discounts.ts was a codegen workaround; now superseded by generated code; do not re-add to index.ts.

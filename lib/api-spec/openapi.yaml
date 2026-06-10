@@ -1879,6 +1879,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/fleet/vehicles/{id}/location:
+    patch:
+      operationId: changeAdminVehicleLocation
+      tags: [admin-fleet]
+      summary: Change vehicle location/city (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChangeVehicleLocationBody"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Vehicle has active booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/rates/{id}/tiers:
     post:
       operationId: createAdminRateTier
@@ -1992,6 +2035,261 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/rates/{id}/day-ranges:
+    post:
+      operationId: createRateDayRange
+      tags: [admin-rates]
+      summary: Add day range to rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateRateDayRangeBody"
+      responses:
+        "201":
+          description: Created day range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminRateDayRange"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: bulkSetRateDayRanges
+      tags: [admin-rates]
+      summary: Bulk replace all day ranges for a rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminBulkSetRateDayRangesBody"
+      responses:
+        "200":
+          description: Replaced day ranges
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminRateDayRange"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rate not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rates/{id}/day-ranges/{rangeId}:
+    delete:
+      operationId: deleteRateDayRange
+      tags: [admin-rates]
+      summary: Delete a day range from a rate (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: rangeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Day range not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/discounts:
+    get:
+      operationId: listAdminDiscounts
+      tags: [admin-rates]
+      summary: List all discounts (admin)
+      responses:
+        "200":
+          description: Array of discounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminDiscount"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createAdminDiscount
+      tags: [admin-rates]
+      summary: Create discount (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateDiscountBody"
+      responses:
+        "201":
+          description: Created discount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDiscount"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Overlapping discount exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/discounts/{id}:
+    get:
+      operationId: getAdminDiscount
+      tags: [admin-rates]
+      summary: Get single discount (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Discount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDiscount"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Discount not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAdminDiscount
+      tags: [admin-rates]
+      summary: Update discount (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateDiscountBody"
+      responses:
+        "200":
+          description: Updated discount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDiscount"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Discount not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminDiscount
+      tags: [admin-rates]
+      summary: Delete discount (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Discount not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/bookings/{id}/status:
     patch:
       operationId: updateAdminBookingStatus
@@ -2054,6 +2352,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminFleetCalendarResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/dashboard/website-bookings:
+    get:
+      operationId: getAdminDashboardWebsiteBookings
+      tags: [admin-dashboard]
+      summary: Website booking counts and recent bookings (admin)
+      parameters:
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Website booking summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboardWebsiteBookings"
         "401":
           description: Not authenticated
           content:
@@ -3242,6 +3565,32 @@ components:
         - createdAt
         - updatedAt
 
+    AdminRateDayRange:
+      type: object
+      properties:
+        id:
+          type: integer
+        rateId:
+          type: integer
+        fromDays:
+          type: integer
+        toDays:
+          type: ["integer", "null"]
+        label:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - rateId
+        - fromDays
+        - createdAt
+        - updatedAt
+
     AdminRateTier:
       type: object
       properties:
@@ -3907,6 +4256,15 @@ components:
       required:
         - status
 
+    AdminChangeVehicleLocationBody:
+      type: object
+      properties:
+        city:
+          type: string
+          enum: [Tbilisi, Kutaisi, Batumi]
+      required:
+        - city
+
     # ─── Admin Extras Write Bodies ───────────────────────────────────────────────
 
     AdminCreateExtraBody:
@@ -3953,6 +4311,190 @@ components:
           type: boolean
 
     # ─── Admin Rates Write Bodies ────────────────────────────────────────────────
+
+    AdminCreateRateDayRangeBody:
+      type: object
+      properties:
+        fromDays:
+          type: integer
+        toDays:
+          type: integer
+        label:
+          type: string
+      required:
+        - fromDays
+
+    AdminBulkSetRateDayRangesBody:
+      type: object
+      properties:
+        ranges:
+          type: array
+          items:
+            type: object
+            properties:
+              fromDays:
+                type: integer
+              toDays:
+                type: integer
+              label:
+                type: string
+            required:
+              - fromDays
+      required:
+        - ranges
+
+    # ─── Admin Discounts ──────────────────────────────────────────────────────────
+
+    AdminDiscountVehicleModel:
+      type: object
+      properties:
+        vehicleModelId:
+          type: integer
+        modelName:
+          type: string
+        brandName:
+          type: string
+      required:
+        - vehicleModelId
+        - modelName
+        - brandName
+
+    AdminDiscountPickupLocation:
+      type: object
+      properties:
+        locationId:
+          type: integer
+        locationName:
+          type: ["string", "null"]
+        locationCity:
+          type: ["string", "null"]
+      required:
+        - locationId
+
+    AdminDiscount:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        value:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        pickupLocationId:
+          type: ["integer", "null"]
+        pickupLocationName:
+          type: ["string", "null"]
+        pickupLocationCity:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        vehicleModels:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDiscountVehicleModel"
+        pickupLocations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminDiscountPickupLocation"
+      required:
+        - id
+        - name
+        - discountType
+        - value
+        - startDate
+        - endDate
+        - isActive
+        - createdAt
+        - updatedAt
+        - vehicleModels
+        - pickupLocations
+
+    AdminCreateDiscountBody:
+      type: object
+      properties:
+        name:
+          type: string
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        value:
+          type: number
+        startDate:
+          type: string
+        endDate:
+          type: string
+        pickupLocationIds:
+          type: array
+          items:
+            type: integer
+        vehicleModelIds:
+          type: array
+          items:
+            type: integer
+        isActive:
+          type: boolean
+      required:
+        - name
+        - discountType
+        - value
+        - startDate
+        - endDate
+        - pickupLocationIds
+        - vehicleModelIds
+
+    AdminUpdateDiscountBody:
+      type: object
+      properties:
+        name:
+          type: string
+        discountType:
+          type: string
+          enum: [PERCENT, FIXED]
+        value:
+          type: number
+        startDate:
+          type: string
+        endDate:
+          type: string
+        pickupLocationIds:
+          type: array
+          items:
+            type: integer
+        vehicleModelIds:
+          type: array
+          items:
+            type: integer
+        isActive:
+          type: boolean
+
+    # ─── Admin Dashboard ──────────────────────────────────────────────────────────
+
+    AdminDashboardWebsiteBookings:
+      type: object
+      properties:
+        pendingCount:
+          type: integer
+        confirmedCount:
+          type: integer
+        recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminBookingRow"
+      required:
+        - pendingCount
+        - confirmedCount
+        - recent
 
     AdminCreateRateBody:
       type: object
