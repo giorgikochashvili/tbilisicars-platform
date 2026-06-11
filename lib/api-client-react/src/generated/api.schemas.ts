@@ -912,18 +912,6 @@ export interface AdminRate {
   updatedAt: string;
 }
 
-export interface AdminRateDayRange {
-  id: number;
-  rateId: number;
-  fromDays: number;
-  /** @nullable */
-  toDays?: number | null;
-  /** @nullable */
-  label?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface AdminRateTier {
   id: number;
   rateId: number;
@@ -1500,19 +1488,6 @@ export interface AdminUpdateVehicleStatusBody {
   status: AdminUpdateVehicleStatusBodyStatus;
 }
 
-export type AdminChangeVehicleLocationBodyCity =
-  (typeof AdminChangeVehicleLocationBodyCity)[keyof typeof AdminChangeVehicleLocationBodyCity];
-
-export const AdminChangeVehicleLocationBodyCity = {
-  Tbilisi: "Tbilisi",
-  Kutaisi: "Kutaisi",
-  Batumi: "Batumi",
-} as const;
-
-export interface AdminChangeVehicleLocationBody {
-  city: AdminChangeVehicleLocationBodyCity;
-}
-
 export type AdminCreateExtraBodyPricingType =
   (typeof AdminCreateExtraBodyPricingType)[keyof typeof AdminCreateExtraBodyPricingType];
 
@@ -1547,108 +1522,6 @@ export interface AdminUpdateExtraBody {
   pricingType?: AdminUpdateExtraBodyPricingType;
   maxDays?: number;
   isActive?: boolean;
-}
-
-export interface AdminCreateRateDayRangeBody {
-  fromDays: number;
-  toDays?: number;
-  label?: string;
-}
-
-export type AdminBulkSetRateDayRangesBodyRangesItem = {
-  fromDays: number;
-  toDays?: number;
-  label?: string;
-};
-
-export interface AdminBulkSetRateDayRangesBody {
-  ranges: AdminBulkSetRateDayRangesBodyRangesItem[];
-}
-
-export interface AdminDiscountVehicleModel {
-  vehicleModelId: number;
-  modelName: string;
-  brandName: string;
-}
-
-export interface AdminDiscountPickupLocation {
-  locationId: number;
-  /** @nullable */
-  locationName?: string | null;
-  /** @nullable */
-  locationCity?: string | null;
-}
-
-export type AdminDiscountDiscountType =
-  (typeof AdminDiscountDiscountType)[keyof typeof AdminDiscountDiscountType];
-
-export const AdminDiscountDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export interface AdminDiscount {
-  id: number;
-  name: string;
-  discountType: AdminDiscountDiscountType;
-  value: string;
-  startDate: string;
-  endDate: string;
-  /** @nullable */
-  pickupLocationId?: number | null;
-  /** @nullable */
-  pickupLocationName?: string | null;
-  /** @nullable */
-  pickupLocationCity?: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  vehicleModels: AdminDiscountVehicleModel[];
-  pickupLocations: AdminDiscountPickupLocation[];
-}
-
-export type AdminCreateDiscountBodyDiscountType =
-  (typeof AdminCreateDiscountBodyDiscountType)[keyof typeof AdminCreateDiscountBodyDiscountType];
-
-export const AdminCreateDiscountBodyDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export interface AdminCreateDiscountBody {
-  name: string;
-  discountType: AdminCreateDiscountBodyDiscountType;
-  value: number;
-  startDate: string;
-  endDate: string;
-  pickupLocationIds: number[];
-  vehicleModelIds: number[];
-  isActive?: boolean;
-}
-
-export type AdminUpdateDiscountBodyDiscountType =
-  (typeof AdminUpdateDiscountBodyDiscountType)[keyof typeof AdminUpdateDiscountBodyDiscountType];
-
-export const AdminUpdateDiscountBodyDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export interface AdminUpdateDiscountBody {
-  name?: string;
-  discountType?: AdminUpdateDiscountBodyDiscountType;
-  value?: number;
-  startDate?: string;
-  endDate?: string;
-  pickupLocationIds?: number[];
-  vehicleModelIds?: number[];
-  isActive?: boolean;
-}
-
-export interface AdminDashboardWebsiteBookings {
-  pendingCount: number;
-  confirmedCount: number;
-  recent: AdminBookingRow[];
 }
 
 export interface AdminCreateRateBody {
@@ -2154,8 +2027,4 @@ export const ListAdminBookingsPaymentStatus = {
 export type GetAdminFleetCalendarParams = {
   dateFrom: string;
   dateTo: string;
-};
-
-export type GetAdminDashboardWebsiteBookingsParams = {
-  city?: string;
 };
