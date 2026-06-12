@@ -267,9 +267,39 @@ export async function createAdminModel(data: {
   driveType?: "FWD" | "RWD" | "AWD" | "4x4" | null;
   mileageLimitPerDay?: number | null;
   deposit?: string | null;
+  brandVisibility?: { tbilisicars: boolean; kutaisicars: boolean; batumicars: boolean };
 }) {
-  const [row] = await db.insert(vehicleModelTable).values(data).returning();
-  return getAdminModel(row!.id);
+  const { brandVisibility, ...modelFields } = data;
+  const BRAND_KEYS = ["tbilisicars", "kutaisicars", "batumicars"] as const;
+
+  const newId = await db.transaction(async (tx) => {
+    if (brandVisibility !== undefined) {
+      const [row] = await tx
+        .insert(vehicleModelTable)
+        .values({ ...modelFields, availableForExternalSystems: brandVisibility.tbilisicars })
+        .returning();
+      const modelId = row!.id;
+      const toInsert = BRAND_KEYS.filter((k) => brandVisibility[k]);
+      if (toInsert.length > 0) {
+        await tx.insert(vehicleModelBrandVisibilityTable).values(
+          toInsert.map((brandKey) => ({ vehicleModelId: modelId, brandKey })),
+        );
+      }
+      return modelId;
+    } else {
+      const [row] = await tx.insert(vehicleModelTable).values(modelFields).returning();
+      const modelId = row!.id;
+      const derivedTbilisicars = modelFields.availableForExternalSystems ?? false;
+      if (derivedTbilisicars) {
+        await tx
+          .insert(vehicleModelBrandVisibilityTable)
+          .values({ vehicleModelId: modelId, brandKey: "tbilisicars" });
+      }
+      return modelId;
+    }
+  });
+
+  return getAdminModel(newId);
 }
 
 export async function updateAdminModel(
@@ -290,14 +320,61 @@ export async function updateAdminModel(
     driveType: "FWD" | "RWD" | "AWD" | "4x4" | null;
     mileageLimitPerDay: number | null;
     deposit: string | null;
+    brandVisibility: { tbilisicars: boolean; kutaisicars: boolean; batumicars: boolean };
   }>,
 ) {
-  const [row] = await db
-    .update(vehicleModelTable)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(vehicleModelTable.id, id))
-    .returning();
-  if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+  const { brandVisibility, ...modelFields } = data;
+  const BRAND_KEYS = ["tbilisicars", "kutaisicars", "batumicars"] as const;
+
+  await db.transaction(async (tx) => {
+    if (brandVisibility !== undefined) {
+      const [row] = await tx
+        .update(vehicleModelTable)
+        .set({ ...modelFields, availableForExternalSystems: brandVisibility.tbilisicars, updatedAt: new Date() })
+        .where(eq(vehicleModelTable.id, id))
+        .returning();
+      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+      await tx
+        .delete(vehicleModelBrandVisibilityTable)
+        .where(eq(vehicleModelBrandVisibilityTable.vehicleModelId, id));
+      const toInsert = BRAND_KEYS.filter((k) => brandVisibility[k]);
+      if (toInsert.length > 0) {
+        await tx.insert(vehicleModelBrandVisibilityTable).values(
+          toInsert.map((brandKey) => ({ vehicleModelId: id, brandKey })),
+        );
+      }
+    } else if (modelFields.availableForExternalSystems !== undefined) {
+      const [row] = await tx
+        .update(vehicleModelTable)
+        .set({ ...modelFields, updatedAt: new Date() })
+        .where(eq(vehicleModelTable.id, id))
+        .returning();
+      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+      if (modelFields.availableForExternalSystems === true) {
+        await tx
+          .insert(vehicleModelBrandVisibilityTable)
+          .values({ vehicleModelId: id, brandKey: "tbilisicars" })
+          .onConflictDoNothing();
+      } else {
+        await tx
+          .delete(vehicleModelBrandVisibilityTable)
+          .where(
+            and(
+              eq(vehicleModelBrandVisibilityTable.vehicleModelId, id),
+              eq(vehicleModelBrandVisibilityTable.brandKey, "tbilisicars"),
+            ),
+          );
+      }
+    } else {
+      const [row] = await tx
+        .update(vehicleModelTable)
+        .set({ ...modelFields, updatedAt: new Date() })
+        .where(eq(vehicleModelTable.id, id))
+        .returning();
+      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
+    }
+  });
+
   return getAdminModel(id);
 }
 

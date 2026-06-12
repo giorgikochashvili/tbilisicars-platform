@@ -109,7 +109,7 @@ router.get("/admin/fleet/models", requireAdmin, async (req, res) => {
 
 router.post("/admin/fleet/models", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const body = CreateAdminModelBody.parse(req.body);
-  const model = await createAdminModel(body as any);
+  const model = await createAdminModel(body);
   res.status(201).json(model);
 });
 
@@ -122,7 +122,7 @@ router.get("/admin/fleet/models/:id", requireAdmin, async (req, res) => {
 router.patch("/admin/fleet/models/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminModelParams.parse({ id: req.params.id });
   const body = UpdateAdminModelBody.parse(req.body);
-  const model = await updateAdminModel(id, body as any);
+  const model = await updateAdminModel(id, body);
   res.json(UpdateAdminModelResponse.parse(model));
 });
 
