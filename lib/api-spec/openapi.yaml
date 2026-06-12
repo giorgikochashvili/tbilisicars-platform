@@ -1879,6 +1879,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/fleet/vehicles/{id}/location:
+    patch:
+      operationId: changeAdminVehicleLocation
+      tags: [admin-fleet]
+      summary: Change vehicle region/city (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChangeVehicleLocationBody"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminVehicleDetail"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Vehicle has active bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /admin/rates/{id}/tiers:
     post:
       operationId: createAdminRateTier
@@ -3906,6 +3949,15 @@ components:
           enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
       required:
         - status
+
+    AdminChangeVehicleLocationBody:
+      type: object
+      required:
+        - city
+      properties:
+        city:
+          type: string
+          enum: [Tbilisi, Kutaisi, Batumi]
 
     # ─── Admin Extras Write Bodies ───────────────────────────────────────────────
 

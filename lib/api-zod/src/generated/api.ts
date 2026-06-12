@@ -2369,6 +2369,86 @@ export const UpdateAdminVehicleStatusResponse = zod.object({
 });
 
 /**
+ * @summary Change vehicle region/city (admin)
+ */
+export const ChangeAdminVehicleLocationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ChangeAdminVehicleLocationBody = zod.object({
+  city: zod.enum(["Tbilisi", "Kutaisi", "Batumi"]),
+});
+
+export const ChangeAdminVehicleLocationResponse = zod.object({
+  id: zod.number(),
+  vehicleModelId: zod.number().nullish(),
+  vehicleGroupId: zod.number().nullish(),
+  make: zod.string().nullish(),
+  model: zod.string().nullish(),
+  year: zod.number().nullish(),
+  color: zod.string().nullish(),
+  licensePlate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  vehicleClass: zod
+    .union([
+      zod.literal("ECONOMY"),
+      zod.literal("COMPACT"),
+      zod.literal("MIDSIZE"),
+      zod.literal("STANDARD"),
+      zod.literal("FULLSIZE"),
+      zod.literal("PREMIUM"),
+      zod.literal("LUXURY"),
+      zod.literal("SUV"),
+      zod.literal("MINIVAN"),
+      zod.literal("VAN"),
+      zod.literal("TRUCK"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  fuelType: zod
+    .union([
+      zod.literal("PETROL"),
+      zod.literal("DIESEL"),
+      zod.literal("HYBRID"),
+      zod.literal("ELECTRIC"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  transmission: zod
+    .union([zod.literal("MANUAL"), zod.literal("AUTOMATIC"), zod.literal(null)])
+    .nullish(),
+  status: zod
+    .union([
+      zod.literal("AVAILABLE"),
+      zod.literal("RENTED"),
+      zod.literal("MAINTENANCE"),
+      zod.literal("RESERVED"),
+      zod.literal("INACTIVE"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  mileage: zod.number().nullish(),
+  locationId: zod.number().nullish(),
+  startingPrice: zod.string(),
+  vehicleModel: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+      brandId: zod.number(),
+      brandName: zod.string().nullish(),
+    })
+    .nullish(),
+  vehicleGroup: zod
+    .object({
+      id: zod.number(),
+      name: zod.string(),
+    })
+    .nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
  * @summary Add tier to rate (admin)
  */
 export const CreateAdminRateTierParams = zod.object({

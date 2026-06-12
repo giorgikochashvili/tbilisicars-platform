@@ -1488,6 +1488,19 @@ export interface AdminUpdateVehicleStatusBody {
   status: AdminUpdateVehicleStatusBodyStatus;
 }
 
+export type AdminChangeVehicleLocationBodyCity =
+  (typeof AdminChangeVehicleLocationBodyCity)[keyof typeof AdminChangeVehicleLocationBodyCity];
+
+export const AdminChangeVehicleLocationBodyCity = {
+  Tbilisi: "Tbilisi",
+  Kutaisi: "Kutaisi",
+  Batumi: "Batumi",
+} as const;
+
+export interface AdminChangeVehicleLocationBody {
+  city: AdminChangeVehicleLocationBodyCity;
+}
+
 export type AdminCreateExtraBodyPricingType =
   (typeof AdminCreateExtraBodyPricingType)[keyof typeof AdminCreateExtraBodyPricingType];
 

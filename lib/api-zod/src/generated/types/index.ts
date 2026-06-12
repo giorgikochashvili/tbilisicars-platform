@@ -21,6 +21,8 @@ export * from "./adminBookingRowPickupLocation";
 export * from "./adminBookingRowStatus";
 export * from "./adminBookingRowVehicle";
 export * from "./adminBrand";
+export * from "./adminChangeVehicleLocationBody";
+export * from "./adminChangeVehicleLocationBodyCity";
 export * from "./adminCreateBookingBody";
 export * from "./adminCreateBookingBodyCustomerData";
 export * from "./adminCreateBookingBodyPaymentStatus";
