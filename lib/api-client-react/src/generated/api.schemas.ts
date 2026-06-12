@@ -1191,6 +1191,87 @@ export interface AdminFleetSnapshot {
   inactive: number;
 }
 
+export interface AdminDashboardWebsiteBookings {
+  pendingCount: number;
+  confirmedCount: number;
+  recent: AdminBookingRow[];
+}
+
+export type AdminDiscountDiscountType =
+  (typeof AdminDiscountDiscountType)[keyof typeof AdminDiscountDiscountType];
+
+export const AdminDiscountDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export type AdminDiscountVehicleModelsItem = {
+  vehicleModelId: number;
+  modelName: string;
+  brandName: string;
+};
+
+export type AdminDiscountPickupLocationsItem = {
+  locationId: number;
+  /** @nullable */
+  locationName: string | null;
+  /** @nullable */
+  locationCity: string | null;
+};
+
+export interface AdminDiscount {
+  id: number;
+  name: string;
+  discountType: AdminDiscountDiscountType;
+  value: string;
+  startDate: string;
+  endDate: string;
+  pickupLocationId: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  vehicleModels: AdminDiscountVehicleModelsItem[];
+  pickupLocations: AdminDiscountPickupLocationsItem[];
+}
+
+export type AdminCreateDiscountBodyDiscountType =
+  (typeof AdminCreateDiscountBodyDiscountType)[keyof typeof AdminCreateDiscountBodyDiscountType];
+
+export const AdminCreateDiscountBodyDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export interface AdminCreateDiscountBody {
+  name: string;
+  discountType: AdminCreateDiscountBodyDiscountType;
+  value: number;
+  startDate: string;
+  endDate: string;
+  pickupLocationIds: number[];
+  vehicleModelIds: number[];
+  isActive?: boolean;
+}
+
+export type AdminUpdateDiscountBodyDiscountType =
+  (typeof AdminUpdateDiscountBodyDiscountType)[keyof typeof AdminUpdateDiscountBodyDiscountType];
+
+export const AdminUpdateDiscountBodyDiscountType = {
+  PERCENT: "PERCENT",
+  FIXED: "FIXED",
+} as const;
+
+export interface AdminUpdateDiscountBody {
+  name?: string;
+  discountType?: AdminUpdateDiscountBodyDiscountType;
+  value?: number;
+  startDate?: string;
+  endDate?: string;
+  pickupLocationIds?: number[];
+  vehicleModelIds?: number[];
+  isActive?: boolean;
+}
+
 export interface DeleteResponse {
   message: string;
 }
@@ -1581,6 +1662,36 @@ export interface AdminUpdateRateTierBody {
   toDays?: number;
   pricePerDay?: string;
   currency?: string;
+}
+
+export interface AdminRateDayRange {
+  id: number;
+  rateId: number;
+  fromDays: number;
+  /** @nullable */
+  toDays: number | null;
+  /** @nullable */
+  label: string | null;
+}
+
+export interface AdminCreateRateDayRangeBody {
+  fromDays: number;
+  /** @nullable */
+  toDays?: number | null;
+  /** @nullable */
+  label?: string | null;
+}
+
+export type AdminBulkSetRateDayRangesBodyRangesItem = {
+  fromDays: number;
+  /** @nullable */
+  toDays?: number | null;
+  /** @nullable */
+  label?: string | null;
+};
+
+export interface AdminBulkSetRateDayRangesBody {
+  ranges: AdminBulkSetRateDayRangesBodyRangesItem[];
 }
 
 export type AdminCreatePromoBodyDiscountType =
@@ -2040,4 +2151,8 @@ export const ListAdminBookingsPaymentStatus = {
 export type GetAdminFleetCalendarParams = {
   dateFrom: string;
   dateTo: string;
+};
+
+export type GetAdminDashboardWebsiteBookingsParams = {
+  city?: string;
 };

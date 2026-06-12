@@ -20,14 +20,17 @@ import type {
   AdminBookingDetail,
   AdminBookingPaginatedResponse,
   AdminBrand,
+  AdminBulkSetRateDayRangesBody,
   AdminChangeVehicleLocationBody,
   AdminCreateBookingBody,
   AdminCreateBrandBody,
   AdminCreateCustomerBody,
+  AdminCreateDiscountBody,
   AdminCreateExtraBody,
   AdminCreateLocationBody,
   AdminCreatePromoBody,
   AdminCreateRateBody,
+  AdminCreateRateDayRangeBody,
   AdminCreateRateTierBody,
   AdminCreateTeamMemberBody,
   AdminCreateVehicleBody,
@@ -35,6 +38,8 @@ import type {
   AdminCustomer,
   AdminCustomerPaginatedResponse,
   AdminDashboardSummary,
+  AdminDashboardWebsiteBookings,
+  AdminDiscount,
   AdminExtra,
   AdminFleetCalendarResponse,
   AdminFleetSnapshot,
@@ -45,6 +50,7 @@ import type {
   AdminProfile,
   AdminPromo,
   AdminRate,
+  AdminRateDayRange,
   AdminRateDetail,
   AdminRateTier,
   AdminTeamMember,
@@ -53,6 +59,7 @@ import type {
   AdminUpdateBookingStatusBody,
   AdminUpdateBrandBody,
   AdminUpdateCustomerBody,
+  AdminUpdateDiscountBody,
   AdminUpdateExtraBody,
   AdminUpdateLocationBody,
   AdminUpdatePromoBody,
@@ -71,6 +78,7 @@ import type {
   DeleteResponse,
   ErrorResponse,
   Extra,
+  GetAdminDashboardWebsiteBookingsParams,
   GetAdminFleetCalendarParams,
   HealthStatus,
   ListAdminBookingsParams,
@@ -4407,6 +4415,425 @@ export const useDeleteAdminPromo = <
 };
 
 /**
+ * @summary List all discounts (admin)
+ */
+export const getListAdminDiscountsUrl = () => {
+  return `/api/admin/discounts`;
+};
+
+export const listAdminDiscounts = async (
+  options?: RequestInit,
+): Promise<AdminDiscount[]> => {
+  return customFetch<AdminDiscount[]>(getListAdminDiscountsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminDiscountsQueryKey = () => {
+  return [`/api/admin/discounts`] as const;
+};
+
+export const getListAdminDiscountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminDiscounts>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminDiscounts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminDiscountsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminDiscounts>>
+  > = ({ signal }) => listAdminDiscounts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminDiscounts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminDiscountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminDiscounts>>
+>;
+export type ListAdminDiscountsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List all discounts (admin)
+ */
+
+export function useListAdminDiscounts<
+  TData = Awaited<ReturnType<typeof listAdminDiscounts>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminDiscounts>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminDiscountsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create discount (admin)
+ */
+export const getCreateAdminDiscountUrl = () => {
+  return `/api/admin/discounts`;
+};
+
+export const createAdminDiscount = async (
+  adminCreateDiscountBody: AdminCreateDiscountBody,
+  options?: RequestInit,
+): Promise<AdminDiscount> => {
+  return customFetch<AdminDiscount>(getCreateAdminDiscountUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminCreateDiscountBody),
+  });
+};
+
+export const getCreateAdminDiscountMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminDiscount>>,
+    TError,
+    { data: BodyType<AdminCreateDiscountBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminDiscount>>,
+  TError,
+  { data: BodyType<AdminCreateDiscountBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminDiscount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminDiscount>>,
+    { data: BodyType<AdminCreateDiscountBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminDiscount(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminDiscountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminDiscount>>
+>;
+export type CreateAdminDiscountMutationBody = BodyType<AdminCreateDiscountBody>;
+export type CreateAdminDiscountMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create discount (admin)
+ */
+export const useCreateAdminDiscount = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminDiscount>>,
+    TError,
+    { data: BodyType<AdminCreateDiscountBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminDiscount>>,
+  TError,
+  { data: BodyType<AdminCreateDiscountBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdminDiscountMutationOptions(options));
+};
+
+/**
+ * @summary Get discount by ID (admin)
+ */
+export const getGetAdminDiscountUrl = (id: number) => {
+  return `/api/admin/discounts/${id}`;
+};
+
+export const getAdminDiscount = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminDiscount> => {
+  return customFetch<AdminDiscount>(getGetAdminDiscountUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminDiscountQueryKey = (id: number) => {
+  return [`/api/admin/discounts/${id}`] as const;
+};
+
+export const getGetAdminDiscountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminDiscount>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminDiscount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminDiscountQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminDiscount>>
+  > = ({ signal }) => getAdminDiscount(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminDiscount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminDiscountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminDiscount>>
+>;
+export type GetAdminDiscountQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get discount by ID (admin)
+ */
+
+export function useGetAdminDiscount<
+  TData = Awaited<ReturnType<typeof getAdminDiscount>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminDiscount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminDiscountQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update discount (admin)
+ */
+export const getUpdateAdminDiscountUrl = (id: number) => {
+  return `/api/admin/discounts/${id}`;
+};
+
+export const updateAdminDiscount = async (
+  id: number,
+  adminUpdateDiscountBody: AdminUpdateDiscountBody,
+  options?: RequestInit,
+): Promise<AdminDiscount> => {
+  return customFetch<AdminDiscount>(getUpdateAdminDiscountUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminUpdateDiscountBody),
+  });
+};
+
+export const getUpdateAdminDiscountMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminDiscount>>,
+    TError,
+    { id: number; data: BodyType<AdminUpdateDiscountBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminDiscount>>,
+  TError,
+  { id: number; data: BodyType<AdminUpdateDiscountBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminDiscount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminDiscount>>,
+    { id: number; data: BodyType<AdminUpdateDiscountBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAdminDiscount(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminDiscountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminDiscount>>
+>;
+export type UpdateAdminDiscountMutationBody = BodyType<AdminUpdateDiscountBody>;
+export type UpdateAdminDiscountMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update discount (admin)
+ */
+export const useUpdateAdminDiscount = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminDiscount>>,
+    TError,
+    { id: number; data: BodyType<AdminUpdateDiscountBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminDiscount>>,
+  TError,
+  { id: number; data: BodyType<AdminUpdateDiscountBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminDiscountMutationOptions(options));
+};
+
+/**
+ * @summary Delete discount (admin)
+ */
+export const getDeleteAdminDiscountUrl = (id: number) => {
+  return `/api/admin/discounts/${id}`;
+};
+
+export const deleteAdminDiscount = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeleteResponse> => {
+  return customFetch<DeleteResponse>(getDeleteAdminDiscountUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAdminDiscountMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminDiscount>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAdminDiscount>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAdminDiscount"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAdminDiscount>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAdminDiscount(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAdminDiscountMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAdminDiscount>>
+>;
+
+export type DeleteAdminDiscountMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete discount (admin)
+ */
+export const useDeleteAdminDiscount = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminDiscount>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAdminDiscount>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAdminDiscountMutationOptions(options));
+};
+
+/**
  * @summary Paginated customer list (admin)
  */
 export const getListAdminCustomersUrl = (params?: ListAdminCustomersParams) => {
@@ -5698,6 +6125,267 @@ export const useChangeAdminVehicleLocation = <
 };
 
 /**
+ * @summary Add day-range to rate (admin)
+ */
+export const getCreateRateDayRangeUrl = (id: number) => {
+  return `/api/admin/rates/${id}/day-ranges`;
+};
+
+export const createRateDayRange = async (
+  id: number,
+  adminCreateRateDayRangeBody: AdminCreateRateDayRangeBody,
+  options?: RequestInit,
+): Promise<AdminRateDayRange> => {
+  return customFetch<AdminRateDayRange>(getCreateRateDayRangeUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminCreateRateDayRangeBody),
+  });
+};
+
+export const getCreateRateDayRangeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRateDayRange>>,
+    TError,
+    { id: number; data: BodyType<AdminCreateRateDayRangeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRateDayRange>>,
+  TError,
+  { id: number; data: BodyType<AdminCreateRateDayRangeBody> },
+  TContext
+> => {
+  const mutationKey = ["createRateDayRange"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRateDayRange>>,
+    { id: number; data: BodyType<AdminCreateRateDayRangeBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createRateDayRange(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRateDayRangeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRateDayRange>>
+>;
+export type CreateRateDayRangeMutationBody =
+  BodyType<AdminCreateRateDayRangeBody>;
+export type CreateRateDayRangeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add day-range to rate (admin)
+ */
+export const useCreateRateDayRange = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRateDayRange>>,
+    TError,
+    { id: number; data: BodyType<AdminCreateRateDayRangeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRateDayRange>>,
+  TError,
+  { id: number; data: BodyType<AdminCreateRateDayRangeBody> },
+  TContext
+> => {
+  return useMutation(getCreateRateDayRangeMutationOptions(options));
+};
+
+/**
+ * @summary Replace all day-ranges for a rate (admin)
+ */
+export const getBulkSetRateDayRangesUrl = (id: number) => {
+  return `/api/admin/rates/${id}/day-ranges`;
+};
+
+export const bulkSetRateDayRanges = async (
+  id: number,
+  adminBulkSetRateDayRangesBody: AdminBulkSetRateDayRangesBody,
+  options?: RequestInit,
+): Promise<AdminRateDayRange[]> => {
+  return customFetch<AdminRateDayRange[]>(getBulkSetRateDayRangesUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminBulkSetRateDayRangesBody),
+  });
+};
+
+export const getBulkSetRateDayRangesMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkSetRateDayRanges>>,
+    TError,
+    { id: number; data: BodyType<AdminBulkSetRateDayRangesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bulkSetRateDayRanges>>,
+  TError,
+  { id: number; data: BodyType<AdminBulkSetRateDayRangesBody> },
+  TContext
+> => {
+  const mutationKey = ["bulkSetRateDayRanges"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bulkSetRateDayRanges>>,
+    { id: number; data: BodyType<AdminBulkSetRateDayRangesBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return bulkSetRateDayRanges(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BulkSetRateDayRangesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bulkSetRateDayRanges>>
+>;
+export type BulkSetRateDayRangesMutationBody =
+  BodyType<AdminBulkSetRateDayRangesBody>;
+export type BulkSetRateDayRangesMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Replace all day-ranges for a rate (admin)
+ */
+export const useBulkSetRateDayRanges = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkSetRateDayRanges>>,
+    TError,
+    { id: number; data: BodyType<AdminBulkSetRateDayRangesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bulkSetRateDayRanges>>,
+  TError,
+  { id: number; data: BodyType<AdminBulkSetRateDayRangesBody> },
+  TContext
+> => {
+  return useMutation(getBulkSetRateDayRangesMutationOptions(options));
+};
+
+/**
+ * @summary Delete a day-range from a rate (admin)
+ */
+export const getDeleteRateDayRangeUrl = (id: number, rangeId: number) => {
+  return `/api/admin/rates/${id}/day-ranges/${rangeId}`;
+};
+
+export const deleteRateDayRange = async (
+  id: number,
+  rangeId: number,
+  options?: RequestInit,
+): Promise<DeleteResponse> => {
+  return customFetch<DeleteResponse>(getDeleteRateDayRangeUrl(id, rangeId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteRateDayRangeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRateDayRange>>,
+    TError,
+    { id: number; rangeId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteRateDayRange>>,
+  TError,
+  { id: number; rangeId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteRateDayRange"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteRateDayRange>>,
+    { id: number; rangeId: number }
+  > = (props) => {
+    const { id, rangeId } = props ?? {};
+
+    return deleteRateDayRange(id, rangeId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteRateDayRangeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteRateDayRange>>
+>;
+
+export type DeleteRateDayRangeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a day-range from a rate (admin)
+ */
+export const useDeleteRateDayRange = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRateDayRange>>,
+    TError,
+    { id: number; rangeId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRateDayRange>>,
+  TError,
+  { id: number; rangeId: number },
+  TContext
+> => {
+  return useMutation(getDeleteRateDayRangeMutationOptions(options));
+};
+
+/**
  * @summary Add tier to rate (admin)
  */
 export const getCreateAdminRateTierUrl = (id: number) => {
@@ -6143,6 +6831,117 @@ export function useGetAdminFleetCalendar<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetAdminFleetCalendarQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Website booking counts and recent bookings (admin)
+ */
+export const getGetAdminDashboardWebsiteBookingsUrl = (
+  params?: GetAdminDashboardWebsiteBookingsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/dashboard/website-bookings?${stringifiedParams}`
+    : `/api/admin/dashboard/website-bookings`;
+};
+
+export const getAdminDashboardWebsiteBookings = async (
+  params?: GetAdminDashboardWebsiteBookingsParams,
+  options?: RequestInit,
+): Promise<AdminDashboardWebsiteBookings> => {
+  return customFetch<AdminDashboardWebsiteBookings>(
+    getGetAdminDashboardWebsiteBookingsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminDashboardWebsiteBookingsQueryKey = (
+  params?: GetAdminDashboardWebsiteBookingsParams,
+) => {
+  return [
+    `/api/admin/dashboard/website-bookings`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetAdminDashboardWebsiteBookingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: GetAdminDashboardWebsiteBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetAdminDashboardWebsiteBookingsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>
+  > = ({ signal }) =>
+    getAdminDashboardWebsiteBookings(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminDashboardWebsiteBookingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>
+>;
+export type GetAdminDashboardWebsiteBookingsQueryError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Website booking counts and recent bookings (admin)
+ */
+
+export function useGetAdminDashboardWebsiteBookings<
+  TData = Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: GetAdminDashboardWebsiteBookingsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminDashboardWebsiteBookings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminDashboardWebsiteBookingsQueryOptions(
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -1,0 +1,2 @@
+- [CRM typecheck baseline](crm-typecheck-baseline.md) — 13 pre-existing errors in 4 files before Fleet Calendar Phase 1 work
+- [Codegen type naming](codegen-type-naming.md) — schema name → generated export name rules; AdminDiscount not AdminDiscountItem
