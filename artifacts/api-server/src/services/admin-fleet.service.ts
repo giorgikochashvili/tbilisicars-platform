@@ -3,6 +3,7 @@ import {
   bookingTable,
   brandTable,
   locationTable,
+  vehicleModelBrandVisibilityTable,
   vehicleModelTable,
   vehiclegroupTable,
   vehicleTable,
@@ -213,7 +214,41 @@ export async function getAdminModel(id: number) {
     .where(eq(vehicleModelTable.id, id));
   const row = rows[0];
   if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
-  return row;
+
+  try {
+    const visRows = await db
+      .select({ brandKey: vehicleModelBrandVisibilityTable.brandKey })
+      .from(vehicleModelBrandVisibilityTable)
+      .where(eq(vehicleModelBrandVisibilityTable.vehicleModelId, id));
+
+    return {
+      ...row,
+      brandVisibility: {
+        tbilisicars: visRows.some((r) => r.brandKey === "tbilisicars"),
+        kutaisicars: visRows.some((r) => r.brandKey === "kutaisicars"),
+        batumicars: visRows.some((r) => r.brandKey === "batumicars"),
+      },
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isMissingTable =
+      msg.includes("relation") ||
+      msg.includes("does not exist") ||
+      msg.includes("vehicle_model_brand_visibility");
+    console.warn(
+      isMissingTable
+        ? "[getAdminModel] vehicle_model_brand_visibility table not found (migration 0014 not applied?), using fallback."
+        : `[getAdminModel] visibility query failed unexpectedly, using fallback: ${msg}`,
+    );
+    return {
+      ...row,
+      brandVisibility: {
+        tbilisicars: row.availableForExternalSystems,
+        kutaisicars: false,
+        batumicars: false,
+      },
+    };
+  }
 }
 
 export async function createAdminModel(data: {
