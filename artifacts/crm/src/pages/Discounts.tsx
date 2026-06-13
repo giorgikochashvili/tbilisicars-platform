@@ -5,8 +5,8 @@ import {
   useCreateAdminDiscount,
   useUpdateAdminDiscount,
   useDeleteAdminDiscount,
-  type AdminDiscount,
-} from "@workspace/api-client-react";
+  type AdminDiscountItem as AdminDiscount,
+} from "../../../../lib/api-client-react/src/discounts";
 import { useListAdminLocations } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
