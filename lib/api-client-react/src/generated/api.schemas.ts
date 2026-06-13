@@ -999,6 +999,7 @@ export const AdminBookingRowPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1102,6 +1103,7 @@ export const AdminBookingPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1771,6 +1773,7 @@ export const AdminCreateBookingBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1828,6 +1831,7 @@ export const AdminUpdateBookingBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1877,6 +1881,7 @@ export const AdminUpdateBookingStatusBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -2145,6 +2150,7 @@ export const ListAdminBookingsPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
+  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 

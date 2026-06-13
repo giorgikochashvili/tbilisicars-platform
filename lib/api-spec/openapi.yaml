@@ -1776,7 +1776,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [UNPAID, HALF, PAID, REFUNDED]
+            enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
         - name: search
           in: query
           schema:
@@ -3706,7 +3706,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
         contactFullName:
           type: string
         contactEmail:
@@ -3828,7 +3828,7 @@ components:
           enum: [CARD, CASH, BANK_TRANSFER, STRIPE, PAYPAL]
         status:
           type: string
-          enum: [UNPAID, HALF, PAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
         amount:
           type: string
         currency:
@@ -4695,7 +4695,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
         rateId:
           type: integer
         rateTierId:
@@ -4767,7 +4767,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
         rateId:
           type: integer
         rateTierId:
@@ -4799,7 +4799,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
       required:
         - status
 

@@ -1881,7 +1881,9 @@ export const ListAdminBookingsQueryParams = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  paymentStatus: zod
+    .enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"])
+    .optional(),
   search: zod.coerce.string().optional(),
   dateFrom: zod.coerce.string().optional(),
   dateTo: zod.coerce.string().optional(),
@@ -1902,7 +1904,13 @@ export const ListAdminBookingsResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      paymentStatus: zod.enum([
+        "UNPAID",
+        "HALF",
+        "PAID",
+        "PREPAID",
+        "REFUNDED",
+      ]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -1988,7 +1996,9 @@ export const CreateAdminBookingBody = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  paymentStatus: zod
+    .enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"])
+    .optional(),
   rateId: zod.number().optional(),
   rateTierId: zod.number().optional(),
   pricePerDay: zod.string().optional(),
@@ -2032,7 +2042,7 @@ export const GetAdminBookingResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -2115,7 +2125,7 @@ export const GetAdminBookingResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
@@ -2153,7 +2163,9 @@ export const UpdateAdminBookingBody = zod.object({
       "NO_SHOW",
     ])
     .optional(),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  paymentStatus: zod
+    .enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"])
+    .optional(),
   rateId: zod.number().optional(),
   rateTierId: zod.number().optional(),
   pricePerDay: zod.string().optional(),
@@ -2178,7 +2190,7 @@ export const UpdateAdminBookingResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -2261,7 +2273,7 @@ export const UpdateAdminBookingResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
@@ -2311,7 +2323,13 @@ export const GetAdminDashboardTodayResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      paymentStatus: zod.enum([
+        "UNPAID",
+        "HALF",
+        "PAID",
+        "PREPAID",
+        "REFUNDED",
+      ]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -2364,7 +2382,13 @@ export const GetAdminDashboardTodayResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      paymentStatus: zod.enum([
+        "UNPAID",
+        "HALF",
+        "PAID",
+        "PREPAID",
+        "REFUNDED",
+      ]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
@@ -2709,7 +2733,9 @@ export const UpdateAdminBookingStatusBody = zod.object({
     "CANCELED",
     "NO_SHOW",
   ]),
-  paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]).optional(),
+  paymentStatus: zod
+    .enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"])
+    .optional(),
 });
 
 export const UpdateAdminBookingStatusResponse = zod
@@ -2723,7 +2749,7 @@ export const UpdateAdminBookingStatusResponse = zod
       "CANCELED",
       "NO_SHOW",
     ]),
-    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+    paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
     contactFullName: zod.string(),
     contactEmail: zod.string().nullish(),
     contactPhone: zod.string().nullish(),
@@ -2806,7 +2832,7 @@ export const UpdateAdminBookingStatusResponse = zod
             "STRIPE",
             "PAYPAL",
           ]),
-          status: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+          status: zod.enum(["UNPAID", "HALF", "PAID", "PREPAID", "REFUNDED"]),
           amount: zod.string(),
           currency: zod.string(),
           transactionId: zod.string().nullish(),
@@ -2884,7 +2910,13 @@ export const GetAdminDashboardWebsiteBookingsResponse = zod.object({
         "CANCELED",
         "NO_SHOW",
       ]),
-      paymentStatus: zod.enum(["UNPAID", "HALF", "PAID", "REFUNDED"]),
+      paymentStatus: zod.enum([
+        "UNPAID",
+        "HALF",
+        "PAID",
+        "PREPAID",
+        "REFUNDED",
+      ]),
       contactFullName: zod.string(),
       contactEmail: zod.string().nullish(),
       contactPhone: zod.string().nullish(),
