@@ -17,7 +17,8 @@ import {
 } from "../lib/pricing.js";
 import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
-import { deriveSourceBrand } from "../lib/attribution.js";
+import { getBrandByHost } from "../lib/brand-registry.js";
+import type { BrandConfig } from "../lib/brand-registry.js";
 
 const router: IRouter = Router();
 
@@ -68,6 +69,53 @@ router.get("/public/booking-config", async (req, res) => {
   const rateCheckDateValue = filterByDates
     ? new Date(pickupDt!).toISOString().slice(0, 10)
     : null;
+
+  // ── Brand classification from Host header ──────────────────────────────────
+  // getBrandByHost returns the full BrandConfig (including bookingEnabled) so we
+  // can distinguish UNKNOWN / ACTIVE / INACTIVE without trusting client input.
+  const hostCandidates: string[] = [
+    req.hostname,
+    ...(typeof req.headers["x-forwarded-host"] === "string"
+      ? [(req.headers["x-forwarded-host"] as string).split(",")[0].trim()]
+      : []),
+  ].filter(Boolean);
+  let brandConfig: BrandConfig | null = null;
+  for (const h of hostCandidates) {
+    brandConfig = getBrandByHost(h);
+    if (brandConfig) break;
+  }
+  // UNKNOWN  (brandConfig === null)              → fallback to available_for_external_systems
+  // INACTIVE (brandConfig.bookingEnabled=false)  → vehicleModels = [], skip model SQL
+  // ACTIVE   (brandConfig.bookingEnabled=true)   → EXISTS filter vs vehicle_model_brand_visibility
+  const isActiveBrand = brandConfig?.bookingEnabled === true;
+  const isInactiveBrand = brandConfig !== null && brandConfig.bookingEnabled === false;
+  const activeBrandKey: string | null = isActiveBrand && brandConfig ? brandConfig.brandKey : null;
+
+  // Visibility filter helper — takes the base params array (before brandKey is appended)
+  // and returns the correct WHERE clause fragment plus the final params array.
+  // $N is computed from params.length + 1 so it is always correct regardless of which
+  // optional filters (dates, days, city) are active in the calling variant.
+  // UNKNOWN host path never calls this helper — it uses the unchanged afs query.
+  const makeVisibilityFilter = (
+    baseParams: unknown[],
+  ): { whereClause: string; finalParams: unknown[] } => {
+    if (activeBrandKey) {
+      const n = baseParams.length + 1;
+      return {
+        whereClause: `vm.active = true
+      AND EXISTS (
+        SELECT 1 FROM vehicle_model_brand_visibility vmbv
+        WHERE vmbv.vehicle_model_id = vm.id
+          AND vmbv.brand_key = $${n}
+      )`,
+        finalParams: [...baseParams, activeBrandKey],
+      };
+    }
+    return {
+      whereClause: `vm.available_for_external_systems = true AND vm.active = true`,
+      finalParams: [...baseParams],
+    };
+  };
 
   // Price lateral factory — called once per query variant with the correct $N
   // placeholder for the rate-check date bind value and (when filtering by trip
@@ -137,142 +185,156 @@ router.get("/public/booking-config", async (req, res) => {
           AND b.dropoff_datetime > ${p1}::timestamptz
       )`;
 
-  // ── Global queries (no location filter) ───────────────────────────────────
-
-  const globalModelSql = `
-    SELECT
-      vm.id,
-      br.name AS brand,
-      vm.name AS model,
-      vm.category,
-      vm.seats,
-      vm.transmission,
-      vm.fuel_type,
-      vm.luggage_capacity,
-      vm.drive_type,
-      vm.description,
-      vm.image_url,
-      vm.deposit,
-      COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
-      price_info.min_price_per_day,
-      price_info.price_currency
-    FROM vehicle_model vm
-    JOIN brand br ON br.id = vm.brand_id
-    LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-    ${makePriceLateral("$1", filterDays ? "$2" : null)}
-    WHERE vm.available_for_external_systems = true AND vm.active = true
-    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-    ORDER BY br.name, vm.name
-  `;
-
-  // $1 = pickup_datetime, $2 = dropoff_datetime
-  const globalModelWithDatesSql = `
-    SELECT
-      vm.id,
-      br.name AS brand,
-      vm.name AS model,
-      vm.category,
-      vm.seats,
-      vm.transmission,
-      vm.fuel_type,
-      vm.luggage_capacity,
-      vm.drive_type,
-      vm.description,
-      vm.image_url,
-      vm.deposit,
-      COUNT(v.id) FILTER (WHERE ${dateCountFilter("$1", "$2")}) AS vehicle_count,
-      price_info.min_price_per_day,
-      price_info.price_currency
-    FROM vehicle_model vm
-    JOIN brand br ON br.id = vm.brand_id
-    LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
-    ${makePriceLateral("$3", filterDays ? "$4" : null)}
-    WHERE vm.available_for_external_systems = true AND vm.active = true
-    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-    ORDER BY br.name, vm.name
-  `;
-
-  // ── City-scoped queries ($1 = location_id) ─────────────────────────────────
-  // HAVING clause intentionally removed: models with zero city-scoped vehicles
-  // are returned with vehicle_count = 0 so the frontend can show them as
-  // "On Request" instead of hiding them entirely.
-
-  const cityModelSql = `
-    SELECT
-      vm.id,
-      br.name AS brand,
-      vm.name AS model,
-      vm.category,
-      vm.seats,
-      vm.transmission,
-      vm.fuel_type,
-      vm.luggage_capacity,
-      vm.drive_type,
-      vm.description,
-      vm.image_url,
-      vm.deposit,
-      COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
-      price_info.min_price_per_day,
-      price_info.price_currency
-    FROM vehicle_model vm
-    JOIN brand br ON br.id = vm.brand_id
-    LEFT JOIN vehicle v
-      ON v.vehicle_model_id = vm.id
-      AND v.location_id IN (
-        SELECT id FROM location
-        WHERE city = (SELECT city FROM location WHERE id = $1)
-      )
-    ${makePriceLateral("$2", filterDays ? "$3" : null)}
-    WHERE vm.available_for_external_systems = true AND vm.active = true
-    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-    ORDER BY br.name, vm.name
-  `;
-
-  // $1 = location_id, $2 = pickup_datetime, $3 = dropoff_datetime
-  const cityModelWithDatesSql = `
-    SELECT
-      vm.id,
-      br.name AS brand,
-      vm.name AS model,
-      vm.category,
-      vm.seats,
-      vm.transmission,
-      vm.fuel_type,
-      vm.luggage_capacity,
-      vm.drive_type,
-      vm.description,
-      vm.image_url,
-      vm.deposit,
-      COUNT(v.id) FILTER (WHERE ${dateCountFilter("$2", "$3")}) AS vehicle_count,
-      price_info.min_price_per_day,
-      price_info.price_currency
-    FROM vehicle_model vm
-    JOIN brand br ON br.id = vm.brand_id
-    LEFT JOIN vehicle v
-      ON v.vehicle_model_id = vm.id
-      AND v.location_id IN (
-        SELECT id FROM location
-        WHERE city = (SELECT city FROM location WHERE id = $1)
-      )
-    ${makePriceLateral("$4", filterDays ? "$5" : null)}
-    WHERE vm.available_for_external_systems = true AND vm.active = true
-    GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
-    ORDER BY br.name, vm.name
-  `;
-
-  // Choose the appropriate query based on which filters are active.
-  // rateCheckDateValue and (when filterDays) daysInt are always appended last
-  // so their $N positions stay consistent with what makePriceLateral emitted.
+  // ── Model query dispatch ───────────────────────────────────────────────────
+  // Selects from the 4 filter variants (global/city × no-dates/dates) and applies
+  // the correct visibility filter per brand classification:
+  //   INACTIVE → skip model SQL entirely (empty rows, response shape preserved)
+  //   ACTIVE   → EXISTS filter vs vehicle_model_brand_visibility; fails loudly if table absent
+  //   UNKNOWN  → legacy available_for_external_systems = true (unchanged behaviour)
+  //
+  // City-scoped variants: HAVING clause intentionally omitted — models with zero
+  // city-scoped vehicles return vehicle_count=0 ("On Request") instead of being hidden.
+  //
+  // Dynamic $N: makeVisibilityFilter computes the brand param index from params.length+1
+  // so it is correct regardless of which optional filters (dates, days, city) are active.
   const daysParams = filterDays ? [daysInt] : [];
-  let modelQueryPromise: Promise<{ rows: unknown[] }>;
-  if (filterByLocation && filterByDates) {
-    modelQueryPromise = pool.query(cityModelWithDatesSql, [locationId, pickupDt, dropoffDt, rateCheckDateValue, ...daysParams]);
+  let modelQueryPromise: Promise<{ rows: any[] }>;
+
+  if (isInactiveBrand) {
+    // Known inactive brand (e.g. kutaisicars/batumicars before launch):
+    // do not query vehicle_model_brand_visibility; empty rows flow through the
+    // normal response path so locations/extras/oneWayFee remain present.
+    modelQueryPromise = Promise.resolve({ rows: [] });
+  } else if (filterByLocation && filterByDates) {
+    // $1=locationId  $2=pickupDt  $3=dropoffDt  $4=rateCheckDate  [$5=daysInt]  [+1=brandKey]
+    const baseParams: unknown[] = [locationId, pickupDt, dropoffDt, rateCheckDateValue, ...daysParams];
+    const { whereClause, finalParams } = makeVisibilityFilter(baseParams);
+    modelQueryPromise = pool.query(
+      `SELECT
+        vm.id,
+        br.name AS brand,
+        vm.name AS model,
+        vm.category,
+        vm.seats,
+        vm.transmission,
+        vm.fuel_type,
+        vm.luggage_capacity,
+        vm.drive_type,
+        vm.description,
+        vm.image_url,
+        vm.deposit,
+        COUNT(v.id) FILTER (WHERE ${dateCountFilter("$2", "$3")}) AS vehicle_count,
+        price_info.min_price_per_day,
+        price_info.price_currency
+      FROM vehicle_model vm
+      JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle v
+        ON v.vehicle_model_id = vm.id
+        AND v.location_id IN (
+          SELECT id FROM location
+          WHERE city = (SELECT city FROM location WHERE id = $1)
+        )
+      ${makePriceLateral("$4", filterDays ? "$5" : null)}
+      WHERE ${whereClause}
+      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+      ORDER BY br.name, vm.name`,
+      finalParams,
+    );
   } else if (filterByLocation) {
-    modelQueryPromise = pool.query(cityModelSql, [locationId, rateCheckDateValue, ...daysParams]);
+    // $1=locationId  $2=rateCheckDate  [$3=daysInt]  [+1=brandKey]
+    const baseParams: unknown[] = [locationId, rateCheckDateValue, ...daysParams];
+    const { whereClause, finalParams } = makeVisibilityFilter(baseParams);
+    modelQueryPromise = pool.query(
+      `SELECT
+        vm.id,
+        br.name AS brand,
+        vm.name AS model,
+        vm.category,
+        vm.seats,
+        vm.transmission,
+        vm.fuel_type,
+        vm.luggage_capacity,
+        vm.drive_type,
+        vm.description,
+        vm.image_url,
+        vm.deposit,
+        COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
+        price_info.min_price_per_day,
+        price_info.price_currency
+      FROM vehicle_model vm
+      JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle v
+        ON v.vehicle_model_id = vm.id
+        AND v.location_id IN (
+          SELECT id FROM location
+          WHERE city = (SELECT city FROM location WHERE id = $1)
+        )
+      ${makePriceLateral("$2", filterDays ? "$3" : null)}
+      WHERE ${whereClause}
+      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+      ORDER BY br.name, vm.name`,
+      finalParams,
+    );
   } else if (filterByDates) {
-    modelQueryPromise = pool.query(globalModelWithDatesSql, [pickupDt, dropoffDt, rateCheckDateValue, ...daysParams]);
+    // $1=pickupDt  $2=dropoffDt  $3=rateCheckDate  [$4=daysInt]  [+1=brandKey]
+    const baseParams: unknown[] = [pickupDt, dropoffDt, rateCheckDateValue, ...daysParams];
+    const { whereClause, finalParams } = makeVisibilityFilter(baseParams);
+    modelQueryPromise = pool.query(
+      `SELECT
+        vm.id,
+        br.name AS brand,
+        vm.name AS model,
+        vm.category,
+        vm.seats,
+        vm.transmission,
+        vm.fuel_type,
+        vm.luggage_capacity,
+        vm.drive_type,
+        vm.description,
+        vm.image_url,
+        vm.deposit,
+        COUNT(v.id) FILTER (WHERE ${dateCountFilter("$1", "$2")}) AS vehicle_count,
+        price_info.min_price_per_day,
+        price_info.price_currency
+      FROM vehicle_model vm
+      JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
+      ${makePriceLateral("$3", filterDays ? "$4" : null)}
+      WHERE ${whereClause}
+      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+      ORDER BY br.name, vm.name`,
+      finalParams,
+    );
   } else {
-    modelQueryPromise = pool.query(globalModelSql, [rateCheckDateValue, ...daysParams]);
+    // $1=rateCheckDate  [$2=daysInt]  [+1=brandKey]
+    const baseParams: unknown[] = [rateCheckDateValue, ...daysParams];
+    const { whereClause, finalParams } = makeVisibilityFilter(baseParams);
+    modelQueryPromise = pool.query(
+      `SELECT
+        vm.id,
+        br.name AS brand,
+        vm.name AS model,
+        vm.category,
+        vm.seats,
+        vm.transmission,
+        vm.fuel_type,
+        vm.luggage_capacity,
+        vm.drive_type,
+        vm.description,
+        vm.image_url,
+        vm.deposit,
+        COUNT(v.id) FILTER (WHERE ${baseCountFilter}) AS vehicle_count,
+        price_info.min_price_per_day,
+        price_info.price_currency
+      FROM vehicle_model vm
+      JOIN brand br ON br.id = vm.brand_id
+      LEFT JOIN vehicle v ON v.vehicle_model_id = vm.id
+      ${makePriceLateral("$1", filterDays ? "$2" : null)}
+      WHERE ${whereClause}
+      GROUP BY vm.id, br.name, price_info.min_price_per_day, price_info.price_currency
+      ORDER BY br.name, vm.name`,
+      finalParams,
+    );
   }
 
   const [locRows, modelRows, extraRows] = await Promise.all([
@@ -290,7 +352,7 @@ router.get("/public/booking-config", async (req, res) => {
   // Normalise vehicle_count to a number here so callers never need to coerce it.
   // A vehicle_count of 0 means no physically available vehicles exist in the
   // requested region (or globally), which the website interprets as "On Request".
-  const rawModels = (modelRows.rows as Array<Record<string, unknown>>).map((row) => ({
+  const rawModels = (modelRows.rows as any[]).map((row: any) => ({
     ...row,
     vehicle_count: Number(row.vehicle_count ?? 0),
     min_price_per_day: row.min_price_per_day != null ? Number(row.min_price_per_day) : null,
@@ -678,6 +740,33 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Invalid email address"] });
   }
 
+  // ── Server-side brand classification (POST) ────────────────────────────────
+  // Derived once here and reused for: (1) model eligibility check, (2) attribution.
+  // getBrandByHost returns the full BrandConfig so bookingEnabled is available for
+  // INACTIVE detection without re-reading the Host header later in the flow.
+  const postHostCandidates: string[] = [
+    req.hostname,
+    ...(typeof req.headers["x-forwarded-host"] === "string"
+      ? [(req.headers["x-forwarded-host"] as string).split(",")[0].trim()]
+      : []),
+  ].filter(Boolean);
+  let postBrandConfig: BrandConfig | null = null;
+  for (const ph of postHostCandidates) {
+    postBrandConfig = getBrandByHost(ph);
+    if (postBrandConfig) break;
+  }
+  // sourceBrand / sourceDomain are captured here; the setImmediate attribution
+  // closure below reads them from this scope (no second derivation needed).
+  const sourceBrand: string | null = postBrandConfig?.brandKey ?? null;
+  const sourceDomain: string | null = postBrandConfig?.primaryDomain ?? null;
+
+  // INACTIVE brand: reject before customer upsert, promo, transaction, or attribution.
+  if (postBrandConfig !== null && postBrandConfig.bookingEnabled === false) {
+    return res.status(422).json({
+      errors: ["Selected vehicle model is not available for online booking"],
+    });
+  }
+
   // ── Customer account upsert ────────────────────────────────────────────────
   // Resolve (or create) the customer account identified by email.
   // For new accounts: a 6-char alphanumeric password is generated, hashed,
@@ -690,12 +779,25 @@ router.post("/public/bookings", async (req, res) => {
     phone: body.phone?.trim() ?? null,
   });
 
+  // Model eligibility check — brand-aware visibility filter.
+  // ACTIVE brand (sourceBrand set): EXISTS filter vs vehicle_model_brand_visibility.
+  // UNKNOWN host (sourceBrand null): legacy available_for_external_systems fallback.
+  // INACTIVE brand: already rejected above before reaching this point.
   const { rows: modelRows } = await pool.query(
-    `SELECT vm.id, br.name AS brand, vm.name AS model
-     FROM vehicle_model vm
-     JOIN brand br ON br.id = vm.brand_id
-     WHERE vm.id = $1 AND vm.available_for_external_systems = true AND vm.active = true`,
-    [body.vehicleModelId],
+    sourceBrand !== null
+      ? `SELECT vm.id, br.name AS brand, vm.name AS model
+         FROM vehicle_model vm
+         JOIN brand br ON br.id = vm.brand_id
+         WHERE vm.id = $1 AND vm.active = true
+           AND EXISTS (
+             SELECT 1 FROM vehicle_model_brand_visibility vmbv
+             WHERE vmbv.vehicle_model_id = vm.id AND vmbv.brand_key = $2
+           )`
+      : `SELECT vm.id, br.name AS brand, vm.name AS model
+         FROM vehicle_model vm
+         JOIN brand br ON br.id = vm.brand_id
+         WHERE vm.id = $1 AND vm.available_for_external_systems = true AND vm.active = true`,
+    sourceBrand !== null ? [body.vehicleModelId, sourceBrand] : [body.vehicleModelId],
   );
   if (!modelRows[0]) {
     return res.status(422).json({ errors: ["Selected vehicle model is not available for online booking"] });
@@ -899,13 +1001,10 @@ router.post("/public/bookings", async (req, res) => {
     combinedNotes = combinedNotes ? `${combinedNotes}\n\n${rateExpiredNote}` : rateExpiredNote;
   }
 
-  // ── Server-side attribution derivation ──────────────────────────────────────
-  // source_brand and source_domain are derived exclusively from the Host header
-  // allowlist. Any client-supplied values in body.attribution are ignored here.
-  const { sourceDomain, sourceBrand } = deriveSourceBrand(
-    req.hostname,
-    req.headers["x-forwarded-host"],
-  );
+  // ── Attribution variables ──────────────────────────────────────────────────
+  // sourceBrand and sourceDomain were derived early (before model eligibility)
+  // from getBrandByHost. They are already in scope from the classification block
+  // above and are captured by the setImmediate attribution closure below.
 
   let bookingId: number;
   try {
