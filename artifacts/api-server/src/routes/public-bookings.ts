@@ -2,7 +2,7 @@
  * Public booking intake API — no authentication required.
  * These endpoints serve the public website booking form.
  */
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { pool } from "@workspace/db";
 import { db, bookingextraTable, bookingTable, bookingAttributionTable, promoTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
@@ -21,6 +21,47 @@ import { getBrandByHost } from "../lib/brand-registry.js";
 import type { BrandConfig } from "../lib/brand-registry.js";
 
 const router: IRouter = Router();
+
+// ── Host candidate resolution ─────────────────────────────────────────────────
+// Extracts a deduplicated list of candidate hostnames from the request in
+// priority order that works both in Replit dev (where trust proxy rewrites
+// req.hostname from X-Forwarded-Host) and in production (where the CDN sets
+// X-Forwarded-Host to the public brand domain).
+//
+// Priority:
+//   1. req.headers.host  — raw Host header; unaffected by trust proxy, so curl
+//                          -H "Host: kutaisicars.com" resolves correctly in dev.
+//   2. req.headers["x-forwarded-host"] — CDN/reverse-proxy brand domain in prod.
+//   3. req.hostname      — Express trust-proxy-derived value; tried last because
+//                          in Replit dev it resolves to the internal proxy host.
+function getHostCandidates(req: Request): string[] {
+  const candidates: string[] = [];
+
+  const add = (value: unknown) => {
+    if (!value) return;
+    const rawValues = Array.isArray(value) ? value : [value];
+    for (const raw of rawValues) {
+      if (typeof raw !== "string") continue;
+      for (const part of raw.split(",")) {
+        const cleaned = part.trim().toLowerCase();
+        if (!cleaned) continue;
+        // Strip protocol if somehow present
+        const withoutProtocol = cleaned.replace(/^https?:\/\//, "");
+        // Strip path if somehow present
+        const withoutPath = withoutProtocol.split("/")[0] ?? "";
+        // Strip port, preserve normal domain
+        const withoutPort = withoutPath.replace(/:\d+$/, "");
+        if (withoutPort) candidates.push(withoutPort);
+      }
+    }
+  };
+
+  add(req.headers.host);
+  add(req.headers["x-forwarded-host"]);
+  add(req.hostname);
+
+  return [...new Set(candidates)];
+}
 
 // ─── GET /api/public/booking-config ───────────────────────────────────────────
 // Returns data needed to render the website booking form:
@@ -73,14 +114,9 @@ router.get("/public/booking-config", async (req, res) => {
   // ── Brand classification from Host header ──────────────────────────────────
   // getBrandByHost returns the full BrandConfig (including bookingEnabled) so we
   // can distinguish UNKNOWN / ACTIVE / INACTIVE without trusting client input.
-  const hostCandidates: string[] = [
-    req.hostname,
-    ...(typeof req.headers["x-forwarded-host"] === "string"
-      ? [(req.headers["x-forwarded-host"] as string).split(",")[0].trim()]
-      : []),
-  ].filter(Boolean);
+  // getHostCandidates tries raw Host header first so dev curl overrides work.
   let brandConfig: BrandConfig | null = null;
-  for (const h of hostCandidates) {
+  for (const h of getHostCandidates(req)) {
     brandConfig = getBrandByHost(h);
     if (brandConfig) break;
   }
@@ -744,14 +780,9 @@ router.post("/public/bookings", async (req, res) => {
   // Derived once here and reused for: (1) model eligibility check, (2) attribution.
   // getBrandByHost returns the full BrandConfig so bookingEnabled is available for
   // INACTIVE detection without re-reading the Host header later in the flow.
-  const postHostCandidates: string[] = [
-    req.hostname,
-    ...(typeof req.headers["x-forwarded-host"] === "string"
-      ? [(req.headers["x-forwarded-host"] as string).split(",")[0].trim()]
-      : []),
-  ].filter(Boolean);
+  // getHostCandidates tries raw Host header first so dev curl overrides work.
   let postBrandConfig: BrandConfig | null = null;
-  for (const ph of postHostCandidates) {
+  for (const ph of getHostCandidates(req)) {
     postBrandConfig = getBrandByHost(ph);
     if (postBrandConfig) break;
   }
