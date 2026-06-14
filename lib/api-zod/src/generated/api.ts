@@ -1977,15 +1977,15 @@ export const CreateAdminBookingBody = zod.object({
     })
     .optional(),
   contactFullName: zod.string(),
-  contactEmail: zod.string().optional(),
-  contactPhone: zod.string().optional(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   vehicleId: zod.number().optional(),
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number(),
   dropoffLocationId: zod.number(),
-  pickupDatetime: zod.date(),
-  dropoffDatetime: zod.date(),
+  pickupDatetime: zod.coerce.date(),
+  dropoffDatetime: zod.coerce.date(),
   status: zod
     .enum([
       "PENDING",
@@ -2006,7 +2006,7 @@ export const CreateAdminBookingBody = zod.object({
   currency: zod.string().optional(),
   source: zod.string().optional(),
   broker: zod.string().optional(),
-  notes: zod.string().optional(),
+  notes: zod.string().nullish(),
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
@@ -2144,15 +2144,15 @@ export const UpdateAdminBookingParams = zod.object({
 
 export const UpdateAdminBookingBody = zod.object({
   contactFullName: zod.string().optional(),
-  contactEmail: zod.string().optional(),
-  contactPhone: zod.string().optional(),
+  contactEmail: zod.string().nullish(),
+  contactPhone: zod.string().nullish(),
   vehicleId: zod.number().nullish(),
   vehicleModelId: zod.number().optional(),
   vehicleGroupId: zod.number().optional(),
   pickupLocationId: zod.number().optional(),
   dropoffLocationId: zod.number().optional(),
-  pickupDatetime: zod.date().optional(),
-  dropoffDatetime: zod.date().optional(),
+  pickupDatetime: zod.coerce.date().optional(),
+  dropoffDatetime: zod.coerce.date().optional(),
   status: zod
     .enum([
       "PENDING",
@@ -2173,7 +2173,7 @@ export const UpdateAdminBookingBody = zod.object({
   currency: zod.string().optional(),
   source: zod.string().optional(),
   broker: zod.string().optional(),
-  notes: zod.string().optional(),
+  notes: zod.string().nullish(),
   documentType: zod.string().optional(),
   documentNumber: zod.string().optional(),
   deposit: zod.string().optional(),
