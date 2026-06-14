@@ -845,6 +845,21 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         },
         imageUrl: item.imageUrl || null,
       });
+    fetch(`/api/admin/fleet/models/${item.id}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .then((detail: any) => {
+        if (!detail) return;
+        setFormData(prev => ({
+          ...prev,
+          category: detail.category || prev.category || "",
+          brandVisibility: {
+            tbilisicars: detail.brandVisibility?.tbilisicars ?? prev.brandVisibility.tbilisicars,
+            kutaisicars: detail.brandVisibility?.kutaisicars ?? prev.brandVisibility.kutaisicars,
+            batumicars:  detail.brandVisibility?.batumicars  ?? prev.brandVisibility.batumicars,
+          },
+        }));
+      })
+      .catch(() => {});
     } else {
       setEditingItem(null);
       setFormData({ 

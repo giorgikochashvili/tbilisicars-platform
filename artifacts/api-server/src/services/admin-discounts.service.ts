@@ -95,15 +95,15 @@ export async function listAllDiscounts() {
       l.name AS "pickupLocationName",
       l.city AS "pickupLocationCity",
       d.is_active AS "isActive",
-      d.created_at AS "createdAt",
-      d.updated_at AS "updatedAt",
+      d.created_at::text AS "createdAt",
+      d.updated_at::text AS "updatedAt",
       (
         SELECT COALESCE(
           json_agg(
             json_build_object(
               'vehicleModelId', dvm.vehicle_model_id,
-              'modelName', vm.name,
-              'brandName', br.name
+              'modelName', COALESCE(vm.name, ''),
+              'brandName', COALESCE(br.name, '')
             ) ORDER BY br.name, vm.name
           ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
           '[]'
@@ -150,15 +150,15 @@ export async function getAdminDiscount(id: number) {
       l.name AS "pickupLocationName",
       l.city AS "pickupLocationCity",
       d.is_active AS "isActive",
-      d.created_at AS "createdAt",
-      d.updated_at AS "updatedAt",
+      d.created_at::text AS "createdAt",
+      d.updated_at::text AS "updatedAt",
       (
         SELECT COALESCE(
           json_agg(
             json_build_object(
               'vehicleModelId', dvm.vehicle_model_id,
-              'modelName', vm.name,
-              'brandName', br.name
+              'modelName', COALESCE(vm.name, ''),
+              'brandName', COALESCE(br.name, '')
             ) ORDER BY br.name, vm.name
           ) FILTER (WHERE dvm.vehicle_model_id IS NOT NULL),
           '[]'
