@@ -270,7 +270,7 @@ function LocationSelect({
         onClick={() => (open ? setOpen(false) : openDropdown())}
         style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
         className={[
-          "w-full flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm text-left transition-all",
+          "w-full flex items-center gap-2 rounded-lg border px-3.5 py-3 text-sm text-left transition-all",
           "focus:outline-none focus:ring-2 focus:ring-primary/60",
           open ? "border-primary/50" : "border-white/10 hover:border-primary/40",
         ].join(" ")}
@@ -285,6 +285,18 @@ function LocationSelect({
   );
 }
 
+function makeDefaultDatetimes(): { pickup: string; dropoff: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const p = new Date();
+  p.setDate(p.getDate() + 3);
+  p.setHours(10, 0, 0, 0);
+  const r = new Date(p);
+  r.setDate(r.getDate() + 7);
+  return { pickup: fmt(p), dropoff: fmt(r) };
+}
+
 export default function Home() {
   const [, navigate] = useLocation();
   const [sameLocation, setSameLocation] = useState(true);
@@ -296,6 +308,17 @@ export default function Home() {
   const [dropoffDatetime, setDropoffDatetime] = useState("");
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
+
+  // Sub-step A: prefill dates on first mount only.
+  // Home.tsx never reads dates from URL on mount (only writes on navigate-away),
+  // so the empty-string guard is sufficient — no URL race condition possible.
+  useEffect(() => {
+    if (pickupDatetime === "" && dropoffDatetime === "") {
+      const { pickup, dropoff } = makeDefaultDatetimes();
+      setPickupDatetime(pickup);
+      setDropoffDatetime(dropoff);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: config } = useQuery<BookingConfig>({
     queryKey: ["booking-config"],
@@ -425,7 +448,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden min-h-[460px] sm:min-h-[530px]"
+        className="relative overflow-hidden min-h-[520px] sm:min-h-[600px]"
         style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
@@ -433,8 +456,7 @@ export default function Home() {
           src="/images/home-hero-georgia-road.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          style={{ objectPosition: "60% 45%" }}
+          className="absolute inset-0 w-full h-full object-cover object-[50%_38%] sm:object-[60%_45%] pointer-events-none select-none"
           draggable={false}
         />
 
@@ -443,13 +465,16 @@ export default function Home() {
           className="absolute inset-0 pointer-events-none hidden sm:block"
           style={{
             background:
-              "linear-gradient(to right, rgba(5,16,30,0.94) 0%, rgba(5,16,30,0.85) 30%, rgba(5,16,30,0.40) 58%, rgba(5,16,30,0.08) 80%, transparent 100%)",
+              "linear-gradient(to right, rgba(5,16,30,0.92) 0%, rgba(5,16,30,0.80) 25%, rgba(5,16,30,0.28) 50%, rgba(5,16,30,0.05) 72%, transparent 100%)",
           }}
         />
-        {/* Mobile: uniform dark overlay */}
+        {/* Mobile: vertical valley overlay — dark top (H1), lighter middle (car), dark bottom (form) */}
         <div
           className="absolute inset-0 pointer-events-none sm:hidden"
-          style={{ background: "rgba(5,16,30,0.72)" }}
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(5,16,30,0.88) 0%, rgba(5,16,30,0.78) 22%, rgba(5,16,30,0.32) 50%, rgba(5,16,30,0.68) 72%, rgba(5,16,30,0.84) 100%)",
+          }}
         />
         {/* Top fade — prevents church from visually colliding with the header */}
         <div
@@ -469,7 +494,7 @@ export default function Home() {
         />
 
         {/* Content — flex column; benefits + form pin to bottom */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[460px] sm:min-h-[530px]">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[520px] sm:min-h-[600px]">
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
           <div className="max-w-xl mb-0">
@@ -546,9 +571,9 @@ export default function Home() {
                       type="checkbox"
                       checked={!sameLocation}
                       onChange={(e) => setSameLocation(!e.target.checked)}
-                      className="w-3.5 h-3.5 rounded border-white/20 accent-primary shrink-0 cursor-pointer"
+                      className="w-4 h-4 rounded border-white/20 accent-primary shrink-0 cursor-pointer"
                     />
-                    <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors leading-tight select-none">Drop-off in different location</span>
+                    <span className={`text-[11px] transition-colors leading-tight select-none group-hover:text-white ${!sameLocation ? "text-white font-medium" : "text-slate-400"}`}>Drop-off in different location</span>
                   </label>
                   {pickupIsDowntown && (
                     <label className="flex items-center gap-2 mt-1.5 cursor-pointer w-fit">
@@ -562,6 +587,29 @@ export default function Home() {
                     </label>
                   )}
                 </div>
+
+                {/* Mobile only — Return Location between Pickup and Dates when checkbox is ticked */}
+                {!sameLocation && (
+                  <div className="lg:hidden flex-1 min-w-0 p-3 border-t border-white/10">
+                    <LocationSelect
+                      value={dropoffLocationId}
+                      onChange={handleDropoffChange}
+                      options={visibleLocations}
+                      placeholder="Return Location"
+                    />
+                    {dropoffIsDowntown && (
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                        <input
+                          type="checkbox"
+                          checked={dropoffDelivery}
+                          onChange={(e) => setDropoffDelivery(e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-xs text-muted-foreground">Delivery Service</span>
+                      </label>
+                    )}
+                  </div>
+                )}
 
                 {/* Pickup Date & Time */}
                 <div className="flex-1 min-w-0 p-3 lg:p-2.5">
@@ -595,9 +643,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Return Location — expanded row when sameLocation=false */}
+              {/* Return Location — desktop only, full-width row below main bar when sameLocation=false */}
               {!sameLocation && (
-                <div className="p-3 lg:px-2.5 lg:py-2.5 border-t border-white/10">
+                <div className="hidden lg:block p-3 lg:px-2.5 lg:py-2.5 border-t border-white/10 border-l-2 border-l-primary/40">
                   <LocationSelect
                     value={dropoffLocationId}
                     onChange={handleDropoffChange}
@@ -632,7 +680,7 @@ export default function Home() {
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6">
 
           {/* Trustpilot & Google — glass-like, centered, compact */}
-          <div className="flex justify-center flex-wrap gap-3 pt-2 pb-7">
+          <div className="flex justify-center flex-wrap gap-3 pt-4 pb-7">
             {HERO_RATING_CARDS.map((r) => (
               <a
                 key={r.platform}
