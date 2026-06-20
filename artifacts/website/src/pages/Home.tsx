@@ -448,7 +448,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden min-h-[520px] sm:min-h-[600px]"
+        className="relative overflow-hidden min-h-[680px] sm:min-h-[640px]"
         style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
@@ -456,7 +456,7 @@ export default function Home() {
           src="/images/home-hero-georgia-road.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover object-[50%_38%] sm:object-[60%_45%] pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover object-[50%_28%] sm:object-[60%_45%] pointer-events-none select-none"
           draggable={false}
         />
 
@@ -494,7 +494,7 @@ export default function Home() {
         />
 
         {/* Content — flex column; benefits + form pin to bottom */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 flex flex-col min-h-[520px] sm:min-h-[600px]">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-5 sm:pt-12 flex flex-col min-h-[680px] sm:min-h-[640px]">
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
           <div className="max-w-xl mb-0">
@@ -595,7 +595,30 @@ export default function Home() {
                       value={dropoffLocationId}
                       onChange={handleDropoffChange}
                       options={visibleLocations}
-                      placeholder="Return Location"
+                      placeholder="Drop-off Location"
+                    />
+                    {dropoffIsDowntown && (
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+                        <input
+                          type="checkbox"
+                          checked={dropoffDelivery}
+                          onChange={(e) => setDropoffDelivery(e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-xs text-muted-foreground">Delivery Service</span>
+                      </label>
+                    )}
+                  </div>
+                )}
+
+                {/* Desktop only — Drop-off Location as inline column in main row when checkbox is ticked */}
+                {!sameLocation && (
+                  <div className="hidden lg:block flex-1 min-w-0 p-2.5">
+                    <LocationSelect
+                      value={dropoffLocationId}
+                      onChange={handleDropoffChange}
+                      options={visibleLocations}
+                      placeholder="Drop-off Location"
                     />
                     {dropoffIsDowntown && (
                       <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
@@ -642,29 +665,6 @@ export default function Home() {
                   />
                 </div>
               </div>
-
-              {/* Return Location — desktop only, full-width row below main bar when sameLocation=false */}
-              {!sameLocation && (
-                <div className="hidden lg:block p-3 lg:px-2.5 lg:py-2.5 border-t border-white/10 border-l-2 border-l-primary/40">
-                  <LocationSelect
-                    value={dropoffLocationId}
-                    onChange={handleDropoffChange}
-                    options={visibleLocations}
-                    placeholder="Return Location"
-                  />
-                  {dropoffIsDowntown && (
-                    <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
-                      <input
-                        type="checkbox"
-                        checked={dropoffDelivery}
-                        onChange={(e) => setDropoffDelivery(e.target.checked)}
-                        className="w-4 h-4 rounded border-border accent-primary"
-                      />
-                      <span className="text-xs text-muted-foreground">Delivery Service</span>
-                    </label>
-                  )}
-                </div>
-              )}
 
               {error && (
                 <p className="px-3 pb-3 text-sm text-destructive">{error}</p>
