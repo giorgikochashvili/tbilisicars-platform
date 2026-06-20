@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties } from "react";
+import { useState, useEffect, useRef, useMemo, type CSSProperties } from "react";
 import ReactDOM from "react-dom";
 import { Helmet } from "react-helmet-async";
 import { useLocation, Link } from "wouter";
@@ -16,8 +16,14 @@ interface Location {
   city: string;
 }
 
+interface VehicleModelForCategories {
+  category: string | null;
+  vehicle_count: string;
+}
+
 interface BookingConfig {
   locations: Location[];
+  vehicleModels: VehicleModelForCategories[];
 }
 
 interface FeaturedSliderItem {
@@ -101,11 +107,6 @@ const LOCATION_CARDS = [
   { label: "City Delivery",   sub: "We deliver to your location",    href: "/locations"          },
 ];
 
-const VEHICLE_CATEGORIES = [
-  "Economy",
-  "Crossover / Intermediate SUV",
-  "Business Class",
-];
 
 const WHY_CARDS = [
   {
@@ -300,6 +301,19 @@ export default function Home() {
     queryKey: ["booking-config"],
     queryFn: () => apiFetch("/api/public/booking-config"),
   });
+
+  const dynamicCategories = useMemo<string[] | null>(() => {
+    if (!config) return null;
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const m of config.vehicleModels ?? []) {
+      if (m.category && Number(m.vehicle_count) > 0 && !seen.has(m.category)) {
+        seen.add(m.category);
+        result.push(m.category);
+      }
+    }
+    return result;
+  }, [config]);
 
   const { data: sliderData, isLoading: sliderLoading } = useQuery<FeaturedSliderData>({
     queryKey: ["public-featured-slider"],
@@ -825,18 +839,20 @@ export default function Home() {
           <p className="text-sm text-muted-foreground mb-8 max-w-2xl mx-auto">
             Browse our fleet — from Economy cars to Crossover SUVs and Business Class vehicles for your journey across Georgia.
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {VEHICLE_CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => navigate("/fleet")}
-                className="px-4 py-2 rounded-full border border-white/15 text-sm text-white/80 bg-white/5 hover:border-primary/50 hover:text-white transition-colors cursor-pointer"
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          {dynamicCategories && dynamicCategories.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {dynamicCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => navigate("/fleet")}
+                  className="px-4 py-2 rounded-full border border-white/15 text-sm text-white/80 bg-white/5 hover:border-primary/50 hover:text-white transition-colors cursor-pointer"
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
