@@ -104,7 +104,12 @@ router.delete("/admin/fleet/brands/:id", requireAdmin, requirePermission("canMan
 router.get("/admin/fleet/models", requireAdmin, async (req, res) => {
   const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
   const data = await listAdminModels({ city });
-  res.json(data); // NOTE: intentionally bypasses Zod schema stripping so category passes through
+  res.json(
+    data.map((item) => ({
+      ...ListAdminModelsResponse.element.parse(item),
+      category: item.category ?? null,
+    })),
+  );
 });
 
 router.post("/admin/fleet/models", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
