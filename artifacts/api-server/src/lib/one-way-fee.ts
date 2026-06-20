@@ -1,4 +1,13 @@
-import type { Pool } from "pg";
+/**
+ * Minimal structural interface for a pg Pool — avoids importing the pg package directly.
+ * Any `pg.Pool` instance satisfies this shape.
+ */
+interface QueryablePool {
+  query<R extends Record<string, unknown> = Record<string, unknown>>(
+    text: string,
+    values?: unknown[],
+  ): Promise<{ rows: R[] }>;
+}
 
 /**
  * Resolves the one-way transfer fee for a given pickup/dropoff location pair.
@@ -14,7 +23,7 @@ import type { Pool } from "pg";
  *      Returns null and logs a warning if multiple distinct amounts are found.
  */
 export async function resolveOneWayFee(
-  pool: Pool,
+  pool: QueryablePool,
   pickupLocId: number,
   dropoffLocId: number,
 ): Promise<number | null> {
