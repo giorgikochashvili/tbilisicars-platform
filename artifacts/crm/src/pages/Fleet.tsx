@@ -214,7 +214,10 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
       const tech = v.techpassportNumber?.toUpperCase() ?? "";
       if (!plate.includes(q) && !brand.includes(q) && !model.includes(q) && !tech.includes(q)) return false;
     }
-    if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
+    if (filterLocationId) {
+      const cityLocIds = new Set(allLocations.filter((loc: any) => loc.city === filterLocationId).map((loc: any) => loc.id));
+      if (!cityLocIds.has(v.locationId)) return false;
+    }
     if (filterCategory) {
       const cat = v.vehicleModel?.category ?? modelCategoryMap[v.vehicleModelId?.toString() ?? ""] ?? "";
       if (cat !== filterCategory) return false;
@@ -393,13 +396,13 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            {/* Location */}
+            {/* Location — city-level filter */}
             <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
               <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All locations</SelectItem>
-                {allLocations.map((loc: any) => (
-                  <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+                {MAIN_REGION_CITIES.map((city) => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
