@@ -122,8 +122,8 @@ export default function Privacy() {
           <ul className="space-y-2">
             <li className="text-sm text-muted-foreground">
               Email:{" "}
-              <a href="mailto:reservations@tbilisicars.com" className="text-primary hover:underline">
-                reservations@tbilisicars.com
+              <a href="mailto:info@tbilisicars.com" className="text-primary hover:underline">
+                info@tbilisicars.com
               </a>
             </li>
             <li className="text-sm text-muted-foreground">

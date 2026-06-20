@@ -1581,7 +1581,7 @@ export default function BookingsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="grid gap-2">
                   <Label>Total Amount (optional)</Label>
                   <div className="flex gap-2">
