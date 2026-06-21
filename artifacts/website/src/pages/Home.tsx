@@ -456,7 +456,7 @@ export default function Home() {
           src="/images/home-hero-georgia-road.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover object-[84%_50%] sm:object-[60%_45%] pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover object-[30%_50%] sm:object-[60%_45%] pointer-events-none select-none"
           draggable={false}
         />
 
