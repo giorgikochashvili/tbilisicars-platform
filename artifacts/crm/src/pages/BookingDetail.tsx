@@ -1884,6 +1884,7 @@ export default function BookingDetail({
   const [changingStatus, setChangingStatus] = useState(false);
   const [overviewLocations, setOverviewLocations] = useState<any[]>([]);
   const [savingOverview, setSavingOverview] = useState(false);
+  const [overviewDepositCurrencyTouched, setOverviewDepositCurrencyTouched] = useState(false);
 
   // Assign vehicle dialog state
   const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -2319,7 +2320,7 @@ export default function BookingDetail({
           await apiFetch(`/admin/bookings/${bookingId}`, {
             method: "PATCH",
             body: JSON.stringify({
-              deposit: form.depositAmount || null,
+              ...(form.depositAmount ? { deposit: form.depositAmount } : {}),
               depositCurrency:
                 form.depositCurrency === "NONE" ? null : form.depositCurrency,
             }),
@@ -2548,6 +2549,7 @@ export default function BookingDetail({
       depositCurrency: booking?.depositCurrency ?? "NONE",
       extensionCharge: "",
     });
+    setOverviewDepositCurrencyTouched(false);
     setIsOverviewEditing(true);
   };
 
@@ -2610,7 +2612,9 @@ export default function BookingDetail({
           contactPhone: overviewDraft.contactPhone || null,
           contactEmail: overviewDraft.contactEmail || null,
           ...(overviewDraft.deposit !== "" ? { deposit: overviewDraft.deposit } : {}),
-          depositCurrency: overviewDraft.depositCurrency === "NONE" ? null : overviewDraft.depositCurrency,
+          ...(overviewDepositCurrencyTouched
+            ? { depositCurrency: overviewDraft.depositCurrency === "NONE" ? null : overviewDraft.depositCurrency }
+            : {}),
         }),
       });
       setIsOverviewEditing(false);
@@ -3354,12 +3358,13 @@ export default function BookingDetail({
                         <Label className="text-xs">Deposit Currency</Label>
                         <Select
                           value={overviewDraft.depositCurrency}
-                          onValueChange={(v) =>
+                          onValueChange={(v) => {
                             setOverviewDraft((p) => ({
                               ...p,
                               depositCurrency: v,
-                            }))
-                          }
+                            }));
+                            setOverviewDepositCurrencyTouched(true);
+                          }}
                         >
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue />
