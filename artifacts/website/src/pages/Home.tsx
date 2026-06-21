@@ -448,7 +448,7 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section
-        className="relative overflow-hidden min-h-[680px] sm:min-h-[640px]"
+        className="relative overflow-hidden min-h-[760px] sm:min-h-[640px]"
         style={{ background: "hsl(211,55%,8%)" }}
       >
         {/* Hero background image */}
@@ -456,7 +456,7 @@ export default function Home() {
           src="/images/home-hero-georgia-road.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover object-[80%_50%] sm:object-[60%_45%] pointer-events-none select-none"
+          className="absolute inset-0 w-full h-full object-cover object-[84%_50%] sm:object-[60%_45%] pointer-events-none select-none"
           draggable={false}
         />
 
@@ -494,7 +494,7 @@ export default function Home() {
         />
 
         {/* Content — flex column; benefits + form pin to bottom */}
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-5 sm:pt-12 flex flex-col min-h-[680px] sm:min-h-[640px]">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-5 sm:pt-12 flex flex-col min-h-[760px] sm:min-h-[640px]">
 
           {/* Hero copy — left-aligned, constrained width so car stays visible */}
           <div className="max-w-xl mb-0">
