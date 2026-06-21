@@ -4790,6 +4790,10 @@ components:
           type: string
         deposit:
           type: string
+        depositCurrency:
+          type: string
+          enum: [GEL, USD, EUR]
+          nullable: true
 
     AdminUpdateBookingStatusBody:
       type: object
