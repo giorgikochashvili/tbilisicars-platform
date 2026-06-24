@@ -18,6 +18,7 @@ import {
 } from "../lib/pricing.js";
 import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
+import { resolveOneWayFee } from "../lib/one-way-fee.js";
 
 const router: IRouter = Router();
 
@@ -363,13 +364,7 @@ router.get("/public/booking-config", async (req, res) => {
   // ── One-way fee: resolve when both pickup and dropoff locations are set and different ──
   let configOneWayFee: number | null = null;
   if (filterByLocation && filterByDropoffLocation && locationId !== dropoffLocationId) {
-    const { rows: owfRows } = await pool.query<{ fee: string }>(
-      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
-      [locationId, dropoffLocationId],
-    );
-    if (owfRows[0] && Number(owfRows[0].fee) > 0) {
-      configOneWayFee = Number(owfRows[0].fee);
-    }
+    configOneWayFee = await resolveOneWayFee(pool, locationId, dropoffLocationId);
   }
 
   res.json({
@@ -547,13 +542,8 @@ router.post("/public/quote", async (req, res) => {
   // One-way fee: only when pickup and dropoff differ and both are provided.
   let oneWayFee: number | undefined;
   if (pickupLocId && dropoffLocId && pickupLocId !== dropoffLocId) {
-    const { rows: feeRows } = await pool.query(
-      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
-      [pickupLocId, dropoffLocId],
-    );
-    if (feeRows[0] && Number(feeRows[0].fee) > 0) {
-      oneWayFee = Number(feeRows[0].fee);
-    }
+    const feeResult = await resolveOneWayFee(pool, pickupLocId, dropoffLocId);
+    if (feeResult !== null) oneWayFee = feeResult;
   }
 
   // Price order: base rental → website discount → promo discount → extras → one-way fee.
@@ -775,13 +765,11 @@ router.post("/public/bookings", async (req, res) => {
   let resolvedOneWayFee: number | null = null;
   if (body.pickupLocationId && body.dropoffLocationId &&
       Number(body.pickupLocationId) !== Number(body.dropoffLocationId)) {
-    const { rows: owfRows } = await pool.query(
-      `SELECT fee FROM one_way_fees WHERE from_location_id = $1 AND to_location_id = $2 LIMIT 1`,
-      [Number(body.pickupLocationId), Number(body.dropoffLocationId)],
+    resolvedOneWayFee = await resolveOneWayFee(
+      pool,
+      Number(body.pickupLocationId),
+      Number(body.dropoffLocationId),
     );
-    if (owfRows[0] && Number(owfRows[0].fee) > 0) {
-      resolvedOneWayFee = Number(owfRows[0].fee);
-    }
   }
 
   // Resolve rate server-side — do NOT trust client-submitted resolvedTotal / resolvedRateId.

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, Wrench } from "lucide-react";
+import { PlaneTakeoff, ParkingCircle, Trash2, Plus, ArrowRightLeft, ChevronDown, ChevronUp, Wrench, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -322,6 +322,16 @@ export default function TbsAirParking() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="View vehicle detail"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/crm/fleet?vehicleId=${entry.vehicleId}`;
+                          }}
+                        >
+                          <Car className="w-3.5 h-3.5" />
+                        </button>
                         {entry.activeServiceStatus && (
                           <button
                             className="h-7 w-7 flex items-center justify-center rounded text-amber-400 hover:bg-amber-500/10 transition-colors"
