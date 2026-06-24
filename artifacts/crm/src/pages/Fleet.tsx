@@ -24,7 +24,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -214,10 +213,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
       const tech = v.techpassportNumber?.toUpperCase() ?? "";
       if (!plate.includes(q) && !brand.includes(q) && !model.includes(q) && !tech.includes(q)) return false;
     }
-    if (filterLocationId) {
-      const cityLocIds = new Set(allLocations.filter((loc: any) => loc.city === filterLocationId).map((loc: any) => loc.id));
-      if (!cityLocIds.has(v.locationId)) return false;
-    }
+    if (filterLocationId && v.locationId?.toString() !== filterLocationId) return false;
     if (filterCategory) {
       const cat = v.vehicleModel?.category ?? modelCategoryMap[v.vehicleModelId?.toString() ?? ""] ?? "";
       if (cat !== filterCategory) return false;
@@ -396,13 +392,13 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            {/* Location — city-level filter */}
+            {/* Location */}
             <Select value={filterLocationId || "all"} onValueChange={(v) => setFilterLocationId(v === "all" ? "" : v)}>
               <SelectTrigger className="h-9 text-sm bg-background"><SelectValue placeholder="All locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All locations</SelectItem>
-                {MAIN_REGION_CITIES.map((city) => (
-                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                {allLocations.map((loc: any) => (
+                  <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -756,13 +752,13 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
     luggageCapacity: number;
     driveType: "FWD" | "RWD" | "AWD" | "4x4" | "";
     active: boolean;
-    brandVisibility: { tbilisicars: boolean; kutaisicars: boolean; batumicars: boolean };
+    availableForExternalSystems: boolean;
     imageUrl: string | null;
   }>({ 
     brandId: "", name: "", category: "", 
     seats: 5, doors: 4, transmission: "AUTOMATIC", 
     fuelType: "PETROL", luggageCapacity: 2, driveType: "", active: true,
-    brandVisibility: { tbilisicars: true, kutaisicars: false, batumicars: false }, imageUrl: null
+    availableForExternalSystems: true, imageUrl: null
   });
   const [imageUploading, setImageUploading] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -841,35 +837,16 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
         luggageCapacity: item.luggageCapacity || 2,
         driveType: item.driveType || "",
         active: item.active ?? true,
-        brandVisibility: {
-          tbilisicars: item.brandVisibility?.tbilisicars ?? item.availableForExternalSystems ?? false,
-          kutaisicars: item.brandVisibility?.kutaisicars ?? false,
-          batumicars:  item.brandVisibility?.batumicars  ?? false,
-        },
+        availableForExternalSystems: item.availableForExternalSystems ?? true,
         imageUrl: item.imageUrl || null,
       });
-    fetch(`/api/admin/fleet/models/${item.id}`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .then((detail: any) => {
-        if (!detail) return;
-        setFormData(prev => ({
-          ...prev,
-          category: detail.category || prev.category || "",
-          brandVisibility: {
-            tbilisicars: detail.brandVisibility?.tbilisicars ?? prev.brandVisibility.tbilisicars,
-            kutaisicars: detail.brandVisibility?.kutaisicars ?? prev.brandVisibility.kutaisicars,
-            batumicars:  detail.brandVisibility?.batumicars  ?? prev.brandVisibility.batumicars,
-          },
-        }));
-      })
-      .catch(() => {});
     } else {
       setEditingItem(null);
       setFormData({ 
         brandId: "", name: "", category: "", 
         seats: 5, doors: 4, transmission: "AUTOMATIC", 
         fuelType: "PETROL", luggageCapacity: 2, driveType: "", active: true,
-        brandVisibility: { tbilisicars: true, kutaisicars: false, batumicars: false }, imageUrl: null
+        availableForExternalSystems: true, imageUrl: null
       });
     }
     setIsModalOpen(true);
@@ -896,7 +873,7 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
       luggageCapacity: formData.luggageCapacity,
       driveType: formData.driveType || null,
       active: formData.active,
-      brandVisibility: formData.brandVisibility,
+      availableForExternalSystems: formData.availableForExternalSystems,
       // In edit mode: send "" to explicitly clear an existing image when user removes it.
       // In create mode: omit if no image was uploaded (undefined = skip field).
       imageUrl: editingItem
@@ -1189,37 +1166,12 @@ function ModelsTab({ reqOpts }: { reqOpts: any }) {
               <Label>Active</Label>
               <Switch checked={formData.active} onCheckedChange={val => setFormData({...formData, active: val})} />
             </div>
-            <div className="grid gap-2">
-              <Label>Visible on websites</Label>
-              <p className="text-xs text-muted-foreground -mt-1">Select where this model should appear in public booking search.</p>
-              {(() => {
-                const brandVisibilityLabels = {
-                  tbilisicars: "Tbilisicars.com",
-                  kutaisicars: "Kutaisicars.com",
-                  batumicars:  "Batumicars.com",
-                } as const;
-                return (
-                  <div className="flex flex-col gap-2 p-3 border border-border/50 rounded-lg bg-muted/30">
-                    {(["tbilisicars", "kutaisicars", "batumicars"] as const).map((key) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`bv-${key}`}
-                          checked={formData.brandVisibility[key]}
-                          onCheckedChange={(checked) =>
-                            setFormData({
-                              ...formData,
-                              brandVisibility: { ...formData.brandVisibility, [key]: !!checked },
-                            })
-                          }
-                        />
-                        <label htmlFor={`bv-${key}`} className="text-sm cursor-pointer">
-                          {brandVisibilityLabels[key]}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
+            <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-muted/30">
+              <div>
+                <Label>Show on website</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Display this model in the public booking search</p>
+              </div>
+              <Switch checked={formData.availableForExternalSystems} onCheckedChange={val => setFormData({...formData, availableForExternalSystems: val})} />
             </div>
           </div>
           <DialogFooter>

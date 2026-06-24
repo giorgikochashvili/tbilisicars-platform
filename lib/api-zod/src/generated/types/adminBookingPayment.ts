@@ -18,4 +18,10 @@ export interface AdminBookingPayment {
   transactionId?: string | null;
   /** @nullable */
   paidAt?: Date | null;
+  /** @nullable */
+  advanceStatus?: string | null;
+  /** @nullable */
+  receivedAt?: string | null;
+  /** @nullable */
+  receivedById?: number | null;
 }

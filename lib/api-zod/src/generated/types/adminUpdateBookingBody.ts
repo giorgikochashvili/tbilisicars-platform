@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdminUpdateBookingBodyPaymentStatus } from "./adminUpdateBookingBodyPaymentStatus";
-import type { AdminUpdateBookingBodyStatus } from "./adminUpdateBookingBodyStatus";
 
 export interface AdminUpdateBookingBody {
   contactFullName?: string;
@@ -20,7 +19,12 @@ export interface AdminUpdateBookingBody {
   dropoffLocationId?: number;
   pickupDatetime?: Date;
   dropoffDatetime?: Date;
-  status?: AdminUpdateBookingBodyStatus;
+  pickupType?: string;
+  /** @nullable */
+  pickupAddress?: string | null;
+  dropoffType?: string;
+  /** @nullable */
+  dropoffAddress?: string | null;
   paymentStatus?: AdminUpdateBookingBodyPaymentStatus;
   rateId?: number;
   rateTierId?: number;
@@ -33,4 +37,9 @@ export interface AdminUpdateBookingBody {
   documentType?: string;
   documentNumber?: string;
   deposit?: string;
+  /** @nullable */
+  depositCurrency?: string | null;
+  /** @nullable */
+  externalReservationCode?: string | null;
+  extensionChargeAmount?: number;
 }

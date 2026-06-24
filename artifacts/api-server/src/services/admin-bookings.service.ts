@@ -14,7 +14,6 @@ import {
   extraTable,
   paymentTable,
   bookingphotoTable,
-  bookingAttributionTable,
 } from "@workspace/db";
 import {
   and,
@@ -548,44 +547,6 @@ export async function getAdminBooking(id: number) {
       .orderBy(asc(bookingVehicleAssignmentsTable.startDate)),
   ]);
 
-  // Attribution is optional — loaded separately so a missing table (pre-0013 migration
-  // environments) or any other error never crashes the whole getAdminBooking call.
-  let attribution: {
-    sourceBrand: string | null;
-    sourceDomain: string | null;
-    utmSource: string | null;
-    utmMedium: string | null;
-    utmCampaign: string | null;
-    utmContent: string | null;
-    utmTerm: string | null;
-    gclid: string | null;
-    referrer: string | null;
-    landingPath: string | null;
-    createdAt: Date;
-  } | null = null;
-  try {
-    const attributionRows = await db
-      .select({
-        sourceBrand:  bookingAttributionTable.sourceBrand,
-        sourceDomain: bookingAttributionTable.sourceDomain,
-        utmSource:    bookingAttributionTable.utmSource,
-        utmMedium:    bookingAttributionTable.utmMedium,
-        utmCampaign:  bookingAttributionTable.utmCampaign,
-        utmContent:   bookingAttributionTable.utmContent,
-        utmTerm:      bookingAttributionTable.utmTerm,
-        gclid:        bookingAttributionTable.gclid,
-        referrer:     bookingAttributionTable.referrer,
-        landingPath:  bookingAttributionTable.landingPath,
-        createdAt:    bookingAttributionTable.createdAt,
-      })
-      .from(bookingAttributionTable)
-      .where(eq(bookingAttributionTable.bookingId, id))
-      .limit(1);
-    attribution = attributionRows[0] ?? null;
-  } catch (err) {
-    console.warn(`[getAdminBooking] attribution lookup failed for booking ${id}:`, err instanceof Error ? err.message : err);
-  }
-
   const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
   const base = mapToBookingRow(row);
 
@@ -630,7 +591,6 @@ export async function getAdminBooking(id: number) {
       endDate:     r.endDate.toISOString(),
       notes:       r.notes ?? null,
     })),
-    attribution,
   };
 }
 

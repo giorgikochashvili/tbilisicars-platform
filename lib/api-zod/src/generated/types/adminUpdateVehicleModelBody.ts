@@ -5,10 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AdminUpdateVehicleModelBodyDriveType } from "./adminUpdateVehicleModelBodyDriveType";
 import type { AdminUpdateVehicleModelBodyFuelType } from "./adminUpdateVehicleModelBodyFuelType";
 import type { AdminUpdateVehicleModelBodyTransmission } from "./adminUpdateVehicleModelBodyTransmission";
-import type { AdminVehicleModelBrandVisibility } from "./adminVehicleModelBrandVisibility";
 
 export interface AdminUpdateVehicleModelBody {
   brandId?: number;
@@ -23,9 +21,6 @@ export interface AdminUpdateVehicleModelBody {
   transmission?: AdminUpdateVehicleModelBodyTransmission;
   fuelType?: AdminUpdateVehicleModelBodyFuelType;
   luggageCapacity?: number;
-  /** @nullable */
-  driveType?: AdminUpdateVehicleModelBodyDriveType;
   mileageLimitPerDay?: number;
   deposit?: string;
-  brandVisibility?: AdminVehicleModelBrandVisibility;
 }

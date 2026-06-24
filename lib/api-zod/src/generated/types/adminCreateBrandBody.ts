@@ -9,5 +9,4 @@
 export interface AdminCreateBrandBody {
   name: string;
   logoUrl?: string;
-  countryOfOrigin?: string;
 }

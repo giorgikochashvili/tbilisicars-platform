@@ -8,7 +8,6 @@
  * - WhatsApp as opt-in checkbox; separate Terms and Privacy checkboxes in Step 4
  */
 import { trackBookingConversion } from "@/lib/google-ads";
-import { getAttribution } from "@/lib/attribution";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
@@ -2387,7 +2386,6 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           resolvedTotal: resolvedQuote?.estimatedTotal ?? null,
           resolvedOneWayFee: resolvedQuote?.oneWayFee ?? null,
           currency: resolvedQuote?.baseCurrency ?? undefined,
-          attribution: getAttribution() ?? undefined,
           // Website discount snapshot — server re-validates, these are advisory
           websiteDiscountId: resolvedQuote?.websiteDiscountId ?? undefined,
           websiteDiscountName: resolvedQuote?.websiteDiscountName ?? undefined,

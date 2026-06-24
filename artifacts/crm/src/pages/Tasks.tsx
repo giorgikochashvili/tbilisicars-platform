@@ -894,8 +894,8 @@ export default function TasksPage() {
   const sorted = useMemo(() => {
     const arr = [...tasks];
     arr.sort((a, b) => {
-      const va = (a as unknown as Record<string, unknown>)[sortField];
-      const vb = (b as unknown as Record<string, unknown>)[sortField];
+      const va = (a as Record<string, unknown>)[sortField];
+      const vb = (b as Record<string, unknown>)[sortField];
       if (va == null) return 1;
       if (vb == null) return -1;
       const vaStr = typeof va === "string" ? va.toLowerCase() : va;

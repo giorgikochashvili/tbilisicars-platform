@@ -16,4 +16,5 @@ export interface AdminCreateLocationBody {
   longitude?: string;
   locationType: AdminCreateLocationBodyLocationType;
   isActive?: boolean;
+  reservationCodePrefix?: string;
 }

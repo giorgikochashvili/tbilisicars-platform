@@ -5,8 +5,8 @@ import {
   useCreateAdminDiscount,
   useUpdateAdminDiscount,
   useDeleteAdminDiscount,
-  type AdminDiscountItem as AdminDiscount,
-} from "../../../../lib/api-client-react/src/discounts";
+  type AdminDiscountItem,
+} from "@workspace/api-client-react";
 import { useListAdminLocations } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -56,7 +56,7 @@ interface LocationItem {
 
 export default function DiscountsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDiscount, setEditingDiscount] = useState<AdminDiscount | null>(null);
+  const [editingDiscount, setEditingDiscount] = useState<AdminDiscountItem | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
 
   const queryClient = useQueryClient();
@@ -85,7 +85,7 @@ export default function DiscountsPage() {
   const updateMutation = useUpdateAdminDiscount(reqOpts);
   const deleteMutation = useDeleteAdminDiscount(reqOpts);
 
-  const handleOpenModal = (discount: AdminDiscount | null = null) => {
+  const handleOpenModal = (discount: AdminDiscountItem | null = null) => {
     if (discount) {
       setEditingDiscount(discount);
       setFormData({
@@ -212,7 +212,7 @@ export default function DiscountsPage() {
     }));
   };
 
-  const formatValue = (discount: AdminDiscount) => {
+  const formatValue = (discount: AdminDiscountItem) => {
     const v = Number(discount.value);
     return discount.discountType === "PERCENT" ? `${v}%` : `${v} GEL`;
   };
@@ -223,12 +223,12 @@ export default function DiscountsPage() {
     return `${fmt(startDate)} – ${fmt(endDate)}`;
   };
 
-  const isActive = (discount: AdminDiscount) => {
+  const isActive = (discount: AdminDiscountItem) => {
     const today = new Date().toISOString().slice(0, 10);
     return discount.isActive && discount.startDate <= today && discount.endDate >= today;
   };
 
-  const formatLocations = (discount: AdminDiscount) => {
+  const formatLocations = (discount: AdminDiscountItem) => {
     const locs = discount.pickupLocations;
     if (!locs || locs.length === 0) {
       return discount.pickupLocationName

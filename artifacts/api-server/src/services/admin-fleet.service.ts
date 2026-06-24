@@ -3,7 +3,6 @@ import {
   bookingTable,
   brandTable,
   locationTable,
-  vehicleModelBrandVisibilityTable,
   vehicleModelTable,
   vehiclegroupTable,
   vehicleTable,
@@ -214,41 +213,7 @@ export async function getAdminModel(id: number) {
     .where(eq(vehicleModelTable.id, id));
   const row = rows[0];
   if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
-
-  try {
-    const visRows = await db
-      .select({ brandKey: vehicleModelBrandVisibilityTable.brandKey })
-      .from(vehicleModelBrandVisibilityTable)
-      .where(eq(vehicleModelBrandVisibilityTable.vehicleModelId, id));
-
-    return {
-      ...row,
-      brandVisibility: {
-        tbilisicars: visRows.some((r) => r.brandKey === "tbilisicars"),
-        kutaisicars: visRows.some((r) => r.brandKey === "kutaisicars"),
-        batumicars: visRows.some((r) => r.brandKey === "batumicars"),
-      },
-    };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const isMissingTable =
-      msg.includes("relation") ||
-      msg.includes("does not exist") ||
-      msg.includes("vehicle_model_brand_visibility");
-    console.warn(
-      isMissingTable
-        ? "[getAdminModel] vehicle_model_brand_visibility table not found (migration 0014 not applied?), using fallback."
-        : `[getAdminModel] visibility query failed unexpectedly, using fallback: ${msg}`,
-    );
-    return {
-      ...row,
-      brandVisibility: {
-        tbilisicars: row.availableForExternalSystems,
-        kutaisicars: false,
-        batumicars: false,
-      },
-    };
-  }
+  return row;
 }
 
 export async function createAdminModel(data: {
@@ -267,39 +232,9 @@ export async function createAdminModel(data: {
   driveType?: "FWD" | "RWD" | "AWD" | "4x4" | null;
   mileageLimitPerDay?: number | null;
   deposit?: string | null;
-  brandVisibility?: { tbilisicars: boolean; kutaisicars: boolean; batumicars: boolean };
 }) {
-  const { brandVisibility, ...modelFields } = data;
-  const BRAND_KEYS = ["tbilisicars", "kutaisicars", "batumicars"] as const;
-
-  const newId = await db.transaction(async (tx) => {
-    if (brandVisibility !== undefined) {
-      const [row] = await tx
-        .insert(vehicleModelTable)
-        .values({ ...modelFields, availableForExternalSystems: brandVisibility.tbilisicars })
-        .returning();
-      const modelId = row!.id;
-      const toInsert = BRAND_KEYS.filter((k) => brandVisibility[k]);
-      if (toInsert.length > 0) {
-        await tx.insert(vehicleModelBrandVisibilityTable).values(
-          toInsert.map((brandKey) => ({ vehicleModelId: modelId, brandKey })),
-        );
-      }
-      return modelId;
-    } else {
-      const [row] = await tx.insert(vehicleModelTable).values(modelFields).returning();
-      const modelId = row!.id;
-      const derivedTbilisicars = modelFields.availableForExternalSystems ?? false;
-      if (derivedTbilisicars) {
-        await tx
-          .insert(vehicleModelBrandVisibilityTable)
-          .values({ vehicleModelId: modelId, brandKey: "tbilisicars" });
-      }
-      return modelId;
-    }
-  });
-
-  return getAdminModel(newId);
+  const [row] = await db.insert(vehicleModelTable).values(data).returning();
+  return getAdminModel(row!.id);
 }
 
 export async function updateAdminModel(
@@ -320,61 +255,14 @@ export async function updateAdminModel(
     driveType: "FWD" | "RWD" | "AWD" | "4x4" | null;
     mileageLimitPerDay: number | null;
     deposit: string | null;
-    brandVisibility: { tbilisicars: boolean; kutaisicars: boolean; batumicars: boolean };
   }>,
 ) {
-  const { brandVisibility, ...modelFields } = data;
-  const BRAND_KEYS = ["tbilisicars", "kutaisicars", "batumicars"] as const;
-
-  await db.transaction(async (tx) => {
-    if (brandVisibility !== undefined) {
-      const [row] = await tx
-        .update(vehicleModelTable)
-        .set({ ...modelFields, availableForExternalSystems: brandVisibility.tbilisicars, updatedAt: new Date() })
-        .where(eq(vehicleModelTable.id, id))
-        .returning();
-      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
-      await tx
-        .delete(vehicleModelBrandVisibilityTable)
-        .where(eq(vehicleModelBrandVisibilityTable.vehicleModelId, id));
-      const toInsert = BRAND_KEYS.filter((k) => brandVisibility[k]);
-      if (toInsert.length > 0) {
-        await tx.insert(vehicleModelBrandVisibilityTable).values(
-          toInsert.map((brandKey) => ({ vehicleModelId: id, brandKey })),
-        );
-      }
-    } else if (modelFields.availableForExternalSystems !== undefined) {
-      const [row] = await tx
-        .update(vehicleModelTable)
-        .set({ ...modelFields, updatedAt: new Date() })
-        .where(eq(vehicleModelTable.id, id))
-        .returning();
-      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
-      if (modelFields.availableForExternalSystems === true) {
-        await tx
-          .insert(vehicleModelBrandVisibilityTable)
-          .values({ vehicleModelId: id, brandKey: "tbilisicars" })
-          .onConflictDoNothing();
-      } else {
-        await tx
-          .delete(vehicleModelBrandVisibilityTable)
-          .where(
-            and(
-              eq(vehicleModelBrandVisibilityTable.vehicleModelId, id),
-              eq(vehicleModelBrandVisibilityTable.brandKey, "tbilisicars"),
-            ),
-          );
-      }
-    } else {
-      const [row] = await tx
-        .update(vehicleModelTable)
-        .set({ ...modelFields, updatedAt: new Date() })
-        .where(eq(vehicleModelTable.id, id))
-        .returning();
-      if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
-    }
-  });
-
+  const [row] = await db
+    .update(vehicleModelTable)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(vehicleModelTable.id, id))
+    .returning();
+  if (!row) throw new NotFoundError(`Vehicle model ${id} not found`);
   return getAdminModel(id);
 }
 

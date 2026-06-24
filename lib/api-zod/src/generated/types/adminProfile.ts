@@ -12,6 +12,7 @@ export interface AdminProfile {
   email: string;
   fullName: string;
   adminRole: AdminProfileAdminRole;
+  roleId?: number | null;
   canManageVehicles: boolean;
   canManageBookings: boolean;
   canManageUsers: boolean;

@@ -345,13 +345,6 @@ export interface AdminProfile {
   canManageTasks: boolean;
   canViewCalendar: boolean;
   canManageCases: boolean;
-  canManageService: boolean;
-  canViewAccounting: boolean;
-  canManageAccounting: boolean;
-  canViewAlerts: boolean;
-  canViewAuditLog: boolean;
-  canManageParking: boolean;
-  canUseAdminAI: boolean;
 }
 
 export type AdminLocationLocationType =
@@ -377,11 +370,6 @@ export interface AdminLocation {
   longitude?: string | null;
   locationType: AdminLocationLocationType;
   isActive: boolean;
-  /**
-   * Short prefix used to generate reservation codes (e.g. TBS, KUT, BAT)
-   * @nullable
-   */
-  reservationCodePrefix?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -433,25 +421,15 @@ export const AdminVehicleModelItemFuelType = {
   ELECTRIC: "ELECTRIC",
 } as const;
 
-/**
- * @nullable
- */
-export type AdminVehicleModelItemDriveType =
-  | (typeof AdminVehicleModelItemDriveType)[keyof typeof AdminVehicleModelItemDriveType]
-  | null;
-
-export const AdminVehicleModelItemDriveType = {
-  FWD: "FWD",
-  RWD: "RWD",
-  AWD: "AWD",
-  "4x4": "4x4",
-} as const;
-
 export interface AdminVehicleModelItem {
   id: number;
   brandId: number;
   name: string;
   active: boolean;
+  /** @nullable */
+  luggageCapacity?: number | null;
+  /** @nullable */
+  driveType?: string | null;
   /** @nullable */
   seats?: number | null;
   /** @nullable */
@@ -460,10 +438,6 @@ export interface AdminVehicleModelItem {
   transmission?: AdminVehicleModelItemTransmission;
   /** @nullable */
   fuelType?: AdminVehicleModelItemFuelType;
-  /** @nullable */
-  luggageCapacity?: number | null;
-  /** @nullable */
-  driveType?: AdminVehicleModelItemDriveType;
   /** @nullable */
   imageUrl?: string | null;
   /** @nullable */
@@ -501,20 +475,6 @@ export const AdminVehicleModelDetailFuelType = {
 /**
  * @nullable
  */
-export type AdminVehicleModelDetailDriveType =
-  | (typeof AdminVehicleModelDetailDriveType)[keyof typeof AdminVehicleModelDetailDriveType]
-  | null;
-
-export const AdminVehicleModelDetailDriveType = {
-  FWD: "FWD",
-  RWD: "RWD",
-  AWD: "AWD",
-  "4x4": "4x4",
-} as const;
-
-/**
- * @nullable
- */
 export type AdminVehicleModelDetailBrand = {
   id: number;
   name: string;
@@ -523,12 +483,6 @@ export type AdminVehicleModelDetailBrand = {
   /** @nullable */
   countryOfOrigin?: string | null;
 } | null;
-
-export interface AdminVehicleModelBrandVisibility {
-  tbilisicars: boolean;
-  kutaisicars: boolean;
-  batumicars: boolean;
-}
 
 export interface AdminVehicleModelDetail {
   id: number;
@@ -553,14 +507,13 @@ export interface AdminVehicleModelDetail {
   /** @nullable */
   luggageCapacity?: number | null;
   /** @nullable */
-  driveType?: AdminVehicleModelDetailDriveType;
+  driveType?: string | null;
   /** @nullable */
   mileageLimitPerDay?: number | null;
   /** @nullable */
   deposit?: string | null;
   /** @nullable */
   brand?: AdminVehicleModelDetailBrand;
-  brandVisibility?: AdminVehicleModelBrandVisibility;
   createdAt: string;
   updatedAt: string;
 }
@@ -821,7 +774,7 @@ export interface AdminVehicleDetail {
   /** @nullable */
   licensePlate?: string | null;
   /** @nullable */
-  vin?: string | null;
+  techpassportNumber?: string | null;
   /** @nullable */
   vehicleClass?: AdminVehicleDetailVehicleClass;
   /** @nullable */
@@ -971,6 +924,14 @@ export interface AdminCustomer {
   phone?: string | null;
   /** @nullable */
   fullName?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  passportId?: string | null;
+  /** @nullable */
+  drivingLicense?: string | null;
+  /** @nullable */
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -999,7 +960,6 @@ export const AdminBookingRowPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1103,7 +1063,6 @@ export const AdminBookingPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1193,87 +1152,6 @@ export interface AdminFleetSnapshot {
   inactive: number;
 }
 
-export interface AdminDashboardWebsiteBookings {
-  pendingCount: number;
-  confirmedCount: number;
-  recent: AdminBookingRow[];
-}
-
-export type AdminDiscountDiscountType =
-  (typeof AdminDiscountDiscountType)[keyof typeof AdminDiscountDiscountType];
-
-export const AdminDiscountDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export type AdminDiscountVehicleModelsItem = {
-  vehicleModelId: number;
-  modelName: string;
-  brandName: string;
-};
-
-export type AdminDiscountPickupLocationsItem = {
-  locationId: number;
-  /** @nullable */
-  locationName: string | null;
-  /** @nullable */
-  locationCity: string | null;
-};
-
-export interface AdminDiscount {
-  id: number;
-  name: string;
-  discountType: AdminDiscountDiscountType;
-  value: string;
-  startDate: string;
-  endDate: string;
-  pickupLocationId: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  vehicleModels: AdminDiscountVehicleModelsItem[];
-  pickupLocations: AdminDiscountPickupLocationsItem[];
-}
-
-export type AdminCreateDiscountBodyDiscountType =
-  (typeof AdminCreateDiscountBodyDiscountType)[keyof typeof AdminCreateDiscountBodyDiscountType];
-
-export const AdminCreateDiscountBodyDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export interface AdminCreateDiscountBody {
-  name: string;
-  discountType: AdminCreateDiscountBodyDiscountType;
-  value: number;
-  startDate: string;
-  endDate: string;
-  pickupLocationIds: number[];
-  vehicleModelIds: number[];
-  isActive?: boolean;
-}
-
-export type AdminUpdateDiscountBodyDiscountType =
-  (typeof AdminUpdateDiscountBodyDiscountType)[keyof typeof AdminUpdateDiscountBodyDiscountType];
-
-export const AdminUpdateDiscountBodyDiscountType = {
-  PERCENT: "PERCENT",
-  FIXED: "FIXED",
-} as const;
-
-export interface AdminUpdateDiscountBody {
-  name?: string;
-  discountType?: AdminUpdateDiscountBodyDiscountType;
-  value?: number;
-  startDate?: string;
-  endDate?: string;
-  pickupLocationIds?: number[];
-  vehicleModelIds?: number[];
-  isActive?: boolean;
-}
-
 export interface DeleteResponse {
   message: string;
 }
@@ -1346,20 +1224,6 @@ export const AdminCreateVehicleModelBodyFuelType = {
   ELECTRIC: "ELECTRIC",
 } as const;
 
-/**
- * @nullable
- */
-export type AdminCreateVehicleModelBodyDriveType =
-  | (typeof AdminCreateVehicleModelBodyDriveType)[keyof typeof AdminCreateVehicleModelBodyDriveType]
-  | null;
-
-export const AdminCreateVehicleModelBodyDriveType = {
-  FWD: "FWD",
-  RWD: "RWD",
-  AWD: "AWD",
-  "4x4": "4x4",
-} as const;
-
 export interface AdminCreateVehicleModelBody {
   brandId: number;
   name: string;
@@ -1374,10 +1238,9 @@ export interface AdminCreateVehicleModelBody {
   fuelType?: AdminCreateVehicleModelBodyFuelType;
   luggageCapacity?: number;
   /** @nullable */
-  driveType?: AdminCreateVehicleModelBodyDriveType;
+  driveType?: string | null;
   mileageLimitPerDay?: number;
   deposit?: string;
-  brandVisibility?: AdminVehicleModelBrandVisibility;
 }
 
 export type AdminUpdateVehicleModelBodyTransmission =
@@ -1398,20 +1261,6 @@ export const AdminUpdateVehicleModelBodyFuelType = {
   ELECTRIC: "ELECTRIC",
 } as const;
 
-/**
- * @nullable
- */
-export type AdminUpdateVehicleModelBodyDriveType =
-  | (typeof AdminUpdateVehicleModelBodyDriveType)[keyof typeof AdminUpdateVehicleModelBodyDriveType]
-  | null;
-
-export const AdminUpdateVehicleModelBodyDriveType = {
-  FWD: "FWD",
-  RWD: "RWD",
-  AWD: "AWD",
-  "4x4": "4x4",
-} as const;
-
 export interface AdminUpdateVehicleModelBody {
   brandId?: number;
   name?: string;
@@ -1426,10 +1275,9 @@ export interface AdminUpdateVehicleModelBody {
   fuelType?: AdminUpdateVehicleModelBodyFuelType;
   luggageCapacity?: number;
   /** @nullable */
-  driveType?: AdminUpdateVehicleModelBodyDriveType;
+  driveType?: string | null;
   mileageLimitPerDay?: number;
   deposit?: string;
-  brandVisibility?: AdminVehicleModelBrandVisibility;
 }
 
 export type AdminCreateVehicleBodyVehicleClass =
@@ -1482,7 +1330,7 @@ export interface AdminCreateVehicleBody {
   vehicleModelId?: number;
   vehicleGroupId?: number;
   licensePlate?: string;
-  vin?: string;
+  techpassportNumber?: string;
   year?: number;
   color?: string;
   vehicleClass?: AdminCreateVehicleBodyVehicleClass;
@@ -1571,19 +1419,6 @@ export interface AdminUpdateVehicleStatusBody {
   status: AdminUpdateVehicleStatusBodyStatus;
 }
 
-export type AdminChangeVehicleLocationBodyCity =
-  (typeof AdminChangeVehicleLocationBodyCity)[keyof typeof AdminChangeVehicleLocationBodyCity];
-
-export const AdminChangeVehicleLocationBodyCity = {
-  Tbilisi: "Tbilisi",
-  Kutaisi: "Kutaisi",
-  Batumi: "Batumi",
-} as const;
-
-export interface AdminChangeVehicleLocationBody {
-  city: AdminChangeVehicleLocationBodyCity;
-}
-
 export type AdminCreateExtraBodyPricingType =
   (typeof AdminCreateExtraBodyPricingType)[keyof typeof AdminCreateExtraBodyPricingType];
 
@@ -1666,36 +1501,6 @@ export interface AdminUpdateRateTierBody {
   currency?: string;
 }
 
-export interface AdminRateDayRange {
-  id: number;
-  rateId: number;
-  fromDays: number;
-  /** @nullable */
-  toDays: number | null;
-  /** @nullable */
-  label: string | null;
-}
-
-export interface AdminCreateRateDayRangeBody {
-  fromDays: number;
-  /** @nullable */
-  toDays?: number | null;
-  /** @nullable */
-  label?: string | null;
-}
-
-export type AdminBulkSetRateDayRangesBodyRangesItem = {
-  fromDays: number;
-  /** @nullable */
-  toDays?: number | null;
-  /** @nullable */
-  label?: string | null;
-};
-
-export interface AdminBulkSetRateDayRangesBody {
-  ranges: AdminBulkSetRateDayRangesBodyRangesItem[];
-}
-
 export type AdminCreatePromoBodyDiscountType =
   (typeof AdminCreatePromoBodyDiscountType)[keyof typeof AdminCreatePromoBodyDiscountType];
 
@@ -1773,7 +1578,6 @@ export const AdminCreateBookingBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1804,12 +1608,6 @@ export interface AdminCreateBookingBody {
   documentType?: string;
   documentNumber?: string;
   deposit?: string;
-  /** Auto-generated reservation code (leave null to auto-generate) */
-  reservationCode?: string | null;
-  /** Voucher or reference code from the external system */
-  externalReservationCode?: string | null;
-  /** Object storage path of the uploaded voucher file */
-  voucherImportRef?: string | null;
 }
 
 export type AdminUpdateBookingBodyStatus =
@@ -1831,7 +1629,6 @@ export const AdminUpdateBookingBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1839,7 +1636,6 @@ export interface AdminUpdateBookingBody {
   contactFullName?: string;
   contactEmail?: string;
   contactPhone?: string;
-  /** @nullable */
   vehicleId?: number | null;
   vehicleModelId?: number;
   vehicleGroupId?: number;
@@ -1881,7 +1677,6 @@ export const AdminUpdateBookingStatusBodyPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
@@ -1924,13 +1719,6 @@ export interface AdminTeamMember {
   canManageTasks: boolean;
   canViewCalendar: boolean;
   canManageCases: boolean;
-  canManageService: boolean;
-  canViewAccounting: boolean;
-  canManageAccounting: boolean;
-  canViewAlerts: boolean;
-  canViewAuditLog: boolean;
-  canManageParking: boolean;
-  canUseAdminAI: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -2129,6 +1917,8 @@ export type ListAdminBookingsParams = {
   bookingId?: number;
   vehicleSearch?: string;
   locationId?: number;
+  phoneSearch?: string;
+  customerId?: number;
 };
 
 export type ListAdminBookingsStatus =
@@ -2150,15 +1940,10 @@ export const ListAdminBookingsPaymentStatus = {
   UNPAID: "UNPAID",
   HALF: "HALF",
   PAID: "PAID",
-  PREPAID: "PREPAID",
   REFUNDED: "REFUNDED",
 } as const;
 
 export type GetAdminFleetCalendarParams = {
   dateFrom: string;
   dateTo: string;
-};
-
-export type GetAdminDashboardWebsiteBookingsParams = {
-  city?: string;
 };

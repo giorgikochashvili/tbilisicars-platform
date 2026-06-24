@@ -1442,159 +1442,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  # ─── Admin Discounts ─────────────────────────────────────────────────────────
-
-  /admin/discounts:
-    get:
-      operationId: listAdminDiscounts
-      tags: [admin-discounts]
-      summary: List all discounts (admin)
-      responses:
-        "200":
-          description: List of discounts
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminDiscount"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    post:
-      operationId: createAdminDiscount
-      tags: [admin-discounts]
-      summary: Create discount (admin)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminCreateDiscountBody"
-      responses:
-        "201":
-          description: Created discount
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminDiscount"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Overlapping discount exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /admin/discounts/{id}:
-    get:
-      operationId: getAdminDiscount
-      tags: [admin-discounts]
-      summary: Get discount by ID (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Discount detail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminDiscount"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Discount not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    patch:
-      operationId: updateAdminDiscount
-      tags: [admin-discounts]
-      summary: Update discount (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminUpdateDiscountBody"
-      responses:
-        "200":
-          description: Updated discount
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminDiscount"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Discount not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Overlapping discount exists
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      operationId: deleteAdminDiscount
-      tags: [admin-discounts]
-      summary: Delete discount (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeleteResponse"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Discount not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /admin/customers:
     get:
       operationId: listAdminCustomers
@@ -1776,7 +1623,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+            enum: [UNPAID, HALF, PAID, REFUNDED]
         - name: search
           in: query
           schema:
@@ -2032,159 +1879,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /admin/fleet/vehicles/{id}/location:
-    patch:
-      operationId: changeAdminVehicleLocation
-      tags: [admin-fleet]
-      summary: Change vehicle region/city (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminChangeVehicleLocationBody"
-      responses:
-        "200":
-          description: Updated vehicle
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminVehicleDetail"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Vehicle not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Vehicle has active bookings
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /admin/rates/{id}/day-ranges:
-    post:
-      operationId: createRateDayRange
-      tags: [admin-rates]
-      summary: Add day-range to rate (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminCreateRateDayRangeBody"
-      responses:
-        "201":
-          description: Created day range
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminRateDayRange"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Rate not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    put:
-      operationId: bulkSetRateDayRanges
-      tags: [admin-rates]
-      summary: Replace all day-ranges for a rate (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AdminBulkSetRateDayRangesBody"
-      responses:
-        "200":
-          description: Updated day ranges
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AdminRateDayRange"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Rate not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /admin/rates/{id}/day-ranges/{rangeId}:
-    delete:
-      operationId: deleteRateDayRange
-      tags: [admin-rates]
-      summary: Delete a day-range from a rate (admin)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: rangeId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeleteResponse"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Day range not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /admin/rates/{id}/tiers:
     post:
       operationId: createAdminRateTier
@@ -2360,31 +2054,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminFleetCalendarResponse"
-        "401":
-          description: Not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /admin/dashboard/website-bookings:
-    get:
-      operationId: getAdminDashboardWebsiteBookings
-      tags: [admin-dashboard]
-      summary: Website booking counts and recent bookings (admin)
-      parameters:
-        - name: city
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Website booking summary
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminDashboardWebsiteBookings"
         "401":
           description: Not authenticated
           content:
@@ -3031,20 +2700,6 @@ components:
           type: boolean
         canManageCases:
           type: boolean
-        canManageService:
-          type: boolean
-        canViewAccounting:
-          type: boolean
-        canManageAccounting:
-          type: boolean
-        canViewAlerts:
-          type: boolean
-        canViewAuditLog:
-          type: boolean
-        canManageParking:
-          type: boolean
-        canUseAdminAI:
-          type: boolean
       required:
         - id
         - email
@@ -3064,13 +2719,6 @@ components:
         - canManageTasks
         - canViewCalendar
         - canManageCases
-        - canManageService
-        - canViewAccounting
-        - canManageAccounting
-        - canViewAlerts
-        - canViewAuditLog
-        - canManageParking
-        - canUseAdminAI
 
     # ─── Admin Locations ─────────────────────────────────────────────────────────
 
@@ -3262,8 +2910,6 @@ components:
           required:
             - id
             - name
-        brandVisibility:
-          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
         createdAt:
           type: string
           format: date-time
@@ -3706,7 +3352,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, REFUNDED]
         contactFullName:
           type: string
         contactEmail:
@@ -3828,7 +3474,7 @@ components:
           enum: [CARD, CASH, BANK_TRANSFER, STRIPE, PAYPAL]
         status:
           type: string
-          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, REFUNDED]
         amount:
           type: string
         currency:
@@ -3987,148 +3633,6 @@ components:
         - inactive
 
 
-    AdminDashboardWebsiteBookings:
-      type: object
-      properties:
-        pendingCount:
-          type: integer
-        confirmedCount:
-          type: integer
-        recent:
-          type: array
-          items:
-            $ref: "#/components/schemas/AdminBookingRow"
-      required:
-        - pendingCount
-        - confirmedCount
-        - recent
-
-    AdminDiscount:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        discountType:
-          type: string
-          enum: [PERCENT, FIXED]
-        value:
-          type: string
-        startDate:
-          type: string
-        endDate:
-          type: string
-        pickupLocationId:
-          type: integer
-        isActive:
-          type: boolean
-        createdAt:
-          type: string
-        updatedAt:
-          type: string
-        vehicleModels:
-          type: array
-          items:
-            type: object
-            properties:
-              vehicleModelId:
-                type: integer
-              modelName:
-                type: string
-              brandName:
-                type: string
-            required:
-              - vehicleModelId
-              - modelName
-              - brandName
-        pickupLocations:
-          type: array
-          items:
-            type: object
-            properties:
-              locationId:
-                type: integer
-              locationName:
-                type: ["string", "null"]
-              locationCity:
-                type: ["string", "null"]
-            required:
-              - locationId
-              - locationName
-              - locationCity
-      required:
-        - id
-        - name
-        - discountType
-        - value
-        - startDate
-        - endDate
-        - pickupLocationId
-        - isActive
-        - createdAt
-        - updatedAt
-        - vehicleModels
-        - pickupLocations
-
-    AdminCreateDiscountBody:
-      type: object
-      properties:
-        name:
-          type: string
-        discountType:
-          type: string
-          enum: [PERCENT, FIXED]
-        value:
-          type: number
-        startDate:
-          type: string
-        endDate:
-          type: string
-        pickupLocationIds:
-          type: array
-          items:
-            type: integer
-        vehicleModelIds:
-          type: array
-          items:
-            type: integer
-        isActive:
-          type: boolean
-      required:
-        - name
-        - discountType
-        - value
-        - startDate
-        - endDate
-        - pickupLocationIds
-        - vehicleModelIds
-
-    AdminUpdateDiscountBody:
-      type: object
-      properties:
-        name:
-          type: string
-        discountType:
-          type: string
-          enum: [PERCENT, FIXED]
-        value:
-          type: number
-        startDate:
-          type: string
-        endDate:
-          type: string
-        pickupLocationIds:
-          type: array
-          items:
-            type: integer
-        vehicleModelIds:
-          type: array
-          items:
-            type: integer
-        isActive:
-          type: boolean
-
     DeleteResponse:
       type: object
       properties:
@@ -4185,20 +3689,6 @@ components:
           type: boolean
 
     # ─── Admin Fleet Write Bodies ────────────────────────────────────────────────
-
-    AdminVehicleModelBrandVisibility:
-      type: object
-      properties:
-        tbilisicars:
-          type: boolean
-        kutaisicars:
-          type: boolean
-        batumicars:
-          type: boolean
-      required:
-        - tbilisicars
-        - kutaisicars
-        - batumicars
 
     AdminCreateBrandBody:
       type: object
@@ -4258,8 +3748,6 @@ components:
           type: integer
         deposit:
           type: string
-        brandVisibility:
-          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
       required:
         - brandId
         - name
@@ -4300,8 +3788,6 @@ components:
           type: integer
         deposit:
           type: string
-        brandVisibility:
-          $ref: "#/components/schemas/AdminVehicleModelBrandVisibility"
 
     AdminCreateVehicleBody:
       type: object
@@ -4379,15 +3865,6 @@ components:
           enum: [AVAILABLE, RENTED, MAINTENANCE, RESERVED, INACTIVE]
       required:
         - status
-
-    AdminChangeVehicleLocationBody:
-      type: object
-      required:
-        - city
-      properties:
-        city:
-          type: string
-          enum: [Tbilisi, Kutaisi, Batumi]
 
     # ─── Admin Extras Write Bodies ───────────────────────────────────────────────
 
@@ -4527,57 +4004,6 @@ components:
         currency:
           type: string
 
-    AdminRateDayRange:
-      type: object
-      properties:
-        id:
-          type: integer
-        rateId:
-          type: integer
-        fromDays:
-          type: integer
-        toDays:
-          type: ["integer", "null"]
-        label:
-          type: ["string", "null"]
-      required:
-        - id
-        - rateId
-        - fromDays
-        - toDays
-        - label
-
-    AdminCreateRateDayRangeBody:
-      type: object
-      properties:
-        fromDays:
-          type: integer
-        toDays:
-          type: ["integer", "null"]
-        label:
-          type: ["string", "null"]
-      required:
-        - fromDays
-
-    AdminBulkSetRateDayRangesBody:
-      type: object
-      properties:
-        ranges:
-          type: array
-          items:
-            type: object
-            properties:
-              fromDays:
-                type: integer
-              toDays:
-                type: ["integer", "null"]
-              label:
-                type: ["string", "null"]
-            required:
-              - fromDays
-      required:
-        - ranges
-
     # ─── Admin Promos Write Bodies ───────────────────────────────────────────────
 
     AdminCreatePromoBody:
@@ -4695,7 +4121,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, REFUNDED]
         rateId:
           type: integer
         rateTierId:
@@ -4767,7 +4193,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, REFUNDED]
         rateId:
           type: integer
         rateTierId:
@@ -4790,10 +4216,6 @@ components:
           type: string
         deposit:
           type: string
-        depositCurrency:
-          type: string
-          enum: [GEL, USD, EUR]
-          nullable: true
 
     AdminUpdateBookingStatusBody:
       type: object
@@ -4803,7 +4225,7 @@ components:
           enum: [PENDING, CONFIRMED, DELIVERED, RETURNED, CANCELED, NO_SHOW]
         paymentStatus:
           type: string
-          enum: [UNPAID, HALF, PAID, PREPAID, REFUNDED]
+          enum: [UNPAID, HALF, PAID, REFUNDED]
       required:
         - status
 
@@ -4858,20 +4280,6 @@ components:
           type: boolean
         canManageCases:
           type: boolean
-        canManageService:
-          type: boolean
-        canViewAccounting:
-          type: boolean
-        canManageAccounting:
-          type: boolean
-        canViewAlerts:
-          type: boolean
-        canViewAuditLog:
-          type: boolean
-        canManageParking:
-          type: boolean
-        canUseAdminAI:
-          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -4900,13 +4308,6 @@ components:
         - canManageTasks
         - canViewCalendar
         - canManageCases
-        - canManageService
-        - canViewAccounting
-        - canManageAccounting
-        - canViewAlerts
-        - canViewAuditLog
-        - canManageParking
-        - canUseAdminAI
         - createdAt
         - updatedAt
 

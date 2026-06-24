@@ -31,13 +31,6 @@ export interface AdminTeamMember {
   canManageTasks: boolean;
   canViewCalendar: boolean;
   canManageCases: boolean;
-  canManageService: boolean;
-  canViewAccounting: boolean;
-  canManageAccounting: boolean;
-  canViewAlerts: boolean;
-  canViewAuditLog: boolean;
-  canManageParking: boolean;
-  canUseAdminAI: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

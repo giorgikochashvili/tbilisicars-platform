@@ -104,17 +104,12 @@ router.delete("/admin/fleet/brands/:id", requireAdmin, requirePermission("canMan
 router.get("/admin/fleet/models", requireAdmin, async (req, res) => {
   const city = typeof req.query.city === "string" && req.query.city ? req.query.city : undefined;
   const data = await listAdminModels({ city });
-  res.json(
-    data.map((item) => ({
-      ...ListAdminModelsResponse.element.parse(item),
-      category: item.category ?? null,
-    })),
-  );
+  res.json(ListAdminModelsResponse.parse(data));
 });
 
 router.post("/admin/fleet/models", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const body = CreateAdminModelBody.parse(req.body);
-  const model = await createAdminModel(body);
+  const model = await createAdminModel(body as any);
   res.status(201).json(model);
 });
 
@@ -127,7 +122,7 @@ router.get("/admin/fleet/models/:id", requireAdmin, async (req, res) => {
 router.patch("/admin/fleet/models/:id", requireAdmin, requirePermission("canManageVehicles"), async (req, res) => {
   const { id } = UpdateAdminModelParams.parse({ id: req.params.id });
   const body = UpdateAdminModelBody.parse(req.body);
-  const model = await updateAdminModel(id, body);
+  const model = await updateAdminModel(id, body as any);
   res.json(UpdateAdminModelResponse.parse(model));
 });
 
