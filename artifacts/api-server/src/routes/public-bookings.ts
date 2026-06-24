@@ -4,8 +4,9 @@
  */
 import { Router, type IRouter } from "express";
 import { pool } from "@workspace/db";
-import { db, bookingextraTable, bookingTable, promoTable } from "@workspace/db";
+import { db, bookingextraTable, bookingAttributionTable, bookingTable, promoTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { deriveSourceBrand } from "../lib/attribution.js";
 import { sendBookingConfirmationEmail, sendNewBookingInternalEmail } from "../services/email.service.js";
 import {
   calculateChargeableDays,
@@ -624,6 +625,16 @@ router.post("/public/bookings", async (req, res) => {
     pickupAddress?: string;
     dropoffType?: string;
     dropoffAddress?: string;
+    attribution?: {
+      utm_source?: string | null;
+      utm_medium?: string | null;
+      utm_campaign?: string | null;
+      utm_content?: string | null;
+      utm_term?: string | null;
+      gclid?: string | null;
+      referrer?: string | null;
+      landing_path?: string | null;
+    } | null;
   };
 
   const errors: string[] = [];
@@ -1122,6 +1133,33 @@ router.post("/public/bookings", async (req, res) => {
           });
         } catch (err) {
           console.error(`[email] reservations_email_failed bookingId=${emailParams.bookingId}`, err);
+        }
+
+        // ── Best-effort attribution insert ──────────────────────────────────
+        // Runs after emails — any failure here is logged only and cannot
+        // affect booking success, emails, vouchers, or the HTTP response.
+        try {
+          const { sourceDomain, sourceBrand } = deriveSourceBrand(
+            req.hostname,
+            req.headers["x-forwarded-host"],
+          );
+          const attr = body.attribution ?? null;
+          await db.insert(bookingAttributionTable).values({
+            bookingId,
+            sourceDomain,
+            sourceBrand,
+            utmSource:    attr?.utm_source    ?? null,
+            utmMedium:    attr?.utm_medium    ?? null,
+            utmCampaign:  attr?.utm_campaign  ?? null,
+            utmContent:   attr?.utm_content   ?? null,
+            utmTerm:      attr?.utm_term      ?? null,
+            gclid:        attr?.gclid         ?? null,
+            referrer:     attr?.referrer      ?? null,
+            landingPath:  attr?.landing_path  ?? null,
+          });
+          console.log(`[attribution] inserted bookingId=${bookingId} brand=${sourceBrand ?? "unknown"}`);
+        } catch (err) {
+          console.error(`[attribution] insert_failed bookingId=${bookingId}`, err);
         }
       } catch (err) {
         console.error(`[email] Failed to prepare/send confirmation ref=${emailParams.reference}:`, err);

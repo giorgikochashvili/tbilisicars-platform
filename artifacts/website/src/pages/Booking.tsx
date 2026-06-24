@@ -8,6 +8,7 @@
  * - WhatsApp as opt-in checkbox; separate Terms and Privacy checkboxes in Step 4
  */
 import { trackBookingConversion } from "@/lib/google-ads";
+import { getAttribution } from "@/lib/attribution";
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
@@ -2380,6 +2381,7 @@ function Step6({ form, models, locations, extras, onBack, onDone, goToStep }: {
           pickupAddress: form.pickupDelivery ? form.pickupAddress.trim() : undefined,
           dropoffType: form.dropoffDelivery ? "hotel" : "office",
           dropoffAddress: form.dropoffDelivery ? form.dropoffAddress.trim() : undefined,
+          attribution: getAttribution() ?? undefined,
           resolvedRateId: resolvedQuote?.rateId ?? null,
           resolvedRateTierId: resolvedQuote?.rateTierId ?? null,
           resolvedBaseRate: resolvedQuote?.basePricePerDay ?? null,

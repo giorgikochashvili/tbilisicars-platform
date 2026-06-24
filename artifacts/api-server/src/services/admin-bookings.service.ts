@@ -14,6 +14,7 @@ import {
   extraTable,
   paymentTable,
   bookingphotoTable,
+  bookingAttributionTable,
 } from "@workspace/db";
 import {
   and,
@@ -550,6 +551,19 @@ export async function getAdminBooking(id: number) {
   const pickupPhotoCount = pickupPhotoCountRows[0]?.count ?? 0;
   const base = mapToBookingRow(row);
 
+  let attribution: typeof bookingAttributionTable.$inferSelect | null = null;
+  try {
+    const [attrRow] = await db
+      .select()
+      .from(bookingAttributionTable)
+      .where(eq(bookingAttributionTable.bookingId, id))
+      .limit(1);
+    attribution = attrRow ?? null;
+  } catch (err) {
+    console.error(`[attribution] lookup_failed bookingId=${id}`, err);
+    attribution = null;
+  }
+
   return {
     ...base,
     userId: row.customerId,
@@ -591,6 +605,7 @@ export async function getAdminBooking(id: number) {
       endDate:     r.endDate.toISOString(),
       notes:       r.notes ?? null,
     })),
+    attribution,
   };
 }
 
