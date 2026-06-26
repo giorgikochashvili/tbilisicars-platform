@@ -204,7 +204,11 @@ function LocationSelect({
         !dropRef.current?.contains(e.target as Node)
       ) setOpen(false);
     }
-    function handleScroll() { setOpen(false); }
+    function handleScroll(e: Event) {
+      const target = e.target;
+      if (target instanceof Node && dropRef.current?.contains(target)) return;
+      setOpen(false);
+    }
     document.addEventListener("mousedown", handleDown);
     window.addEventListener("scroll", handleScroll, true);
     return () => {
