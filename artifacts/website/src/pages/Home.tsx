@@ -310,6 +310,7 @@ export default function Home() {
   const [dropoffDelivery, setDropoffDelivery] = useState(false);
   const [pickupDatetime, setPickupDatetime] = useState("");
   const [dropoffDatetime, setDropoffDatetime] = useState("");
+  const [dropoffTouched, setDropoffTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const minDt = getMinDatetime();
 
@@ -381,6 +382,27 @@ export default function Home() {
     setDropoffLocationId(id);
     const loc = visibleLocations.find((l) => String(l.id) === id);
     if (!loc?.name.includes("Downtown")) setDropoffDelivery(false);
+  }
+
+  function handlePickupDatetimeChange(newPickup: string) {
+    setPickupDatetime(newPickup);
+    if (!newPickup) return;
+    const shouldAlign = !dropoffDatetime || !dropoffTouched || dropoffDatetime <= newPickup;
+    if (shouldAlign) {
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const pickupDate = new Date(newPickup);
+      const old = dropoffDatetime ? new Date(dropoffDatetime) : null;
+      const aligned = new Date(pickupDate);
+      aligned.setHours(old ? old.getHours() : 10, old ? old.getMinutes() : 0, 0, 0);
+      setDropoffDatetime(
+        `${aligned.getFullYear()}-${pad(aligned.getMonth() + 1)}-${pad(aligned.getDate())}T${pad(aligned.getHours())}:${pad(aligned.getMinutes())}`,
+      );
+    }
+  }
+
+  function handleDropoffDatetimeChange(newDropoff: string) {
+    setDropoffDatetime(newDropoff);
+    setDropoffTouched(true);
   }
 
   function validateSearch(): boolean {
@@ -643,9 +665,11 @@ export default function Home() {
                   <DateTimePicker
                     value={pickupDatetime}
                     min={minDt}
-                    onChange={setPickupDatetime}
+                    onChange={handlePickupDatetimeChange}
                     placeholder="Pickup Date & Time"
                     onDone={() => dropoffPickerRef.current?.openPicker()}
+                    rangeStart={pickupDatetime}
+                    rangeEnd={dropoffDatetime}
                   />
                 </div>
 
@@ -655,8 +679,10 @@ export default function Home() {
                     ref={dropoffPickerRef}
                     value={dropoffDatetime}
                     min={pickupDatetime || minDt}
-                    onChange={setDropoffDatetime}
+                    onChange={handleDropoffDatetimeChange}
                     placeholder="Return Date & Time"
+                    rangeStart={pickupDatetime}
+                    rangeEnd={dropoffDatetime}
                   />
                 </div>
 

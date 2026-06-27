@@ -35,6 +35,8 @@ interface DateTimePickerProps {
   disabled?: boolean;
   className?: string;
   onDone?: () => void;
+  rangeStart?: string;
+  rangeEnd?: string;
 }
 
 function strToDate(str: string): Date | null {
@@ -194,6 +196,29 @@ const CALENDAR_STYLES = `
   cursor: not-allowed;
   background: transparent !important;
 }
+.tc-dp-popup .react-datepicker__day--in-range {
+  background: hsla(350,68%,38%,0.18);
+  color: hsl(214,10%,88%);
+  border-radius: 0;
+}
+.tc-dp-popup .react-datepicker__day--in-range:hover {
+  background: hsla(350,68%,38%,0.32);
+}
+.tc-dp-popup .react-datepicker__day--range-start,
+.tc-dp-popup .react-datepicker__day--range-end {
+  background: hsl(350,68%,38%) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+.tc-dp-popup .react-datepicker__day--range-start {
+  border-radius: 8px 0 0 8px !important;
+}
+.tc-dp-popup .react-datepicker__day--range-end {
+  border-radius: 0 8px 8px 0 !important;
+}
+.tc-dp-popup .react-datepicker__day--range-start.react-datepicker__day--range-end {
+  border-radius: 8px !important;
+}
 .tc-dp-time-row {
   display: flex;
   align-items: center;
@@ -271,7 +296,7 @@ function injectStyles() {
 
 export const DateTimePicker = forwardRef<DateTimePickerHandle, DateTimePickerProps>(
   function DateTimePicker(
-    { value, onChange, min, placeholder, disabled, className, onDone },
+    { value, onChange, min, placeholder, disabled, className, onDone, rangeStart, rangeEnd },
     ref,
   ) {
     const [open, setOpen] = useState(false);
@@ -310,7 +335,11 @@ export const DateTimePicker = forwardRef<DateTimePickerHandle, DateTimePickerPro
           setOpen(false);
         }
       }
-      function handleScroll() { setOpen(false); }
+      function handleScroll(e: Event) {
+        const target = e.target;
+        if (target instanceof Node && popupRef.current?.contains(target)) return;
+        setOpen(false);
+      }
       document.addEventListener("mousedown", handleClick);
       window.addEventListener("scroll", handleScroll, true);
       return () => {
@@ -363,6 +392,8 @@ export const DateTimePicker = forwardRef<DateTimePickerHandle, DateTimePickerPro
                 onChange={handleDateChange}
                 inline
                 minDate={minDate ?? undefined}
+                startDate={rangeStart ? strToDate(rangeStart) ?? undefined : undefined}
+                endDate={rangeEnd ? strToDate(rangeEnd) ?? undefined : undefined}
               />
               <div className="tc-dp-time-row">
                 <div className="tc-dp-time-label">
