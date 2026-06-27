@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MoreHorizontal, Edit, Trash2, Percent } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Percent, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const EMPTY_FORM = {
@@ -177,6 +177,32 @@ export default function DiscountsPage() {
     }
   };
 
+  const handleDuplicate = (discount: AdminDiscountItem) => {
+    createMutation.mutate(
+      {
+        data: {
+          name: `Copy of ${discount.name}`,
+          discountType: discount.discountType,
+          value: Number(discount.value),
+          startDate: String(discount.startDate).slice(0, 10),
+          endDate: String(discount.endDate).slice(0, 10),
+          pickupLocationIds: discount.pickupLocations.map((pl) => pl.locationId),
+          vehicleModelIds: discount.vehicleModels.map((vm) => vm.vehicleModelId),
+          isActive: false,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Duplicated", description: `"Copy of ${discount.name}" created as inactive.` });
+          queryClient.invalidateQueries();
+        },
+        onError: (err: Error) => {
+          toast({ title: "Error", description: err.message || "Failed to duplicate", variant: "destructive" });
+        },
+      },
+    );
+  };
+
   const handleDelete = (id: number) => {
     if (confirm("Are you sure you want to delete this discount? This action cannot be undone.")) {
       deleteMutation.mutate(
@@ -330,6 +356,9 @@ export default function DiscountsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleOpenModal(discount)}>
                               <Edit className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(discount)}>
+                              <Copy className="w-4 h-4 mr-2" /> Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
