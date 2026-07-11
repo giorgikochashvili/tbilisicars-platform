@@ -330,6 +330,37 @@ export default function Home() {
     queryFn: () => apiFetch("/api/public/booking-config"),
   });
 
+  // One-shot URL preset — applies pickup=KUT from Google Ads landing URLs.
+  // The guard is consumed on the first config-loaded execution regardless of
+  // whether the param is present or matches, so it never reapplies after
+  // user interaction, rerenders, refetches, or window focus events.
+  useEffect(() => {
+    if (urlPresetApplied.current) return;
+    if (!config) return;
+    urlPresetApplied.current = true;
+
+    const token = new URLSearchParams(window.location.search)
+      .get("pickup")
+      ?.trim()
+      .toLowerCase();
+    if (token !== "kut") return;
+
+    const match = config.locations.find(
+      (l) =>
+        l.city.trim().toLowerCase() === "kutaisi" &&
+        (l.name.toLowerCase().includes("airport") ||
+          l.name.toLowerCase().includes("international")),
+    );
+    if (!match) return;
+
+    const id = String(match.id);
+    setSameLocation(true);
+    setPickupLocationId(id);
+    setDropoffLocationId(id);
+    setPickupDelivery(false);
+    setDropoffDelivery(false);
+  }, [config]);
+
   const dynamicCategories = useMemo<string[] | null>(() => {
     if (!config) return null;
     const seen = new Set<string>();
@@ -350,6 +381,7 @@ export default function Home() {
 
   const sliderScrollRef = useRef<HTMLDivElement>(null);
   const dropoffPickerRef = useRef<DateTimePickerHandle>(null);
+  const urlPresetApplied = useRef(false);
 
   function scrollSlider(dir: "left" | "right") {
     const el = sliderScrollRef.current;
