@@ -32,7 +32,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "") || "/";
+const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
 function ScrollToTop() {
   const [location] = useLocation();
