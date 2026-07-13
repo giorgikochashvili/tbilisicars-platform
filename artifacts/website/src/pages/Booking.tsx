@@ -3020,19 +3020,39 @@ export default function Booking() {
     }
 
     // No URL params — direct /booking entry.
-    // Always attempt restore; ownership transfers to the current entry.
-    // Autosave will claim the draft with the current entryId after init.
-    try {
-      const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
-      if (raw) {
-        const draft = JSON.parse(raw) as {
-          step?: number; form?: FormData; _tcbEntryId?: string;
-        };
-        if (draft.form) {
-          setForm(draft.form);
+    if (!isExistingEntry) {
+      // Fresh direct /booking — no prior marker on this history entry.
+      // Restore any existing draft unconditionally, including legacy drafts
+      // without ownership metadata. Autosave will claim the draft with the
+      // newly generated entryId going forward.
+      try {
+        const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw) as {
+            step?: number; form?: FormData; _tcbEntryId?: string;
+          };
+          if (draft.form) {
+            setForm(draft.form);
+          }
         }
-      }
-    } catch { /* ignore parse/storage errors */ }
+      } catch { /* ignore parse/storage errors */ }
+    } else {
+      // Already-marked direct /booking entry (refresh or Back/Forward).
+      // Restore only if the stored draft is owned by this exact entry.
+      // Legacy drafts (no _tcbEntryId) do not match and are not restored.
+      try {
+        const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw) as {
+            step?: number; form?: FormData; _tcbEntryId?: string;
+          };
+          if (draft.form && draft._tcbEntryId === entryId) {
+            setForm(draft.form);
+          }
+          // Mismatch: form stays at getInitialForm() defaults.
+        }
+      } catch { /* ignore parse/storage errors */ }
+    }
     setDraftInitialized(true);
   }, []); // mount only — runs once
 
