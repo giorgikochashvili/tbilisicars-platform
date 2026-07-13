@@ -135,6 +135,11 @@ const STEP_LABELS = ["Vehicle", "Extras", "Insurance", "Your Info", "Payment", "
 
 const BOOKING_DRAFT_KEY = "tc_booking_draft";
 
+// Generates a unique ID for each fresh Booking history entry.
+// Stored in history.state._tcbEntryId and in the saved draft for ownership matching.
+const generateEntryId = (): string =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+
 const SEAT_BUCKETS: Array<{ label: string; value: string; match: (s: number) => boolean }> = [
   { label: "2 seats",  value: "2",  match: (s) => s === 2 },
   { label: "4 seats",  value: "4",  match: (s) => s === 4 },
@@ -2934,35 +2939,117 @@ export default function Booking() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>(getInitialForm);
 
+  // Holds the current history-entry ID for the lifetime of this mount.
+  // Set once by the mount restore effect; read by the autosave effect.
+  const entryIdRef = useRef<string>("");
+
+  // Guards autosave until the mount-time restore/clear/ownership decision is
+  // complete. Using useState (not useRef) ensures the autosave effect does not
+  // fire in the same render as mount — it only fires after React has committed
+  // both the restored form state and this flag in the same batch, preventing
+  // the initial URL/default form from overwriting a complete restored draft.
+  const [draftInitialized, setDraftInitialized] = useState(false);
+
   // ── Session draft restore (mount-only) ──────────────────────────────────────
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const hasUrlParams = !!(
+      urlParams.get("pickupLocationId") || urlParams.get("vehicleModelId")
+    );
 
-    // If the user arrived from a homepage search or a featured car link, the URL
-    // already contains fresh params. Clear the stale draft so it cannot overwrite them.
-    if (urlParams.get("pickupLocationId") || urlParams.get("vehicleModelId")) {
-      try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch {}
+    // Safely read any existing entry ID from history.state.
+    // Wouter navigates with state=null by default; guard before property access.
+    const existingEntryId: string | undefined =
+      typeof history.state?._tcbEntryId === "string"
+        ? (history.state._tcbEntryId as string)
+        : undefined;
+    const isExistingEntry = !!existingEntryId;
+
+    // Assign the entry ID for this mount.
+    // Fresh SPA navigation (Wouter pushState → state=null): generate a new ID.
+    // Refresh or Back/Forward to a previously visited entry: reuse the stored ID.
+    const entryId = existingEntryId ?? generateEntryId();
+    entryIdRef.current = entryId;
+
+    // Stamp (or re-stamp) the current history entry with the entry ID.
+    // Safely merges into existing state (null → {}) without touching Wouter props.
+    // Passing window.location.href keeps pathname+search unchanged.
+    try {
+      const safeBase =
+        history.state !== null &&
+        typeof history.state === "object" &&
+        !Array.isArray(history.state)
+          ? (history.state as Record<string, unknown>)
+          : {};
+      history.replaceState(
+        { ...safeBase, _tcbEntryId: entryId },
+        "",
+        window.location.href
+      );
+    } catch { /* ignore — sandboxed iframe or security restriction */ }
+
+    if (hasUrlParams) {
+      if (!isExistingEntry) {
+        // Fresh SPA navigation from Homepage or Fleet.
+        // getInitialForm() has already populated the form from URL params.
+        // Remove any stale draft unconditionally.
+        try { sessionStorage.removeItem(BOOKING_DRAFT_KEY); } catch {}
+        setDraftInitialized(true);
+        return;
+      }
+
+      // Existing history entry (refresh or Back/Forward to a visited Booking entry).
+      // Restore only when the draft is owned by this exact entry.
+      try {
+        const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+        if (raw) {
+          const draft = JSON.parse(raw) as {
+            step?: number; form?: FormData; _tcbEntryId?: string;
+          };
+          if (draft.form && draft._tcbEntryId === entryId) {
+            // Ownership confirmed — restore the complete saved form.
+            setForm(draft.form);
+          }
+          // Mismatch (Back/Forward with another entry's draft, or legacy draft):
+          // do not restore. Form stays at getInitialForm() URL-param defaults.
+          // Autosave will overwrite the draft with this entry's ID after init.
+        }
+      } catch { /* ignore parse/storage errors */ }
+      setDraftInitialized(true);
       return;
     }
 
-    // Otherwise (direct /booking or "Book Now" with no params), restore draft.
+    // No URL params — direct /booking entry.
+    // Always attempt restore; ownership transfers to the current entry.
+    // Autosave will claim the draft with the current entryId after init.
     try {
       const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
       if (raw) {
-        const draft = JSON.parse(raw) as { step?: number; form: FormData };
+        const draft = JSON.parse(raw) as {
+          step?: number; form?: FormData; _tcbEntryId?: string;
+        };
         if (draft.form) {
           setForm(draft.form);
         }
       }
     } catch { /* ignore parse/storage errors */ }
-  }, []); // mount only — runs once before config loads
+    setDraftInitialized(true);
+  }, []); // mount only — runs once
 
-  // ── Session draft save (runs on every step or form change) ──────────────────
+  // ── Session draft save (runs on every step or form change after init) ────────
   useEffect(() => {
+    if (!draftInitialized) return; // wait for mount restore decision to complete
     try {
-      sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify({ step, form }));
+      sessionStorage.setItem(
+        BOOKING_DRAFT_KEY,
+        JSON.stringify({
+          step,
+          form,
+          _tcbEntryId: entryIdRef.current || undefined,
+        })
+      );
     } catch { /* ignore quota/storage errors */ }
-  }, [step, form]);
+  }, [step, form, draftInitialized]);
 
   // ── Lifted quote state (used by sidebar on steps 1–5) ──────────────────────
   const [quote, setQuote] = useState<Quote | null>(null);
