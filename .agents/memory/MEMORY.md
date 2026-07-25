@@ -1,1 +1,0 @@
-- [Phase B — RBG intake transport](phase-b-rbg-intake.md) — Option C HMAC split + feature classifier + preflight + error boundary + router factory; body limit 64 kb; zero production mount.
