@@ -65,6 +65,24 @@ export interface VerifyInternalHmacInput {
   resolveSecret(keyId: string): SecretLookupResult;
 }
 
+// ─── Option C split types ──────────────────────────────────────────────────────
+
+/**
+ * Immutable validated metadata returned by prevalidateInternalHmacHeaders on
+ * success. Serves as the explicit typed handoff to
+ * verifyInternalHmacAfterPrevalidation so steps 1–7 are never repeated.
+ */
+export interface ValidatedHmacMetadata {
+  readonly keyId:     string;
+  readonly timestamp: string;
+  readonly requestId: string;
+  readonly signature: string;
+}
+
+export type PrevalidateInternalHmacResult =
+  | { ok: true;  metadata: ValidatedHmacMetadata }
+  | { ok: false; reason:   InternalHmacFailReason };
+
 // ─── Pure primitive functions ─────────────────────────────────────────────────
 
 /**
@@ -175,36 +193,30 @@ export function timingSafeSignatureEqual(a: string, b: string): boolean {
   return cryptoTimingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-// ─── End-to-end verifier ──────────────────────────────────────────────────────
+// ─── Option C split functions ──────────────────────────────────────────────────
 
 /**
- * Pure end-to-end HOP-B HMAC verification.
+ * Performs exactly steps 1–7 of the HOP-B HMAC verification:
  *
- * Evaluates the following 11 steps in exact order, short-circuiting on
- * the first failure:
+ * 1. All four metadata fields present and non-empty  → MISSING_HEADERS
+ * 2. Key-ID syntax valid                             → MALFORMED_KEY_ID
+ * 3. nowSeconds is non-negative safe integer         → INTERNAL_CLOCK_ERROR
+ * 4. Timestamp canonical decimal syntax + safe int   → MALFORMED_TIMESTAMP
+ * 5. Freshness tolerance abs(ts - now) <= 300        → STALE_TIMESTAMP
+ * 6. Request ID canonical lowercase UUID             → MALFORMED_REQUEST_ID
+ * 7. Signature shape ^[0-9a-f]{64}$                  → MALFORMED_SIGNATURE
  *
- * 1.  All four metadata fields present and non-empty → MISSING_HEADERS
- * 2.  Key-ID syntax valid                            → MALFORMED_KEY_ID
- * 3.  nowSeconds is non-negative safe integer        → INTERNAL_CLOCK_ERROR
- * 4.  Timestamp canonical decimal syntax + safe int  → MALFORMED_TIMESTAMP
- * 5.  Freshness tolerance abs(ts - now) <= 300       → STALE_TIMESTAMP
- * 6.  Request ID canonical lowercase UUID            → MALFORMED_REQUEST_ID
- * 7.  Signature shape ^[0-9a-f]{64}$                 → MALFORMED_SIGNATURE
- * 8.  Secret lookup by validated key ID              → UNKNOWN_KEY
- * 9.  Resolved secret is exactly 32 bytes            → INTERNAL_SECRET_ERROR
- * 10. Hash body, build canonical, compute expected,
- *     timing-safe compare                            → INVALID_SIGNATURE
- * 11. Return { ok: true }
- *
- * No result value ever contains secret bytes, key IDs, signatures, expected
- * signatures, canonical strings, body hashes, raw bodies, env values, or
- * raw errors.
+ * Performs no DB call, secret lookup, raw-body hash, or HMAC calculation.
+ * Pure and synchronous.
  */
-export function verifyInternalHmac(
-  input: VerifyInternalHmacInput,
-): VerifyInternalHmacResult {
-  const { rawBody, keyId, timestamp, requestId, signature, nowSeconds,
-    resolveSecret } = input;
+export function prevalidateInternalHmacHeaders(input: {
+  keyId:      string | undefined;
+  timestamp:  string | undefined;
+  requestId:  string | undefined;
+  signature:  string | undefined;
+  nowSeconds: number;
+}): PrevalidateInternalHmacResult {
+  const { keyId, timestamp, requestId, signature, nowSeconds } = input;
 
   // Step 1: All four metadata fields present and non-empty
   if (
@@ -250,14 +262,33 @@ export function verifyInternalHmac(
     return { ok: false, reason: "MALFORMED_SIGNATURE" };
   }
 
-  // Step 8: Secret lookup (called only after key-ID shape validation passed)
-  const secretResult = resolveSecret(keyId);
-  if (!secretResult.found) {
-    return { ok: false, reason: "UNKNOWN_KEY" };
-  }
+  return {
+    ok: true,
+    metadata: { keyId, timestamp, requestId, signature },
+  };
+}
+
+/**
+ * Performs exactly steps 9–11 of the HOP-B HMAC verification:
+ *
+ * 9.  Resolved secret is exactly 32 bytes            → INTERNAL_SECRET_ERROR
+ * 10. Hash body, build canonical, compute expected,
+ *     timing-safe compare                            → INVALID_SIGNATURE
+ * 11. Return { ok: true }
+ *
+ * Receives pre-validated metadata from prevalidateInternalHmacHeaders and the
+ * resolved secret bytes from the runtime secret store. Steps 1–7 are never
+ * repeated. Pure and synchronous.
+ */
+export function verifyInternalHmacAfterPrevalidation(input: {
+  rawBody:     Uint8Array;
+  metadata:    ValidatedHmacMetadata;
+  secretBytes: Uint8Array;
+}): VerifyInternalHmacResult {
+  const { rawBody, metadata, secretBytes } = input;
 
   // Step 9: Resolved secret must be exactly 32 bytes
-  if (secretResult.secretBytes.length !== 32) {
+  if (secretBytes.length !== 32) {
     return { ok: false, reason: "INTERNAL_SECRET_ERROR" };
   }
 
@@ -265,21 +296,85 @@ export function verifyInternalHmac(
   //          timing-safe compare. computeInternalHmacSignature won't throw
   //          here because we validated the length at step 9.
   const bodyHashHex = hashRawBody(rawBody);
-  const canonical = buildInternalHmacCanonicalString(
-    keyId,
-    timestamp,
-    requestId,
+  const canonical   = buildInternalHmacCanonicalString(
+    metadata.keyId,
+    metadata.timestamp,
+    metadata.requestId,
     bodyHashHex,
   );
-  const expected = computeInternalHmacSignature(
-    canonical,
-    secretResult.secretBytes,
-  );
+  const expected = computeInternalHmacSignature(canonical, secretBytes);
 
-  if (!timingSafeSignatureEqual(expected, signature)) {
+  if (!timingSafeSignatureEqual(expected, metadata.signature)) {
     return { ok: false, reason: "INVALID_SIGNATURE" };
   }
 
   // Step 11: All checks passed
   return { ok: true };
+}
+
+// ─── End-to-end verifier ──────────────────────────────────────────────────────
+
+/**
+ * Pure end-to-end HOP-B HMAC verification.
+ *
+ * Evaluates the following 11 steps in exact order, short-circuiting on
+ * the first failure:
+ *
+ * 1.  All four metadata fields present and non-empty → MISSING_HEADERS
+ * 2.  Key-ID syntax valid                            → MALFORMED_KEY_ID
+ * 3.  nowSeconds is non-negative safe integer        → INTERNAL_CLOCK_ERROR
+ * 4.  Timestamp canonical decimal syntax + safe int  → MALFORMED_TIMESTAMP
+ * 5.  Freshness tolerance abs(ts - now) <= 300       → STALE_TIMESTAMP
+ * 6.  Request ID canonical lowercase UUID            → MALFORMED_REQUEST_ID
+ * 7.  Signature shape ^[0-9a-f]{64}$                 → MALFORMED_SIGNATURE
+ * 8.  Secret lookup by validated key ID              → UNKNOWN_KEY
+ * 9.  Resolved secret is exactly 32 bytes            → INTERNAL_SECRET_ERROR
+ * 10. Hash body, build canonical, compute expected,
+ *     timing-safe compare                            → INVALID_SIGNATURE
+ * 11. Return { ok: true }
+ *
+ * No result value ever contains secret bytes, key IDs, signatures, expected
+ * signatures, canonical strings, body hashes, raw bodies, env values, or
+ * raw errors.
+ */
+/**
+ * Pure end-to-end HOP-B HMAC verification.
+ *
+ * Compatibility composition of prevalidateInternalHmacHeaders (steps 1–7),
+ * the synchronous resolveSecret callback (step 8), and
+ * verifyInternalHmacAfterPrevalidation (steps 9–11).
+ *
+ * Observable behaviour is identical to the original 11-step implementation.
+ * All Phase A tests continue to exercise this composed function.
+ *
+ * No result value ever contains secret bytes, key IDs, signatures, expected
+ * signatures, canonical strings, body hashes, raw bodies, env values, or
+ * raw errors.
+ */
+export function verifyInternalHmac(
+  input: VerifyInternalHmacInput,
+): VerifyInternalHmacResult {
+  const { rawBody, keyId, timestamp, requestId, signature, nowSeconds,
+    resolveSecret } = input;
+
+  // Steps 1–7: metadata prevalidation
+  const pre = prevalidateInternalHmacHeaders({
+    keyId, timestamp, requestId, signature, nowSeconds,
+  });
+  if (!pre.ok) {
+    return { ok: false, reason: pre.reason };
+  }
+
+  // Step 8: Secret lookup (called only after key-ID shape validation passed)
+  const secretResult = resolveSecret(pre.metadata.keyId);
+  if (!secretResult.found) {
+    return { ok: false, reason: "UNKNOWN_KEY" };
+  }
+
+  // Steps 9–11: final verification
+  return verifyInternalHmacAfterPrevalidation({
+    rawBody,
+    metadata:    pre.metadata,
+    secretBytes: secretResult.secretBytes,
+  });
 }

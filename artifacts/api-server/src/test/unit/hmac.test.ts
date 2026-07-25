@@ -20,7 +20,10 @@ import {
   isValidInternalKeyId,
   timingSafeSignatureEqual,
   verifyInternalHmac,
+  prevalidateInternalHmacHeaders,
+  verifyInternalHmacAfterPrevalidation,
 } from "../../lib/internal-hmac.js";
+import type { ValidatedHmacMetadata } from "../../lib/internal-hmac.js";
 import type { SecretLookupResult } from "../../lib/integration-secret-store.js";
 
 // ─── Authoritative golden vector ──────────────────────────────────────────────
@@ -644,4 +647,197 @@ test("verifier ordering: no HMAC comparison after INTERNAL_SECRET_ERROR", () => 
   // throw. The fact that we get INTERNAL_SECRET_ERROR (not a throw) proves
   // step 9 intercepted it before any HMAC operation.
   assert.deepStrictEqual(result, { ok: false, reason: "INTERNAL_SECRET_ERROR" });
+});
+
+// ─── Option C seam tests ──────────────────────────────────────────────────────
+//
+// These tests exercise the two new split functions independently and verify
+// that the composition (verifyInternalHmac) still produces identical results
+// to the original 129-test implementation.
+
+// Helper: turn the golden vector into a ValidatedHmacMetadata
+// (GV_SECRET_BYTES and GV_BODY_BUF are declared earlier in this file;
+//  Buffer extends Uint8Array so they can be passed to Uint8Array parameters directly.)
+const GV_METADATA: ValidatedHmacMetadata = {
+  keyId:     GV_KEY_ID,
+  timestamp: GV_TIMESTAMP,
+  requestId: GV_REQUEST_ID,
+  signature: GV_SIGNATURE,
+};
+
+// ── prevalidateInternalHmacHeaders ───────────────────────────────────────────
+
+test("prevalidate: golden vector headers → { ok: true, metadata }", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000,
+  });
+  assert.ok(result.ok);
+  assert.deepStrictEqual(result.metadata, GV_METADATA);
+});
+
+test("prevalidate: missing keyId → MISSING_HEADERS", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     undefined,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "MISSING_HEADERS" });
+});
+
+test("prevalidate: empty keyId → MISSING_HEADERS", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     "",
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "MISSING_HEADERS" });
+});
+
+test("prevalidate: malformed keyId → MALFORMED_KEY_ID", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     "UPPERCASE-KEY",
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "MALFORMED_KEY_ID" });
+});
+
+test("prevalidate: stale timestamp → STALE_TIMESTAMP", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000 + 301, // 301 s ahead → stale
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "STALE_TIMESTAMP" });
+});
+
+test("prevalidate: malformed request ID → MALFORMED_REQUEST_ID", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: "not-a-uuid",
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "MALFORMED_REQUEST_ID" });
+});
+
+test("prevalidate: malformed signature shape → MALFORMED_SIGNATURE", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: "tooshort",
+    nowSeconds: 1783000000,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "MALFORMED_SIGNATURE" });
+});
+
+// Freshness boundary: exactly ±300 s is acceptable
+test("prevalidate: timestamp exactly 300 s in past → ok", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000 + 300,
+  });
+  assert.ok(result.ok);
+});
+
+test("prevalidate: timestamp exactly 300 s in future → ok", () => {
+  const result = prevalidateInternalHmacHeaders({
+    keyId:     GV_KEY_ID,
+    timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE,
+    nowSeconds: 1783000000 - 300,
+  });
+  assert.ok(result.ok);
+});
+
+// ── verifyInternalHmacAfterPrevalidation ─────────────────────────────────────
+
+test("verifyAfterPrevalidation: golden vector → { ok: true }", () => {
+  const result = verifyInternalHmacAfterPrevalidation({
+    rawBody:     GV_BODY_BUF,
+    metadata:    GV_METADATA,
+    secretBytes: GV_SECRET_BYTES,
+  });
+  assert.deepStrictEqual(result, { ok: true });
+});
+
+test("verifyAfterPrevalidation: 31-byte secret → INTERNAL_SECRET_ERROR", () => {
+  const result = verifyInternalHmacAfterPrevalidation({
+    rawBody:     GV_BODY_BUF,
+    metadata:    GV_METADATA,
+    secretBytes: new Uint8Array(31),
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "INTERNAL_SECRET_ERROR" });
+});
+
+test("verifyAfterPrevalidation: wrong secret (all zeros) → INVALID_SIGNATURE", () => {
+  const result = verifyInternalHmacAfterPrevalidation({
+    rawBody:     GV_BODY_BUF,
+    metadata:    GV_METADATA,
+    secretBytes: new Uint8Array(32), // 32 zero bytes ≠ GV secret
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "INVALID_SIGNATURE" });
+});
+
+test("verifyAfterPrevalidation: body tampered → INVALID_SIGNATURE", () => {
+  const tampered = Buffer.from(GV_BODY_STR + "x");
+  const result = verifyInternalHmacAfterPrevalidation({
+    rawBody:     tampered,
+    metadata:    GV_METADATA,
+    secretBytes: GV_SECRET_BYTES,
+  });
+  assert.deepStrictEqual(result, { ok: false, reason: "INVALID_SIGNATURE" });
+});
+
+// ── Composition property: verifyInternalHmac == pre + lookup + after ──────────
+
+test("composition: verifyInternalHmac golden vector matches composed result", () => {
+  const composed = verifyInternalHmacAfterPrevalidation({
+    rawBody:     GV_BODY_BUF,
+    metadata:    GV_METADATA,
+    secretBytes: GV_SECRET_BYTES,
+  });
+  const full = verifyInternalHmac({
+    rawBody:       GV_BODY_BUF,
+    keyId:         GV_KEY_ID,
+    timestamp:     GV_TIMESTAMP,
+    requestId:     GV_REQUEST_ID,
+    signature:     GV_SIGNATURE,
+    nowSeconds:    1783000000,
+    resolveSecret: () => ({ found: true, secretBytes: GV_SECRET_BYTES }),
+  });
+  assert.deepStrictEqual(composed, full);
+});
+
+test("composition: prevalidate failure propagates identically through verifyInternalHmac", () => {
+  // Stale timestamp → both approaches should give STALE_TIMESTAMP
+  const preResult = prevalidateInternalHmacHeaders({
+    keyId: GV_KEY_ID, timestamp: GV_TIMESTAMP, requestId: GV_REQUEST_ID,
+    signature: GV_SIGNATURE, nowSeconds: 1783009999,
+  });
+  const fullResult = verifyInternalHmac({
+    rawBody: GV_BODY_BUF, keyId: GV_KEY_ID, timestamp: GV_TIMESTAMP,
+    requestId: GV_REQUEST_ID, signature: GV_SIGNATURE, nowSeconds: 1783009999,
+    resolveSecret: () => ({ found: true, secretBytes: GV_SECRET_BYTES }),
+  });
+  assert.deepStrictEqual(preResult, { ok: false, reason: "STALE_TIMESTAMP" });
+  assert.deepStrictEqual(fullResult, { ok: false, reason: "STALE_TIMESTAMP" });
 });
