@@ -19,3 +19,4 @@ export * from "./parking";
 export * from "./homepage-slider";
 export * from "./discounts";
 export * from "./showroom";
+export * from "./regional-intake";

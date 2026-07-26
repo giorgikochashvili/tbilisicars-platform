@@ -8,6 +8,8 @@
     "build": "tsx ./build.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "node --import tsx --test src/test/unit/feature-flag.test.ts src/test/unit/secret-store.test.ts src/test/unit/hmac.test.ts src/test/unit/intake-feature-classifier.test.ts src/test/unit/internal-rbg-preflight.test.ts src/test/unit/internal-rbg-error-boundary.test.ts src/test/unit/internal-rbg-router-http.test.ts",
+    "test:integration": "node --import tsx --test src/test/integration/regional-intake-schema.test.ts",
+    "verify:migration-0014": "tsx src/scripts/verify-migration-0014.ts",
     "test": "pnpm run test:unit"
   },
   "dependencies": {

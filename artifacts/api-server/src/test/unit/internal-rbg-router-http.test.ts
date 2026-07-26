@@ -612,4 +612,51 @@ describe("createInternalRbgRouter — HTTP integration", () => {
       assert.strictEqual(res.status, 405);
     });
   });
+
+  // ── Test 32: ctx.rawBody contains exact signed bytes (Phase C1 carry-forward) ─
+  test("32. Authenticated handler receives ctx.rawBody containing the exact HMAC-signed bytes", async () => {
+    let capturedRawBody: Uint8Array | undefined;
+    const deps = makeTestDeps({
+      authenticatedHandler: (ctx, _req, res) => {
+        capturedRawBody = ctx.rawBody;
+        res.status(200).json({ ok: true });
+      },
+    });
+    await withServer(deps, async (base) => {
+      const { headers } = signBody(VALID_BODY);
+      const res = await postIntake(base, VALID_BODY, headers);
+      assert.strictEqual(res.status, 200);
+      assert.ok(capturedRawBody !== undefined, "ctx.rawBody must be set");
+      assert.strictEqual(
+        capturedRawBody!.byteLength,
+        VALID_BODY.byteLength,
+        "rawBody.byteLength must match the sent body length",
+      );
+      for (let i = 0; i < VALID_BODY.byteLength; i++) {
+        assert.strictEqual(
+          capturedRawBody![i],
+          VALID_BODY[i],
+          `rawBody byte at index ${i} must match`,
+        );
+      }
+    });
+  });
+
+  // ── Test 33: getNowSeconds() returns -1 → 503 (Phase C1 carry-forward) ────────
+  test("33. getNowSeconds() returns -1 → 503 SERVICE_UNAVAILABLE with x-rbg-request-id", async () => {
+    const deps = makeTestDeps({
+      getNowSeconds: () => -1,
+    });
+    await withServer(deps, async (base) => {
+      const { headers } = signBody(VALID_BODY);
+      const res = await postIntake(base, VALID_BODY, headers);
+      assert.strictEqual(res.status, 503);
+      const body = await res.json() as Record<string, unknown>;
+      assert.strictEqual(body["error"], "SERVICE_UNAVAILABLE");
+      assert.ok(
+        res.headers.get("x-rbg-request-id"),
+        "x-rbg-request-id must be present on 503",
+      );
+    });
+  });
 });

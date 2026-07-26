@@ -76,6 +76,8 @@ export interface AuthenticatedRbgRequestContext {
   readonly brandCode: RegionalBrandCode;
   /** Parsed request body (Zod validation and business logic are Phase C). */
   readonly parsedJson: unknown;
+  /** The exact raw bytes that were HMAC-signed. Available for downstream use. */
+  readonly rawBody: Uint8Array;
 }
 
 /**
@@ -235,6 +237,15 @@ export function createInternalRbgRouter(
       });
 
       if (!pre.ok) {
+        // INTERNAL_CLOCK_ERROR means the server clock is untrustworthy → 503.
+        if (pre.reason === "INTERNAL_CLOCK_ERROR") {
+          safeLog(logger, correlationId, {
+            code: "RBG_AUTH_FAILED",
+            reason: pre.reason,
+          });
+          res.status(503).json({ error: "SERVICE_UNAVAILABLE" });
+          return;
+        }
         safeLog(logger, correlationId, {
           code: "RBG_AUTH_FAILED",
           reason: pre.reason,
@@ -340,6 +351,7 @@ export function createInternalRbgRouter(
         correlationId,
         brandCode:  clientResult.brandCode,
         parsedJson,
+        rawBody,
       };
 
       // Step 14: Call authenticated handler.
