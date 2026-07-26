@@ -11,6 +11,7 @@
     "test:integration": "node --import tsx --test src/test/integration/regional-intake-schema.test.ts",
     "test:unit:c2a": "node --import tsx --test src/test/unit/regional-intake-helpers.test.ts src/test/unit/regional-intake-dto.test.ts",
     "test:integration:c2a": "node --import tsx --test src/test/integration/regional-intake-c2a.test.ts",
+    "test:integration:c2b1": "node --import tsx --test src/test/integration/regional-intake-c2b1.test.ts",
     "verify:migration-0014": "tsx src/scripts/verify-migration-0014.ts",
     "test": "pnpm run test:unit"
   },

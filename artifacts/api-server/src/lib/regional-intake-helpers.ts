@@ -18,6 +18,15 @@
 
 import { createHash } from "node:crypto";
 
+// ── FINGERPRINT_VERSION ───────────────────────────────────────────────────────
+
+/**
+ * Version marker embedded in the SHA-256 payload fingerprint array and stored
+ * explicitly in gateway_booking_context.payload_fingerprint_version.
+ * Incrementing this value intentionally changes the fingerprint wire format.
+ */
+export const FINGERPRINT_VERSION = 1 as const;
+
 // ── ParsedWallClock ───────────────────────────────────────────────────────────
 
 /**
@@ -187,7 +196,7 @@ export function validateWallClockInterval(
  * Computes SHA-256 fingerprint over a fixed-order JSON.stringify array.
  *
  * Element order is locked and must never change:
- *   [ "rbg-core-intake-v1", brandCode, gatewayBookingId, gatewayQuoteId,
+ *   [ `rbg-core-intake-v${FINGERPRINT_VERSION}`, brandCode, gatewayBookingId, gatewayQuoteId,
  *     vehicleModelId, pickupLocationId, dropoffLocationId,
  *     pickupDatetime, dropoffDatetime, totalAmountCents,
  *     currency, customerName, customerEmail, customerPhone ]
@@ -199,7 +208,7 @@ export function validateWallClockInterval(
  */
 export function computePayloadFingerprint(input: FingerprintInput): string {
   const arr = [
-    "rbg-core-intake-v1",
+    `rbg-core-intake-v${FINGERPRINT_VERSION}`,
     input.brandCode,
     input.gatewayBookingId,
     input.gatewayQuoteId,
@@ -254,7 +263,7 @@ export function classifyIdempotencyResult(
     row.brandCode                 === params.brandCode          &&
     row.gatewayBookingId          === params.gatewayBookingId   &&
     row.gatewayQuoteId            === params.gatewayQuoteId     &&
-    row.payloadFingerprintVersion === 1                         &&
+    row.payloadFingerprintVersion === FINGERPRINT_VERSION        &&
     row.payloadFingerprint        === params.payloadFingerprint &&
     row.totalAmountCents          === params.totalAmountCents;
   return isReplay ? { kind: "REPLAY", context: row } : { kind: "CONFLICT" };
