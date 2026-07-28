@@ -12,6 +12,7 @@
 import { RegionalIntakeDtoSchema } from "../lib/regional-intake-dto.js";
 import type { RegionalBrandCode } from "../repositories/regional-intake-write.repository.js";
 import { RegionalIntakeInternalError } from "../repositories/regional-intake-write.repository.js";
+import type { RegionalStaffNotification } from "../lib/regional-staff-notifier.js";
 import type { RbgDb, RbgTx } from "../repositories/regional-intake.repository.js";
 import { lookupGatewayContextsForIdentifiers } from "../repositories/regional-intake.repository.js";
 import {
@@ -66,7 +67,7 @@ export interface RegionalValidationIssue {
 
 /** Service result union (locked contract). */
 export type RegionalIntakeSvcResult =
-  | { kind: "CREATED";                   bookingId: number; reference: string; created: true  }
+  | { kind: "CREATED";                   bookingId: number; reference: string; created: true; notification: RegionalStaffNotification }
   | { kind: "REPLAYED";                  bookingId: number; reference: string; created: false }
   | { kind: "VALIDATION_ERROR";          issues: readonly RegionalValidationIssue[] }
   | { kind: "INVALID_DATETIME" }
@@ -277,13 +278,30 @@ export function createRegionalIntakeService(deps: {
 
     // ── Step 12: Map transaction SUCCESS outcomes ─────────────────────────────
     switch (txResult.kind) {
-      case "SUCCESS":
-        return {
-          kind:      "CREATED",
-          bookingId: txResult.bookingId,
-          reference: txResult.reference,
-          created:   true,
+      case "SUCCESS": {
+        const notification: RegionalStaffNotification = {
+          bookingId:            txResult.bookingId,
+          reference:            txResult.reference,
+          brandCode:            input.brandCode,
+          customerName:         dto.customerName,
+          customerEmail:        dto.customerEmail,
+          customerPhone:        dto.customerPhone,
+          pickupDatetime:       pickup.canonical,
+          dropoffDatetime:      dropoff.canonical,
+          pickupLocationName:   txResult.pickupLocationName,
+          dropoffLocationName:  txResult.dropoffLocationName,
+          vehicleModelName:     txResult.vehicleModelName,
+          totalAmountCents:     dto.totalAmountCents,
+          currency:             "EUR",
         };
+        return {
+          kind:         "CREATED",
+          bookingId:    txResult.bookingId,
+          reference:    txResult.reference,
+          created:      true,
+          notification,
+        };
+      }
       case "VEHICLE_MODEL_UNAVAILABLE":
         return { kind: "VEHICLE_MODEL_UNAVAILABLE" };
       case "LOCATION_UNAVAILABLE":

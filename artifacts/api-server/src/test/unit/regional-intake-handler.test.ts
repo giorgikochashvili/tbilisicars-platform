@@ -21,6 +21,10 @@ import type {
   AuthenticatedRbgRequestContext,
   RegionalBrandCode,
 } from "../../routes/internal-rbg-router.js";
+import type {
+  RegionalStaffNotification,
+  RegionalNotificationFailureInput,
+} from "../../lib/regional-staff-notifier.js";
 import type { Request, Response, NextFunction } from "express";
 
 // ── Test infrastructure ───────────────────────────────────────────────────────
@@ -94,6 +98,45 @@ function makeRes(): ResSpy {
   return { res, statusArgs, jsonArgs };
 }
 
+// ── Minimal notification fixture ──────────────────────────────────────────────
+
+/**
+ * Minimal valid RegionalStaffNotification for use in H-1/H-2/H-3/H-6 CREATED
+ * fixtures.  These tests verify routing and response behavior, not notification
+ * content — that is covered by N-1 in regional-intake-handler-notification.test.ts.
+ */
+const FAKE_NOTIFICATION: RegionalStaffNotification = {
+  bookingId:            0,
+  reference:            "TC-00000",
+  brandCode:            "batumicars",
+  customerName:         "Fake Customer",
+  customerEmail:        "fake@example.com",
+  customerPhone:        "+995500000000",
+  pickupDatetime:       "2026-09-01T10:00",
+  dropoffDatetime:      "2026-09-05T10:00",
+  pickupLocationName:   "Loc A",
+  dropoffLocationName:  "Loc B",
+  vehicleModelName:     "Model X",
+  totalAmountCents:     10000,
+  currency:             "EUR",
+};
+
+/**
+ * Build a compatible deps object from a service function.
+ * The fake notifier resolves immediately; the fake reporter is a no-op.
+ * Neither is asserted in these tests — notification behavior is tested in
+ * regional-intake-handler-notification.test.ts.
+ */
+function makeDeps(service: RegionalIntakeServiceFn) {
+  return {
+    service,
+    notifier: {
+      notify: async (_n: RegionalStaffNotification): Promise<void> => { /* no-op */ },
+    },
+    reportNotificationFailure: (_input: RegionalNotificationFailureInput): void => { /* no-op */ },
+  };
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 // H-1: ctx.brandCode and ctx.parsedJson forwarded exactly; body brand cannot override
@@ -103,7 +146,7 @@ test("H-1: ctx.brandCode and ctx.parsedJson forwarded exactly; body brand cannot
 
   const service: RegionalIntakeServiceFn = async (input) => {
     serviceCallArgs.push({ brandCode: input.brandCode, parsedJson: input.parsedJson });
-    return { kind: "CREATED", bookingId: 1, reference: "TC-001", created: true };
+    return { kind: "CREATED", bookingId: 1, reference: "TC-001", created: true, notification: FAKE_NOTIFICATION };
   };
 
   const ctx = makeCtx({ brandCode: makeBrandCode("batumicars"), parsedJson: { x: 1 } });
@@ -120,7 +163,7 @@ test("H-1: ctx.brandCode and ctx.parsedJson forwarded exactly; body brand cannot
 
   const next = (() => {}) as unknown as NextFunction;
 
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   await withDeadline(deferred.promise, 1000, "H-1");
 
@@ -138,10 +181,11 @@ test("H-2: CREATED writes exact 201 status and body", async () => {
   const deferred = new Deferred<void>();
 
   const service: RegionalIntakeServiceFn = async () => ({
-    kind: "CREATED",
-    bookingId: 42,
-    reference: "TC-ABC",
-    created: true,
+    kind:         "CREATED",
+    bookingId:    42,
+    reference:    "TC-ABC",
+    created:      true,
+    notification: FAKE_NOTIFICATION,
   });
 
   const ctx = makeCtx();
@@ -156,7 +200,7 @@ test("H-2: CREATED writes exact 201 status and body", async () => {
   };
 
   const next = (() => {}) as unknown as NextFunction;
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   await withDeadline(deferred.promise, 1000, "H-2");
 
@@ -170,10 +214,11 @@ test("H-3: successful response written exactly once; next never called", async (
   let nextCallCount = 0;
 
   const service: RegionalIntakeServiceFn = async () => ({
-    kind: "CREATED",
-    bookingId: 7,
-    reference: "TC-XYZ",
-    created: true,
+    kind:         "CREATED",
+    bookingId:    7,
+    reference:    "TC-XYZ",
+    created:      true,
+    notification: FAKE_NOTIFICATION,
   });
 
   const ctx = makeCtx();
@@ -188,7 +233,7 @@ test("H-3: successful response written exactly once; next never called", async (
   };
 
   const next = (() => { nextCallCount++; }) as unknown as NextFunction;
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   await withDeadline(deferred.promise, 1000, "H-3");
 
@@ -217,7 +262,7 @@ test("H-4: LOCATION_UNAVAILABLE → exact 422 response; next never called", asyn
   };
 
   const next = (() => { nextCallCount++; }) as unknown as NextFunction;
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   await withDeadline(deferred.promise, 1000, "H-4");
 
@@ -243,7 +288,7 @@ test("H-5: service rejection forwarded to next exactly once; no response written
     deferred.resolve(e as Error);
   }) as unknown as NextFunction;
 
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   const received = await withDeadline(deferred.promise, 1000, "H-5");
 
@@ -260,7 +305,7 @@ test("H-6: service called once with exactly { brandCode, parsedJson }; no extra 
 
   const service: RegionalIntakeServiceFn = async (input) => {
     callArgs.push(input as Record<string, unknown>);
-    return { kind: "CREATED", bookingId: 99, reference: "TC-999", created: true };
+    return { kind: "CREATED", bookingId: 99, reference: "TC-999", created: true, notification: FAKE_NOTIFICATION };
   };
 
   const ctx: AuthenticatedRbgRequestContext = {
@@ -281,7 +326,7 @@ test("H-6: service called once with exactly { brandCode, parsedJson }; no extra 
   };
 
   const next = (() => {}) as unknown as NextFunction;
-  const handler = createRegionalIntakeHandler(service);
+  const handler = createRegionalIntakeHandler(makeDeps(service));
   handler(ctx, req, res as Response, next);
   await withDeadline(deferred.promise, 1000, "H-6");
 

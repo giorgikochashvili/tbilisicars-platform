@@ -16,6 +16,8 @@
     "test:integration:c2b2": "node --import tsx --test src/test/integration/regional-intake-c2b2.test.ts",
     "test:concurrency:c2b2": "node --import tsx --test src/test/integration/regional-intake-c2b2-concurrency.test.ts",
     "test:unit:c2b3a":        "node --import tsx --test src/test/unit/regional-intake-http-map.test.ts src/test/unit/regional-intake-handler.test.ts",
+    "test:unit:c2b3b1":      "node --import tsx --test src/test/unit/regional-intake-service-payload.test.ts src/test/unit/regional-intake-handler-notification.test.ts",
+    "test:integration:c2b3b1": "node --import tsx --test src/test/integration/regional-intake-c2b3b1.test.ts",
     "verify:migration-0014": "tsx src/scripts/verify-migration-0014.ts",
     "test": "pnpm run test:unit"
   },

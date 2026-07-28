@@ -11,17 +11,42 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mapSvcResultToHttp } from "../../routes/regional-intake-handler.js";
+import type { RegionalStaffNotification } from "../../lib/regional-staff-notifier.js";
+
+// ── Minimal valid notification fixture ───────────────────────────────────────
+
+const FIXTURE_NOTIFICATION: RegionalStaffNotification = {
+  bookingId:            1,
+  reference:            "TC-00001",
+  brandCode:            "batumicars",
+  customerName:         "Test Customer",
+  customerEmail:        "test@example.com",
+  customerPhone:        "+995500000099",
+  pickupDatetime:       "2026-09-01T10:00",
+  dropoffDatetime:      "2026-09-05T10:00",
+  pickupLocationName:   "Loc A",
+  dropoffLocationName:  "Loc B",
+  vehicleModelName:     "Model X",
+  totalAmountCents:     15000,
+  currency:             "EUR",
+};
 
 // M-1
-test("M-1: CREATED → 201 with bookingId, reference, created:true", () => {
+test("M-1: CREATED → 201 with bookingId, reference, created:true; notification absent from body", () => {
   const result = mapSvcResultToHttp({
-    kind: "CREATED",
-    bookingId: 1,
-    reference: "TC-AAA",
-    created: true,
+    kind:         "CREATED",
+    bookingId:    1,
+    reference:    "TC-AAA",
+    created:      true,
+    notification: FIXTURE_NOTIFICATION,
   });
   assert.equal(result.status, 201);
   assert.deepEqual(result.body, { bookingId: 1, reference: "TC-AAA", created: true });
+  // notification must never leak into the HTTP body
+  assert.ok(
+    !Object.prototype.hasOwnProperty.call(result.body, "notification"),
+    "notification must not appear in the HTTP response body",
+  );
 });
 
 // M-2
