@@ -404,6 +404,34 @@ echo "  Step 9 PASS ✓"
 
 step 10 "Checkpoint-safe exact eight-file scope proof"
 
+# ── 10a: Purge known transient baseline artifacts before scope calculation ─────
+#
+# These files may be deposited by Replit checkpoint machinery.  They must never
+# be tracked by Git; if they are untracked we remove them so they do not appear
+# in the untracked delta and pollute the scope union.
+
+TRANSIENT_PATHS=(
+  "lib/db/_baseline_drizzle_config.ts"
+  "lib/db/src/schema/__baseline_index.ts"
+)
+
+for TP in "${TRANSIENT_PATHS[@]}"; do
+  # Hard-fail if Git considers this file tracked.
+  if git ls-files --error-unmatch "${TP}" >/dev/null 2>&1; then
+    fail 10 "Transient baseline artifact '${TP}' is tracked by Git — cannot safely remove."
+  fi
+
+  # Remove if present (no-op if already absent).
+  rm -f "${TP}"
+
+  # Hard-fail if still present after removal attempt.
+  if [[ -e "${TP}" ]]; then
+    fail 10 "Transient baseline artifact '${TP}' still exists after rm -f."
+  fi
+
+  echo "  Transient artifact absent: ${TP} ✓"
+done
+
 EXPECTED_SCOPE=(
   "artifacts/api-server/package.json"
   "artifacts/api-server/src/services/regional-notification-reporter.ts"
@@ -474,6 +502,19 @@ if [[ -n "${PROTECTED_DRIFT}" ]]; then
 fi
 
 echo "  Protected-file drift: zero ✓"
+
+# ── Post-step-11 transient-artifact absence assertion ─────────────────────────
+#
+# Assert both known transient baseline artifacts are absent.
+# This re-check is independent of the scope proof in step 10 and runs after
+# all git-diff checks, so any late re-appearance is caught before the banner.
+
+for TP in "${TRANSIENT_PATHS[@]}"; do
+  if [[ -e "${TP}" ]]; then
+    fail 11 "Transient baseline artifact '${TP}' reappeared after step 10 removal."
+  fi
+  echo "  Post-step-11 absent: ${TP} ✓"
+done
 
 # ── All steps passed ───────────────────────────────────────────────────────────
 
