@@ -7,7 +7,9 @@ import rateLimit from "express-rate-limit";
 import { pool } from "@workspace/db";
 import router from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
-import { seedSystemRoles } from "./services/seed-roles.service.js";
+import { seedSystemRoles }               from "./services/seed-roles.service.js";
+import { buildDefaultRbgRuntimeSources } from "./lib/rbg-runtime-adapter.js";
+import { bindRbgRuntime }                from "./lib/rbg-runtime-binding.js";
 
 const PgSession = connectPgSimple(session);
 
@@ -20,6 +22,10 @@ if (!sessionSecret) {
   }
   console.warn("[WARN] SESSION_SECRET not set — using insecure dev default");
 }
+
+const rbgBinding = bindRbgRuntime(
+  buildDefaultRbgRuntimeSources(),
+);
 
 const app: Express = express();
 
@@ -46,6 +52,12 @@ app.use(cors({
   },
   credentials: true,
 }));
+if (rbgBinding.router !== null) {
+  app.use(
+    "/api/internal/regional-brands/bookings",
+    rbgBinding.router,
+  );
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
