@@ -10,6 +10,7 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { seedSystemRoles }               from "./services/seed-roles.service.js";
 import { buildDefaultRbgRuntimeSources } from "./lib/rbg-runtime-adapter.js";
 import { bindRbgRuntime }                from "./lib/rbg-runtime-binding.js";
+import { createInternalRbgRateLimiter }  from "./lib/internal-rbg-rate-limit.js";
 
 const PgSession = connectPgSimple(session);
 
@@ -53,6 +54,13 @@ app.use(cors({
   credentials: true,
 }));
 if (rbgBinding.router !== null) {
+  const internalRbgRateLimiter = createInternalRbgRateLimiter();
+
+  app.use(
+    "/api/internal/regional-brands/bookings",
+    internalRbgRateLimiter,
+  );
+
   app.use(
     "/api/internal/regional-brands/bookings",
     rbgBinding.router,
