@@ -716,7 +716,10 @@ router.post("/public/bookings", async (req, res) => {
       body.dropoffDatetime!,
     );
     if (stopSold) {
-      return res.status(422).json({ error: "MODEL_NOT_AVAILABLE" });
+      return res.status(422).json({
+        code: "MODEL_NOT_AVAILABLE",
+        errors: ["Selected vehicle model is not available for the selected dates"],
+      });
     }
   }
 

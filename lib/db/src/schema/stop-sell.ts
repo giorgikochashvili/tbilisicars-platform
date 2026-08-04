@@ -8,7 +8,9 @@ import {
   timestamp,
   index,
   primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { vehicleModelTable } from "./fleet";
 
 // ─── Stop Sell rule ───────────────────────────────────────────────────────────
@@ -24,10 +26,11 @@ export const stopSellTable = pgTable(
     startDate: date("start_date").notNull(),
     endDate: date("end_date").notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    check("stop_sell_dates_check", sql`${t.endDate} >= ${t.startDate}`),
     index("idx_stop_sell_is_active").on(t.isActive),
     index("idx_stop_sell_start_date").on(t.startDate),
     index("idx_stop_sell_end_date").on(t.endDate),
@@ -65,6 +68,7 @@ export const stopSellRegionTable = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.stopSellId, t.city] }),
+    check("stop_sell_region_city_check", sql`${t.city} IN ('Tbilisi', 'Kutaisi', 'Batumi')`),
     index("idx_ssr_city").on(t.city),
   ],
 );
