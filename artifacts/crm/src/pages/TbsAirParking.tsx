@@ -28,9 +28,10 @@ async function apiFetch(path: string, opts?: RequestInit) {
 // ─── Zone configuration ────────────────────────────────────────────────────────
 
 const ZONES = [
-  { name: "AIRPORT",  capacity: 15,   color: "text-blue-400",   borderColor: "border-blue-500/30",   bgColor: "bg-blue-500/10" },
+  { name: "AIRPORT",  capacity: 15,   color: "text-blue-400",    borderColor: "border-blue-500/30",    bgColor: "bg-blue-500/10" },
   { name: "FREE",     capacity: null, color: "text-emerald-400", borderColor: "border-emerald-500/30", bgColor: "bg-emerald-500/10" },
-  { name: "TASHKENT", capacity: null, color: "text-violet-400", borderColor: "border-violet-500/30", bgColor: "bg-violet-500/10" },
+  { name: "IBIS",     capacity: null, color: "text-red-400",     borderColor: "border-red-500/30",     bgColor: "bg-red-500/10" },
+  { name: "TASHKENT", capacity: null, color: "text-violet-400",  borderColor: "border-violet-500/30",  bgColor: "bg-violet-500/10" },
 ] as const;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -249,7 +250,7 @@ export default function TbsAirParking() {
       </div>
 
       {/* Zone cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {ZONES.map((zoneDef) => {
           const zoneData: ZoneData = zones?.[zoneDef.name] ?? { capacity: zoneDef.capacity, assignments: [] };
           const count = zoneData.assignments.length;

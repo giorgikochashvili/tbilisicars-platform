@@ -76,7 +76,7 @@ export async function getAISummary() {
        WHERE removed_at IS NULL
        GROUP BY zone`,
     );
-    const parking: Record<string, number> = { TERMINAL: 0, OUT: 0, FREE: 0 };
+    const parking: Record<string, number> = { TERMINAL: 0, OUT: 0, FREE: 0, IBIS: 0, TASHKENT: 0 };
     for (const r of parkingQ.rows) {
       parking[r.zone] = parseInt(r.count, 10);
     }
@@ -84,6 +84,8 @@ export async function getAISummary() {
       terminal: parking["TERMINAL"] ?? 0,
       out: parking["OUT"] ?? 0,
       free: parking["FREE"] ?? 0,
+      ibis: parking["IBIS"] ?? 0,
+      tashkent: parking["TASHKENT"] ?? 0,
     };
   } catch {
     // Table does not exist or module not installed — omit parking from response

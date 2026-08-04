@@ -433,6 +433,7 @@ function formatParkingZone(zone: string | null | undefined): string {
   const labels: Record<string, string> = {
     AIRPORT: "TBS AIR PARKING",
     FREE: "Free Parking",
+    IBIS: "IBIS",
     TASHKENT: "Tashkent",
   };
   return labels[zone] ?? zone;

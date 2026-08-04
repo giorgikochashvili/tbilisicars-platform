@@ -15,7 +15,8 @@ type TxClient = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export const ZONE_CAPACITIES: Record<string, number | null> = {
   AIRPORT: 15,
-  FREE: null, // unlimited
+  FREE: null,  // unlimited
+  IBIS: null,  // unlimited
   TASHKENT: null, // unlimited
 };
 

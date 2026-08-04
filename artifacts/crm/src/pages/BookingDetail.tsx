@@ -1480,7 +1480,7 @@ function HandoverModal({
                 Parking Zone (TBS Airport)
               </Label>
               <div className="flex flex-wrap gap-2">
-                {(["AIRPORT", "FREE", "TASHKENT"] as const).map((zone) => (
+                {(["AIRPORT", "FREE", "IBIS", "TASHKENT"] as const).map((zone) => (
                   <button
                     key={zone}
                     type="button"
