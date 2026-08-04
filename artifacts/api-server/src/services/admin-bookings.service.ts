@@ -1032,9 +1032,122 @@ export async function updateAdminBookingStatus(
 
 // ─── Service: replace vehicle on a DELIVERED booking ──────────────────────────
 //
+// ─── Service: list eligible replacement candidates ────────────────────────────
+// Returns AVAILABLE vehicles across the full fleet that have no booking
+// conflict from NOW() through booking.dropoffDatetime.
+//
+// Uses a single SQL query with a NOT EXISTS conflict predicate (no N+1 loop).
+// Plate search is optional: partial, case-insensitive, spaces/hyphens ignored.
+// Exact normalized matches sort first; then by city and license plate.
+
+export interface ReplacementCandidate {
+  id: number;
+  licensePlate: string;
+  brandName: string;
+  modelName: string;
+  locationName: string | null;
+  city: string | null;
+  status: string;
+}
+
+export async function listReplacementCandidates(
+  bookingId: number,
+  plateSearch: string,
+): Promise<ReplacementCandidate[]> {
+  const bkRows = await db
+    .select({
+      vehicleId:       bookingTable.vehicleId,
+      status:          bookingTable.status,
+      dropoffDatetime: bookingTable.dropoffDatetime,
+    })
+    .from(bookingTable)
+    .where(and(eq(bookingTable.id, bookingId), isNull(bookingTable.deletedAt)))
+    .limit(1);
+
+  const bk = bkRows[0];
+  if (!bk) throw new NotFoundError(`Booking ${bookingId} not found`);
+  if (bk.status !== "DELIVERED") {
+    throw new AppError(400, "Replacement candidates are only available for DELIVERED bookings");
+  }
+  if (bk.vehicleId == null) {
+    throw new AppError(400, "Booking does not have an assigned vehicle");
+  }
+
+  const currentVehicleId = bk.vehicleId;
+  const replacementStart = new Date();
+  const replacementEnd   = bk.dropoffDatetime;
+  const checkConflicts   = replacementStart < replacementEnd;
+
+  // Normalize search string: lowercase, strip non-alphanumeric.
+  const normalizedSearch = plateSearch.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const { rows } = await pool.query<{
+    id: number;
+    licensePlate: string;
+    brandName: string;
+    modelName: string;
+    locationName: string | null;
+    city: string | null;
+    status: string;
+  }>(
+    `SELECT
+       v.id,
+       v.license_plate                                                AS "licensePlate",
+       br.name                                                        AS "brandName",
+       vm.name                                                        AS "modelName",
+       loc.name                                                       AS "locationName",
+       loc.city                                                       AS city,
+       v.status
+     FROM vehicle v
+     JOIN vehicle_model vm ON vm.id = v.vehicle_model_id
+     JOIN brand br         ON br.id = vm.brand_id
+     LEFT JOIN location loc ON loc.id = v.location_id
+     WHERE v.status = 'AVAILABLE'
+       AND v.id != $1
+       AND (
+         $2 = ''
+         OR regexp_replace(lower(v.license_plate), '[^a-z0-9]', '', 'g')
+            LIKE '%' || $2 || '%'
+       )
+       AND (
+         NOT ($3::boolean)
+         OR NOT EXISTS (
+           SELECT 1
+           FROM booking cb
+           WHERE cb.vehicle_id = v.id
+             AND cb.deleted_at IS NULL
+             AND cb.status IN ('PENDING', 'CONFIRMED', 'DELIVERED')
+             AND cb.id        != $4
+             AND cb.pickup_datetime  < $6::timestamptz
+             AND cb.dropoff_datetime > $5::timestamptz
+         )
+       )
+     ORDER BY
+       CASE
+         WHEN $2 <> ''
+          AND regexp_replace(lower(v.license_plate), '[^a-z0-9]', '', 'g') = $2
+         THEN 0
+         ELSE 1
+       END,
+       loc.city NULLS LAST,
+       v.license_plate`,
+    [
+      currentVehicleId,
+      normalizedSearch,
+      checkConflicts,
+      bookingId,
+      replacementStart.toISOString(),
+      replacementEnd.toISOString(),
+    ],
+  );
+
+  return rows;
+}
+
+// ─── Service: replace vehicle on an active booking ───────────────────────────
 // Atomically:
 //   1. Guards (DELIVERED, has vehicle, different vehicle, new vehicle exists)
-//   2. Conflict check for new vehicle
+//   2. AVAILABLE status check + conflict revalidation using NOW()→dropoff window
 //   3. Inserts booking_vehicle_assignments row for old vehicle (history)
 //   4. Updates booking.vehicleId = newVehicleId (vehicleModelId unchanged)
 //   5. Old vehicle → AVAILABLE, new vehicle → RENTED
@@ -1081,8 +1194,9 @@ export async function replaceVehicleOnBooking(
     capturedOldVehicleId = oldVehicleId;
 
     // 3. Lock both vehicle rows in ascending-id order (deadlock prevention).
-    //    Track the new-vehicle lock result to verify the vehicle exists.
+    //    Also read the new vehicle's current status for AVAILABLE verification.
     let newVehicleFound = false;
+    let newVehicleStatus: string | null = null;
     if (oldVehicleId < newVehicleId) {
       await tx
         .select({ id: vehicleTable.id })
@@ -1090,18 +1204,20 @@ export async function replaceVehicleOnBooking(
         .where(eq(vehicleTable.id, oldVehicleId))
         .for("update");
       const rows = await tx
-        .select({ id: vehicleTable.id })
+        .select({ id: vehicleTable.id, status: vehicleTable.status })
         .from(vehicleTable)
         .where(eq(vehicleTable.id, newVehicleId))
         .for("update");
       newVehicleFound = rows.length > 0;
+      newVehicleStatus = rows[0]?.status ?? null;
     } else {
       const rows = await tx
-        .select({ id: vehicleTable.id })
+        .select({ id: vehicleTable.id, status: vehicleTable.status })
         .from(vehicleTable)
         .where(eq(vehicleTable.id, newVehicleId))
         .for("update");
       newVehicleFound = rows.length > 0;
+      newVehicleStatus = rows[0]?.status ?? null;
       await tx
         .select({ id: vehicleTable.id })
         .from(vehicleTable)
@@ -1112,18 +1228,31 @@ export async function replaceVehicleOnBooking(
       throw new NotFoundError(`Vehicle ${newVehicleId} not found`);
     }
 
-    // 4. Conflict check for new vehicle (exclude current booking)
-    const { conflict, conflictingBookingId } = await checkVehicleConflict(
-      newVehicleId,
-      bk.pickupDatetime,
-      bk.dropoffDatetime,
-      id,
-      tx,
-    );
-    if (conflict) {
-      throw new ConflictError(
-        `Replacement vehicle is already booked during this period (conflicts with booking #${conflictingBookingId})`,
+    // 4a. Verify new vehicle is still AVAILABLE (status read from the locked row).
+    if (newVehicleStatus !== "AVAILABLE") {
+      throw new AppError(
+        409,
+        `Replacement vehicle is no longer available (current status: ${newVehicleStatus ?? "unknown"})`,
       );
+    }
+
+    // 4b. Conflict revalidation: NOW() → dropoff window.
+    //     Historical bookings that ended before NOW are not conflicts.
+    //     Skip check entirely when dropoff is already in the past.
+    const replacementTime = new Date();
+    if (replacementTime < bk.dropoffDatetime) {
+      const { conflict, conflictingBookingId } = await checkVehicleConflict(
+        newVehicleId,
+        replacementTime,
+        bk.dropoffDatetime,
+        id,
+        tx,
+      );
+      if (conflict) {
+        throw new ConflictError(
+          `Replacement vehicle is already booked during the remaining rental period (conflicts with booking #${conflictingBookingId})`,
+        );
+      }
     }
 
     // 5. Determine startDate for the history row.
@@ -1138,7 +1267,7 @@ export async function replaceVehicleOnBooking(
       .limit(1);
 
     const assignmentStartDate = latestPrior[0]?.endDate ?? bk.pickupDatetime;
-    const replacementTime = new Date();
+    // replacementTime defined above — reused here for the history endDate
 
     // 6. Insert history record for the old vehicle
     await tx.insert(bookingVehicleAssignmentsTable).values({

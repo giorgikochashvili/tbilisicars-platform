@@ -28,6 +28,7 @@ import {
   appendBookingPhotos,
   toggleCustomerContacted,
   replaceVehicleOnBooking,
+  listReplacementCandidates,
 } from "../services/admin-bookings.service.js";
 import {
   createHandover,
@@ -641,6 +642,17 @@ router.post("/admin/bookings/:id/replace-vehicle", requireAdmin, async (req, res
   });
 
   res.json(booking);
+});
+
+router.get("/admin/bookings/:id/replacement-candidates", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  if (!id || isNaN(id)) {
+    res.status(400).json({ error: "Invalid booking ID" });
+    return;
+  }
+  const plate = typeof req.query.plate === "string" ? req.query.plate.trim() : "";
+  const candidates = await listReplacementCandidates(id, plate);
+  res.json(candidates);
 });
 
 export default router;

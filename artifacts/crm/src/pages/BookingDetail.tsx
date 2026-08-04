@@ -1903,6 +1903,9 @@ export default function BookingDetail({
   const [replaceSelectedVehicleId, setReplaceSelectedVehicleId] = useState<number | null>(null);
   const [replaceReason, setReplaceReason] = useState("");
   const [savingReplace, setSavingReplace] = useState(false);
+  const [replacePlateSearch, setReplacePlateSearch] = useState("");
+  const replaceFetchRef = useRef(0);
+  const replaceOpenedRef = useRef(false);
 
   const handleExtrasEdit = async () => {
     try {
@@ -2073,44 +2076,13 @@ export default function BookingDetail({
     }
   }, [booking?.vehicleModelId, booking?.pickupLocation?.id, overviewLocations]);
 
-  const openReplaceDialog = useCallback(async () => {
+  const openReplaceDialog = useCallback(() => {
     setReplaceSelectedVehicleId(null);
     setReplaceReason("");
+    setReplacePlateSearch("");
     setIsReplaceOpen(true);
-    setLoadingReplaceVehicles(true);
-    try {
-      let locations = overviewLocations;
-      if (locations.length === 0) {
-        try {
-          const data = await apiFetch("/admin/locations");
-          locations = data ?? [];
-          setOverviewLocations(locations);
-        } catch {
-          // Non-critical
-        }
-      }
-      const pickupCity = locations.find(
-        (l: any) => l.id === booking?.pickupLocation?.id,
-      )?.city;
-      if (!pickupCity) {
-        toast({
-          title: "Pickup city missing",
-          description: "Cannot list vehicles without a pickup city.",
-          variant: "destructive",
-        });
-        setIsReplaceOpen(false);
-        return;
-      }
-      const vehiclesData = await apiFetch(
-        `/admin/fleet/vehicles?limit=100&city=${encodeURIComponent(pickupCity)}`,
-      );
-      setReplaceVehicles(vehiclesData?.data ?? []);
-    } catch (e: any) {
-      toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
-    } finally {
-      setLoadingReplaceVehicles(false);
-    }
-  }, [booking?.pickupLocation?.id, overviewLocations]);
+    // Initial candidate fetch is driven by the useEffect watching isReplaceOpen
+  }, []);
 
   const handleModelChange = useCallback(
     async (modelId: number) => {
@@ -2255,10 +2227,54 @@ export default function BookingDetail({
       toast({ title: "Vehicle replaced", description: "The active rental vehicle has been updated." });
     } catch (e: any) {
       toast({ title: "Replacement failed", description: e.message, variant: "destructive" });
+      // Vehicle may have become unavailable since the dialog opened.
+      // Clear stale selection, refresh candidates, keep dialog open, preserve typed reason.
+      setReplaceSelectedVehicleId(null);
+      setLoadingReplaceVehicles(true);
+      try {
+        const plate = replacePlateSearch.trim();
+        const url = `/admin/bookings/${bookingId}/replacement-candidates${plate ? `?plate=${encodeURIComponent(plate)}` : ""}`;
+        const data = await apiFetch(url);
+        setReplaceVehicles(Array.isArray(data) ? data : []);
+      } catch {
+        // Non-critical — list may be stale until next interaction
+      } finally {
+        setLoadingReplaceVehicles(false);
+      }
     } finally {
       setSavingReplace(false);
     }
-  }, [bookingId, replaceSelectedVehicleId, replaceReason, fetchBooking]);
+  }, [bookingId, replaceSelectedVehicleId, replaceReason, replacePlateSearch, fetchBooking]);
+
+  // Fetch replacement candidates when the dialog opens (immediate) or when the
+  // plate search changes (debounced 300ms). Stale responses are discarded via
+  // a monotonic token so a slower earlier request never overwrites a newer one.
+  useEffect(() => {
+    if (!isReplaceOpen || !bookingId) {
+      replaceOpenedRef.current = false;
+      return;
+    }
+    const isFirstFetch = !replaceOpenedRef.current;
+    replaceOpenedRef.current = true;
+    const token = ++replaceFetchRef.current;
+    const delay = isFirstFetch ? 0 : 300;
+    const timer = setTimeout(async () => {
+      setLoadingReplaceVehicles(true);
+      try {
+        const plate = replacePlateSearch.trim();
+        const url = `/admin/bookings/${bookingId}/replacement-candidates${plate ? `?plate=${encodeURIComponent(plate)}` : ""}`;
+        const data = await apiFetch(url);
+        if (token !== replaceFetchRef.current) return;
+        setReplaceVehicles(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        if (token !== replaceFetchRef.current) return;
+        toast({ title: "Error loading vehicles", description: e.message, variant: "destructive" });
+      } finally {
+        if (token === replaceFetchRef.current) setLoadingReplaceVehicles(false);
+      }
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [isReplaceOpen, replacePlateSearch, bookingId]);
 
   useEffect(() => {
     if (open && bookingId) {
@@ -4534,6 +4550,18 @@ export default function BookingDetail({
             )}
             <div>
               <Label className="text-xs text-muted-foreground mb-1 block">
+                Search by plate number
+              </Label>
+              <Input
+                placeholder="e.g. AB-123-CD"
+                value={replacePlateSearch}
+                onChange={(e) => setReplacePlateSearch(e.target.value)}
+                disabled={savingReplace}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1 block">
                 Replacement Vehicle
               </Label>
               <div className="max-h-52 overflow-y-auto space-y-1 pr-0.5">
@@ -4543,29 +4571,45 @@ export default function BookingDetail({
                   </div>
                 ) : replaceVehicles.length === 0 ? (
                   <div className="text-center py-4 text-sm text-muted-foreground">
-                    No vehicles available in this city.
+                    No eligible replacement vehicles found.
                   </div>
                 ) : (
                   replaceVehicles.map((v: any) => (
                     <button
                       key={v.id}
                       type="button"
-                      disabled={savingReplace || v.id === booking?.vehicleId}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left transition-colors border disabled:opacity-40 ${
+                      disabled={savingReplace}
+                      className={`w-full flex flex-col gap-0.5 px-3 py-2 rounded-md text-left transition-colors border disabled:opacity-40 ${
                         replaceSelectedVehicleId === v.id
                           ? "border-primary bg-primary/10"
                           : "border-border/30 hover:bg-muted/60"
                       }`}
                       onClick={() => setReplaceSelectedVehicleId(v.id)}
                     >
-                      <span className="font-mono font-medium text-sm">
-                        {v.licensePlate}
-                      </span>
-                      <span className="text-xs text-muted-foreground capitalize ml-2">
-                        {v.id === booking?.vehicleId
-                          ? "current"
-                          : (v.status?.toLowerCase() ?? "")}
-                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-medium text-sm">
+                          {v.licensePlate}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground uppercase tracking-wide shrink-0">
+                          {v.status?.toLowerCase() ?? "available"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="truncate">
+                          {[v.brandName, v.modelName].filter(Boolean).join(" ")}
+                        </span>
+                        {(v.city || v.locationName) && (
+                          <>
+                            <span>·</span>
+                            <span className="shrink-0">
+                              {v.city ?? v.locationName}
+                              {v.city && v.locationName && v.city !== v.locationName
+                                ? ` — ${v.locationName}`
+                                : ""}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </button>
                   ))
                 )}
