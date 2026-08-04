@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StopSellPanel from "./rates/StopSellPanel";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAdminRates,
@@ -919,7 +920,7 @@ function ChildRateLoader({
 }
 
 
-type ActiveTab = "web" | "broker";
+type ActiveTab = "web" | "broker" | "stopSell";
 
 const BLANK_FORM: RateFormData = {
   name: "",
@@ -1403,6 +1404,19 @@ export default function RatesPage() {
             </Badge>
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab("stopSell")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            activeTab === "stopSell"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <BadgeDollarSign className="w-3.5 h-3.5" />
+            STOP SELL
+          </span>
+        </button>
       </div>
 
       {activeTab === "broker" && (
@@ -1411,7 +1425,9 @@ export default function RatesPage() {
         </div>
       )}
 
-      <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
+      {activeTab === "stopSell" && <StopSellPanel />}
+
+      {activeTab !== "stopSell" && <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/30">
@@ -1465,7 +1481,7 @@ export default function RatesPage() {
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </Card>}
 
       {/* ── Chooser modal ────────────────────────────────────────────────────── */}
       <Dialog open={isChooserOpen} onOpenChange={setIsChooserOpen}>

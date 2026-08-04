@@ -19,6 +19,7 @@ import {
 import type { ExtraLineItem } from "../lib/pricing.js";
 import { upsertCustomerByEmail } from "../services/customer-auth.service.js";
 import { resolveOneWayFee } from "../lib/one-way-fee.js";
+import { isStopSold, getStopSoldModelIds } from "../services/admin-stop-sell.service.js";
 
 const router: IRouter = Router();
 
@@ -361,6 +362,25 @@ router.get("/public/booking-config", async (req, res) => {
     }
   }
 
+  // ── Stop Sell filter: exclude stop-sold models when location + dates are present ──
+  // Uses Asia/Tbilisi boundaries (see admin-stop-sell.service.ts).
+  // When location.city is NULL, no filtering is applied (no false exclusions).
+  // Does not modify vehicle_count, On Request behaviour, discounts, or sorting.
+  if (filterByLocation && filterByDates) {
+    const pickupLocCity =
+      (locRows.rows as Array<{ id: number; name: string; city: string | null }>)
+        .find((l) => l.id === locationId)?.city ?? null;
+    if (pickupLocCity !== null) {
+      const allModelIds = vehicleModels.map((m) => Number((m as Record<string, unknown>).id));
+      const stopSoldIds = await getStopSoldModelIds(allModelIds, pickupLocCity, pickupDt!, dropoffDt!);
+      if (stopSoldIds.size > 0) {
+        vehicleModels = vehicleModels.filter(
+          (m) => !stopSoldIds.has(Number((m as Record<string, unknown>).id)),
+        );
+      }
+    }
+  }
+
   // ── One-way fee: resolve when both pickup and dropoff locations are set and different ──
   let configOneWayFee: number | null = null;
   if (filterByLocation && filterByDropoffLocation && locationId !== dropoffLocationId) {
@@ -665,6 +685,41 @@ router.post("/public/bookings", async (req, res) => {
     return res.status(422).json({ errors: ["Invalid email address"] });
   }
 
+  // ── Vehicle model validation (before any side effects) ───────────────────
+  // Moved ahead of upsertCustomerByEmail so a bad model ID never creates a
+  // customer account, booking record, extras, promo increment, attribution, or email.
+  const { rows: modelRows } = await pool.query(
+    `SELECT vm.id, br.name AS brand, vm.name AS model
+     FROM vehicle_model vm
+     JOIN brand br ON br.id = vm.brand_id
+     WHERE vm.id = $1 AND vm.available_for_external_systems = true AND vm.active = true`,
+    [body.vehicleModelId],
+  );
+  if (!modelRows[0]) {
+    return res.status(422).json({ errors: ["Selected vehicle model is not available for online booking"] });
+  }
+
+  // ── Stop Sell validation (before any side effects) ────────────────────────
+  // A rejected submission must create or change nothing:
+  // no customer, no booking, no extras, no promo increment, no attribution, no email.
+  // Uses Asia/Tbilisi boundaries. When location.city is NULL, check is skipped.
+  {
+    const { rows: [locForSS] } = await pool.query<{ city: string | null }>(
+      `SELECT city FROM location WHERE id = $1`,
+      [body.pickupLocationId],
+    );
+    const ssCity = locForSS?.city ?? null;
+    const stopSold = await isStopSold(
+      Number(body.vehicleModelId),
+      ssCity,
+      body.pickupDatetime!,
+      body.dropoffDatetime!,
+    );
+    if (stopSold) {
+      return res.status(422).json({ error: "MODEL_NOT_AVAILABLE" });
+    }
+  }
+
   // ── Customer account upsert ────────────────────────────────────────────────
   // Resolve (or create) the customer account identified by email.
   // For new accounts: a 6-char alphanumeric password is generated, hashed,
@@ -676,17 +731,6 @@ router.post("/public/bookings", async (req, res) => {
     fullName: contactFullNameEarly,
     phone: body.phone?.trim() ?? null,
   });
-
-  const { rows: modelRows } = await pool.query(
-    `SELECT vm.id, br.name AS brand, vm.name AS model
-     FROM vehicle_model vm
-     JOIN brand br ON br.id = vm.brand_id
-     WHERE vm.id = $1 AND vm.available_for_external_systems = true AND vm.active = true`,
-    [body.vehicleModelId],
-  );
-  if (!modelRows[0]) {
-    return res.status(422).json({ errors: ["Selected vehicle model is not available for online booking"] });
-  }
 
   // Determine initial booking status using the same availability signal the website
   // shows to customers: vehicle_count === 0 means "On Request" → PENDING,
