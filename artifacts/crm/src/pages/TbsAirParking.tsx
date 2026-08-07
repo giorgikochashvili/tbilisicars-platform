@@ -12,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { PlateSearchInput, type PlateSearchVehicle } from "@/components/PlateSearchInput";
 
+// Set to true to re-enable the "View vehicle detail" car icon on parking cards.
+const SHOW_VEHICLE_ACTION = false;
+
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api${path}`, {
     credentials: "include",
@@ -323,16 +326,18 @@ export default function TbsAirParking() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                          title="View vehicle detail"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/crm/fleet?vehicleId=${entry.vehicleId}`;
-                          }}
-                        >
-                          <Car className="w-3.5 h-3.5" />
-                        </button>
+                        {SHOW_VEHICLE_ACTION && (
+                          <button
+                            className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="View vehicle detail"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/crm/fleet?vehicleId=${entry.vehicleId}`;
+                            }}
+                          >
+                            <Car className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         {entry.activeServiceStatus && (
                           <button
                             className="h-7 w-7 flex items-center justify-center rounded text-amber-400 hover:bg-amber-500/10 transition-colors"
