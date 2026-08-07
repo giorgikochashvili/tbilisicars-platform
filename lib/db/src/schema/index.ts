@@ -21,3 +21,4 @@ export * from "./discounts";
 export * from "./showroom";
 export * from "./regional-intake";
 export * from "./stop-sell";
+export * from "./availability-groups";
