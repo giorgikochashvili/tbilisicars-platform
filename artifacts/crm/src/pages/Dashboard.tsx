@@ -56,6 +56,8 @@ interface BookingRow {
   dropoffLocation: { id: number; name: string };
   partner: { id: number; name: string } | null;
   customerContacted?: boolean;
+  pickupType?: string | null;
+  dropoffType?: string | null;
 }
 
 interface WebsiteBookingsSummary {
@@ -509,6 +511,43 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
       </CardContent>
     </Card>
   );
+}
+
+// ─── Operations filter helpers ────────────────────────────────────────────────
+
+const AIRPORT_LOCATION_NAMES = [
+  "tbilisi international airport",
+  "kutaisi international airport",
+  "batumi international airport",
+] as const;
+
+type OpFilter = "ALL" | "AIRPORT" | "CITY";
+
+function classifyOperation(
+  typeField: string | null | undefined,
+  locationName: string,
+): "AIRPORT" | "CITY" {
+  const t = (typeField ?? "").trim().toLowerCase();
+  if (t === "airport") return "AIRPORT";
+  if (t === "hotel" || t === "address" || t === "office") return "CITY";
+  // null, blank, or any unexpected value → fall back to location name
+  const n = locationName.trim().toLowerCase();
+  return (AIRPORT_LOCATION_NAMES as readonly string[]).includes(n) ? "AIRPORT" : "CITY";
+}
+
+function applyOpFilter(
+  bookings: BookingRow[],
+  filter: OpFilter,
+  side: "pickup" | "dropoff",
+): BookingRow[] {
+  if (filter === "ALL") return bookings;
+  return bookings.filter((b) => {
+    const cls =
+      side === "pickup"
+        ? classifyOperation(b.pickupType, b.pickupLocation.name)
+        : classifyOperation(b.dropoffType, b.dropoffLocation.name);
+    return cls === filter;
+  });
 }
 
 // ─── Activity Table ───────────────────────────────────────────────────────────
@@ -1177,6 +1216,7 @@ export default function Dashboard() {
   const [widgetConfig, setWidgetConfig] = useState<WidgetConfig>(loadWidgetConfig);
   const [selectedPickupDate, setSelectedPickupDate] = useState<string>(todayDateStr);
   const [selectedDropoffDate, setSelectedDropoffDate] = useState<string>(todayDateStr);
+  const [opFilter, setOpFilter] = useState<"ALL" | "AIRPORT" | "CITY">("ALL");
   const city = region === "All" ? undefined : region;
   const [, navigate] = useLocation();
   const isMobile = useIsMobile();
@@ -1233,18 +1273,26 @@ export default function Dashboard() {
 
   const filteredPickups = useMemo(
     () =>
-      (pickupQuery.data?.pickups ?? [])
-        .filter((b) => b.status !== "CANCELED" && b.status !== "NO_SHOW")
-        .sort((a, b) => new Date(a.pickupDatetime).getTime() - new Date(b.pickupDatetime).getTime()),
-    [pickupQuery.data],
+      applyOpFilter(
+        (pickupQuery.data?.pickups ?? [])
+          .filter((b) => b.status !== "CANCELED" && b.status !== "NO_SHOW")
+          .sort((a, b) => new Date(a.pickupDatetime).getTime() - new Date(b.pickupDatetime).getTime()),
+        opFilter,
+        "pickup",
+      ),
+    [pickupQuery.data, opFilter],
   );
 
   const filteredDropoffs = useMemo(
     () =>
-      (dropoffQuery.data?.dropoffs ?? [])
-        .filter((b) => b.status !== "RETURNED" && b.status !== "CANCELED" && b.status !== "NO_SHOW")
-        .sort((a, b) => new Date(a.dropoffDatetime).getTime() - new Date(b.dropoffDatetime).getTime()),
-    [dropoffQuery.data],
+      applyOpFilter(
+        (dropoffQuery.data?.dropoffs ?? [])
+          .filter((b) => b.status !== "RETURNED" && b.status !== "CANCELED" && b.status !== "NO_SHOW")
+          .sort((a, b) => new Date(a.dropoffDatetime).getTime() - new Date(b.dropoffDatetime).getTime()),
+        opFilter,
+        "dropoff",
+      ),
+    [dropoffQuery.data, opFilter],
   );
 
   const fleetQuery = useQuery<FleetSnapshot>({
@@ -1508,9 +1556,27 @@ export default function Dashboard() {
 
         if (key === "todaysOperations") return (
           <div key="todaysOperations">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
-            </h2>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-primary" /> Operations
+              </h2>
+              <div className="flex items-center gap-0.5 rounded-md border border-border/40 p-0.5 bg-muted/30">
+                {(["ALL", "AIRPORT", "CITY"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setOpFilter(f)}
+                    className={cn(
+                      "px-2.5 py-0.5 text-xs font-semibold rounded transition-colors",
+                      opFilter === f
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-5">
               <ActivityTable
                 title="Pickups"

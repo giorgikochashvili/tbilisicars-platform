@@ -74,6 +74,8 @@ const bookingRowSelect = {
   dropoffLocationCity: dropoffLoc.city,
   partnerId: partnerTable.id,
   partnerName: partnerTable.name,
+  pickupType: bookingTable.pickupType,
+  dropoffType: bookingTable.dropoffType,
 } as const;
 
 type BookingRowFlat = {
@@ -108,6 +110,8 @@ type BookingRowFlat = {
   partnerId: number | null;
   partnerName: string | null;
   customerContacted: boolean;
+  pickupType: string | null;
+  dropoffType: string | null;
 };
 
 function mapToBookingRow(row: BookingRowFlat) {
@@ -144,6 +148,8 @@ function mapToBookingRow(row: BookingRowFlat) {
     pickupLocation: { id: row.pickupLocationId, name: row.pickupLocationName },
     dropoffLocation: { id: row.dropoffLocationId, name: row.dropoffLocationName },
     partner: row.partnerId ? { id: row.partnerId, name: row.partnerName! } : null,
+    pickupType: row.pickupType,
+    dropoffType: row.dropoffType,
   };
 }
 
