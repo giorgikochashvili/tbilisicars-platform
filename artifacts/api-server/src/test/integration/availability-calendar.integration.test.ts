@@ -1,15 +1,18 @@
 /**
  * Integration tests for Availability Calendar — group CRUD and DB behaviors.
  *
- * SAFETY: Uses ONLY AVAILABILITY_TEST_DATABASE_URL.
+ * ISOLATION: Uses ONLY AVAILABILITY_TEST_DATABASE_URL.
  * Never falls back to DATABASE_URL.
- * If AVAILABILITY_TEST_DATABASE_URL is absent, all tests are skipped gracefully.
+ * If AVAILABILITY_TEST_DATABASE_URL is absent: skip gracefully (process.exit(0)).
+ *
+ * Pattern follows the repository convention established in
+ * replace-vehicle-candidates.integration.test.ts:
+ *   - drizzle(testDbUrl, { schema }) to create a drizzle client
+ *   - (_db as any).$client as PoolHandle to access the underlying pg pool
+ *   - No direct import of "pg" — pool is obtained through drizzle's $client
  *
  * Assumes the test database has the full schema including:
- *   - availability_group
- *   - availability_group_vehicle_model
- *   - vehicle_model (for FK references)
- *   - audit_logs
+ *   availability_group, availability_group_vehicle_model
  *
  * Run:
  *   AVAILABILITY_TEST_DATABASE_URL=... node --import tsx --test \
@@ -18,410 +21,365 @@
 
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "@workspace/db/schema";
 
-const TEST_DB_URL = process.env["AVAILABILITY_TEST_DATABASE_URL"];
-const SKIP = !TEST_DB_URL;
-const SKIP_REASON = "AVAILABILITY_TEST_DATABASE_URL not set — skipping integration tests";
+// ─── DB URL guard ─────────────────────────────────────────────────────────────
 
-// ─── Safety check ─────────────────────────────────────────────────────────────
-
-if (TEST_DB_URL) {
-  // Guard: must not be DATABASE_URL
-  const prodUrl = process.env["DATABASE_URL"];
-  if (prodUrl && TEST_DB_URL === prodUrl) {
-    throw new Error(
-      "AVAILABILITY_TEST_DATABASE_URL must not equal DATABASE_URL. " +
-        "Integration tests must use a dedicated isolated test database.",
-    );
-  }
+const testDbUrl = process.env["AVAILABILITY_TEST_DATABASE_URL"];
+if (!testDbUrl) {
+  console.log(
+    "SKIP: AVAILABILITY_TEST_DATABASE_URL is not set. " +
+      "Point it to an isolated disposable test database with the production schema applied " +
+      "to run Availability Calendar integration tests. " +
+      "This suite is reported as not executed — it is not an error.",
+  );
+  process.exit(0);
 }
 
-// ─── DB client ────────────────────────────────────────────────────────────────
+// Safety: must not be the production DATABASE_URL
+const prodUrl = process.env["DATABASE_URL"];
+if (prodUrl && testDbUrl === prodUrl) {
+  throw new Error(
+    "AVAILABILITY_TEST_DATABASE_URL must not equal DATABASE_URL. " +
+      "Integration tests must use a dedicated isolated test database.",
+  );
+}
 
-const { Pool } = pg;
-let pool: InstanceType<typeof Pool>;
+// ─── Pool handle (via drizzle.$client — repository convention) ────────────────
 
-async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
-  sql: string,
+type PoolHandle = {
+  query: <T extends Record<string, unknown>>(
+    sql: string,
+    params?: unknown[],
+  ) => Promise<{ rows: T[] }>;
+  end: () => Promise<void>;
+};
+
+const _db = drizzle(testDbUrl, { schema });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pool = (_db as any).$client as PoolHandle;
+
+// ─── SQL helpers ──────────────────────────────────────────────────────────────
+
+async function sql<T extends Record<string, unknown>>(
+  query: string,
   params: unknown[] = [],
-): Promise<pg.QueryResult<T>> {
-  return pool.query<T>(sql, params);
+): Promise<T[]> {
+  const res = await pool.query<T>(query, params);
+  return res.rows;
 }
 
-// ─── Setup / teardown ─────────────────────────────────────────────────────────
+async function run(query: string, params: unknown[] = []): Promise<void> {
+  await pool.query(query, params);
+}
 
-before(async () => {
-  if (SKIP) return;
-  pool = new Pool({ connectionString: TEST_DB_URL });
+// ─── Seed helpers ─────────────────────────────────────────────────────────────
 
-  // Ensure test tables exist (idempotent — schema may already be applied)
-  await query(`
-    CREATE TABLE IF NOT EXISTS availability_group (
-      id          SERIAL        PRIMARY KEY,
-      name        VARCHAR(100)  NOT NULL,
-      is_active   BOOLEAN       NOT NULL DEFAULT TRUE,
-      sort_order  INTEGER       NOT NULL DEFAULT 0,
-      created_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-      updated_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await query(`
-    CREATE TABLE IF NOT EXISTS availability_group_vehicle_model (
-      id               SERIAL    PRIMARY KEY,
-      group_id         INTEGER   NOT NULL
-        REFERENCES availability_group (id) ON DELETE CASCADE,
-      vehicle_model_id INTEGER   NOT NULL,
-      CONSTRAINT uq_agvm_vehicle_model_id_test UNIQUE (vehicle_model_id)
-    )
-  `);
-
-  // Wipe test data from prior runs
-  await query("DELETE FROM availability_group_vehicle_model WHERE TRUE");
-  await query("DELETE FROM availability_group WHERE TRUE");
-});
-
-after(async () => {
-  if (SKIP || !pool) return;
-  // Clean up test data
-  await query("DELETE FROM availability_group_vehicle_model WHERE TRUE").catch(() => {});
-  await query("DELETE FROM availability_group WHERE TRUE").catch(() => {});
-  await pool.end();
-});
-
-// ─── Helper: create a test group ──────────────────────────────────────────────
-
-async function createTestGroup(
+async function createGroup(
   name: string,
   sortOrder = 0,
 ): Promise<{ id: number; name: string }> {
-  const res = await query<{ id: number; name: string }>(
+  const rows = await sql<{ id: number; name: string }>(
     "INSERT INTO availability_group (name, sort_order) VALUES ($1, $2) RETURNING id, name",
     [name, sortOrder],
   );
-  return res.rows[0];
+  return rows[0]!;
 }
+
+// ─── Cleanup tracking ─────────────────────────────────────────────────────────
+
+const cleanup = {
+  groupIds: [] as number[],
+  modelMappingModelIds: [] as number[],
+};
+
+function trackGroup(id: number) {
+  cleanup.groupIds.push(id);
+  return id;
+}
+function trackModel(modelId: number) {
+  cleanup.modelMappingModelIds.push(modelId);
+  return modelId;
+}
+
+// ─── Teardown ─────────────────────────────────────────────────────────────────
+
+after(async () => {
+  // Clean up in FK order
+  if (cleanup.modelMappingModelIds.length) {
+    await run(
+      "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = ANY($1)",
+      [cleanup.modelMappingModelIds],
+    );
+  }
+  if (cleanup.groupIds.length) {
+    await run(
+      "DELETE FROM availability_group WHERE id = ANY($1)",
+      [cleanup.groupIds],
+    );
+  }
+  await pool.end();
+});
 
 // ─── Group CRUD ───────────────────────────────────────────────────────────────
 
-describe("Group CRUD", { skip: SKIP ? SKIP_REASON : false }, () => {
+describe("Group CRUD", () => {
   test("create a group and read it back", async () => {
-    const group = await createTestGroup("Integration Economy");
+    const group = await createGroup("Integration Economy");
+    trackGroup(group.id);
     assert.ok(group.id > 0);
 
-    const res = await query<{ id: number; name: string; is_active: boolean }>(
+    const rows = await sql<{ id: number; name: string; is_active: boolean }>(
       "SELECT id, name, is_active FROM availability_group WHERE id = $1",
       [group.id],
     );
-    assert.equal(res.rows.length, 1);
-    assert.equal(res.rows[0].name, "Integration Economy");
-    assert.equal(res.rows[0].is_active, true);
-
-    // Cleanup
-    await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.name, "Integration Economy");
+    assert.equal(rows[0]!.is_active, true);
   });
 
   test("update group name and sort_order", async () => {
-    const group = await createTestGroup("Old Name");
-    await query(
+    const group = await createGroup("Old Name");
+    trackGroup(group.id);
+
+    await run(
       "UPDATE availability_group SET name = $1, sort_order = $2 WHERE id = $3",
       ["New Name", 5, group.id],
     );
-    const res = await query<{ name: string; sort_order: number }>(
+
+    const rows = await sql<{ name: string; sort_order: number }>(
       "SELECT name, sort_order FROM availability_group WHERE id = $1",
       [group.id],
     );
-    assert.equal(res.rows[0].name, "New Name");
-    assert.equal(res.rows[0].sort_order, 5);
-
-    await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
+    assert.equal(rows[0]!.name, "New Name");
+    assert.equal(rows[0]!.sort_order, 5);
   });
 
   test("delete group cascades membership rows", async () => {
-    const group = await createTestGroup("To Delete");
-    // Add a fake membership (vehicleModelId 99999 — no FK in test table)
-    await query(
+    const group = await createGroup("To Delete");
+    // Note: group NOT tracked — we will delete it manually in this test
+    const modelId = 79901;
+    trackModel(modelId); // track for cleanup in case of early failure
+
+    await run(
       "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
-      [group.id, 99999],
+      [group.id, modelId],
     );
-    // Verify membership exists
-    const before = await query(
-      "SELECT COUNT(*) FROM availability_group_vehicle_model WHERE group_id = $1",
+
+    const before = await sql<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM availability_group_vehicle_model WHERE group_id = $1",
       [group.id],
     );
-    assert.equal(Number(before.rows[0].count), 1);
+    assert.equal(Number(before[0]!.count), 1);
 
-    // Delete group — cascade should remove membership
-    await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
+    // Delete group — ON DELETE CASCADE removes the membership row
+    await run("DELETE FROM availability_group WHERE id = $1", [group.id]);
 
-    const after = await query(
-      "SELECT COUNT(*) FROM availability_group_vehicle_model WHERE group_id = $1",
+    const after = await sql<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM availability_group_vehicle_model WHERE group_id = $1",
       [group.id],
     );
-    assert.equal(Number(after.rows[0].count), 0);
+    assert.equal(Number(after[0]!.count), 0);
+
+    // Remove from trackModel cleanup since cascade already cleaned it
+    cleanup.modelMappingModelIds.splice(
+      cleanup.modelMappingModelIds.indexOf(modelId),
+      1,
+    );
   });
 
-  test("toggle is_active", async () => {
-    const group = await createTestGroup("Toggle Group");
-    await query("UPDATE availability_group SET is_active = FALSE WHERE id = $1", [
-      group.id,
-    ]);
-    const res = await query<{ is_active: boolean }>(
+  test("toggle is_active to FALSE", async () => {
+    const group = await createGroup("Toggle Group");
+    trackGroup(group.id);
+
+    await run(
+      "UPDATE availability_group SET is_active = FALSE WHERE id = $1",
+      [group.id],
+    );
+
+    const rows = await sql<{ is_active: boolean }>(
       "SELECT is_active FROM availability_group WHERE id = $1",
       [group.id],
     );
-    assert.equal(res.rows[0].is_active, false);
-
-    await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
+    assert.equal(rows[0]!.is_active, false);
   });
 });
 
 // ─── Unique vehicle model ownership ──────────────────────────────────────────
 
-describe(
-  "Unique vehicle model ownership",
-  { skip: SKIP ? SKIP_REASON : false },
-  () => {
-    test("UNIQUE(vehicle_model_id) prevents double-assignment", async () => {
-      const g1 = await createTestGroup("Group A");
-      const g2 = await createTestGroup("Group B");
-      const modelId = 88001; // test-only fake model ID
+describe("Unique vehicle model ownership", () => {
+  test("UNIQUE(vehicle_model_id) prevents double-assignment to different groups", async () => {
+    const g1 = await createGroup("Group A");
+    trackGroup(g1.id);
+    const g2 = await createGroup("Group B");
+    trackGroup(g2.id);
+    const modelId = 79902;
+    trackModel(modelId);
 
-      // First assignment succeeds
-      await query(
-        "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
-        [g1.id, modelId],
-      );
+    // First assignment succeeds
+    await run(
+      "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
+      [g1.id, modelId],
+    );
 
-      // Second assignment to different group must fail with unique violation
-      await assert.rejects(
-        () =>
-          query(
-            "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
-            [g2.id, modelId],
-          ),
-        (err: Error) => {
-          assert.ok(
-            err.message.includes("unique") || err.message.includes("duplicate"),
-            `Expected unique constraint violation, got: ${err.message}`,
-          );
-          return true;
-        },
-      );
-
-      // Cleanup
-      await query(
-        "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
-        [modelId],
-      );
-      await query("DELETE FROM availability_group WHERE id IN ($1, $2)", [
-        g1.id,
-        g2.id,
-      ]);
-    });
-  },
-);
+    // Second assignment to different group must fail with unique violation
+    await assert.rejects(
+      () =>
+        pool.query(
+          "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
+          [g2.id, modelId],
+        ),
+      (err: Error) => {
+        assert.ok(
+          err.message.toLowerCase().includes("unique") ||
+            err.message.toLowerCase().includes("duplicate"),
+          `Expected unique constraint violation, got: ${err.message}`,
+        );
+        return true;
+      },
+    );
+  });
+});
 
 // ─── Atomic move-model ────────────────────────────────────────────────────────
 
-describe("Atomic move-model", { skip: SKIP ? SKIP_REASON : false }, () => {
+describe("Atomic move-model", () => {
   test("move model from group A to group B atomically", async () => {
-    const gA = await createTestGroup("Move Source");
-    const gB = await createTestGroup("Move Target");
-    const modelId = 88002;
+    const gA = await createGroup("Move Source");
+    trackGroup(gA.id);
+    const gB = await createGroup("Move Target");
+    trackGroup(gB.id);
+    const modelId = 79903;
+    trackModel(modelId);
 
     // Place model in gA
-    await query(
+    await run(
       "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
       [gA.id, modelId],
     );
 
-    // Simulate atomic move: DELETE from gA, INSERT into gB
-    await query("BEGIN");
+    // Atomic move via BEGIN/COMMIT
+    await run("BEGIN");
     try {
-      await query(
+      await run(
         "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
         [modelId],
       );
-      await query(
+      await run(
         "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
         [gB.id, modelId],
       );
-      await query("COMMIT");
+      await run("COMMIT");
     } catch (e) {
-      await query("ROLLBACK");
+      await run("ROLLBACK");
       throw e;
     }
 
     // Verify model is now in gB
-    const res = await query<{ group_id: number }>(
+    const rows = await sql<{ group_id: number }>(
       "SELECT group_id FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
       [modelId],
     );
-    assert.equal(res.rows.length, 1);
-    assert.equal(res.rows[0].group_id, gB.id);
-
-    // Cleanup
-    await query(
-      "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
-      [modelId],
-    );
-    await query("DELETE FROM availability_group WHERE id IN ($1, $2)", [
-      gA.id,
-      gB.id,
-    ]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.group_id, gB.id);
   });
 
-  test("failed move rolls back: model stays in original group", async () => {
-    const gA = await createTestGroup("Rollback Source");
-    const modelId = 88003;
-    const fakeTargetId = -999; // non-existent group
+  test("rollback: model stays in original group after failed transaction", async () => {
+    const gA = await createGroup("Rollback Source");
+    trackGroup(gA.id);
+    const modelId = 79904;
+    trackModel(modelId);
 
-    await query(
+    await run(
       "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
       [gA.id, modelId],
     );
 
-    // Simulate failed move: DELETE succeeds but INSERT to fake group fails FK
-    // (In our test table there is no FK on group_id, so we test a UNIQUE violation instead)
-    // We'll test rollback by attempting to insert a duplicate model in the same group
-    await query("BEGIN");
-    try {
-      await query(
-        "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
-        [modelId],
-      );
-      // Insert with non-existent group — in real schema this fails FK;
-      // in test schema (no FK on group_id), we force a rollback manually
-      await query("ROLLBACK");
-    } catch {
-      await query("ROLLBACK");
-    }
-
-    // Re-insert model (it was removed from test table by ROLLBACK, re-add to verify)
-    // After ROLLBACK, original row should still be there
-    const res = await query<{ group_id: number }>(
-      "SELECT group_id FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
+    // Simulate failed move: DELETE then ROLLBACK
+    await run("BEGIN");
+    await run(
+      "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
       [modelId],
     );
+    await run("ROLLBACK");
+
     // After rollback, model is still in gA
-    assert.equal(res.rows.length, 1);
-    assert.equal(res.rows[0].group_id, gA.id);
-
-    // Cleanup
-    await query(
-      "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
+    const rows = await sql<{ group_id: number }>(
+      "SELECT group_id FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
       [modelId],
     );
-    await query("DELETE FROM availability_group WHERE id = $1", [gA.id]);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]!.group_id, gA.id);
   });
 
-  test("idempotent move: already in target returns moved=false", async () => {
-    const gA = await createTestGroup("Idempotent Group");
-    const modelId = 88004;
+  test("idempotent: move to current group is detected as already-in-target", async () => {
+    const gA = await createGroup("Idempotent Group");
+    trackGroup(gA.id);
+    const modelId = 79905;
+    trackModel(modelId);
 
-    await query(
+    await run(
       "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
       [gA.id, modelId],
     );
 
-    // Check if already in target
-    const res = await query<{ group_id: number }>(
+    // Check: already in target group
+    const rows = await sql<{ group_id: number }>(
       "SELECT group_id FROM availability_group_vehicle_model WHERE vehicle_model_id = $1 AND group_id = $2",
       [modelId, gA.id],
     );
-    // Already in gA — move to gA is idempotent
-    const alreadyInTarget = res.rows.length > 0;
-    assert.ok(alreadyInTarget);
-
-    // Cleanup
-    await query(
-      "DELETE FROM availability_group_vehicle_model WHERE vehicle_model_id = $1",
-      [modelId],
-    );
-    await query("DELETE FROM availability_group WHERE id = $1", [gA.id]);
+    assert.ok(rows.length > 0, "Model should already be in target group");
   });
 });
 
-// ─── Unclassified location handling ──────────────────────────────────────────
+// ─── Calendar supply query ────────────────────────────────────────────────────
 
-describe(
-  "Unclassified location city normalization",
-  { skip: SKIP ? SKIP_REASON : false },
-  () => {
-    test("group CRUD succeeds regardless of vehicle location cities (read-only against vehicles)", async () => {
-      // Availability groups never write to vehicle/location tables.
-      // This test confirms group creation works independently of location data.
-      const group = await createTestGroup("Unclassified Test Group");
-      assert.ok(group.id > 0);
-      await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
-    });
-  },
-);
+describe("Calendar supply group query", () => {
+  test("inactive group excluded from is_active=TRUE query", async () => {
+    const active = await createGroup("Active Group");
+    trackGroup(active.id);
+    const inactive = await createGroup("Inactive Group");
+    trackGroup(inactive.id);
 
-// ─── Calendar supply query (if schema available) ──────────────────────────────
+    await run(
+      "UPDATE availability_group SET is_active = FALSE WHERE id = $1",
+      [inactive.id],
+    );
 
-describe(
-  "Calendar supply group query",
-  { skip: SKIP ? SKIP_REASON : false },
-  () => {
-    test("inactive group is excluded from active-only calendar query", async () => {
-      const active = await createTestGroup("Active Group");
-      const inactive = await createTestGroup("Inactive Group");
+    const rows = await sql<{ id: number }>(
+      "SELECT id FROM availability_group WHERE is_active = TRUE",
+    );
+    const ids = rows.map((r) => r.id);
+    assert.ok(ids.includes(active.id), "Active group must appear");
+    assert.ok(!ids.includes(inactive.id), "Inactive group must not appear");
+  });
 
-      // Set inactive group
-      await query(
-        "UPDATE availability_group SET is_active = FALSE WHERE id = $1",
-        [inactive.id],
+  test("group with multiple model IDs returns one row per model in LEFT JOIN", async () => {
+    const group = await createGroup("Multi-Model Group");
+    trackGroup(group.id);
+    const models = [79910, 79911, 79912];
+
+    for (const mid of models) {
+      trackModel(mid);
+      await run(
+        "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
+        [group.id, mid],
       );
+    }
 
-      // Query for active groups only
-      const res = await query<{ id: number; name: string }>(
-        "SELECT id, name FROM availability_group WHERE is_active = TRUE ORDER BY sort_order, id",
-      );
-      const ids = res.rows.map((r: { id: number }) => r.id);
-      assert.ok(ids.includes(active.id), "Active group should appear");
-      assert.ok(!ids.includes(inactive.id), "Inactive group should not appear");
-
-      // Cleanup
-      await query("DELETE FROM availability_group WHERE id IN ($1, $2)", [
-        active.id,
-        inactive.id,
-      ]);
-    });
-
-    test("group with multiple model IDs returns one row per model in JOIN", async () => {
-      const group = await createTestGroup("Multi-Model Group");
-      const models = [88010, 88011, 88012];
-
-      for (const mid of models) {
-        await query(
-          "INSERT INTO availability_group_vehicle_model (group_id, vehicle_model_id) VALUES ($1, $2)",
-          [group.id, mid],
-        );
-      }
-
-      const res = await query<{ vehicle_model_id: number }>(
-        `SELECT agvm.vehicle_model_id
-         FROM availability_group ag
-         JOIN availability_group_vehicle_model agvm ON agvm.group_id = ag.id
-         WHERE ag.id = $1
-         ORDER BY agvm.vehicle_model_id`,
-        [group.id],
-      );
-      assert.equal(res.rows.length, 3);
-      assert.deepEqual(
-        res.rows.map((r: { vehicle_model_id: number }) => r.vehicle_model_id),
-        models,
-      );
-
-      // Cleanup
-      await query(
-        "DELETE FROM availability_group_vehicle_model WHERE group_id = $1",
-        [group.id],
-      );
-      await query("DELETE FROM availability_group WHERE id = $1", [group.id]);
-    });
-  },
-);
+    const rows = await sql<{ vehicle_model_id: number }>(
+      `SELECT agvm.vehicle_model_id
+       FROM availability_group ag
+       JOIN availability_group_vehicle_model agvm ON agvm.group_id = ag.id
+       WHERE ag.id = $1
+       ORDER BY agvm.vehicle_model_id`,
+      [group.id],
+    );
+    assert.equal(rows.length, 3);
+    assert.deepEqual(
+      rows.map((r) => r.vehicle_model_id),
+      models,
+    );
+  });
+});
