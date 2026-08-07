@@ -33,8 +33,6 @@ import {
   createAvailabilityGroup,
   updateAvailabilityGroup,
   deleteAvailabilityGroup,
-  addModelToGroup,
-  removeModelFromGroup,
   moveModel,
   getAvailabilityCalendar,
   getAvailabilityCellDetail,
@@ -205,70 +203,6 @@ router.delete(
       res.json({ success: true });
     } catch (err) {
       console.error("[availability] deleteGroup error", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-);
-
-// POST /admin/availability-groups/:id/models — add model to group
-router.post(
-  "/admin/availability-groups/:id/models",
-  requireAdmin,
-  async (req, res) => {
-    const groupId = parseInt(String(req.params["id"]), 10);
-    const { vehicleModelId } = req.body as { vehicleModelId?: number };
-
-    if (isNaN(groupId) || typeof vehicleModelId !== "number") {
-      res
-        .status(400)
-        .json({ error: "groupId and vehicleModelId are required" });
-      return;
-    }
-
-    try {
-      const result = await addModelToGroup(
-        groupId,
-        vehicleModelId,
-        req.session.adminId ?? null,
-      );
-      if (!result.success) {
-        res.status(409).json({
-          error: "Vehicle model already belongs to another group",
-          conflictGroupId: result.conflictGroupId,
-          conflictGroupName: result.conflictGroupName,
-        });
-        return;
-      }
-      res.status(201).json({ success: true });
-    } catch (err) {
-      console.error("[availability] addModel error", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-);
-
-// DELETE /admin/availability-groups/:groupId/models/:modelId
-router.delete(
-  "/admin/availability-groups/:groupId/models/:modelId",
-  requireAdmin,
-  async (req, res) => {
-    const groupId = parseInt(String(req.params["groupId"]), 10);
-    const modelId = parseInt(String(req.params["modelId"]), 10);
-
-    if (isNaN(groupId) || isNaN(modelId)) {
-      res.status(400).json({ error: "Invalid groupId or modelId" });
-      return;
-    }
-
-    try {
-      await removeModelFromGroup(
-        groupId,
-        modelId,
-        req.session.adminId ?? null,
-      );
-      res.json({ success: true });
-    } catch (err) {
-      console.error("[availability] removeModel error", err);
       res.status(500).json({ error: "Internal server error" });
     }
   },

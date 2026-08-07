@@ -1,1 +1,0 @@
-- [lib/db composite build](lib-db-composite-build.md) — after adding schema to lib/db, run `npx tsc --build` there before api-server tsc; dist/.d.ts files are the source of truth for project references.
