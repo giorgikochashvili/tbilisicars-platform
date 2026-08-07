@@ -43,6 +43,9 @@ export default function LocationsPage() {
   const [owfLoading, setOwfLoading] = useState(true);
   const [owfForm, setOwfForm] = useState({ fromLocationId: "", toLocationId: "", fee: "", currency: "GEL" });
   const [owfSaving, setOwfSaving] = useState(false);
+  const [owfEditing, setOwfEditing] = useState<any>(null);
+  const [owfEditFee, setOwfEditFee] = useState("");
+  const [owfEditSaving, setOwfEditSaving] = useState(false);
 
   const loadOwf = useCallback(async () => {
     try {
@@ -95,6 +98,30 @@ export default function LocationsPage() {
       await loadOwf();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleOwfEditSave = async () => {
+    const parsed = parseFloat(owfEditFee);
+    if (owfEditFee.trim() === "" || !isFinite(parsed) || isNaN(parsed) || parsed < 0) {
+      toast({ title: "Error", description: "Fee must be a number ≥ 0", variant: "destructive" });
+      return;
+    }
+    setOwfEditSaving(true);
+    try {
+      const r = await fetch(`/api/admin/one-way-fees/${owfEditing.id}`, {
+        method: "PATCH", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fee: owfEditFee }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error ?? "Failed"); }
+      toast({ title: "Success", description: "One-way fee updated" });
+      setOwfEditing(null);
+      await loadOwf();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setOwfEditSaving(false);
     }
   };
   // ───────────────────────────────────────────────────────────────────────────
@@ -321,6 +348,12 @@ export default function LocationsPage() {
                         <TableCell className="text-muted-foreground">{owf.currency}</TableCell>
                         <TableCell className="text-right">
                           <Button
+                            variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => { setOwfEditing(owf); setOwfEditFee(String(owf.fee)); }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
                             variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
                             onClick={() => handleOwfDelete(owf.id)}
                           >
@@ -398,6 +431,48 @@ export default function LocationsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={owfEditing !== null} onOpenChange={(open) => { if (!open) setOwfEditing(null); }}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Edit One-Way Fee</DialogTitle>
+            <DialogDescription>Update the fee amount for this route.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-1">
+              <Label className="text-xs text-muted-foreground">From</Label>
+              <p className="text-sm font-medium">
+                {owfEditing ? ((locations as any[])?.find((l: any) => l.id === owfEditing.fromLocationId)?.name ?? `#${owfEditing?.fromLocationId}`) : ""}
+              </p>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs text-muted-foreground">To</Label>
+              <p className="text-sm font-medium">
+                {owfEditing ? ((locations as any[])?.find((l: any) => l.id === owfEditing.toLocationId)?.name ?? `#${owfEditing?.toLocationId}`) : ""}
+              </p>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">Fee</Label>
+              <Input
+                type="number" step="0.01" min="0"
+                value={owfEditFee}
+                onChange={(e) => setOwfEditFee(e.target.value)}
+                disabled={owfEditSaving}
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs text-muted-foreground">Currency</Label>
+              <p className="text-sm font-medium">{owfEditing?.currency}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOwfEditing(null)} disabled={owfEditSaving}>Cancel</Button>
+            <Button onClick={handleOwfEditSave} disabled={owfEditSaving}>
+              {owfEditSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
