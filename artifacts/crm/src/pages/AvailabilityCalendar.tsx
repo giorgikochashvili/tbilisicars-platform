@@ -193,142 +193,253 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 
 // ─── Subcomponent: Detail Dialog ──────────────────────────────────────────────
 
+const DETAIL_CITIES = ["Tbilisi", "Kutaisi", "Batumi"] as const;
+
 function CellDetailDialog({
   groupId,
   groupName,
-  city,
   date,
+  mainCity,
+  byCityMetrics,
   open,
   onClose,
 }: {
   groupId: number;
   groupName: string;
-  city: string;
   date: string;
+  mainCity: City;
+  byCityMetrics: Record<string, DayMetrics> | null;
   open: boolean;
   onClose: () => void;
 }) {
+  // For a canonical city: pre-select it so detail loads immediately.
+  // For "All": start null — no region may be silently selected.
+  const [detailCity, setDetailCity] = useState<string | null>(
+    mainCity !== "All" ? mainCity : null,
+  );
+
   const { data, isLoading, error } = useQuery<DetailResponse>({
-    queryKey: ["availability-calendar-detail", groupId, city, date],
+    queryKey: ["availability-calendar-detail", groupId, detailCity, date],
     queryFn: () =>
       apiFetch<DetailResponse>(
-        `/api/admin/availability-calendar/detail?groupId=${groupId}&city=${encodeURIComponent(city)}&date=${date}`,
+        `/api/admin/availability-calendar/detail?groupId=${groupId}&city=${encodeURIComponent(detailCity!)}&date=${date}`,
       ),
-    enabled: open && !!city && !!date,
+    // Never fires until detailCity is explicitly set
+    enabled: open && !!date && detailCity !== null,
     staleTime: 30_000,
   });
 
   const fmt = (dt: string) => formatDateShort(dt);
+
+  const titleCity = mainCity === "All"
+    ? detailCity ? `${detailCity} (within All)` : "All"
+    : mainCity;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-background">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
-            {groupName} — {city} — {date}
+            {groupName} — {titleCity} — {date}
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading && (
-          <div className="space-y-2 py-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-8 w-full" />
-            ))}
-          </div>
-        )}
-        {error && (
-          <p className="text-sm text-destructive py-4">
-            Failed to load detail: {(error as Error).message}
-          </p>
-        )}
-
-        {data && (
-          <div className="space-y-4 text-sm">
-            {/* Summary */}
-            <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/40 border border-border/50">
-              <div>
-                <span className="text-muted-foreground text-xs">Day start</span>
-                <p className="font-mono text-xs">{fmt(data.startOfDay)}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Day end</span>
-                <p className="font-mono text-xs">{fmt(data.endOfDay)}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Supply (projected)</span>
-                <p className="font-semibold">{data.supply}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Unassigned demand</span>
-                <p className="font-semibold">{data.unassignedDemand}</p>
+        {/* ── Region selector — only when mainCity="All" ── */}
+        {mainCity === "All" && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Select region for detail
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {DETAIL_CITIES.map((c) => {
+                  const m = byCityMetrics?.[c];
+                  return (
+                    <Button
+                      key={c}
+                      variant={detailCity === c ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 px-4 text-xs gap-2"
+                      onClick={() => setDetailCity(c)}
+                    >
+                      {c}
+                      {m !== undefined && (
+                        <span
+                          className={`font-mono font-bold ${
+                            (m.shortage ?? 0) > 0 ? "text-red-400" : "text-emerald-500"
+                          }`}
+                        >
+                          {m.available}
+                        </span>
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Available Vehicles */}
-            {data.availableVehicles.length > 0 && (
-              <VehicleSection
-                title="Available Vehicles"
-                vehicles={data.availableVehicles}
-                badge="bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
-              />
+            {/* byCity summary table — uses backend byCity values directly */}
+            {byCityMetrics && Object.keys(byCityMetrics).length > 0 && (
+              <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/30 bg-muted/40">
+                      <th className="text-left px-3 py-1.5 font-semibold text-muted-foreground">Region</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Avail</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Bookings</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Pickups</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Returns</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Pending</th>
+                      <th className="text-center px-2 py-1.5 font-semibold text-muted-foreground">Shortage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DETAIL_CITIES.filter((c) => byCityMetrics[c] !== undefined).map((c) => {
+                      const m = byCityMetrics[c];
+                      return (
+                        <tr
+                          key={c}
+                          className={`border-b border-border/20 cursor-pointer hover:bg-muted/40 transition-colors ${
+                            detailCity === c ? "bg-primary/5" : ""
+                          }`}
+                          onClick={() => setDetailCity(c)}
+                        >
+                          <td className="px-3 py-1.5 font-medium">{c}</td>
+                          <td
+                            className={`text-center px-2 py-1.5 font-semibold ${
+                              (m.shortage ?? 0) > 0 ? "text-red-600" : "text-emerald-700"
+                            }`}
+                          >
+                            {m.available}
+                          </td>
+                          <td className="text-center px-2 py-1.5 text-muted-foreground">{m.bookings}</td>
+                          <td className="text-center px-2 py-1.5 text-muted-foreground">{m.pickups}</td>
+                          <td className="text-center px-2 py-1.5 text-muted-foreground">{m.returns}</td>
+                          <td className="text-center px-2 py-1.5 text-amber-600">{m.pending}</td>
+                          <td className="text-center px-2 py-1.5">
+                            {(m.shortage ?? 0) > 0 ? (
+                              <span className="inline-flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-sm w-4 h-4">
+                                {m.shortage}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
-            {/* Assigned Vehicles */}
-            {data.assignedVehicles.length > 0 && (
-              <VehicleSection
-                title="Assigned Vehicles"
-                vehicles={data.assignedVehicles}
-                badge="bg-blue-500/15 text-blue-700 border-blue-500/30"
-              />
+            {!detailCity && (
+              <p className="text-xs text-muted-foreground text-center py-1">
+                Select a region above to load full vehicle and booking detail.
+              </p>
             )}
 
-            {/* Overdue Vehicles */}
-            {data.overdueVehicles.length > 0 && (
-              <VehicleSection
-                title="Overdue Vehicles"
-                vehicles={data.overdueVehicles}
-                badge="bg-red-500/15 text-red-700 border-red-500/30"
-              />
+            {detailCity && (
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Detail for: {detailCity}
+              </p>
             )}
-
-            {/* Excluded */}
-            {data.excludedVehicles.length > 0 && (
-              <VehicleSection
-                title="Operationally Excluded"
-                vehicles={data.excludedVehicles}
-                badge="bg-slate-500/15 text-slate-600 border-slate-500/30"
-              />
-            )}
-
-            {/* Pickups */}
-            {data.pickups.length > 0 && (
-              <BookingSection title="Pickups" bookings={data.pickups} fmt={fmt} />
-            )}
-
-            {/* Returns */}
-            {data.returns.length > 0 && (
-              <BookingSection title="Returns" bookings={data.returns} fmt={fmt} />
-            )}
-
-            {/* Pending */}
-            {data.pendingBookings.length > 0 && (
-              <BookingSection
-                title="Pending Bookings"
-                bookings={data.pendingBookings}
-                fmt={fmt}
-              />
-            )}
-
-            {data.availableVehicles.length === 0 &&
-              data.assignedVehicles.length === 0 &&
-              data.overdueVehicles.length === 0 &&
-              data.excludedVehicles.length === 0 &&
-              data.pickups.length === 0 &&
-              data.returns.length === 0 &&
-              data.pendingBookings.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">No activity for this cell.</p>
-              )}
           </div>
+        )}
+
+        {/* ── Detail body — only rendered after detailCity is explicitly set ── */}
+        {detailCity !== null && (
+          <>
+            {isLoading && (
+              <div className="space-y-2 py-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            )}
+            {error && (
+              <p className="text-sm text-destructive py-4">
+                Failed to load detail: {(error as Error).message}
+              </p>
+            )}
+
+            {data && (
+              <div className="space-y-4 text-sm">
+                {/* Summary */}
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Day start</span>
+                    <p className="font-mono text-xs">{fmt(data.startOfDay)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Day end</span>
+                    <p className="font-mono text-xs">{fmt(data.endOfDay)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Supply (projected)</span>
+                    <p className="font-semibold">{data.supply}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Unassigned demand</span>
+                    <p className="font-semibold">{data.unassignedDemand}</p>
+                  </div>
+                </div>
+
+                {data.availableVehicles.length > 0 && (
+                  <VehicleSection
+                    title="Available Vehicles"
+                    vehicles={data.availableVehicles}
+                    badge="bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                  />
+                )}
+                {data.assignedVehicles.length > 0 && (
+                  <VehicleSection
+                    title="Assigned Vehicles"
+                    vehicles={data.assignedVehicles}
+                    badge="bg-blue-500/15 text-blue-700 border-blue-500/30"
+                  />
+                )}
+                {data.overdueVehicles.length > 0 && (
+                  <VehicleSection
+                    title="Overdue Vehicles"
+                    vehicles={data.overdueVehicles}
+                    badge="bg-red-500/15 text-red-700 border-red-500/30"
+                  />
+                )}
+                {data.excludedVehicles.length > 0 && (
+                  <VehicleSection
+                    title="Operationally Excluded"
+                    vehicles={data.excludedVehicles}
+                    badge="bg-slate-500/15 text-slate-600 border-slate-500/30"
+                  />
+                )}
+                {data.pickups.length > 0 && (
+                  <BookingSection title="Pickups" bookings={data.pickups} fmt={fmt} />
+                )}
+                {data.returns.length > 0 && (
+                  <BookingSection title="Returns" bookings={data.returns} fmt={fmt} />
+                )}
+                {data.pendingBookings.length > 0 && (
+                  <BookingSection
+                    title="Pending Bookings"
+                    bookings={data.pendingBookings}
+                    fmt={fmt}
+                  />
+                )}
+                {data.availableVehicles.length === 0 &&
+                  data.assignedVehicles.length === 0 &&
+                  data.overdueVehicles.length === 0 &&
+                  data.excludedVehicles.length === 0 &&
+                  data.pickups.length === 0 &&
+                  data.returns.length === 0 &&
+                  data.pendingBookings.length === 0 && (
+                    <p className="text-muted-foreground text-center py-4">
+                      No activity for this cell.
+                    </p>
+                  )}
+              </div>
+            )}
+          </>
         )}
 
         <DialogFooter>
@@ -1102,12 +1213,14 @@ export default function AvailabilityCalendar() {
     [rangeStart, rangeSize],
   );
 
-  // Detail cell selection: when city=All, require a canonical city choice
+  // Detail cell selection — mainCity may be "All"; byCityMetrics holds per-city
+  // metrics from the already-loaded calendar response for the All-region summary.
   const [selectedCell, setSelectedCell] = useState<{
     groupId: number;
     groupName: string;
     date: string;
-    city: string; // canonical city, never "All"
+    mainCity: City;
+    byCityMetrics: Record<string, DayMetrics> | null;
   } | null>(null);
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
 
@@ -1127,12 +1240,19 @@ export default function AvailabilityCalendar() {
   });
 
   const handleCellClick = (group: AvailGroup, date: string) => {
-    if (city === "All") {
-      // Use Tbilisi as default city for detail when in All view
-      setSelectedCell({ groupId: group.id, groupName: group.name, date, city: "Tbilisi" });
-    } else {
-      setSelectedCell({ groupId: group.id, groupName: group.name, date, city });
+    // Extract per-city metrics from the already-loaded byCity data when city="All".
+    // No Tbilisi default — the detail dialog requires an explicit region selection.
+    let byCityMetrics: Record<string, DayMetrics> | null = null;
+    if (city === "All" && data?.byCity) {
+      byCityMetrics = {};
+      for (const [cityName, cityGroups] of Object.entries(data.byCity)) {
+        const cityGroup = cityGroups.find((g) => g.id === group.id);
+        if (cityGroup?.days[date]) {
+          byCityMetrics[cityName] = cityGroup.days[date];
+        }
+      }
     }
+    setSelectedCell({ groupId: group.id, groupName: group.name, date, mainCity: city, byCityMetrics });
   };
 
   const formatRangeLabel = () => {
@@ -1246,7 +1366,7 @@ export default function AvailabilityCalendar() {
         {city === "All" && (
           <>
             <span className="mx-1 text-muted-foreground">·</span>
-            <span className="text-muted-foreground">Click cell to view detail in Tbilisi</span>
+            <span className="text-muted-foreground">Click cell → select region for detail</span>
           </>
         )}
       </div>
@@ -1408,8 +1528,9 @@ export default function AvailabilityCalendar() {
         <CellDetailDialog
           groupId={selectedCell.groupId}
           groupName={selectedCell.groupName}
-          city={selectedCell.city}
           date={selectedCell.date}
+          mainCity={selectedCell.mainCity}
+          byCityMetrics={selectedCell.byCityMetrics}
           open={!!selectedCell}
           onClose={() => setSelectedCell(null)}
         />
