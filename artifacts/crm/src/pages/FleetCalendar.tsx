@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import VehicleDetail from "./VehicleDetail";
 import BookingDetail from "./BookingDetail";
+import AvailabilityCalendar from "./AvailabilityCalendar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -477,6 +478,7 @@ export default function FleetCalendarPage() {
   // Dialog state
   const [detailVehicleId, setDetailVehicleId] = useState<number | null>(null);
   const [detailBookingId, setDetailBookingId] = useState<number | null>(null);
+  const [mode, setMode] = useState<"calendar" | "availability">("calendar");
 
   // Group by: category (default) or model
   const [groupBy, setGroupBy] = useState<GroupBy>("category");
@@ -609,6 +611,16 @@ export default function FleetCalendarPage() {
 
   return (
     <div className="flex flex-col gap-3 animate-in fade-in duration-500">
+      {/* ── Mode switch ── */}
+      <div className="flex gap-1 self-start border border-border/50 rounded-lg p-0.5 bg-card/60">
+        <Button variant={mode === "calendar" ? "secondary" : "ghost"} size="sm" className="h-7 px-3 text-xs font-medium gap-1.5" onClick={() => setMode("calendar")}>
+          <GanttChart className="w-3.5 h-3.5" />Fleet Calendar
+        </Button>
+        <Button variant={mode === "availability" ? "secondary" : "ghost"} size="sm" className="h-7 px-3 text-xs font-medium gap-1.5" onClick={() => setMode("availability")}>
+          <LayoutGrid className="w-3.5 h-3.5" />Availability
+        </Button>
+      </div>
+      {mode === "calendar" && (<>
       {/* ── Page header ── */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div>
@@ -1106,6 +1118,8 @@ export default function FleetCalendarPage() {
         open={detailBookingId !== null}
         onClose={() => setDetailBookingId(null)}
       />
+      </>)}
+      {mode === "availability" && <AvailabilityCalendar />}
     </div>
   );
 }
