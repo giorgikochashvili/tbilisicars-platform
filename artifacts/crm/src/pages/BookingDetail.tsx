@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type ReactElement } from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -1797,6 +1798,13 @@ export default function BookingDetail({
 }: BookingDetailProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const qc = useQueryClient();
+  // Invalidate Operations pickup/dropoff lists after mutations that affect
+  // list membership or the data shown in Operations rows.
+  const invalidateOps = () => {
+    qc.invalidateQueries({ queryKey: ["dashboard-today-pickups"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-today-dropoffs"] });
+  };
   const [booking, setBooking] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -1958,6 +1966,7 @@ export default function BookingDetail({
         body: JSON.stringify({ contacted: next }),
       });
       setBooking((b: any) => ({ ...b, customerContacted: result.customerContacted }));
+      invalidateOps();
     } catch (e: any) {
       setBooking((b: any) => ({ ...b, customerContacted: prev }));
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -2149,6 +2158,7 @@ export default function BookingDetail({
         setIsAssignOpen(false);
         await fetchBooking();
         toast({ title: "Vehicle assigned" });
+        invalidateOps();
       } catch (e: any) {
         toast({
           title: "Error",
@@ -2184,6 +2194,7 @@ export default function BookingDetail({
           ? "The assigned vehicle was cleared because the booked model changed."
           : undefined,
       });
+      invalidateOps();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -2202,6 +2213,7 @@ export default function BookingDetail({
       setIsAssignOpen(false);
       await fetchBooking();
       toast({ title: "Vehicle unassigned" });
+      invalidateOps();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -2225,6 +2237,7 @@ export default function BookingDetail({
       setIsReplaceOpen(false);
       await fetchBooking();
       toast({ title: "Vehicle replaced", description: "The active rental vehicle has been updated." });
+      invalidateOps();
     } catch (e: any) {
       toast({ title: "Replacement failed", description: e.message, variant: "destructive" });
       // Vehicle may have become unavailable since the dialog opened.
@@ -2487,6 +2500,7 @@ export default function BookingDetail({
       setHandoverForm(EMPTY_HANDOVER);
       fetchBooking();
       fetchHandovers();
+      invalidateOps();
 
       // Assign TBS Airport parking zone if staff selected one in the Drop Off form
       if (type === "dropoff" && parkingZone && vehicleId !== null) {
@@ -2576,6 +2590,7 @@ export default function BookingDetail({
       });
       await fetchBooking();
       toast({ title: "Status updated", description: `Booking #${bookingId} → ${newStatus.replace("_", " ")}` });
+      invalidateOps();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -2632,6 +2647,7 @@ export default function BookingDetail({
       setIsOverviewEditing(false);
       fetchBooking();
       toast({ title: "Booking updated" });
+      invalidateOps();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -2939,30 +2955,32 @@ export default function BookingDetail({
                           {booking.contactFullName || "—"}
                         </div>
                       )}
-                      {booking.contactPhone || booking.customer?.phone ? (
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs text-muted-foreground">
-                            {booking.contactPhone || booking.customer?.phone}
-                          </span>
-                          <a
-                            href={`https://wa.me/${(booking.contactPhone || booking.customer?.phone || "").replace(/[\s+]/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-green-400 hover:text-green-300 flex-shrink-0"
-                            title="Open WhatsApp"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                          </a>
-                          <button
-                            type="button"
-                            className={`flex-shrink-0 transition-colors ${booking.customerContacted ? "text-green-500 hover:text-green-400" : "text-muted-foreground/40 hover:text-muted-foreground/70"}`}
-                            onClick={handleToggleContacted}
-                            title={booking.customerContacted ? "Customer contacted" : "Mark customer as contacted"}
-                          >
-                            <PhoneCall className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : null}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {(booking.contactPhone || booking.customer?.phone) && (
+                          <>
+                            <span className="text-xs text-muted-foreground">
+                              {booking.contactPhone || booking.customer?.phone}
+                            </span>
+                            <a
+                              href={`https://wa.me/${(booking.contactPhone || booking.customer?.phone || "").replace(/[\s+]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-400 hover:text-green-300 flex-shrink-0"
+                              title="Open WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </a>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className={`flex-shrink-0 transition-colors ${booking.customerContacted ? "text-green-500 hover:text-green-400" : "text-muted-foreground/40 hover:text-muted-foreground/70"}`}
+                          onClick={handleToggleContacted}
+                          title={booking.customerContacted ? "Customer contacted" : "Mark customer as contacted"}
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <div className="text-[11px] uppercase text-muted-foreground tracking-wide mb-0.5">

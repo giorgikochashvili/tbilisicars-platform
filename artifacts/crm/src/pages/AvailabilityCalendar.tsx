@@ -496,7 +496,9 @@ function VehicleSection({
         {vehicles.map((v) => {
           const label = v.modelName
             ? `${v.modelName}${v.plate ? ` — ${v.plate}` : ""}`
-            : `#${v.id}`;
+            : v.plate
+              ? v.plate
+              : "Vehicle";
           const clickable = !!onOpenBooking && !!v.bookingId;
           return (
             <span
