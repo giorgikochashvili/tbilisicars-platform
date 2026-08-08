@@ -268,13 +268,20 @@ const LOCATION_SHORT_CODES: Record<string, string> = {
   "Batumi Downtown": "BAT DT",
 };
 
+function isAirportLocation(locationName?: string | null): boolean {
+  return (locationName ?? "")
+    .trim()
+    .toLowerCase()
+    .includes("airport");
+}
+
 function locationShortCode(name: string): string {
   if (LOCATION_SHORT_CODES[name]) return LOCATION_SHORT_CODES[name];
   // Fuzzy fallbacks — check for key words
   const n = name.toLowerCase();
-  if (n.includes("tbilisi") && (n.includes("airport") || n.includes("air"))) return "TBS AIR";
-  if (n.includes("kutaisi") && (n.includes("airport") || n.includes("air"))) return "KUT AIR";
-  if (n.includes("batumi") && (n.includes("airport") || n.includes("air"))) return "BAT AIR";
+  if (n.includes("tbilisi") && isAirportLocation(name)) return "TBS AIR";
+  if (n.includes("kutaisi") && isAirportLocation(name)) return "KUT AIR";
+  if (n.includes("batumi") && isAirportLocation(name)) return "BAT AIR";
   if (n.includes("tbilisi")) return "TBS";
   if (n.includes("kutaisi")) return "KUT";
   if (n.includes("batumi") && n.includes("hotel")) return "BAT H";
@@ -515,25 +522,7 @@ function TbsAirParkingWidget({ data, isLoading }: { data?: ParkingOverviewData; 
 
 // ─── Operations filter helpers ────────────────────────────────────────────────
 
-const AIRPORT_LOCATION_NAMES = [
-  "tbilisi international airport",
-  "kutaisi international airport",
-  "batumi international airport",
-] as const;
-
 type OpFilter = "ALL" | "AIRPORT" | "CITY";
-
-function classifyOperation(
-  typeField: string | null | undefined,
-  locationName: string,
-): "AIRPORT" | "CITY" {
-  const t = (typeField ?? "").trim().toLowerCase();
-  if (t === "airport") return "AIRPORT";
-  if (t === "hotel" || t === "address" || t === "office") return "CITY";
-  // null, blank, or any unexpected value → fall back to location name
-  const n = locationName.trim().toLowerCase();
-  return (AIRPORT_LOCATION_NAMES as readonly string[]).includes(n) ? "AIRPORT" : "CITY";
-}
 
 function applyOpFilter(
   bookings: BookingRow[],
@@ -542,11 +531,9 @@ function applyOpFilter(
 ): BookingRow[] {
   if (filter === "ALL") return bookings;
   return bookings.filter((b) => {
-    const cls =
-      side === "pickup"
-        ? classifyOperation(b.pickupType, b.pickupLocation.name)
-        : classifyOperation(b.dropoffType, b.dropoffLocation.name);
-    return cls === filter;
+    const locationName =
+      side === "pickup" ? b.pickupLocation.name : b.dropoffLocation.name;
+    return isAirportLocation(locationName) === (filter === "AIRPORT");
   });
 }
 
