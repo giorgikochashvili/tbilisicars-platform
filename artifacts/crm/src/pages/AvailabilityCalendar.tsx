@@ -245,6 +245,14 @@ function CellDetailDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-background">
         <DialogHeader>
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1 sm:hidden"
+            aria-label="Close detail"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            Back
+          </button>
           <DialogTitle className="text-base font-semibold">
             {groupName} — {titleCity} — {date}
           </DialogTitle>

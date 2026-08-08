@@ -556,7 +556,7 @@ function VehiclesTab({ reqOpts }: { reqOpts: any }) {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[520px] max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Edit Vehicle" : "Add Vehicle"}</DialogTitle>
             <DialogDescription>Physical car unit linked to a model.</DialogDescription>

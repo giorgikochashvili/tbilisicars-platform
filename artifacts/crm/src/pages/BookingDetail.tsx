@@ -2689,6 +2689,14 @@ export default function BookingDetail({
       >
         <DialogContent className="w-full max-w-[95vw] sm:max-w-[760px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-1 sm:hidden"
+              aria-label="Close booking detail"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              Back
+            </button>
             <DialogTitle className="font-display text-xl flex flex-wrap items-center gap-2">
               Booking #{bookingId}
               {booking?.status && (
