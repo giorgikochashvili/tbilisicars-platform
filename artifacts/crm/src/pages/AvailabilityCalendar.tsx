@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import BookingDetail from "./BookingDetail";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,9 @@ interface VehicleEntry {
   id: number;
   status: string | null;
   city: string | null;
+  modelName?: string | null;
+  plate?: string | null;
+  bookingId?: number | null;
 }
 
 interface BookingEntry {
@@ -217,6 +221,7 @@ function CellDetailDialog({
   const [detailCity, setDetailCity] = useState<string | null>(
     mainCity !== "All" ? mainCity : null,
   );
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
 
   const { data, isLoading, error } = useQuery<DetailResponse>({
     queryKey: ["availability-calendar-detail", groupId, detailCity, date],
@@ -236,6 +241,7 @@ function CellDetailDialog({
     : mainCity;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-background">
         <DialogHeader>
@@ -397,6 +403,7 @@ function CellDetailDialog({
                     title="Assigned Vehicles"
                     vehicles={data.assignedVehicles}
                     badge="bg-blue-500/15 text-blue-700 border-blue-500/30"
+                    onOpenBooking={(id) => setSelectedBookingId(id)}
                   />
                 )}
                 {data.overdueVehicles.length > 0 && (
@@ -404,6 +411,7 @@ function CellDetailDialog({
                     title="Overdue Vehicles"
                     vehicles={data.overdueVehicles}
                     badge="bg-red-500/15 text-red-700 border-red-500/30"
+                    onOpenBooking={(id) => setSelectedBookingId(id)}
                   />
                 )}
                 {data.excludedVehicles.length > 0 && (
@@ -414,10 +422,20 @@ function CellDetailDialog({
                   />
                 )}
                 {data.pickups.length > 0 && (
-                  <BookingSection title="Pickups" bookings={data.pickups} fmt={fmt} />
+                  <BookingSection
+                    title="Pickups"
+                    bookings={data.pickups}
+                    fmt={fmt}
+                    onOpenBooking={(id) => setSelectedBookingId(id)}
+                  />
                 )}
                 {data.returns.length > 0 && (
-                  <BookingSection title="Returns" bookings={data.returns} fmt={fmt} />
+                  <BookingSection
+                    title="Returns"
+                    bookings={data.returns}
+                    fmt={fmt}
+                    onOpenBooking={(id) => setSelectedBookingId(id)}
+                  />
                 )}
                 {data.pendingBookings.length > 0 && (
                   <BookingSection
@@ -449,6 +467,12 @@ function CellDetailDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <BookingDetail
+      bookingId={selectedBookingId}
+      open={selectedBookingId !== null}
+      onClose={() => setSelectedBookingId(null)}
+    />
+    </>
   );
 }
 
@@ -456,10 +480,12 @@ function VehicleSection({
   title,
   vehicles,
   badge,
+  onOpenBooking,
 }: {
   title: string;
   vehicles: VehicleEntry[];
   badge: string;
+  onOpenBooking?: (bookingId: number) => void;
 }) {
   return (
     <div>
@@ -467,18 +493,26 @@ function VehicleSection({
         {title} ({vehicles.length})
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {vehicles.map((v) => (
-          <span
-            key={v.id}
-            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${badge}`}
-          >
-            <span className="font-mono">#{v.id}</span>
-            {v.status && (
-              <span className="opacity-70">{v.status}</span>
-            )}
-            {v.city && <span className="opacity-60">{v.city}</span>}
-          </span>
-        ))}
+        {vehicles.map((v) => {
+          const label = v.modelName
+            ? `${v.modelName}${v.plate ? ` — ${v.plate}` : ""}`
+            : `#${v.id}`;
+          const clickable = !!onOpenBooking && !!v.bookingId;
+          return (
+            <span
+              key={v.id}
+              className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${badge} ${
+                clickable
+                  ? "cursor-pointer hover:opacity-75 transition-opacity"
+                  : ""
+              }`}
+              onClick={clickable ? () => onOpenBooking!(v.bookingId!) : undefined}
+              title={clickable ? `Open booking #${v.bookingId}` : undefined}
+            >
+              {label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -488,10 +522,12 @@ function BookingSection({
   title,
   bookings,
   fmt,
+  onOpenBooking,
 }: {
   title: string;
   bookings: BookingEntry[];
   fmt: (s: string) => string;
+  onOpenBooking?: (bookingId: number) => void;
 }) {
   return (
     <div>
@@ -502,7 +538,12 @@ function BookingSection({
         {bookings.map((b) => (
           <div
             key={b.id}
-            className="flex flex-wrap items-center gap-2 text-xs bg-muted/30 border border-border/40 rounded px-2 py-1.5"
+            className={`flex flex-wrap items-center gap-2 text-xs bg-muted/30 border border-border/40 rounded px-2 py-1.5 ${
+              onOpenBooking
+                ? "cursor-pointer hover:bg-muted/50 transition-colors"
+                : ""
+            }`}
+            onClick={onOpenBooking ? () => onOpenBooking(b.id) : undefined}
           >
             <span className="font-mono font-semibold">#{b.id}</span>
             <Badge
@@ -647,6 +688,26 @@ function ManageGroupsDialog({
       qc.invalidateQueries({ queryKey: ["availability-calendar"] });
     },
   });
+
+  // Remove-model mutation (Phase 1 DELETE endpoint)
+  const removeModelMutation = useMutation({
+    mutationFn: ({ groupId, vehicleModelId }: { groupId: number; vehicleModelId: number }) =>
+      apiFetch(`/api/admin/availability-groups/${groupId}/models/${vehicleModelId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["availability-groups"] });
+      qc.invalidateQueries({ queryKey: ["availability-calendar"] });
+    },
+  });
+
+  // Sync editingGroup when fresh groups data arrives — keeps the modal live
+  // after a successful add/move/remove without requiring close + reopen.
+  useEffect(() => {
+    if (!editingGroup || !groupsData) return;
+    const fresh = groupsData.groups.find((g) => g.id === editingGroup.id);
+    if (fresh) setEditingGroup(fresh);
+  }, [groupsData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sort order helpers
   const handleMoveUp = (group: GroupRecord) => {
@@ -843,7 +904,14 @@ function ManageGroupsDialog({
               targetGroupId: editingGroup.id,
             })
           }
+          onRemoveModel={(vehicleModelId) =>
+            removeModelMutation.mutate({
+              groupId: editingGroup.id,
+              vehicleModelId,
+            })
+          }
           isMutating={updateMutation.isPending || moveModelMutation.isPending}
+          isRemovingModel={removeModelMutation.isPending}
         />
       )}
 
@@ -948,7 +1016,9 @@ function EditGroupDialog({
   onClose,
   onUpdate,
   onMoveModel,
+  onRemoveModel,
   isMutating,
+  isRemovingModel,
 }: {
   open: boolean;
   group: GroupRecord;
@@ -957,7 +1027,9 @@ function EditGroupDialog({
   onClose: () => void;
   onUpdate: (data: Partial<GroupRecord>) => void;
   onMoveModel: (vehicleModelId: number) => void;
+  onRemoveModel: (vehicleModelId: number) => void;
   isMutating: boolean;
+  isRemovingModel: boolean;
 }) {
   const [name, setName] = useState(group.name);
   const [sortOrder, setSortOrder] = useState(group.sortOrder);
@@ -1060,6 +1132,16 @@ function EditGroupDialog({
                       className="inline-flex items-center gap-1 text-xs bg-muted/60 border border-border/50 rounded px-2 py-0.5"
                     >
                       {label}
+                      <button
+                        type="button"
+                        className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+                        disabled={isMutating || isRemovingModel}
+                        onClick={() => onRemoveModel(mid)}
+                        aria-label={`Remove ${label} from group`}
+                        title={`Remove ${label} from group`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </span>
                   );
                 })}
