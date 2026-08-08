@@ -180,6 +180,36 @@ export function isOccupiedAtEndOfDay(
   );
 }
 
+/**
+ * Returns the first booking from projBks that spans the end-of-day boundary —
+ * the exact booking that causes isOccupiedAtEndOfDay to return true.
+ * Uses the identical predicate. Exported for testing.
+ */
+export function findOccupyingBooking(
+  projBks: ProjectionBooking[],
+  nextDayStartUtc: Date,
+): ProjectionBooking | undefined {
+  return projBks.find(
+    (b) =>
+      b.pickupDatetime < nextDayStartUtc &&
+      b.dropoffDatetime >= nextDayStartUtc,
+  );
+}
+
+/**
+ * Returns the first booking from projBks that causes isOverdueBlocked to be
+ * true — a DELIVERED booking whose scheduled dropoff is before nowInstant.
+ * Exported for testing.
+ */
+export function findOverdueBooking(
+  projBks: ProjectionBooking[],
+  nowInstant: Date,
+): ProjectionBooking | undefined {
+  return projBks.find(
+    (b) => b.status === "DELIVERED" && b.dropoffDatetime < nowInstant,
+  );
+}
+
 // ─── Internal types ───────────────────────────────────────────────────────────
 
 interface EligibleVehicle {
@@ -730,7 +760,7 @@ export async function getAvailabilityCellDetail(query: DetailQuery) {
     };
   }
 
-  // Load vehicles
+  // Load vehicles (with model name and plate for display)
   const pickupLoc = aliasedTable(locationTable, "pickup_loc");
   const dropoffLoc = aliasedTable(locationTable, "dropoff_loc");
 
@@ -740,9 +770,12 @@ export async function getAvailabilityCellDetail(query: DetailQuery) {
       vehicleModelId: vehicleTable.vehicleModelId,
       status: vehicleTable.status,
       city: locationTable.city,
+      modelName: vehicleModelTable.name,
+      plate: vehicleTable.licensePlate,
     })
     .from(vehicleTable)
     .leftJoin(locationTable, eq(locationTable.id, vehicleTable.locationId))
+    .leftJoin(vehicleModelTable, eq(vehicleModelTable.id, vehicleTable.vehicleModelId))
     .where(
       and(
         inArray(vehicleTable.vehicleModelId, modelIds),
@@ -943,21 +976,35 @@ export async function getAvailabilityCellDetail(query: DetailQuery) {
       id: v.id,
       status: v.status,
       city: v.city,
+      modelName: v.modelName ?? null,
+      plate: v.plate ?? null,
     })),
     assignedVehicles: assignedVehicles.map((v) => ({
       id: v.id,
       status: v.status,
       city: v.city,
+      modelName: v.modelName ?? null,
+      plate: v.plate ?? null,
+      bookingId:
+        findOccupyingBooking(vehicleProjBks.get(v.id) ?? [], nextDayStartUtc)
+          ?.id ?? null,
     })),
     overdueVehicles: overdueVehicles.map((v) => ({
       id: v.id,
       status: v.status,
       city: v.city,
+      modelName: v.modelName ?? null,
+      plate: v.plate ?? null,
+      bookingId:
+        findOverdueBooking(vehicleProjBks.get(v.id) ?? [], nowInstant)?.id ??
+        null,
     })),
     excludedVehicles: excludedVehicles.map((v) => ({
       id: v.id,
       status: v.status,
       city: v.city,
+      modelName: v.modelName ?? null,
+      plate: v.plate ?? null,
     })),
     unassignedDemand,
     pendingBookings: [...pendingBookings, ...pendingUnassigned].map((b) => ({
@@ -1158,6 +1205,42 @@ export async function deleteAvailabilityGroup(
     action: "DELETE",
     summary: `Deleted availability group "${existing.name}" id=${id}`,
     beforeData: { name: existing.name, isActive: existing.isActive },
+  });
+
+  return true;
+}
+
+// ─── Remove model from group ──────────────────────────────────────────────────
+
+/**
+ * Atomically remove a vehicle model from an availability group.
+ * Uses DELETE ... RETURNING so the existence check and removal are one operation.
+ * Returns false (→ 404) when no membership row matched; true on success.
+ */
+export async function removeVehicleModelFromGroup(
+  groupId: number,
+  vehicleModelId: number,
+  actorId: number | null,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(availabilityGroupVehicleModelTable)
+    .where(
+      and(
+        eq(availabilityGroupVehicleModelTable.groupId, groupId),
+        eq(availabilityGroupVehicleModelTable.vehicleModelId, vehicleModelId),
+      ),
+    )
+    .returning();
+
+  if (deleted.length === 0) return false;
+
+  logAudit({
+    actorId,
+    entityType: "availability_group_vehicle_model",
+    entityId: vehicleModelId,
+    action: "DELETE",
+    summary: `Removed vehicleModelId=${vehicleModelId} from groupId=${groupId}`,
+    beforeData: { groupId, vehicleModelId },
   });
 
   return true;

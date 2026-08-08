@@ -34,6 +34,7 @@ import {
   updateAvailabilityGroup,
   deleteAvailabilityGroup,
   moveModel,
+  removeVehicleModelFromGroup,
   getAvailabilityCalendar,
   getAvailabilityCellDetail,
 } from "../services/admin-availability.service.js";
@@ -203,6 +204,41 @@ router.delete(
       res.json({ success: true });
     } catch (err) {
       console.error("[availability] deleteGroup error", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+);
+
+// DELETE /admin/availability-groups/:groupId/models/:modelId — remove model from group
+router.delete(
+  "/admin/availability-groups/:groupId/models/:modelId",
+  requireAdmin,
+  async (req, res) => {
+    const groupId = parseInt(String(req.params["groupId"]), 10);
+    const modelId = parseInt(String(req.params["modelId"]), 10);
+
+    if (isNaN(groupId) || groupId <= 0) {
+      res.status(400).json({ error: "Invalid groupId" });
+      return;
+    }
+    if (isNaN(modelId) || modelId <= 0) {
+      res.status(400).json({ error: "Invalid modelId" });
+      return;
+    }
+
+    try {
+      const removed = await removeVehicleModelFromGroup(
+        groupId,
+        modelId,
+        req.session.adminId ?? null,
+      );
+      if (!removed) {
+        res.status(404).json({ error: "Membership not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[availability] removeModelMembership error", err);
       res.status(500).json({ error: "Internal server error" });
     }
   },
